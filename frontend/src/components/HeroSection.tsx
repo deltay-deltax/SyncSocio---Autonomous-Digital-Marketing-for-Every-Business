@@ -81,7 +81,7 @@ const HeroSection = () => {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link to="/onboarding">
+            <Link to="/signup">
               <Button size="lg" className="gradient-bg text-primary-foreground border-0 text-base px-8 py-6 hover-lift">
                 Get Started for Free
                 <ArrowRight size={18} className="ml-2" />
