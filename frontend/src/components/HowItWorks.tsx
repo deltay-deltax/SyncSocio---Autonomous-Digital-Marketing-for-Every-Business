@@ -19,7 +19,7 @@ const steps = [
     icon: Rocket,
     step: "03",
     title: "Velocity Launch",
-    description: "Your agent goes live. Watch as it generates, formats, and deploys high-fidelity content across your channels.",
+    description: "Your agent goes live. Platform-native posts go out automatically — right format, right caption, right time.",
   },
 ];
 

@@ -45,7 +45,7 @@ const Login = () => {
       if (!res.ok) throw new Error(data.message || "Invalid credentials.");
       
       localStorage.setItem("token", data.token);
-      navigate("/onboarding");
+      navigate("/");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -194,7 +194,7 @@ const Login = () => {
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.message || "Google login failed");
                     localStorage.setItem("token", data.token);
-                    window.location.href = "/onboarding";
+                    window.location.href = "/";
                   } catch (err: any) {
                     setError(err.message);
                   }
@@ -233,7 +233,7 @@ const Login = () => {
                       const data = await res.json();
                       if (!res.ok) throw new Error(data.message || "Apple login failed");
                       localStorage.setItem("token", data.token);
-                      window.location.href = "/onboarding";
+                      window.location.href = "/";
                     } catch (err: any) {
                       setError(err.message);
                     }

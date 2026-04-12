@@ -19,7 +19,7 @@ const features = [
   {
     icon: TrendingUp,
     title: "Predictive Reach Forecast",
-    description: "Don't just track history. Use our AI-driven reach engine to see exactly where your brand will be in 90 days.",
+    description: "Track your growth week by week with simple performance reports.",
   },
 ];
 

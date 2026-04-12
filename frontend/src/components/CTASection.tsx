@@ -3,7 +3,11 @@ import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const CTASection = () => {
+interface CTASectionProps {
+  onWaitlistClick: () => void;
+}
+
+const CTASection = ({ onWaitlistClick }: CTASectionProps) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -22,9 +26,13 @@ const CTASection = () => {
             <span className="gradient-text">Start automating.</span>
           </h2>
           <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
-            Join the creators and startups who've already plugged into the intelligence layer. Your brand deserves velocity.
+            We're cooking something crazy. Drop your details and be the first to know when we go live. 🚀
           </p>
-          <Button size="lg" className="gradient-bg text-primary-foreground border-0 text-base px-10 py-6 hover-lift">
+          <Button
+            size="lg"
+            className="gradient-bg text-primary-foreground border-0 text-base px-10 py-6 hover-lift"
+            onClick={onWaitlistClick}
+          >
             Join the Intelligence Revolution
             <ArrowRight size={18} className="ml-2" />
           </Button>

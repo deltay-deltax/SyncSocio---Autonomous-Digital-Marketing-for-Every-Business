@@ -10,7 +10,11 @@ const steps = [
   { icon: BarChart3, label: "Calibrating Reach Engine", status: "Queued" },
 ];
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  onWaitlistClick: () => void;
+}
+
+const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
@@ -71,7 +75,7 @@ const HeroSection = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            The digital brain that grows your brand while you sleep.
+            The digital brain that keeps your brand posting — every day, without you lifting a finger.
             We automate your presence — you own the results.
           </motion.p>
 
@@ -87,7 +91,12 @@ const HeroSection = () => {
                 <ArrowRight size={18} className="ml-2" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="text-base px-8 py-6 hover-lift">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-base px-8 py-6 hover-lift"
+              onClick={onWaitlistClick}
+            >
               Join Waitlist
             </Button>
           </motion.div>

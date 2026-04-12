@@ -137,28 +137,32 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-8 transition-colors duration-500 overflow-hidden relative">
+      {/* Ambient background blobs */}
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-primary/[0.03] blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-primary/[0.04] blur-[80px] pointer-events-none" />
 
-      <div className="bg-card rounded-[2rem] shadow-[0_25px_80px_-20px_hsl(221_83%_53%/0.1),0_0_0_1px_hsl(220_15%_90%/0.8)] w-full max-w-[1080px] flex flex-col md:flex-row overflow-hidden min-h-[560px] md:h-[660px] max-h-[96vh] relative z-10 transition-all duration-500">
+      <div className="bg-card rounded-[2rem] shadow-[0_25px_80px_-20px_hsl(221_83%_53%/0.1),0_0_0_1px_hsl(220_15%_90%/0.8)] w-full max-w-[1080px] flex flex-col md:flex-row overflow-hidden min-h-[660px] max-h-[92vh] relative z-10 transition-all duration-500">
         
+        {/* Left Panel */}
         <div className="w-full md:w-5/12 hidden md:flex flex-col justify-between overflow-hidden relative" style={{ background: 'linear-gradient(180deg, hsl(214 100% 97%) 0%, hsl(221 83% 53% / 0.06) 100%)' }}>
+          {/* Dot grid pattern */}
           <div className="absolute inset-0 opacity-[0.35] pointer-events-none" style={{
             backgroundImage: 'radial-gradient(circle, hsl(221 83% 53% / 0.15) 1px, transparent 1px)',
             backgroundSize: '24px 24px'
           }} />
+          {/* Decorative ring */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full border border-primary/[0.06] pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full border border-dashed border-primary/[0.04] pointer-events-none" />
 
-          <Link to="/" className="flex items-center space-x-2.5 p-8 pb-0 relative z-10 group hover:opacity-80 transition-opacity">
-            <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
+          <div className="flex items-center space-x-2.5 p-10 pb-0 relative z-10">
+            <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
               <Zap size={18} fill="currentColor" />
             </div>
             <h1 className="text-lg font-black tracking-tight text-foreground uppercase">Velocity</h1>
-          </Link>
+          </div>
           
           <div className="flex flex-col items-center justify-center flex-grow text-center px-8 relative z-10 transition-all duration-700">
-            <div className={`mb-4 p-5 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg shadow-primary/[0.04] ${step === 11 ? 'animate-pulse' : ''}`}>
+            <div className={`mb-8 p-5 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg shadow-primary/[0.04] ${step === 11 ? 'animate-pulse' : ''}`}>
               {leftContent.icon}
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 tracking-tight">{leftContent.title}</h2>
@@ -166,7 +170,7 @@ const Onboarding = () => {
               {leftContent.desc}
             </p>
             
-            <div className="flex items-center space-x-1.5 mt-6">
+            <div className="flex items-center space-x-1.5 mt-10">
               {[...Array(totalSteps - 1)].map((_, idx) => (
                 <div 
                   key={idx} 
@@ -180,10 +184,11 @@ const Onboarding = () => {
 
           <div className="flex items-center justify-center text-[10px] text-muted-foreground/40 font-bold space-x-2 uppercase tracking-[0.25em] p-10 pt-0 relative z-10">
             <ShieldCheck size={13} className="text-primary/40" />
-            <span>Velocity Network v2.1</span>
+            <span>Agentic Network v2.1</span>
           </div>
         </div>
 
+        {/* Right Panel */}
         <div className="w-full md:w-7/12 flex flex-col relative bg-card border-l border-border/50">
           
           {step < 11 && (
@@ -192,7 +197,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          <div className="flex justify-between items-center px-6 md:px-10 pt-6 md:pt-8 pb-0 z-10">
+          <div className="flex justify-between items-center px-8 md:px-12 pt-8 md:pt-10 pb-0 z-10">
             {step > 1 && step < 11 ? (
               <button onClick={handleBack} className="flex items-center text-[11px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-[0.2em] group hover:gap-1">
                 <ChevronLeft size={14} className="mr-1 group-hover:-translate-x-0.5 transition-transform" /> BACK
@@ -211,17 +216,16 @@ const Onboarding = () => {
             )}
           </div>
 
-          {/* The form area scroll container */}
-          <div className="flex-grow overflow-y-auto px-6 md:px-10 pb-6 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/30">
-            <div className="max-w-[420px] mx-auto w-full min-h-full flex flex-col mt-4">
+          <div className="flex-grow overflow-y-auto px-8 md:px-12 pb-10 scrollbar-thin">
+            <div className="max-w-[420px] mx-auto w-full h-full flex flex-col mt-6">
               
               {/* Step 1: Identity */}
               {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Identity</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic leading-relaxed">Let's start with your brand's digital entity.</p>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic leading-relaxed">Let's start with your brand's digital entity.</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Brand Name</label>
@@ -269,7 +273,7 @@ const Onboarding = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-8">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       START MISSION <ChevronRight size={14} className="ml-1.5 group-hover:translate-x-0.5 transition-transform" />
                     </button>
@@ -281,9 +285,9 @@ const Onboarding = () => {
               {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">The Vision</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic">What is our primary directive?</p>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic">What is our primary directive?</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Social Media Goal</label>
                       <div className="space-y-2">
@@ -294,7 +298,7 @@ const Onboarding = () => {
                           { id: 'Get leads / enquiries', icon: MessageSquare }
                         ].map(goal => (
                           <div key={goal.id} onClick={() => setFormData({...formData, mainGoal: goal.id})}
-                            className={`flex items-center py-3 px-4 border rounded-xl cursor-pointer transition-all ${
+                            className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${
                               formData.mainGoal === goal.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
                             }`}>
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-4 ${formData.mainGoal === goal.id ? 'bg-primary/20' : 'bg-card shadow-sm'}`}>
@@ -318,7 +322,7 @@ const Onboarding = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-8">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 tracking-widest uppercase active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       SYNC OBJECTIVES
                     </button>
@@ -330,9 +334,9 @@ const Onboarding = () => {
               {step === 3 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Market</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic">Geographic target points.</p>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic">Geographic target points.</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Target Country</label>
                       <div className="relative">
@@ -353,7 +357,7 @@ const Onboarding = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-10">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 tracking-widest uppercase hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       LOCK COORDINATES
                     </button>
@@ -365,9 +369,9 @@ const Onboarding = () => {
               {step === 4 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">The Edge</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic">Your "Unfair Advantage" in the market.</p>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic">Your "Unfair Advantage" in the market.</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Unique Selling Point</label>
                       <textarea rows={3} placeholder="e.g. We use sustainable materials that last for a decade." value={formData.usp}
@@ -389,7 +393,7 @@ const Onboarding = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-8">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold uppercase transition-all shadow-lg shadow-primary/20 tracking-widest hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       INITIATE BENCHMARKING
                     </button>
@@ -401,7 +405,7 @@ const Onboarding = () => {
               {step === 5 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-1 tracking-tight">Demographics</h2>
-                  <p className="text-muted-foreground text-sm mb-4 font-medium italic">Target persona mapping.</p>
+                  <p className="text-muted-foreground text-sm mb-6 font-medium italic">Target persona mapping.</p>
                   
                   <div className="space-y-5">
                     <div>
@@ -449,7 +453,7 @@ const Onboarding = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-8">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold uppercase shadow-lg shadow-primary/20 tracking-widest hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       CALIBRATE REACH
                     </button>
@@ -461,9 +465,9 @@ const Onboarding = () => {
               {step === 6 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Psychology</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic">What is the problem we are solving?</p>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic">What is the problem we are solving?</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Customer Pain Point</label>
                       <textarea rows={6} placeholder="Describe the struggle your audience faces..." value={formData.painPoint}
@@ -472,11 +476,11 @@ const Onboarding = () => {
                     </div>
                     <div className="flex items-center space-x-3 px-2">
                       <Sparkle size={14} className="text-primary" />
-                      <p className="text-xs text-muted-foreground/80 font-bold leading-relaxed uppercase tracking-widest">Velocity uses this for Empathy Mapping</p>
+                      <p className="text-xs text-muted-foreground/80 font-bold leading-relaxed uppercase tracking-widest">AI Agent uses this for Empathy Mapping</p>
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-10">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold uppercase shadow-lg shadow-primary/20 tracking-widest hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       GENERATE SOLUTIONS
                     </button>
@@ -488,7 +492,7 @@ const Onboarding = () => {
               {step === 7 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Personality</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic">The brand's vocal signature.</p>
+                  <p className="text-muted-foreground text-base mb-6 font-medium italic">The brand's vocal signature.</p>
                   
                   <div className="space-y-2.5">
                     {[
@@ -514,7 +518,7 @@ const Onboarding = () => {
                     ))}
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-8">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold uppercase transition-all shadow-lg shadow-primary/20 tracking-widest hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       SAVE VOCAL SIGNATURE
                     </button>
@@ -526,9 +530,9 @@ const Onboarding = () => {
               {step === 8 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Visual Vibe</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic">Establishing the aesthetic DNA.</p>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic">Establishing the aesthetic DNA.</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Select A Vibe</label>
                       <div className="grid grid-cols-2 gap-2">
@@ -557,7 +561,7 @@ const Onboarding = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-10">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all uppercase tracking-widest hover:opacity-90">
                       CONFIRM AESTHETIC
                     </button>
@@ -569,7 +573,7 @@ const Onboarding = () => {
               {step === 9 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Format Strategy</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic">Content vehicles of choice (Multi-select).</p>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic">Content vehicles of choice (Multi-select).</p>
                   
                   <div className="space-y-3">
                     {[
@@ -582,7 +586,7 @@ const Onboarding = () => {
                         const next = formData.contentTypes.includes(type.id) ? formData.contentTypes.filter(t => t !== type.id) : [...formData.contentTypes, type.id];
                         setFormData({...formData, contentTypes: next});
                       }}
-                        className={`flex items-center py-3 px-4 border rounded-xl cursor-pointer transition-all ${
+                        className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${
                           formData.contentTypes.includes(type.id) ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
                         }`}>
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-4 ${formData.contentTypes.includes(type.id) ? 'gradient-bg text-white' : 'bg-card shadow-sm text-muted-foreground/50'}`}>
@@ -598,7 +602,7 @@ const Onboarding = () => {
                     ))}
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-10">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold uppercase transition-all shadow-lg shadow-primary/20 tracking-widest hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       FINALIZE VEHICLES
                     </button>
@@ -610,9 +614,9 @@ const Onboarding = () => {
               {step === 10 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Growth Logistics</h2>
-                  <p className="text-muted-foreground text-base mb-4 font-medium italic">Rhythm and analytics baseline.</p>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic">Rhythm and analytics baseline.</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Posting Frequency</label>
                       <div className="grid grid-cols-3 gap-2">
@@ -646,7 +650,7 @@ const Onboarding = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-8">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold uppercase transition-all shadow-lg shadow-primary/20 tracking-widest flex items-center justify-center hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       LAUNCH DNA SYNTHESIS <Sparkles size={14} className="ml-2" />
                     </button>
@@ -656,7 +660,7 @@ const Onboarding = () => {
 
               {/* Step 11: Synthesis */}
               {step === 11 && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col min-h-[90%] py-4">
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col h-full py-4 overflow-y-auto">
                   {analyzingProgress < 5 ? (
                     <div className="flex flex-col items-center justify-center flex-grow py-8">
                       <div className="relative mb-10 scale-90 md:scale-100">
@@ -687,39 +691,39 @@ const Onboarding = () => {
                     </div>
                   ) : (
                     <div className="flex flex-col h-full animate-in zoom-in-95 duration-500 py-2">
-                      <div className="text-center mb-4">
+                      <div className="text-center mb-6">
                         <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-3 mx-auto text-primary shadow-sm border border-primary/20">
                           <Check size={24} strokeWidth={4} />
                         </div>
                         <h2 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">Strategy Generated</h2>
                         <p className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">Brand Persona v1.0.1</p>
                       </div>
-                      <div className="bg-card rounded-[2rem] p-6 md:p-8 mb-4 text-foreground relative border border-border shadow-xl">
+                      <div className="bg-card rounded-[2rem] p-8 mb-6 text-foreground relative border border-border shadow-xl">
                         <Sparkles className="absolute top-6 right-6 text-primary/40" size={20} />
                         
-                        <div className="mb-4 pr-8">
+                        <div className="mb-6 pr-8">
                           <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 flex items-center"><Zap size={12} className="mr-1" /> Strategy Initialized</p>
                           <p className="text-xl md:text-2xl font-bold text-foreground leading-snug">
                             {formData.brandName || 'Your Brand'} is optimized for <span className="text-primary">{formData.targetAudience ? formData.targetAudience.split(' ')[0] : 'your audience'}</span> using a <span className="italic">{formData.visualVibe || 'custom'}</span> aesthetic.
                           </p>
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-                          <div className="bg-muted/40 rounded-xl p-3 md:p-4 border border-border overflow-hidden">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                          <div className="bg-muted/40 rounded-xl p-4 border border-border">
                             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Tone</p>
-                            <p className="text-xs font-bold text-foreground truncate" title={formData.brandTone || "Professional"}>{formData.brandTone || "Professional"}</p>
+                            <p className="text-xs font-bold text-foreground">{formData.brandTone || "Professional"}</p>
                           </div>
-                          <div className="bg-muted/40 rounded-xl p-3 md:p-4 border border-border overflow-hidden">
+                          <div className="bg-muted/40 rounded-xl p-4 border border-border">
                             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Frequency</p>
-                            <p className="text-xs font-bold text-foreground truncate" title={formData.postingFrequency || "Daily"}>{formData.postingFrequency || "Daily"}</p>
+                            <p className="text-xs font-bold text-foreground">{formData.postingFrequency || "Daily"}</p>
                           </div>
-                          <div className="bg-muted/40 rounded-xl p-3 md:p-4 border border-border col-span-2 overflow-hidden">
+                          <div className="bg-muted/40 rounded-xl p-4 border border-border col-span-2">
                             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Primary Objective</p>
-                            <p className="text-xs font-bold text-foreground truncate" title={formData.mainGoal || "Growth"}>{formData.mainGoal || "Growth"}</p>
+                            <p className="text-xs font-bold text-foreground">{formData.mainGoal || "Growth"}</p>
                           </div>
                         </div>
 
-                        <div className="bg-primary/5 rounded-2xl p-5 border border-primary/20 relative overflow-hidden">
+                        <div className="bg-primary/5 rounded-2xl p-6 border border-primary/20 relative overflow-hidden">
                           <div className="absolute right-0 bottom-0 opacity-10 translate-x-1/4 translate-y-1/4">
                             <Rocket size={120} />
                           </div>
@@ -733,12 +737,16 @@ const Onboarding = () => {
                           </p>
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                        <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
                           <div>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Network Status</p>
                             <p className="text-xs font-bold text-emerald-500 flex items-center mt-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> Systems Active</p>
                           </div>
-                          <Link to="/" className="gradient-bg text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all">
+                          <Link
+                            to="/"
+                            onClick={() => localStorage.setItem('velocity_profile', JSON.stringify(formData))}
+                            className="gradient-bg text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all"
+                          >
                             Enter Dashboard <ArrowRight size={14} className="inline ml-1" />
                           </Link>
                         </div>
