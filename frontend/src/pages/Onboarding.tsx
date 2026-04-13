@@ -757,41 +757,40 @@ const Onboarding = () => {
                               Initial audit suggests <span className="text-foreground font-bold">{(parseInt(formData.analytics.followers) || 0) + 1240}+ new followers</span> in your first 30 days using our AI content pipeline.
                             </p>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="mt-auto pt-4 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Engine Hot</span>
+                          <div className="mt-8 pt-8 border-t border-border/50 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Engine Hot</span>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const token = localStorage.getItem('token');
+                                  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
+                                  const res = await fetch(BASE_URL, {
+                                    method: 'POST',
+                                    headers: { 
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify(formData)
+                                  });
+                                  if (!res.ok) throw new Error('Failed to save profile');
+                                  localStorage.setItem('velocity_profile', JSON.stringify(formData));
+                                  window.location.href = "/setup";
+                                } catch (err) {
+                                  console.error(err);
+                                  localStorage.setItem('velocity_profile', JSON.stringify(formData));
+                                  window.location.href = "/setup";
+                                }
+                              }}
+                              className="gradient-bg text-white px-8 py-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+                            >
+                              Launch Dashboard <ArrowRight size={14} strokeWidth={3} />
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const token = localStorage.getItem('token');
-                              const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
-                              const res = await fetch(BASE_URL, {
-                                method: 'POST',
-                                headers: { 
-                                  'Content-Type': 'application/json',
-                                  'Authorization': `Bearer ${token}`
-                                },
-                                body: JSON.stringify(formData)
-                              });
-                              if (!res.ok) throw new Error('Failed to save profile');
-                              localStorage.setItem('velocity_profile', JSON.stringify(formData));
-                              window.location.href = "/setup";
-                            } catch (err) {
-                              console.error(err);
-                              // Fallback to local storage if API fails
-                              localStorage.setItem('velocity_profile', JSON.stringify(formData));
-                              window.location.href = "/setup";
-                            }
-                          }}
-                          className="gradient-bg text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
-                        >
-                          Launch Dashboard <ArrowRight size={14} strokeWidth={3} />
-                        </button>
                       </div>
                     </div>
                   )}

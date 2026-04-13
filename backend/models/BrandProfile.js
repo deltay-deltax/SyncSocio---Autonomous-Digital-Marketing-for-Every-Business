@@ -38,7 +38,16 @@ const brandProfileSchema = new mongoose.Schema({
     education: Number,
     promotion: Number
   },
-  primaryCTA: String
+  primaryCTA: String,
+  instagramAccessToken: String,
+  instagramUserId: String,
+  instagramUsername: String,
+  instagramBusinessAccountId: String,
+  instagramPageId: String,
+  instagramIsConnected: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 export default mongoose.model('BrandProfile', brandProfileSchema);

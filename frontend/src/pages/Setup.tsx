@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -111,6 +111,38 @@ const Setup = () => {
   const [screen, setScreen] = useState<Screen>('checklist');
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [activationStep, setActivationStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  // Handle OAuth callback parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success')) {
+      setScreen('plan');
+    }
+    if (params.get('error')) {
+      setError(params.get('error'));
+      setScreen('instagram'); // Go back to IG screen to show error
+    }
+  }, []);
+
+  const handleInstagramConnect = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const res = await fetch(`${API_BASE}/auth/instagram/auth`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.message || 'Failed to get auth URL');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    }
+  };
 
   // Derive checklist step statuses
   const igConnected = screen === 'plan' || screen === 'activation';
@@ -264,6 +296,13 @@ const Setup = () => {
             Velocity needs permission to read and publish content on your behalf
           </p>
 
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 text-left mb-6">
+              <p className="text-xs font-semibold text-destructive mb-1">Connection Failed</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{error}</p>
+            </div>
+          )}
+
           {/* Permissions */}
           <div className="space-y-3 text-left mb-6">
             {perms.map((p, i) => (
@@ -275,24 +314,29 @@ const Setup = () => {
           </div>
 
           {/* Warning */}
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-left mb-8">
-            <div className="flex items-start gap-2.5">
-              <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-5 text-left mb-8 relative overflow-hidden group hover:border-amber-500/40 transition-all cursor-pointer" onClick={() => navigate('/instagram-setup')}>
+            <div className="absolute top-0 right-0 p-2 opacity-20">
+              <AlertTriangle size={48} className="text-amber-500" />
+            </div>
+            <div className="flex items-start gap-3 relative z-10">
+              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertCircle size={18} className="text-amber-500" />
+              </div>
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1">Business or Creator account required</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Personal accounts are not supported.{' '}
-                  <a href="#" className="text-primary font-medium inline-flex items-center gap-1 hover:underline">
-                    How to switch <ExternalLink size={10} />
-                  </a>
+                <p className="text-sm font-bold text-foreground mb-1 group-hover:text-amber-500 transition-colors">Important: Setup Checklist</p>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                  Meta's "Business" API requires strict account settings. Avoid connection errors by following the checklist.
                 </p>
+                <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                  View Setup Requirements <ChevronRight size={12} />
+                </span>
               </div>
             </div>
           </div>
 
           {/* CTA */}
           <Button
-            onClick={() => setScreen('plan')}
+            onClick={handleInstagramConnect}
             className="w-full h-12 text-sm font-semibold"
             style={{ background: '#1877F2' }}
           >
