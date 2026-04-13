@@ -246,12 +246,13 @@ const Navbar = () => {
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/">Login</Link>
+                <Link to="/login">Login</Link>
               </Button>
               <Button size="sm" className="gradient-bg text-primary-foreground border-0" asChild>
-                <Link to="/">Sign Up</Link>
+                <Link to="/signup">Sign Up</Link>
               </Button>
             </>
+
           )}
         </div>
 
@@ -300,9 +301,10 @@ const Navbar = () => {
                   </Sheet>
                 ) : (
                   <>
-                    <Button variant="ghost" size="sm" className="flex-1" asChild><Link to="/">Login</Link></Button>
-                    <Button size="sm" className="flex-1 gradient-bg text-primary-foreground border-0" asChild><Link to="/">Sign Up</Link></Button>
+                    <Button variant="ghost" size="sm" className="flex-1" asChild><Link to="/login">Login</Link></Button>
+                    <Button size="sm" className="flex-1 gradient-bg text-primary-foreground border-0" asChild><Link to="/signup">Sign Up</Link></Button>
                   </>
+
                 )}
               </div>
             </div>
