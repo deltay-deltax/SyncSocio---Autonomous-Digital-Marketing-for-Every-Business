@@ -37,6 +37,20 @@ interface ProfileData {
   primaryCTA: string;
 }
 
+// 1. We define an interface so TypeScript knows 'isRoute' is allowed but optional (?)
+interface NavLink {
+  label: string;
+  href: string;
+  isRoute?: boolean;
+}
+
+// 2. We move links here and give them the NavLink type
+const NAV_LINKS: NavLink[] = [
+  { label: "The Magic", href: "#features" },
+  { label: "The Plan", href: "#how-it-works" },
+  { label: "Pricing", href: "#pricing" },
+];
+
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -54,21 +68,41 @@ const Navbar = () => {
   const [profile, setProfile] = useState<ProfileData | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("velocity_profile");
-    if (stored) {
-      try { setProfile(JSON.parse(stored)); } catch { /* ignore */ }
-    }
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile/me";
+        const res = await fetch(BASE_URL, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProfile(data);
+          localStorage.setItem("velocity_profile", JSON.stringify(data));
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+        const stored = localStorage.getItem("velocity_profile");
+        if (stored) setProfile(JSON.parse(stored));
+      }
+    };
+
+    fetchProfile();
+
     const handler = () => {
       const d = localStorage.getItem("velocity_profile");
       if (d) try { setProfile(JSON.parse(d)); } catch { /* */ }
     };
     window.addEventListener("storage", handler);
-    // Also poll on focus for same-tab updates
-    window.addEventListener("focus", handler);
-    return () => { window.removeEventListener("storage", handler); window.removeEventListener("focus", handler); };
+    window.addEventListener("focus", fetchProfile);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("focus", fetchProfile);
+    };
   }, []);
 
-  // Re-check when component re-renders after navigation
   useEffect(() => {
     const stored = localStorage.getItem("velocity_profile");
     if (stored && !profile) {
@@ -76,11 +110,11 @@ const Navbar = () => {
     }
   }, [profile]);
 
-  const links = [
-    { label: "Features", href: "#features" },
-    { label: "How it Works", href: "#how-it-works" },
-    { label: "Pricing", href: "#pricing" },
-  ];
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("velocity_profile");
+    window.location.href = "/login";
+  };
 
   const initials = profile?.brandName
     ? profile.brandName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
@@ -99,7 +133,7 @@ const Navbar = () => {
         </a>
 
         <div className="hidden md:flex items-center gap-8">
-          {links.map((link) =>
+          {NAV_LINKS.map((link) =>
             link.isRoute ? (
               <Link key={link.label} to={link.href} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 {link.label}
@@ -197,15 +231,25 @@ const Navbar = () => {
                     <span className="text-xs font-bold text-foreground">{profile.contentMix?.promotion ?? 50}% promo</span>
                   </div>
                 </div>
+
+                <div className="mt-8 pt-6 border-t border-border/50">
+                  <Button
+                    variant="outline"
+                    className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-all font-bold tracking-widest uppercase text-[10px]"
+                    onClick={handleLogout}
+                  >
+                    Terminate Session & Logout
+                  </Button>
+                </div>
               </SheetContent>
             </Sheet>
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/login">Login</Link>
+                <Link to="/">Login</Link>
               </Button>
               <Button size="sm" className="gradient-bg text-primary-foreground border-0" asChild>
-                <Link to="/signup">Sign Up</Link>
+                <Link to="/">Sign Up</Link>
               </Button>
             </>
           )}
@@ -225,7 +269,7 @@ const Navbar = () => {
             className="md:hidden overflow-hidden border-t border-border bg-card"
           >
             <div className="flex flex-col gap-4 px-6 py-6">
-              {links.map((link) =>
+              {NAV_LINKS.map((link) =>
                 link.isRoute ? (
                   <Link key={link.label} to={link.href} className="text-sm font-medium text-muted-foreground" onClick={() => setMobileOpen(false)}>
                     {link.label}
@@ -256,8 +300,8 @@ const Navbar = () => {
                   </Sheet>
                 ) : (
                   <>
-                    <Button variant="ghost" size="sm" className="flex-1" asChild><Link to="/login">Login</Link></Button>
-                    <Button size="sm" className="flex-1 gradient-bg text-primary-foreground border-0" asChild><Link to="/signup">Sign Up</Link></Button>
+                    <Button variant="ghost" size="sm" className="flex-1" asChild><Link to="/">Login</Link></Button>
+                    <Button size="sm" className="flex-1 gradient-bg text-primary-foreground border-0" asChild><Link to="/">Sign Up</Link></Button>
                   </>
                 )}
               </div>

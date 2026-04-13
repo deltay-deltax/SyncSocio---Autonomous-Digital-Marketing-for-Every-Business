@@ -1,0 +1,453 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+
+// ─── Types ───────────────────────────────────────────────────────────
+type Screen = 'checklist' | 'instagram' | 'plan' | 'activation';
+
+interface Plan {
+  name: string;
+  price: string;
+  period: string;
+  frequency: string;
+  formats: string;
+  postsPerMonth: string;
+  features: string[];
+  popular?: boolean;
+  cta: string;
+  ctaStyle: 'outline' | 'primary' | 'inverted';
+}
+
+// ─── Plan Data ───────────────────────────────────────────────────────
+const plans: Plan[] = [
+  {
+    name: 'Bootstrapper',
+    price: '₹0',
+    period: '/month',
+    frequency: 'Once a week',
+    formats: 'Static only',
+    postsPerMonth: '4 posts/month',
+    features: ['Basic Brand Mapping', '1 Active Agent', 'Weekly Reports', 'Community Support'],
+    cta: 'Start Free',
+    ctaStyle: 'outline',
+  },
+  {
+    name: 'Velocity Starter',
+    price: '₹199',
+    period: '/month',
+    frequency: '3-4x a week',
+    formats: 'Static + Carousels',
+    postsPerMonth: '16 posts/month',
+    features: ['Deep DNA Synthesis', '3 Active Agents', 'Daily Velocity Sync', 'Cross-Platform Multi-Post', 'Priority Support'],
+    cta: 'Get Started',
+    ctaStyle: 'primary',
+  },
+  {
+    name: 'Velocity Pro',
+    price: '₹499',
+    period: '/month',
+    frequency: 'Daily',
+    formats: 'Static + Carousels + Reels',
+    postsPerMonth: '30 posts/month',
+    features: ['Everything in Starter', 'Unlimited Agents', 'Custom Voice Models', '24/7 Strategic Support', 'Full Creative Control', 'Custom Integrations'],
+    popular: true,
+    cta: 'Get Started',
+    ctaStyle: 'inverted',
+  },
+  {
+    name: 'Empire',
+    price: '₹999',
+    period: '/month',
+    frequency: 'Daily',
+    formats: 'All content types',
+    postsPerMonth: '30+ posts/month',
+    features: ['Everything in Pro', 'Dedicated Account Manager', 'White-label Reports', 'API Access', 'Team Collaboration', 'Advanced Analytics', 'Custom Integrations'],
+    cta: 'Contact Sales',
+    ctaStyle: 'outline',
+  },
+];
+
+// ─── Checklist Steps ─────────────────────────────────────────────────
+interface StepItem {
+  label: string;
+  description: string;
+  status: 'done' | 'active' | 'locked';
+  icon: React.ReactNode;
+}
+
+// ─── Instagram Logo ──────────────────────────────────────────────────
+const InstagramIcon = ({ size = 24, className = "" }: { size?: number; className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const InstagramGradientIcon = () => (
+  <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)' }}>
+    <InstagramIcon className="text-white" size={32} />
+  </div>
+);
+
+
+// ─── Main Component ──────────────────────────────────────────────────
+const Setup = () => {
+  const navigate = useNavigate();
+  const [screen, setScreen] = useState<Screen>('checklist');
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [activationStep, setActivationStep] = useState(0);
+
+  // Derive checklist step statuses
+  const igConnected = screen === 'plan' || screen === 'activation';
+  const planChosen = screen === 'activation';
+
+  const steps: StepItem[] = [
+    {
+      label: 'Brand Profile Created',
+      description: 'Your brand DNA has been captured',
+      status: 'done',
+      icon: <Check size={16} />,
+    },
+    {
+      label: 'Connect Instagram',
+      description: 'Allow Velocity to post on your behalf',
+      status: igConnected ? 'done' : 'active',
+      icon: <InstagramIcon size={16} />,
+    },
+    {
+      label: 'Choose Your Plan',
+      description: 'Pick how often your agent posts',
+      status: planChosen ? 'done' : igConnected ? 'active' : 'locked',
+      icon: <CreditCard size={16} />,
+    },
+    {
+      label: 'Agent Goes Live 🚀',
+      description: 'Your autonomous agent activates',
+      status: planChosen ? 'active' : 'locked',
+      icon: <Rocket size={16} />,
+    },
+  ];
+
+  // Activation animation
+  useEffect(() => {
+    if (screen !== 'activation') return;
+    const msgs = ['Brand profile loaded', 'Instagram connected', `${selectedPlan} plan activated`, 'First post generating...'];
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      setActivationStep(i);
+      if (i >= msgs.length + 1) {
+        clearInterval(timer);
+        setTimeout(() => navigate('/'), 1800);
+      }
+    }, 800);
+    return () => clearInterval(timer);
+  }, [screen, selectedPlan, navigate]);
+
+  // ── Shared wrapper ──
+  const Wrapper = ({ children, maxW = 'max-w-xl' }: { children: React.ReactNode; maxW?: string }) => (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+      {/* ambient blobs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+      <motion.div
+        key={screen}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -24 }}
+        transition={{ duration: 0.45 }}
+        className={`relative z-10 w-full ${maxW}`}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+
+  // ════════════════════════════════════════════════════════════════════
+  // SCREEN 1 — CHECKLIST
+  // ════════════════════════════════════════════════════════════════════
+  if (screen === 'checklist') {
+    return (
+      <Wrapper>
+        <div className="glass-card rounded-3xl p-8 sm:p-10">
+          {/* Header */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-widest mb-4">
+              <Rocket size={12} /> Almost there
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Let's activate your agent</h1>
+            <p className="text-sm text-muted-foreground">2 quick steps and your AI starts working</p>
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-0">
+            {steps.map((step, i) => (
+              <div key={i} className="flex items-start gap-4 relative">
+                {/* Vertical connector */}
+                {i < steps.length - 1 && (
+                  <div className="absolute left-[17px] top-[36px] w-[2px] h-[calc(100%-8px)] bg-border" />
+                )}
+
+                {/* Icon circle */}
+                <div
+                  className={`relative z-10 w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                    step.status === 'done'
+                      ? 'bg-blue-500 text-white'
+                      : step.status === 'active'
+
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 animate-pulse'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {step.status === 'done' ? <Check size={16} /> : step.icon}
+                </div>
+
+                {/* Content */}
+                <div className={`pb-8 ${step.status === 'locked' ? 'opacity-40' : ''}`}>
+                  <p className="text-sm font-semibold text-foreground">{step.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
+
+                  {step.status === 'active' && i === 1 && (
+                    <Button
+                      onClick={() => setScreen('instagram')}
+                      className="mt-3 gradient-bg text-primary-foreground border-0 text-xs px-5 h-9"
+                    >
+                      Connect Instagram Account →
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-xs text-muted-foreground mt-4">This takes less than 2 minutes</p>
+        </div>
+      </Wrapper>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // SCREEN 2 — CONNECT INSTAGRAM
+  // ════════════════════════════════════════════════════════════════════
+  if (screen === 'instagram') {
+    const perms = [
+      { icon: <BookOpen size={16} />, label: 'Read your posts and profile' },
+      { icon: <PenTool size={16} />, label: 'Publish content automatically' },
+      { icon: <BarChart3 size={16} />, label: 'Access post insights and analytics' },
+      { icon: <Bell size={16} />, label: 'Monitor comments and engagement' },
+    ];
+
+    return (
+      <Wrapper maxW="max-w-md">
+        <div className="glass-card rounded-3xl p-8 sm:p-10 text-center">
+          <div className="flex justify-center mb-6">
+            <InstagramGradientIcon />
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Connect your Instagram</h1>
+          <p className="text-sm text-muted-foreground mb-8">
+            Velocity needs permission to read and publish content on your behalf
+          </p>
+
+          {/* Permissions */}
+          <div className="space-y-3 text-left mb-6">
+            {perms.map((p, i) => (
+              <div key={i} className="flex items-center gap-3 text-sm text-foreground">
+                <span className="text-primary">{p.icon}</span>
+                {p.label}
+              </div>
+            ))}
+          </div>
+
+          {/* Warning */}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-left mb-8">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-foreground mb-1">Business or Creator account required</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Personal accounts are not supported.{' '}
+                  <a href="#" className="text-primary font-medium inline-flex items-center gap-1 hover:underline">
+                    How to switch <ExternalLink size={10} />
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <Button
+            onClick={() => setScreen('plan')}
+            className="w-full h-12 text-sm font-semibold"
+            style={{ background: '#1877F2' }}
+          >
+            <svg className="w-5 h-5 fill-white mr-2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            Continue with Facebook
+          </Button>
+
+          <p className="text-[11px] text-muted-foreground mt-4">You can disconnect at any time from Settings</p>
+        </div>
+      </Wrapper>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // SCREEN 3 — CHOOSE PLAN
+  // ════════════════════════════════════════════════════════════════════
+  if (screen === 'plan') {
+    return (
+      <Wrapper maxW="max-w-7xl">
+        <div className="text-center mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Choose how active your agent is</h1>
+          <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
+          {plans.map((plan, i) => (
+            <motion.div
+              key={plan.name}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className={`relative rounded-2xl p-6 flex flex-col transition-all hover-lift ${
+                plan.popular
+                  ? 'bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]'
+                  : 'glass-card'
+              }`}
+            >
+              {plan.popular && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-card text-primary shadow-md">
+                  Most Popular
+                </span>
+              )}
+
+              <h3 className="text-sm font-bold mb-1">{plan.name}</h3>
+              <div className="flex items-baseline gap-0.5 mb-1">
+                <span className="text-3xl font-bold">{plan.price}</span>
+                <span className={`text-xs ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>
+              </div>
+              <p className={`text-[11px] mb-1 ${plan.popular ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                {plan.frequency} · {plan.formats}
+              </p>
+              <p className={`text-xs font-semibold mb-4 ${plan.popular ? 'text-primary-foreground' : 'text-foreground'}`}>
+                {plan.postsPerMonth}
+              </p>
+
+              <ul className="space-y-2 mb-6 flex-1">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-xs">
+                    <Check size={13} className={plan.popular ? 'text-primary-foreground' : 'text-primary'} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                onClick={() => {
+                  setSelectedPlan(plan.name);
+                  setScreen('activation');
+                }}
+                className={`w-full text-xs font-semibold mt-auto ${
+                  plan.popular
+                    ? 'bg-card text-primary hover:bg-card/90'
+                    : plan.ctaStyle === 'primary'
+                    ? 'gradient-bg text-primary-foreground border-0'
+                    : 'bg-transparent border border-border text-foreground hover:bg-muted'
+                }`}
+              >
+                {plan.cta}
+              </Button>
+            </motion.div>
+          ))}
+        </div>
+      </Wrapper>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // SCREEN 4 — AGENT ACTIVATION
+  // ════════════════════════════════════════════════════════════════════
+  const activationMessages = [
+    'Brand profile loaded',
+    'Instagram connected',
+    `${selectedPlan} plan activated`,
+    'First post generating...',
+  ];
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
+      {/* Pulsing glow */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-64 h-64 rounded-full bg-primary/10 animate-pulse blur-[80px]" />
+      </div>
+
+      <div className="relative z-10 text-center px-6">
+        {/* Logo pulse */}
+        <motion.div
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className="mx-auto mb-10 w-20 h-20 rounded-2xl gradient-bg flex items-center justify-center shadow-xl shadow-primary/30"
+        >
+          <Rocket className="text-primary-foreground" size={36} />
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-lg font-semibold text-muted-foreground mb-8"
+        >
+          Activating your agent...
+        </motion.p>
+
+        <div className="space-y-3 max-w-xs mx-auto text-left">
+          {activationMessages.map((msg, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -12 }}
+              animate={activationStep > i ? { opacity: 1, x: 0 } : {}}
+              transition={{ duration: 0.4 }}
+              className="flex items-center gap-3"
+            >
+              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                <Check size={12} className="text-white" />
+              </div>
+
+              <span className="text-sm text-foreground">{msg}</span>
+            </motion.div>
+          ))}
+        </div>
+
+        <AnimatePresence>
+          {activationStep > activationMessages.length && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mt-10"
+            >
+              <p className="text-2xl font-bold text-foreground">🚀 Your agent is live</p>
+              <p className="text-xs text-muted-foreground mt-2">Redirecting to dashboard...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+export default Setup;

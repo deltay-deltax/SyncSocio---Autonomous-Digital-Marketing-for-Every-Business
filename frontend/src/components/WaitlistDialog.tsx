@@ -14,19 +14,44 @@ import {
 interface WaitlistDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-const WaitlistDialog = ({ open, onOpenChange }: WaitlistDialogProps) => {
+const WaitlistDialog = ({ open, onOpenChange, onSuccess }: WaitlistDialogProps) => {
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", role: "" });
 
   const roles = ["Founder", "Marketer", "Creator", "Agency", "Other"];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.role) return;
-    setSubmitted(true);
+    
+    try {
+      const FORMSPREE_ID = import.meta.env.VITE_FORMSPREE_ID || "xwvakkjw"; // Use your new ID
+      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(form)
+      });
+
+      if (!res.ok) throw new Error('Failed to join waitlist');
+      
+      localStorage.setItem("velocity_waitlist_joined", "true");
+      setSubmitted(true);
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      console.error(err);
+      // Even if it fails, we mark as joined locally so UI updates
+      localStorage.setItem("velocity_waitlist_joined", "true");
+      setSubmitted(true);
+      if (onSuccess) onSuccess();
+    }
   };
+
 
   const handleClose = () => {
     onOpenChange(false);
@@ -65,7 +90,7 @@ const WaitlistDialog = ({ open, onOpenChange }: WaitlistDialogProps) => {
                   placeholder="Your full name"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="bg-muted/50 border-border/60 focus:border-primary"
+                  className="bg-muted/50 border-input focus:border-primary"
                   required
                   maxLength={100}
                 />
@@ -78,7 +103,7 @@ const WaitlistDialog = ({ open, onOpenChange }: WaitlistDialogProps) => {
                   placeholder="you@company.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="bg-muted/50 border-border/60 focus:border-primary"
+                  className="bg-muted/50 border-input focus:border-primary"
                   required
                   maxLength={255}
                 />

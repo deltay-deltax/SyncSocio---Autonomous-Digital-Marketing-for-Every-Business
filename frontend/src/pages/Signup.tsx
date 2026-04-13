@@ -36,6 +36,14 @@ const Signup = () => {
   
   const navigate = useNavigate();
 
+  // Clear fields on mount to prevent stale state/autofill issues
+  useEffect(() => {
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setPassword("");
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => setActiveIdx((p) => (p + 1) % 3), 2500);
     return () => clearInterval(interval);
@@ -62,7 +70,11 @@ const Signup = () => {
       if (!res.ok) throw new Error(data.message || "Something went wrong.");
       
       localStorage.setItem("token", data.token);
-      navigate("/onboarding");
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setPassword("");
+      window.location.href = "/onboarding";
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -82,7 +94,7 @@ const Signup = () => {
       if (!res.ok) throw new Error(data.message || `${provider} login failed`);
       
       localStorage.setItem("token", data.token);
-      navigate("/onboarding");
+      window.location.href = "/onboarding";
     } catch (err: any) {
       setError(err.message);
     }
@@ -176,21 +188,21 @@ const Signup = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">First name</label>
-                <Input type="text" placeholder="John" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
+                <Input type="text" placeholder="First Name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="off" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Last name</label>
-                <Input type="text" placeholder="Doe" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
+                <Input type="text" placeholder="Last Name" required value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="off" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
               </div>
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
-              <Input type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
+              <Input type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="new-password" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
               <div className="relative">
-                <Input type={showPassword ? "text" : "password"} placeholder="Min 8 characters" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20 pr-10" />
+                <Input type={showPassword ? "text" : "password"} placeholder="Min 8 characters" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20 pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>

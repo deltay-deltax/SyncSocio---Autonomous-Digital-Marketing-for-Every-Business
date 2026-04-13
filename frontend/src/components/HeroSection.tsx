@@ -12,9 +12,10 @@ const steps = [
 
 interface HeroSectionProps {
   onWaitlistClick: () => void;
+  isJoined?: boolean;
 }
 
-const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
+const HeroSection = ({ onWaitlistClick, isJoined }: HeroSectionProps) => {
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
@@ -85,20 +86,23 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link to="/signup">
+            <Link to="/">
               <Button size="lg" className="gradient-bg text-primary-foreground border-0 text-base px-8 py-6 hover-lift">
                 Get Started for Free
                 <ArrowRight size={18} className="ml-2" />
               </Button>
             </Link>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="text-base px-8 py-6 hover-lift"
-              onClick={onWaitlistClick}
-            >
-              Join Waitlist
-            </Button>
+
+            {!isJoined && (
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-base px-8 py-6 hover-lift"
+                onClick={onWaitlistClick}
+              >
+                Join Waitlist
+              </Button>
+            )}
           </motion.div>
 
           <motion.div

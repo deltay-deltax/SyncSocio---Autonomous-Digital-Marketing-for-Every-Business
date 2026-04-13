@@ -45,7 +45,10 @@ const Login = () => {
       if (!res.ok) throw new Error(data.message || "Invalid credentials.");
       
       localStorage.setItem("token", data.token);
-      navigate("/");
+      setEmail("");
+      setPassword("");
+      // Using window.location.href ensures a full state reset and clean transition
+      window.location.href = "/";
     } catch (err: any) {
       setError(err.message);
     } finally {

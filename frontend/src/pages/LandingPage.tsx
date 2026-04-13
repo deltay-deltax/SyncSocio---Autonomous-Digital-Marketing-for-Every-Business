@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import WhatWeAre from "@/components/WhatWeAre";
@@ -11,21 +11,38 @@ import WaitlistDialog from "@/components/WaitlistDialog";
 
 const Index = () => {
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+  const [isWaitlistJoined, setIsWaitlistJoined] = useState(false);
+
+  useEffect(() => {
+    const joined = localStorage.getItem("velocity_waitlist_joined") === "true";
+    setIsWaitlistJoined(joined);
+  }, []);
+
+  const handleWaitlistSuccess = () => {
+    setIsWaitlistJoined(true);
+  };
 
   return (
     <div className="min-h-screen">
       <Navbar />
-      <HeroSection onWaitlistClick={() => setIsWaitlistOpen(true)} />
+      <HeroSection 
+        onWaitlistClick={() => setIsWaitlistOpen(true)} 
+        isJoined={isWaitlistJoined}
+      />
       <WhatWeAre />
       <Features />
       <HowItWorks />
       <Pricing />
-      <CTASection onWaitlistClick={() => setIsWaitlistOpen(true)} />
+      <CTASection 
+        onWaitlistClick={() => setIsWaitlistOpen(true)} 
+        isJoined={isWaitlistJoined}
+      />
       <Footer />
       
       <WaitlistDialog 
         open={isWaitlistOpen} 
         onOpenChange={setIsWaitlistOpen} 
+        onSuccess={handleWaitlistSuccess}
       />
     </div>
   );

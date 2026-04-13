@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 
 interface CTASectionProps {
   onWaitlistClick: () => void;
+  isJoined?: boolean;
 }
 
-const CTASection = ({ onWaitlistClick }: CTASectionProps) => {
+const CTASection = ({ onWaitlistClick, isJoined }: CTASectionProps) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -30,11 +31,12 @@ const CTASection = ({ onWaitlistClick }: CTASectionProps) => {
           </p>
           <Button
             size="lg"
-            className="gradient-bg text-primary-foreground border-0 text-base px-10 py-6 hover-lift"
-            onClick={onWaitlistClick}
+            className={`${isJoined ? "bg-muted text-muted-foreground cursor-not-allowed" : "gradient-bg text-primary-foreground hover-lift"} border-0 text-base px-10 py-6 transition-all`}
+            onClick={isJoined ? undefined : onWaitlistClick}
+            disabled={isJoined}
           >
-            Join the Intelligence Revolution
-            <ArrowRight size={18} className="ml-2" />
+            {isJoined ? "Intelligence Revolution Joined" : "Join the Intelligence Revolution"}
+            {!isJoined && <ArrowRight size={18} className="ml-2" />}
           </Button>
         </motion.div>
       </div>
