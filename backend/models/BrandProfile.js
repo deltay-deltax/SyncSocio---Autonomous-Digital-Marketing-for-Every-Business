@@ -19,7 +19,7 @@ const brandProfileSchema = new mongoose.Schema({
   },
   usp: String,
   competitors: [String],
-  targetAudience: String,
+  targetAudiences: [String],
   ageRange: String,
   genderFocus: String,
   painPoint: String,

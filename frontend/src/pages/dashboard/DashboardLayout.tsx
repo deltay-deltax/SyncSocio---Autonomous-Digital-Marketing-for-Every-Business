@@ -137,16 +137,6 @@ const DashboardLayout = () => {
            </Button>
         </div>
 
-        {/* User Profile Hook */}
-        <div className="flex items-center gap-3 p-3 rounded-2xl border border-border/50 bg-muted/20">
-          <Avatar className="w-9 h-9 ring-2 ring-primary/10">
-            <AvatarFallback className="gradient-bg text-primary-foreground text-xs font-black">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-black truncate">{brandName}</p>
-            <p className="text-[10px] text-muted-foreground font-bold truncate">@{profile?.instagramUsername || profile?.socialHandle || 'user'}</p>
-          </div>
-        </div>
       </div>
     </div>
   );

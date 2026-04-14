@@ -388,11 +388,25 @@ const Onboarding = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="relative">
                           <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={14} />
-                          <input type="text" placeholder="@rival_one" className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl pl-10 pr-4 py-3 outline-none border border-border" />
+                          <input type="text" placeholder="@rival_one" 
+                            value={formData.competitors[0] || ''}
+                            onChange={(e) => {
+                              const newCompetitors = [...formData.competitors];
+                              newCompetitors[0] = e.target.value;
+                              setFormData({...formData, competitors: newCompetitors});
+                            }}
+                            className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl pl-10 pr-4 py-3 outline-none border border-border" />
                         </div>
                         <div className="relative">
                           <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" size={14} />
-                          <input type="text" placeholder="@rival_two" className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl pl-10 pr-4 py-3 outline-none border border-border" />
+                          <input type="text" placeholder="@rival_two" 
+                            value={formData.competitors[1] || ''}
+                            onChange={(e) => {
+                              const newCompetitors = [...formData.competitors];
+                              newCompetitors[1] = e.target.value;
+                              setFormData({...formData, competitors: newCompetitors});
+                            }}
+                            className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl pl-10 pr-4 py-3 outline-none border border-border" />
                         </div>
                       </div>
                     </div>

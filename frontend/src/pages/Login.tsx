@@ -45,10 +45,33 @@ const Login = () => {
       if (!res.ok) throw new Error(data.message || "Invalid credentials.");
       
       localStorage.setItem("token", data.token);
-      setEmail("");
-      setPassword("");
-      // Using window.location.href ensures a full state reset and clean transition
-      window.location.href = "/";
+      
+      // Fetch profile status to determine redirect
+      try {
+        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
+        const profRes = await fetch(`${PROFILE_URL}/me`, {
+          headers: { "Authorization": `Bearer ${data.token}` }
+        });
+        
+        if (profRes.ok) {
+          const profile = await profRes.json();
+          localStorage.setItem("velocity_profile", JSON.stringify(profile));
+          
+          if (profile.instagramIsConnected) {
+            localStorage.setItem("velocity_setup_done", "true");
+            window.location.href = "/dashboard";
+          } else {
+            localStorage.setItem("velocity_setup_done", "false");
+            window.location.href = "/setup";
+          }
+        } else {
+          // No profile yet, go to onboarding
+          window.location.href = "/onboarding";
+        }
+      } catch (err) {
+        // Fallback to home if profile check fails
+        window.location.href = "/";
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

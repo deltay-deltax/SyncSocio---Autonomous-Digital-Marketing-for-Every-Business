@@ -70,11 +70,28 @@ const Signup = () => {
       if (!res.ok) throw new Error(data.message || "Something went wrong.");
       
       localStorage.setItem("token", data.token);
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      setPassword("");
-      window.location.href = "/onboarding";
+      
+      try {
+        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
+        const profRes = await fetch(`${PROFILE_URL}/me`, {
+          headers: { "Authorization": `Bearer ${data.token}` }
+        });
+        
+        if (profRes.ok) {
+          const profile = await profRes.json();
+          if (profile.instagramIsConnected) {
+            localStorage.setItem("velocity_setup_done", "true");
+            window.location.href = "/dashboard";
+          } else {
+            localStorage.setItem("velocity_setup_done", "false");
+            window.location.href = "/setup";
+          }
+        } else {
+          window.location.href = "/onboarding";
+        }
+      } catch (err) {
+        window.location.href = "/onboarding";
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -94,7 +111,28 @@ const Signup = () => {
       if (!res.ok) throw new Error(data.message || `${provider} login failed`);
       
       localStorage.setItem("token", data.token);
-      window.location.href = "/onboarding";
+      
+      try {
+        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
+        const profRes = await fetch(`${PROFILE_URL}/me`, {
+          headers: { "Authorization": `Bearer ${data.token}` }
+        });
+        
+        if (profRes.ok) {
+          const profile = await profRes.json();
+          if (profile.instagramIsConnected) {
+            localStorage.setItem("velocity_setup_done", "true");
+            window.location.href = "/dashboard";
+          } else {
+            localStorage.setItem("velocity_setup_done", "false");
+            window.location.href = "/setup";
+          }
+        } else {
+          window.location.href = "/onboarding";
+        }
+      } catch (err) {
+        window.location.href = "/onboarding";
+      }
     } catch (err: any) {
       setError(err.message);
     }

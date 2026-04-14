@@ -131,7 +131,7 @@ const DashboardSettings = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Target Audience</Label>
-                    <Input defaultValue={profile.targetAudiences?.join(', ') || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                    <Input defaultValue={Array.isArray(profile.targetAudiences) ? profile.targetAudiences.join(', ') : profile.targetAudience || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Addressing Pain Point</Label>
@@ -297,6 +297,29 @@ const DashboardSettings = () => {
                   <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently erase your digital entity, synthesis weights, and all associated analytics. This action cannot be reversed.</p>
                   <Button variant="destructive" size="sm" className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20">
                     Erase My Entity
+                  </Button>
+                </div>
+
+                <div className="p-6 rounded-2xl border border-border space-y-3 group hover:border-primary/20 transition-all">
+                  <div className="flex items-center gap-3">
+                    <RefreshCw size={18} className="text-muted-foreground" />
+                    <p className="text-sm font-black text-foreground">Sign Out</p>
+                  </div>
+                  <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">
+                    Safely log out of your current session. You will need to re-authenticate to access Mission Control.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-muted"
+                    onClick={() => {
+                      localStorage.removeItem('token');
+                      localStorage.removeItem('velocity_profile');
+                      localStorage.removeItem('velocity_setup_done');
+                      window.location.href = '/login';
+                    }}
+                  >
+                    Secure Logout
                   </Button>
                 </div>
               </CardContent>

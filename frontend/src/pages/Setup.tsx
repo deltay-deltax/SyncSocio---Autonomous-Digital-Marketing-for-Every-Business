@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight } from 'lucide-react';
+import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type Screen = 'checklist' | 'instagram' | 'plan' | 'activation';
@@ -110,18 +111,27 @@ const Setup = () => {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>('checklist');
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null);
+  const [warningPlan, setWarningPlan] = useState<string | null>(null);
   const [activationStep, setActivationStep] = useState(0);
+  const [onboardingData, setOnboardingData] = useState<any>(null);
+  const [pendingSync, setPendingSync] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Handle OAuth callback parameters
+  // Handle OAuth callback parameters and fragment cleanup
   useEffect(() => {
+    // Meta/Facebook appends #_=_ to the redirect URI after OAuth
+    if (window.location.hash === '#_=_') {
+      window.history.replaceState('', document.title, window.location.pathname + window.location.search);
+    }
+
     const params = new URLSearchParams(window.location.search);
-    if (params.get('success')) {
+    if (params.get('success') === 'true') {
       setScreen('plan');
     }
     if (params.get('error')) {
       setError(params.get('error'));
-      setScreen('instagram'); // Go back to IG screen to show error
+      setScreen('instagram');
     }
   }, []);
 
@@ -133,46 +143,89 @@ const Setup = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error(data.message || 'Failed to get auth URL');
-      }
+      if (data.url) window.location.href = data.url;
+      else throw new Error(data.message || 'Failed to get auth URL');
     } catch (err: any) {
       console.error(err);
       setError(err.message);
     }
   };
 
-  // Derive checklist step statuses
+  // Load onboarding data and determine recommendation
+  useEffect(() => {
+    const stored = localStorage.getItem('velocity_profile');
+    if (stored) {
+      const data = JSON.parse(stored);
+      setOnboardingData(data);
+      
+      const freq = data.postingFrequency;
+      const types = data.contentTypes || [];
+      const hasReels = types.includes('Reels');
+      
+      if (freq === 'Once / wk' && !hasReels) {
+        setRecommendedPlan('Bootstrapper');
+      } else if (freq === '3-4x / wk' && !hasReels) {
+        setRecommendedPlan('Velocity Starter');
+      } else if (freq === 'Daily' || hasReels) {
+        setRecommendedPlan('Velocity Pro');
+      } else {
+        setRecommendedPlan('Velocity Pro');
+      }
+    }
+  }, []);
+
+  const handleSelectPlan = (plan: Plan) => {
+    if (!onboardingData) {
+      setSelectedPlan(plan.name);
+      setScreen('activation');
+      return;
+    }
+    const currentFreq = onboardingData.postingFrequency;
+    const currentTypes = onboardingData.contentTypes || [];
+    const hasReels = currentTypes.includes('Reels');
+
+    let issues = [];
+    let sync: any = {};
+
+    if (plan.name === 'Bootstrapper') {
+      if (currentFreq !== 'Once / wk') {
+        issues.push('Frequency will be reduced to Weekly');
+        sync.postingFrequency = 'Once / wk';
+      }
+      if (currentTypes.length > 1 || (currentTypes.length === 1 && !currentTypes.includes('Static Posts'))) {
+        issues.push('Reels & Carousels will be disabled');
+        sync.contentTypes = ['Static Posts'];
+      }
+    } else if (plan.name === 'Velocity Starter') {
+      if (currentFreq === 'Daily') {
+        issues.push('Frequency will be reduced to 3-4x/wk');
+        sync.postingFrequency = '3-4x / wk';
+      }
+      if (hasReels) {
+        issues.push('Reels will be disabled');
+        sync.contentTypes = currentTypes.filter((t: string) => t !== 'Reels');
+      }
+    }
+
+    if (issues.length > 0) {
+      setSyncData(sync);
+      setWarningPlan(plan.name);
+    } else {
+      setSelectedPlan(plan.name);
+      setScreen('activation');
+    }
+  };
+
+  const [syncData, setSyncData] = useState<any>(null);
+
   const igConnected = screen === 'plan' || screen === 'activation';
   const planChosen = screen === 'activation';
 
   const steps: StepItem[] = [
-    {
-      label: 'Brand Profile Created',
-      description: 'Your brand DNA has been captured',
-      status: 'done',
-      icon: <Check size={16} />,
-    },
-    {
-      label: 'Connect Instagram',
-      description: 'Allow Velocity to post on your behalf',
-      status: igConnected ? 'done' : 'active',
-      icon: <InstagramIcon size={16} />,
-    },
-    {
-      label: 'Choose Your Plan',
-      description: 'Pick how often your agent posts',
-      status: planChosen ? 'done' : igConnected ? 'active' : 'locked',
-      icon: <CreditCard size={16} />,
-    },
-    {
-      label: 'Agent Goes Live 🚀',
-      description: 'Your autonomous agent activates',
-      status: planChosen ? 'active' : 'locked',
-      icon: <Rocket size={16} />,
-    },
+    { label: 'Brand Profile Created', description: 'Your brand DNA has been captured', status: 'done', icon: <Check size={16} /> },
+    { label: 'Connect Instagram', description: 'Allow Velocity to post on your behalf', status: igConnected ? 'done' : 'active', icon: <InstagramIcon size={16} /> },
+    { label: 'Choose Your Plan', description: 'Pick how often your agent posts', status: planChosen ? 'done' : igConnected ? 'active' : 'locked', icon: <CreditCard size={16} /> },
+    { label: 'Agent Goes Live 🚀', description: 'Your autonomous agent activates', status: planChosen ? 'active' : 'locked', icon: <Rocket size={16} /> },
   ];
 
   // Activation animation
@@ -187,18 +240,30 @@ const Setup = () => {
         clearInterval(timer);
         localStorage.setItem('velocity_setup_done', 'true');
         
-        // Save selected plan to backend
+        // Save selected plan and synced preferences to backend
         try {
           const token = localStorage.getItem('token');
           const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050";
+          
+          const payload = { 
+            selectedPlan,
+            ...(syncData || {})
+          };
+
           await fetch(`${API_BASE}/api/profile`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ selectedPlan })
+            body: JSON.stringify(payload)
           });
+
+          // Update local storage to match new sync
+          if (syncData) {
+            const updatedProfile = { ...onboardingData, ...syncData, selectedPlan };
+            localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+          }
         } catch (err) {
           console.error('Failed to save selected plan:', err);
         }
@@ -215,6 +280,24 @@ const Setup = () => {
       {/* ambient blobs */}
       <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+      
+      {/* Sign Out Button */}
+      <div className="absolute top-6 right-6 z-[100]">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('velocity_profile');
+            localStorage.removeItem('velocity_setup_done');
+            window.location.href = '/login';
+          }}
+          className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+        >
+          Sign Out
+        </Button>
+      </div>
+
       <motion.div
         key={screen}
         initial={{ opacity: 0, y: 24 }}
@@ -386,16 +469,25 @@ const Setup = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className={`relative rounded-2xl p-6 flex flex-col transition-all hover-lift ${
-                plan.popular
-                  ? 'bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]'
-                  : 'glass-card'
-              }`}
+              className={cn(
+                "relative rounded-2xl p-6 flex flex-col transition-all duration-300",
+                plan.popular ? "bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]" : "glass-card hover:border-primary/30",
+                recommendedPlan === plan.name && !plan.popular ? "ring-2 ring-emerald-500/50 scale-[1.01] shadow-lg shadow-emerald-500/5" : ""
+              )}
             >
               {plan.popular && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-card text-primary shadow-md">
                   Most Popular
                 </span>
+              )}
+              
+              {recommendedPlan === plan.name && (
+                <div className={cn(
+                  "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md border",
+                  plan.popular ? "bg-emerald-500 text-white border-emerald-400" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                )}>
+                  <Sparkles size={10} /> Recommended for you
+                </div>
               )}
 
               <h3 className="text-sm font-bold mb-1">{plan.name}</h3>
@@ -420,10 +512,7 @@ const Setup = () => {
               </ul>
 
               <Button
-                onClick={() => {
-                  setSelectedPlan(plan.name);
-                  setScreen('activation');
-                }}
+                onClick={() => handleSelectPlan(plan)}
                 className={`w-full text-xs font-semibold mt-auto ${
                   plan.popular
                     ? 'bg-card text-primary hover:bg-card/90'
@@ -437,6 +526,54 @@ const Setup = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* Plan Drift Warning Overlay */}
+        <AnimatePresence>
+          {warningPlan && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md"
+            >
+              <motion.div 
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                className="max-w-sm w-full glass-card rounded-[2.5rem] p-8 shadow-2xl border-amber-500/20"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
+                  <AlertTriangle className="text-amber-500" size={28} />
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-foreground">Sync Preferences?</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-6">
+                  Picking <span className="font-bold text-foreground">{warningPlan}</span> will adjust your onboarding preferences (Frequency/Formats) to fit this plan's limitations.
+                </p>
+                <div className="space-y-3">
+                  <Button 
+                    className="w-full gradient-bg text-white h-12 rounded-xl text-xs font-bold"
+                    onClick={() => {
+                      setSelectedPlan(warningPlan);
+                      setWarningPlan(null);
+                      setScreen('activation');
+                    }}
+                  >
+                    Auto-Sync & Activate
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full h-11 text-xs font-bold text-muted-foreground"
+                    onClick={() => {
+                      setWarningPlan(null);
+                      setSyncData(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Wrapper>
     );
   }
