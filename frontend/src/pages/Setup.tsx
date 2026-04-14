@@ -180,12 +180,30 @@ const Setup = () => {
     if (screen !== 'activation') return;
     const msgs = ['Brand profile loaded', 'Instagram connected', `${selectedPlan} plan activated`, 'First post generating...'];
     let i = 0;
-    const timer = setInterval(() => {
+    const timer = setInterval(async () => {
       i++;
       setActivationStep(i);
       if (i >= msgs.length + 1) {
         clearInterval(timer);
-        setTimeout(() => navigate('/'), 1800);
+        localStorage.setItem('velocity_setup_done', 'true');
+        
+        // Save selected plan to backend
+        try {
+          const token = localStorage.getItem('token');
+          const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050";
+          await fetch(`${API_BASE}/api/profile`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ selectedPlan })
+          });
+        } catch (err) {
+          console.error('Failed to save selected plan:', err);
+        }
+        
+        setTimeout(() => navigate('/dashboard'), 1800);
       }
     }, 800);
     return () => clearInterval(timer);

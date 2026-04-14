@@ -47,6 +47,10 @@ const brandProfileSchema = new mongoose.Schema({
   instagramIsConnected: {
     type: Boolean,
     default: false
+  },
+  selectedPlan: {
+    type: String,
+    default: 'Free'
   }
 }, { timestamps: true });
 

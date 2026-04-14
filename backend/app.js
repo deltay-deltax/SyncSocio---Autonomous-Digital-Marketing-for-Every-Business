@@ -7,6 +7,8 @@ import profileRoutes from './routes/profileRoutes.js';
 import waitlistRoutes from './routes/waitlistRoutes.js';
 import instagramRoutes from './routes/instagramRoutes.js';
 
+import dashboardRoutes from './routes/dashboardRoutes.js';
+
 dotenv.config();
 
 const app = express();
@@ -20,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/auth/instagram', instagramRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

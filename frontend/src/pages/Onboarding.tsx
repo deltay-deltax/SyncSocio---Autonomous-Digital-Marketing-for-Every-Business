@@ -93,7 +93,7 @@ const Onboarding = () => {
     brandKeywords: '',
     contentTypes: [],
     postingFrequency: '',
-    socialPlatforms: [],
+    socialPlatforms: ['Instagram', 'Facebook'],
     analytics: { followers: '', reach: '', engagement: '' },
     contentMix: { education: 80, promotion: 20 },
     primaryCTA: ''
@@ -219,8 +219,8 @@ const Onboarding = () => {
             )}
           </div>
 
-          <div className="flex-grow overflow-y-auto px-8 md:px-12 pb-10 scrollbar-hide">
-            <div className="max-w-[420px] mx-auto w-full h-full flex flex-col mt-6">
+          <div className="flex-grow overflow-y-auto px-8 md:px-12 pb-16">
+            <div className="max-w-[420px] mx-auto w-full flex flex-col mt-6">
               
               {/* Step 1: Identity */}
               {step === 1 && (
@@ -261,6 +261,8 @@ const Onboarding = () => {
                         ].map(cat => (
                           <div key={cat.id} onClick={() => setFormData({...formData, businessCategory: cat.id})}
                             className={`px-3 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center group hover:shadow-sm ${
+                              cat.id === 'Other' ? 'col-span-2' : ''
+                            } ${
                               formData.businessCategory === cat.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
                             }`}>
                             <cat.icon className={`mr-2 shrink-0 transition-colors ${formData.businessCategory === cat.id ? 'text-primary' : 'text-muted-foreground/50 group-hover:text-primary/40'}`} size={14} />
@@ -276,7 +278,7 @@ const Onboarding = () => {
                     </div>
                   </div>
 
-                  <div className="mt-8">
+                  <div className="mt-8 shrink-0">
                     <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       START MISSION <ChevronRight size={14} className="ml-1.5 group-hover:translate-x-0.5 transition-transform" />
                     </button>

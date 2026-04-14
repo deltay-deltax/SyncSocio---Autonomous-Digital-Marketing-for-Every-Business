@@ -9,14 +9,22 @@ import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import WaitlistDialog from "@/components/WaitlistDialog";
 
+import { useNavigate } from "react-router-dom";
+
 const Index = () => {
+  const navigate = useNavigate();
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const [isWaitlistJoined, setIsWaitlistJoined] = useState(false);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/dashboard");
+    }
+
     const joined = localStorage.getItem("velocity_waitlist_joined") === "true";
     setIsWaitlistJoined(joined);
-  }, []);
+  }, [navigate]);
 
   const handleWaitlistSuccess = () => {
     setIsWaitlistJoined(true);
