@@ -41,7 +41,7 @@ const sendOtpEmail = async (email, name, otp) => {
 
   const msg = {
     to: email,
-    from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER,
+    from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
     subject: 'Your Velocity verification code',
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 520px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
@@ -371,7 +371,7 @@ export const forgotPassword = async (req, res) => {
       const resetUrl = `http://localhost:5173/resetpassword/${resetToken}`;
       const msg = {
         to: user.email,
-        from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER,
+        from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
         subject: '🔒 Reset Your Velocity Password',
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
