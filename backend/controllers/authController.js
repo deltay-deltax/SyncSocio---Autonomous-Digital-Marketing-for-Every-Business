@@ -14,16 +14,112 @@ const generateToken = (userId) => {
   });
 };
 
+const OTP_EXPIRY_MINUTES = 10;
+
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+const hashOtp = (otp) => {
+  return crypto.createHash('sha256').update(otp).digest('hex');
+};
+
+const sendOtpEmail = async (email, name, otp) => {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    throw new Error('SMTP is not configured');
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_PORT === '465',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  const msg = {
+    to: email,
+    from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER,
+    subject: 'Your Velocity verification code',
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 520px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #2563eb; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">Velocity</h1>
+        </div>
+        <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #f3f4f6;">
+          <h2 style="color: #111827; font-size: 22px; font-weight: 700; margin-top: 0; margin-bottom: 14px;">Verify Your Email</h2>
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 22px;">
+            Hi ${name || 'there'}, use the one-time code below to verify your Velocity account.
+          </p>
+          <div style="text-align: center; margin: 20px 0 24px;">
+            <div style="display: inline-block; font-size: 34px; letter-spacing: 8px; font-weight: 800; color: #111827; background: #f3f4f6; padding: 12px 18px; border-radius: 10px;">
+              ${otp}
+            </div>
+          </div>
+          <p style="color: #6b7280; font-size: 14px; margin: 0; text-align: center;">
+            This code expires in ${OTP_EXPIRY_MINUTES} minutes.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(msg);
+};
+
 export const signup = async (req, res) => {
   const { name, email, password } = req.body;
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser && existingUser.isVerified === true) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, password: hashedPassword });
-    
-    res.status(201).json({ user, token: generateToken(user._id) });
+    const otp = generateOtp();
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const hashedOtp = hashOtp(otp);
+
+    let user;
+
+    if (existingUser) {
+      existingUser.name = name;
+      existingUser.password = hashedPassword;
+      existingUser.isVerified = false;
+      existingUser.otpCode = hashedOtp;
+      existingUser.otpExpiry = otpExpiry;
+      user = await existingUser.save();
+    } else {
+      user = await User.create({
+        name,
+        email: normalizedEmail,
+        password: hashedPassword,
+        isVerified: false,
+        otpCode: hashedOtp,
+        otpExpiry,
+      });
+    }
+
+    try {
+      await sendOtpEmail(user.email, user.name, otp);
+    } catch (mailError) {
+      console.error('OTP email send failed:', mailError);
+      return res.status(500).json({ message: 'Unable to send verification OTP. Please try again.' });
+    }
+
+    res.status(existingUser ? 200 : 201).json({
+      message: 'OTP sent to your email. Please verify to complete signup.',
+      email: user.email,
+      requiresOtp: true,
+      otpExpiresAt: user.otpExpiry,
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -32,13 +128,17 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email?.toLowerCase().trim() });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (!user.password) return res.status(400).json({ message: 'User uses OAuth to login. Please login using Google or Apple.' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+    if (user.isVerified === false) {
+      return res.status(403).json({ message: 'Please verify your email before logging in.' });
+    }
 
     res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
@@ -47,7 +147,7 @@ export const login = async (req, res) => {
 };
 
 export const googleLogin = async (req, res) => {
-  const { idToken } = req.body;
+  const { idToken, plan } = req.body;
   try {
     let email, name, googleId;
     if (idToken === 'mock_google_token') {
@@ -66,11 +166,32 @@ export const googleLogin = async (req, res) => {
     }
 
     let user = await User.findOne({ email });
+    let isNewUser = false;
     if (!user) {
-      user = await User.create({ name, email, googleId });
-    } else if (!user.googleId) {
-      user.googleId = googleId;
-      await user.save();
+      user = await User.create({ name, email, googleId, isVerified: true });
+      isNewUser = true;
+    } else {
+      let shouldSave = false;
+
+      if (!user.googleId) {
+        user.googleId = googleId;
+        shouldSave = true;
+      }
+
+      if (user.isVerified === false) {
+        user.isVerified = true;
+        user.otpCode = undefined;
+        user.otpExpiry = undefined;
+        shouldSave = true;
+      }
+
+      if (shouldSave) {
+        await user.save();
+      }
+    }
+
+    if (isNewUser) {
+      // Email will be sent when user selects plan on Setup page
     }
 
     res.status(200).json({ user, token: generateToken(user._id) });
@@ -81,13 +202,14 @@ export const googleLogin = async (req, res) => {
 };
 
 export const appleLogin = async (req, res) => {
-  const { idToken, name } = req.body;
+  const { idToken, name: providedName, plan } = req.body;
   try {
     let email, appleId;
+    let name = providedName;
     if (idToken === 'mock_apple_token') {
       email = 'apple_user@example.com';
       appleId = 'mock_apple_123';
-      if (!req.body.name) req.body.name = 'Apple User';
+      if (!name) name = 'Apple User';
     } else {
       const payload = await appleSigninAuth.verifyIdToken(idToken, {
         audience: process.env.APPLE_CLIENT_ID,
@@ -98,17 +220,125 @@ export const appleLogin = async (req, res) => {
     }
     
     let user = await User.findOne({ email });
+    let isNewUser = false;
     if (!user) {
-      user = await User.create({ name, email, appleId });
-    } else if (!user.appleId) {
-      user.appleId = appleId;
-      await user.save();
+      user = await User.create({ name, email, appleId, isVerified: true });
+      isNewUser = true;
+    } else {
+      let shouldSave = false;
+
+      if (!user.appleId) {
+        user.appleId = appleId;
+        shouldSave = true;
+      }
+
+      if (user.isVerified === false) {
+        user.isVerified = true;
+        user.otpCode = undefined;
+        user.otpExpiry = undefined;
+        shouldSave = true;
+      }
+
+      if (shouldSave) {
+        await user.save();
+      }
+    }
+
+    if (isNewUser) {
+      // Email will be sent when user selects plan on Setup page
     }
     
     res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
     console.error('Apple Auth Error:', error);
     res.status(500).json({ message: 'Apple Auth failed' });
+  }
+};
+
+export const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified === true) {
+      return res.status(400).json({ message: 'Email already verified. Please login.' });
+    }
+
+    if (!user.otpCode || !user.otpExpiry) {
+      return res.status(400).json({ message: 'No OTP found. Please request a new OTP.' });
+    }
+
+    if (user.otpExpiry.getTime() < Date.now()) {
+      return res.status(400).json({ message: 'OTP has expired. Please request a new OTP.' });
+    }
+
+    if (hashOtp(otp) !== user.otpCode) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    user.isVerified = true;
+    user.otpCode = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Email verified successfully',
+      user,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const resendOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified === true) {
+      return res.status(400).json({ message: 'User is already verified' });
+    }
+
+    const otp = generateOtp();
+    user.otpCode = hashOtp(otp);
+    user.otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    await user.save();
+
+    try {
+      await sendOtpEmail(user.email, user.name, otp);
+    } catch (mailError) {
+      console.error('OTP resend failed:', mailError);
+      return res.status(500).json({ message: 'Unable to resend OTP. Please try again.' });
+    }
+
+    res.status(200).json({
+      message: 'A new OTP has been sent to your email.',
+      email: user.email,
+      otpExpiresAt: user.otpExpiry,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
