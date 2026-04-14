@@ -34,8 +34,8 @@ const DashboardLayout = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050";
-        const res = await fetch(`${API_BASE}/api/profile/me`, {
+        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const res = await fetch(`${API_BASE}/profile/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {

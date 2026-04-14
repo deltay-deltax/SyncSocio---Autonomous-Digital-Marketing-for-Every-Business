@@ -20,8 +20,8 @@ const DashboardHome = () => {
     const fetchSummary = async () => {
       try {
         const token = localStorage.getItem('token');
-        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050";
-        const res = await fetch(`${API_BASE}/api/dashboard/summary`, {
+        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const res = await fetch(`${API_BASE}/dashboard/summary`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {

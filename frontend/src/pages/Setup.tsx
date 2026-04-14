@@ -243,14 +243,14 @@ const Setup = () => {
         // Save selected plan and synced preferences to backend
         try {
           const token = localStorage.getItem('token');
-          const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050";
+          const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
           
           const payload = { 
             selectedPlan,
             ...(syncData || {})
           };
 
-          await fetch(`${API_BASE}/api/profile`, {
+          await fetch(`${API_BASE}/profile`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',

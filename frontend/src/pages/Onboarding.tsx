@@ -783,8 +783,8 @@ const Onboarding = () => {
                               onClick={async () => {
                                 try {
                                   const token = localStorage.getItem('token');
-                                  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
-                                  const res = await fetch(BASE_URL, {
+                                  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+                                  const res = await fetch(`${BASE_URL}/profile`, {
                                     method: 'POST',
                                     headers: { 
                                       'Content-Type': 'application/json',

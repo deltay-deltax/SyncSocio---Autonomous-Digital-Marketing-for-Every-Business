@@ -24,8 +24,8 @@ const Index = () => {
 
       setIsCheckingStatus(true);
       try {
-        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
-        const profRes = await fetch(`${PROFILE_URL}/me`, {
+        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const profRes = await fetch(`${PROFILE_URL}/profile/me`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
 

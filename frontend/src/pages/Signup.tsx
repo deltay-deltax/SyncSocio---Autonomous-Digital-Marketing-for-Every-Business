@@ -60,8 +60,8 @@ const Signup = () => {
     setError("");
     setLoading(true);
     try {
-      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/auth";
-      const res = await fetch(`${BASE_URL}/signup`, {
+      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const res = await fetch(`${BASE_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: `${firstName} ${lastName}`.trim(), email, password })
@@ -72,8 +72,8 @@ const Signup = () => {
       localStorage.setItem("token", data.token);
       
       try {
-        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
-        const profRes = await fetch(`${PROFILE_URL}/me`, {
+        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const profRes = await fetch(`${PROFILE_URL}/profile/me`, {
           headers: { "Authorization": `Bearer ${data.token}` }
         });
         
@@ -101,8 +101,8 @@ const Signup = () => {
 
   const handleSocialLogin = async (provider: 'google' | 'apple') => {
     try {
-      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/auth";
-      const res = await fetch(`${BASE_URL}/${provider}`, {
+      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const res = await fetch(`${BASE_URL}/auth/${provider}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken: `mock_${provider}_token` })
@@ -113,8 +113,8 @@ const Signup = () => {
       localStorage.setItem("token", data.token);
       
       try {
-        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/profile";
-        const profRes = await fetch(`${PROFILE_URL}/me`, {
+        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const profRes = await fetch(`${PROFILE_URL}/profile/me`, {
           headers: { "Authorization": `Bearer ${data.token}` }
         });
         
@@ -284,8 +284,8 @@ const Signup = () => {
               <GoogleLogin
                 onSuccess={async (credentialResponse) => {
                   try {
-                    const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/auth";
-                    const res = await fetch(`${BASE_URL}/google`, {
+                    const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+                    const res = await fetch(`${BASE_URL}/auth/google`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ idToken: credentialResponse.credential })
@@ -323,8 +323,8 @@ const Signup = () => {
                   buttonExtraChildren="Sign in"
                   onSuccess={async (response: any) => {
                      try {
-                      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/auth";
-                      const res = await fetch(`${BASE_URL}/apple`, {
+                      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+                      const res = await fetch(`${BASE_URL}/auth/apple`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ idToken: response.authorization.id_token })
