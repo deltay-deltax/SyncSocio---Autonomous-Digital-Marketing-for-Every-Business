@@ -88,7 +88,7 @@ export const sendWelcomeEmail = async ({ to, name, provider, plan }) => {
 
   const msg = {
     to,
-    from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER,
+    from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
     subject: `Welcome to Velocity, ${userName}!`,
     text: textBody,
     html: `
