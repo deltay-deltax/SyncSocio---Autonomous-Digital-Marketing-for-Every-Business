@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import appleSigninAuth from 'apple-signin-auth';
+import { sendWelcomeEmail } from '../utils/sendWelcomeEmail.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -15,7 +16,7 @@ const generateToken = (userId) => {
 };
 
 export const signup = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, plan } = req.body;
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
@@ -47,7 +48,7 @@ export const login = async (req, res) => {
 };
 
 export const googleLogin = async (req, res) => {
-  const { idToken } = req.body;
+  const { idToken, plan } = req.body;
   try {
     let email, name, googleId;
     if (idToken === 'mock_google_token') {
@@ -66,11 +67,17 @@ export const googleLogin = async (req, res) => {
     }
 
     let user = await User.findOne({ email });
+    let isNewUser = false;
     if (!user) {
       user = await User.create({ name, email, googleId });
+      isNewUser = true;
     } else if (!user.googleId) {
       user.googleId = googleId;
       await user.save();
+    }
+
+    if (isNewUser) {
+      // Email will be sent when user selects plan on Setup page
     }
 
     res.status(200).json({ user, token: generateToken(user._id) });
@@ -81,13 +88,14 @@ export const googleLogin = async (req, res) => {
 };
 
 export const appleLogin = async (req, res) => {
-  const { idToken, name } = req.body;
+  const { idToken, name: providedName, plan } = req.body;
   try {
     let email, appleId;
+    let name = providedName;
     if (idToken === 'mock_apple_token') {
       email = 'apple_user@example.com';
       appleId = 'mock_apple_123';
-      if (!req.body.name) req.body.name = 'Apple User';
+      if (!name) name = 'Apple User';
     } else {
       const payload = await appleSigninAuth.verifyIdToken(idToken, {
         audience: process.env.APPLE_CLIENT_ID,
@@ -98,11 +106,17 @@ export const appleLogin = async (req, res) => {
     }
     
     let user = await User.findOne({ email });
+    let isNewUser = false;
     if (!user) {
       user = await User.create({ name, email, appleId });
+      isNewUser = true;
     } else if (!user.appleId) {
       user.appleId = appleId;
       await user.save();
+    }
+
+    if (isNewUser) {
+      // Email will be sent when user selects plan on Setup page
     }
     
     res.status(200).json({ user, token: generateToken(user._id) });
