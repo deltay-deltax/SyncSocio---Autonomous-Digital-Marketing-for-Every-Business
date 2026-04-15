@@ -18,8 +18,8 @@ const ForgotPassword = () => {
     setLoading(true);
     
     try {
-      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api/auth";
-      const res = await fetch(`${BASE_URL}/forgotpassword`, {
+      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const res = await fetch(`${BASE_URL}/auth/forgotpassword`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })

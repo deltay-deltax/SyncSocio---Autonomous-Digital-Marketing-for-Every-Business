@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import WhatWeAre from "@/components/WhatWeAre";
@@ -6,18 +7,91 @@ import HowItWorks from "@/components/HowItWorks";
 import Pricing from "@/components/Pricing";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
+import WaitlistDialog from "@/components/WaitlistDialog";
+
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+  const [isWaitlistJoined, setIsWaitlistJoined] = useState(false);
+
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      setIsCheckingStatus(true);
+      try {
+        const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const profRes = await fetch(`${PROFILE_URL}/profile/me`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (profRes.ok) {
+          const profile = await profRes.json();
+          localStorage.setItem("velocity_profile", JSON.stringify(profile));
+          
+          if (profile.instagramIsConnected) {
+            localStorage.setItem("velocity_setup_done", "true");
+            navigate("/dashboard");
+          } else {
+            localStorage.setItem("velocity_setup_done", "false");
+            navigate("/setup");
+          }
+        } else {
+          // No profile yet, likely needs onboarding
+          navigate("/onboarding");
+        }
+      } catch (err) {
+        console.error("Redirection check failed:", err);
+        // Fallback or stay on landing
+      } finally {
+        setIsCheckingStatus(false);
+      }
+    };
+
+    checkUserStatus();
+
+    const joined = localStorage.getItem("velocity_waitlist_joined") === "true";
+    setIsWaitlistJoined(joined);
+  }, [navigate]);
+
+  const handleWaitlistSuccess = () => {
+    setIsWaitlistJoined(true);
+  };
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {isCheckingStatus && (
+        <div className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-md flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest animate-pulse">Synchronizing Agent Status...</p>
+          </div>
+        </div>
+      )}
       <Navbar />
-      <HeroSection />
+      <HeroSection 
+        onWaitlistClick={() => setIsWaitlistOpen(true)} 
+        isJoined={isWaitlistJoined}
+      />
       <WhatWeAre />
       <Features />
       <HowItWorks />
       <Pricing />
-      <CTASection />
+      <CTASection 
+        onWaitlistClick={() => setIsWaitlistOpen(true)} 
+        isJoined={isWaitlistJoined}
+      />
       <Footer />
+      
+      <WaitlistDialog 
+        open={isWaitlistOpen} 
+        onOpenChange={setIsWaitlistOpen} 
+        onSuccess={handleWaitlistSuccess}
+      />
     </div>
   );
 };

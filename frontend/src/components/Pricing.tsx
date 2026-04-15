@@ -6,50 +6,77 @@ import { Button } from "@/components/ui/button";
 const plans = [
   {
     name: "Bootstrapper",
-    price: "₹0",
+    price: "XXX",
     period: "/month",
     description: "Free forever. Start mapping your brand.",
     features: [
-      "Basic Brand Mapping",
-      "1 Active Agent",
-      "Weekly Reports",
+      "Once a week posting",
+      "Static posts only",
+      "4 posts/month",
+      "Basic brand mapping",
+      "1 active agent",
+      "Weekly reports",
       "Community support",
     ],
     popular: false,
     cta: "Start Free",
   },
   {
-    name: "Velocity",
-    price: "₹199",
+    name: "Velocity Starter",
+    price: "XXX",
     period: "/month",
     description: "For creators ready to scale at speed.",
     features: [
-      "Deep DNA Synthesis",
-      "3 Active Agents",
-      "Daily Velocity Sync",
-      "Cross-Platform Multi-Post",
+      "3-4x/week posting",
+      "Static + Carousels",
+      "12-30 posts/month",
+      "Deep DNA brand synthesis",
+      "3 active agents",
+      "Daily sync",
+      "Cross platform posting",
+      "Priority support",
+    ],
+    popular: false,
+    cta: "Get Started",
+  },
+  {
+    name: "Velocity Pro",
+    price: "XXX",
+    period: "/month",
+    description: "Maximum efficiency for power creators.",
+    features: [
+      "Daily posting",
+      "Static + Carousel + Reels",
+      "30 posts/month",
+      "Deep DNA brand synthesis",
+      "3 active agents",
+      "Daily sync",
+      "Cross platform posting",
       "Priority support",
     ],
     popular: true,
-    cta: "Get Velocity",
+    cta: "Go Pro",
   },
   {
     name: "Empire",
-    price: "₹499",
+    price: "XXX",
     period: "/month",
     description: "For teams building category-defining brands.",
     features: [
+      "Daily posting",
+      "All content types",
+      "30 posts/month",
       "Everything in Velocity",
-      "Unlimited Agents",
-      "Custom Voice Models",
-      "24/7 Strategic Support",
-      "Full Creative Control",
+      "Unlimited agents",
+      "24/7 strategic support",
+      "Full creative control",
       "Custom integrations",
     ],
     popular: false,
     cta: "Contact Sales",
   },
 ];
+
 
 const Pricing = () => {
   const ref = useRef(null);
@@ -72,14 +99,14 @@ const Pricing = () => {
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.name}
               initial={{ opacity: 0, y: 40 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className={`relative rounded-2xl p-8 hover-lift transition-all ${
+              className={`relative rounded-2xl p-8 hover-lift transition-all flex flex-col ${
                 plan.popular
                   ? "bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]"
                   : "glass-card"
@@ -109,7 +136,7 @@ const Pricing = () => {
                 ))}
               </ul>
               <Button
-                className={`w-full ${
+                className={`w-full mt-auto ${
                   plan.popular
                     ? "bg-card text-primary hover:bg-card/90 font-semibold"
                     : "gradient-bg text-primary-foreground border-0"

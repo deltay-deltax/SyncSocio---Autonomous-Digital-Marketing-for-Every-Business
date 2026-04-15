@@ -1,0 +1,8 @@
+# List Network Requests
+
+| reqid | method | url | status |
+|---|---|---|---|
+| 382 | GET | http://localhost:5174/@vite/client | failed - 304 |
+| 383 | GET | http://localhost:5174/src/main.jsx?t=1775675320853 | failed - 500 |
+| 384 | GET | http://localhost:5174/@react-refresh | failed - 304 |
+| 385 | GET | http://localhost:5174/node_modules/vite/dist/client/env.mjs | failed - 304 |
