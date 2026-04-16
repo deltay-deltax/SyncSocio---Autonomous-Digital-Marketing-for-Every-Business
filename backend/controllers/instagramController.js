@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
-const FB_API_VERSION = 'v19.0';
+const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
 
 /**
@@ -24,7 +24,10 @@ export const getInstagramAuthUrl = (req, res) => {
     'instagram_content_publish',
     'pages_show_list',
     'pages_read_engagement',
+    'pages_read_user_content',
     'business_management',
+    'read_insights',
+    'instagram_manage_insights',
     'public_profile'
   ].join(',');
 
@@ -123,10 +126,11 @@ export const instagramCallback = async (req, res) => {
       throw new Error('No Instagram Business account found. Ensure your Instagram is linked to your Facebook Page and you selected the Page in the login popup.');
     }
 
-    // 5. Get Instagram Username and Save
-    const igUserRes = await fetch(`${FB_API_BASE}/${igBusinessAccountId}?fields=username&access_token=${accessToken}`);
+    // 5. Get Instagram Username and Profile Picture
+    const igUserRes = await fetch(`${FB_API_BASE}/${igBusinessAccountId}?fields=username,profile_picture_url&access_token=${accessToken}`);
     const igUserData = await igUserRes.json();
     igUsername = igUserData.username;
+    const igProfilePicture = igUserData.profile_picture_url;
 
     await BrandProfile.findOneAndUpdate(
       { user: userId },
@@ -135,6 +139,7 @@ export const instagramCallback = async (req, res) => {
         instagramBusinessAccountId: igBusinessAccountId,
         instagramPageId: igPageId,
         instagramUsername: igUsername,
+        instagramProfilePicture: igProfilePicture,
         instagramIsConnected: true
       },
       { new: true, upsert: true }

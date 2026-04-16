@@ -39,12 +39,23 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
   @keyframes accordion-down {
-    from { height: 0; }
-    to { height: var(--radix-accordion-content-height); }
+    from {
+      height: 0;
+    }
+
+    to {
+      height: var(--radix-accordion-content-height);
+    }
   }
+
   @keyframes accordion-up {
-    from { height: var(--radix-accordion-content-height); }
-    to { height: 0; }
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+
+    to {
+      height: 0;
+    }
   }
 }
 
@@ -83,7 +94,7 @@
     --gradient-primary: linear-gradient(135deg, hsl(221, 83%, 53%), hsl(221, 83%, 42%));
     --gradient-accent: linear-gradient(135deg, hsl(221, 83%, 53%), hsl(199, 89%, 48%));
     --gradient-hero: linear-gradient(180deg, hsl(214, 100%, 97%) 0%, hsl(220, 20%, 97%) 100%);
-    --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+    --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
     --shadow-soft: 0 4px 24px -4px hsl(221 83% 53% / 0.08);
     --shadow-card: 0 8px 32px -8px hsl(230 25% 10% / 0.08);
     --shadow-elevated: 0 20px 60px -15px hsl(221 83% 53% / 0.15);
@@ -135,7 +146,13 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-display;
   }
 }
@@ -147,25 +164,31 @@
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-card);
   }
+
   .gradient-text {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
   .gradient-bg {
     background: var(--gradient-primary);
   }
+
   .hover-lift {
     @apply transition-all duration-300;
   }
+
   .hover-lift:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-elevated);
   }
+
   .underline-accent {
     @apply relative inline-block;
   }
+
   .underline-accent::after {
     content: '';
     @apply absolute bottom-0 left-0 w-full h-[3px] rounded-full;
@@ -176,6 +199,7 @@
     @apply relative inline-block;
     z-index: 1;
   }
+
   .liquid-underline::after {
     content: '';
     position: absolute;
@@ -188,6 +212,7 @@
     z-index: -1;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
   .liquid-underline:hover::after {
     height: 70%;
     background: hsl(221 83% 53% / 0.4);
@@ -196,16 +221,24 @@
 
 @layer utilities {
   @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
   }
+
   .animate-marquee {
     animation: marquee 25s linear infinite;
     will-change: transform;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;

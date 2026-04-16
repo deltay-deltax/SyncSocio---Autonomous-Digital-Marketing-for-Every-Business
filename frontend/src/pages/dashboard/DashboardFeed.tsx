@@ -1,38 +1,65 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Grid3X3, List, Eye, Heart, Activity, Sparkles } from 'lucide-react';
+import { Grid3X3, List, Eye, Heart, MessageSquare, Sparkles, ExternalLink, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const tabs = ['All', 'Agent Posts', 'Original Posts'];
 
-const posts = [
-  { id: 1, type: 'Reel', caption: '5 baking secrets nobody tells you 🍞', time: '2 hours ago', views: '2.1K', likes: '186', engagement: '8.2%', agent: true, emoji: '🎬' },
-  { id: 2, type: 'Static', caption: 'Our new sourdough starter — 72 hours in the making', time: '1 day ago', views: '890', likes: '94', engagement: '4.1%', agent: true, emoji: '📸' },
-  { id: 3, type: 'Carousel', caption: 'From flour to focaccia — swipe through the process →', time: '2 days ago', views: '1.4K', likes: '128', engagement: '5.6%', agent: true, emoji: '🎠' },
-  { id: 4, type: 'Reel', caption: 'Morning bake routine — peaceful ASMR edition ☀️', time: '3 days ago', views: '3.2K', likes: '290', engagement: '9.1%', agent: false, emoji: '🎬' },
-  { id: 5, type: 'Static', caption: 'Fresh batch of cinnamon rolls available this weekend!', time: '4 days ago', views: '670', likes: '72', engagement: '3.8%', agent: true, emoji: '📸' },
-  { id: 6, type: 'Carousel', caption: 'Top 5 bread mistakes beginners make 🚫', time: '5 days ago', views: '1.8K', likes: '210', engagement: '7.3%', agent: true, emoji: '🎠' },
-];
-
 const DashboardFeed = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeed = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/instagram/feed`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const result = await res.json();
+          setPosts(result.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch feed:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeed();
+  }, []);
 
   const filtered = activeTab === 'All' ? posts
-    : activeTab === 'Agent Posts' ? posts.filter(p => p.agent)
-    : posts.filter(p => !p.agent);
+    : activeTab === 'Agent Posts' ? posts.filter(p => p.caption?.includes('🤖') || p.caption?.toLowerCase().includes('velocity'))
+    : posts; // Simplifying for now
+
+  if (loading) {
+    return (
+        <div className="space-y-6">
+            <div className="h-10 w-48 bg-muted rounded-xl animate-pulse" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square bg-muted rounded-[2rem] animate-pulse" />)}
+            </div>
+        </div>
+    );
+  }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-lg font-bold text-foreground">Your Instagram Feed</h2>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/60">
-          <button onClick={() => setViewMode('grid')} className={cn('p-2 rounded-lg transition-all duration-200', viewMode === 'grid' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+            <h2 className="text-2xl font-black text-foreground uppercase tracking-tight italic">Your <span className="text-primary">Feed</span></h2>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Live Instagram Sync</p>
+        </div>
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-white border border-border/50 shadow-sm">
+          <button onClick={() => setViewMode('grid')} className={cn('p-2 rounded-lg transition-all duration-200', viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground')}>
             <Grid3X3 size={16} />
           </button>
-          <button onClick={() => setViewMode('list')} className={cn('p-2 rounded-lg transition-all duration-200', viewMode === 'list' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+          <button onClick={() => setViewMode('list')} className={cn('p-2 rounded-lg transition-all duration-200', viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground')}>
             <List size={16} />
           </button>
         </div>
@@ -45,10 +72,10 @@ const DashboardFeed = () => {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200',
+              'px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300',
               activeTab === tab
-                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200'
+                : 'bg-white text-muted-foreground hover:bg-muted border border-border/40'
             )}
           >
             {tab}
@@ -58,58 +85,82 @@ const DashboardFeed = () => {
 
       {/* Posts */}
       {filtered.length === 0 ? (
-        <Card className="border-border/50">
-          <CardContent className="py-16 text-center">
-            <p className="text-3xl mb-3">🤖</p>
-            <p className="text-sm text-muted-foreground">Your agent is preparing your first post. Check back in a few minutes</p>
+        <Card className="rounded-[3rem] border-dashed border-2 border-border/50 bg-white">
+          <CardContent className="py-24 text-center">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 opacity-40">
+                <Sparkles size={24} />
+            </div>
+            <p className="text-sm font-black uppercase tracking-tight">No Posts Found</p>
+            <p className="text-[11px] text-muted-foreground mt-2 max-w-xs mx-auto">Your Instagram feed is empty or your agent is still preparing the first drop.</p>
           </CardContent>
         </Card>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
           {filtered.map((post, i) => (
-            <motion.div key={post.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
-              <Card className="overflow-hidden hover-lift cursor-pointer border-border/50 group">
-                <div className="aspect-square bg-gradient-to-br from-muted to-muted/30 flex items-center justify-center text-4xl relative overflow-hidden">
-                  <span className="group-hover:scale-110 transition-transform duration-500">{post.emoji}</span>
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-card/90 backdrop-blur-sm text-foreground shadow-sm">{post.type}</span>
-                  {post.agent && (
-                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-primary/90 text-primary-foreground flex items-center gap-0.5 shadow-sm">
-                      <Sparkles size={8} /> AI
-                    </span>
+            <motion.div key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+              <Card className="overflow-hidden border-none shadow-xl shadow-slate-200/50 rounded-[2.5rem] bg-white group hover:-translate-y-2 transition-all duration-500">
+                <div className="aspect-square relative overflow-hidden bg-slate-100">
+                  {post.media_url ? (
+                    <img src={post.media_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl">📸</div>
                   )}
-                </div>
-                <CardContent className="p-3">
-                  <p className="text-xs text-foreground line-clamp-2 mb-2 font-medium">{post.caption}</p>
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-0.5"><Eye size={10} /> {post.views}</span>
-                    <span className="flex items-center gap-0.5"><Heart size={10} /> {post.likes}</span>
-                    <span className="flex items-center gap-0.5"><Activity size={10} /> {post.engagement}</span>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-5">
+                     <a href={post.permalink} target="_blank" rel="noreferrer" className="text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20">
+                        View on Insta <ExternalLink size={12} />
+                     </a>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">{post.time}</p>
+                  <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[9px] font-black bg-white/90 backdrop-blur-md text-slate-900 shadow-sm uppercase tracking-widest">{post.type}</span>
+                </div>
+                <CardContent className="p-5">
+                  <p className="text-xs text-slate-700 line-clamp-2 mb-4 font-bold leading-relaxed">{post.caption || 'No caption'}</p>
+                  <div className="flex items-center justify-between border-t border-slate-50 pt-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 text-[11px] font-black text-slate-800">
+                            <Heart size={14} className="text-rose-500 fill-rose-500" /> {post.likes}
+                        </div>
+                        <div className="flex items-center gap-1 text-[11px] font-black text-slate-800">
+                            <MessageSquare size={14} className="text-primary" /> {post.comments}
+                        </div>
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">
+                        {new Date(post.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-4">
           {filtered.map((post, i) => (
-            <motion.div key={post.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="hover-lift cursor-pointer border-border/50 group">
-                <CardContent className="p-3 flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-muted to-muted/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform duration-300">{post.emoji}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground truncate font-medium">{post.caption}</p>
-                    <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
-                      <span className="px-2 py-0.5 rounded-lg bg-muted text-[10px] font-semibold">{post.type}</span>
-                      <span>{post.time}</span>
-                      {post.agent && <span className="text-primary font-semibold flex items-center gap-0.5"><Sparkles size={10} /> Agent</span>}
-                    </div>
+            <motion.div key={post.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
+              <Card className="border-none shadow-lg shadow-slate-200/40 rounded-[2rem] bg-white group hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-4 flex items-center gap-5">
+                  <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
+                    <img src={post.media_url} className="w-full h-full object-cover" alt="" />
                   </div>
-                  <div className="flex gap-4 text-[11px] text-muted-foreground shrink-0 hidden sm:flex">
-                    <span className="text-center"><span className="block text-foreground font-bold">{post.views}</span>views</span>
-                    <span className="text-center"><span className="block text-foreground font-bold">{post.likes}</span>likes</span>
-                    <span className="text-center"><span className="block text-foreground font-bold">{post.engagement}</span>eng.</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                        <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest">{post.type}</span>
+                        <span className="text-[10px] font-bold text-slate-400">{new Date(post.timestamp).toLocaleString()}</span>
+                    </div>
+                    <p className="text-sm text-slate-800 truncate font-bold">{post.caption || 'No caption'}</p>
+                  </div>
+                  <div className="flex gap-8 shrink-0 px-6 border-l border-slate-50">
+                    <div className="text-center">
+                        <span className="block text-xl font-black text-slate-900">{post.likes}</span>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Likes</span>
+                    </div>
+                    <div className="text-center">
+                        <span className="block text-xl font-black text-slate-900">{post.comments}</span>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Comments</span>
+                    </div>
+                    <div className="text-center">
+                        <span className="block text-xl font-black text-emerald-500 italic">{( ((post.likes + post.comments) / 1000) * 10).toFixed(1)}%</span>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rate</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -95,9 +95,9 @@ const HeroSection = ({ onWaitlistClick, isJoined }: HeroSectionProps) => {
 
 
             {!isJoined && (
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="text-base px-8 py-6 hover-lift"
                 onClick={onWaitlistClick}
               >

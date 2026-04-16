@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, Outlet } from 'react-router-dom';
-import { Home, Rss, BarChart3, Target, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,9 @@ const navItems = [
   { label: 'Feed', icon: Rss, path: '/dashboard/feed' },
   { label: 'Analytics', icon: BarChart3, path: '/dashboard/analytics' },
   { label: 'Ads', icon: Target, path: '/dashboard/ads' },
+  { label: 'Strategy', icon: Sparkles, path: '/dashboard/strategy' },
+  { label: 'Post Optimizer', icon: Upload, path: '/dashboard/post-optimizer' },
+  { label: 'Metrics', icon: BarChart3, path: '/dashboard/metrics' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
 ];
 
@@ -48,7 +51,9 @@ const DashboardLayout = () => {
           localStorage.removeItem('velocity_profile');
           window.location.href = '/login';
         } else {
-          console.error('Profile fetch returned status:', res.status);
+          if (res.status !== 404) {
+            console.error('Profile fetch returned status:', res.status);
+          }
           const stored = localStorage.getItem('velocity_profile');
           if (stored) setProfile(JSON.parse(stored));
         }
@@ -80,11 +85,16 @@ const DashboardLayout = () => {
   const SidebarContent = () => (
     <div className="flex flex-col h-full overflow-hidden bg-white border-r border-border/50">
       {/* Logo */}
-      <div className="p-6 flex items-center gap-2.5">
-        <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-          <Zap size={18} fill="currentColor" className="text-white" />
+      <div className="p-6">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+            <Zap size={18} fill="currentColor" className="text-white" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-black text-lg tracking-tighter uppercase text-foreground leading-none">Velocity</span>
+            <span className="text-[8px] font-bold text-primary tracking-[0.2em] leading-none uppercase mt-1">Agent as a Service</span>
+          </div>
         </div>
-        <span className="font-black text-lg tracking-tighter uppercase text-foreground">Velocity</span>
       </div>
 
       {/* Nav Items */}
@@ -193,8 +203,12 @@ const DashboardLayout = () => {
             <div className="h-8 w-px bg-border/50 mx-2" />
             
             <button onClick={() => window.location.href='/dashboard/settings'}>
-              <Avatar className="w-8 h-8 cursor-pointer ring-1 ring-border shadow-sm hover:ring-primary/40 transition-all">
-                <AvatarFallback className="bg-muted text-foreground text-[10px] font-black">{initials}</AvatarFallback>
+              <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-primary/20 ring-offset-1 shadow-sm hover:ring-primary/60 transition-all">
+                {profile?.instagramProfilePicture ? (
+                  <img src={profile.instagramProfilePicture} alt={brandName} className="object-cover w-full h-full" />
+                ) : (
+                  <AvatarFallback className="gradient-bg text-white text-[10px] font-black">{initials}</AvatarFallback>
+                )}
               </Avatar>
             </button>
           </div>

@@ -1,0 +1,15 @@
+langgraph
+langchain-google-genai
+fastapi
+uvicorn
+motor
+python-dotenv
+pydantic
+cloudinary
+pytz
+python-multipart
+google-genai
+requests
+Pillow
+moviepy
+numpy

@@ -125,11 +125,10 @@ const DashboardHome = () => {
                   className="flex items-start gap-4 p-4 rounded-2xl hover:bg-muted/30 transition-all cursor-default"
                 >
                   <div className="relative mt-1.5 shrink-0">
-                    <span className={`block w-2.5 h-2.5 rounded-full ${
-                      a.status === 'done' ? 'bg-emerald-500' :
-                      a.status === 'active' ? 'bg-primary' :
-                      'bg-muted-foreground/20'
-                    }`} />
+                    <span className={`block w-2.5 h-2.5 rounded-full ${a.status === 'done' ? 'bg-emerald-500' :
+                        a.status === 'active' ? 'bg-primary' :
+                          'bg-muted-foreground/20'
+                      }`} />
                     {a.status === 'active' && <span className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-primary animate-ping opacity-40" />}
                   </div>
                   <div className="min-w-0 flex-1">

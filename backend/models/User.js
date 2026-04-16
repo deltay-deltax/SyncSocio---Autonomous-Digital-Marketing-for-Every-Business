@@ -35,7 +35,10 @@ const userSchema = new mongoose.Schema({
     required: false
   },
   resetPasswordToken: String,
-  resetPasswordExpire: Date
+  resetPasswordExpire: Date,
+  instagramId: String,
+  instagramAccessToken: String,
+  instagramTokenExpire: Date
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

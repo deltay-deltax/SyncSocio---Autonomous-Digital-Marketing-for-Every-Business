@@ -24,7 +24,7 @@ const Navbar = () => {
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem("token"));
-    
+
     const handler = () => setIsLoggedIn(!!localStorage.getItem("token"));
     window.addEventListener("storage", handler);
     window.addEventListener("focus", handler);

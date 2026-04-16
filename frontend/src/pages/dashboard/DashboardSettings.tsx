@@ -171,8 +171,15 @@ const DashboardSettings = () => {
               <CardContent className="p-8">
                 {profile.instagramIsConnected ? (
                   <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)' }}>
-                      <InstagramIcon size={28} className="text-white" />
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden" 
+                         style={{ 
+                            background: profile.instagramProfilePicture ? 'none' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)' 
+                         }}>
+                      {profile.instagramProfilePicture ? (
+                        <img src={profile.instagramProfilePicture} className="w-full h-full object-cover" />
+                      ) : (
+                        <InstagramIcon size={28} className="text-white" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-base font-black text-foreground">@{profile.instagramUsername}</p>
@@ -181,7 +188,23 @@ const DashboardSettings = () => {
                         <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem('token');
+                          const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/instagram`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          });
+                          const { url } = await res.json();
+                          if (url) window.location.href = url;
+                        } catch (err) {
+                          console.error('Failed to get auth URL:', err);
+                        }
+                      }}
+                    >
                       <RefreshCw size={14} className="mr-2" /> Reconnect
                     </Button>
                   </div>

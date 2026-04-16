@@ -10,6 +10,7 @@ const inferAuthProvider = (user) => {
 
 export const createOrUpdateProfile = async (req, res) => {
   try {
+    if (!req.user?._id) return res.status(401).json({ message: 'User not authenticated' });
     const profileData = { ...req.body, user: req.user._id };
     const incomingSelectedPlan = typeof req.body.selectedPlan === 'string'
       ? req.body.selectedPlan.trim()
