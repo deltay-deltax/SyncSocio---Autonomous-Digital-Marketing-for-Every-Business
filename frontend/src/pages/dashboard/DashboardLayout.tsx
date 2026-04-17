@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, Outlet } from 'react-router-dom';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ const navItems = [
   { label: 'Strategy', icon: Sparkles, path: '/dashboard/strategy' },
   { label: 'Post Optimizer', icon: Upload, path: '/dashboard/post-optimizer' },
   { label: 'Metrics', icon: BarChart3, path: '/dashboard/metrics' },
+  { label: 'DMs', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
 ];
 
