@@ -40,7 +40,12 @@ async def api_generate_strategy(brand_info: BrandInfo):
     try:
         # 1. Run the LangGraph Agent
         print(f"Generating strategy for user: {brand_info.userId}")
-        result = generate_strategy(brand_info.dict())
+        
+        # Destructure to separate productBrief from other brand_info fields
+        data = brand_info.dict()
+        product_brief = data.pop('productBrief', {"name": "", "description": "", "category": ""})
+        
+        result = generate_strategy(data, product_brief)
         
         if result.get("error"):
             raise HTTPException(status_code=500, detail=result["error"])

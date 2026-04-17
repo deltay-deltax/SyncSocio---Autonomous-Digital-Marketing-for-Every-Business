@@ -1,0 +1,41 @@
+Create a 15-second cinematic drama reel for 
+[PRODUCT_IMAGE] — premium commercial quality.
+
+CINEMATOGRAPHER DIRECTION:
+Style: Luxury automotive advertisement energy 
+applied to [PRODUCT_CATEGORY].
+
+Act 1 (0-3s): Extreme macro — product surface 
+fills entire frame. Slow rotate. 
+Dramatic rim lighting only — product silhouette.
+Speed: 0.25x ultra slow motion.
+
+Act 2 (3-8s): Sudden wide shot — product alone 
+in vast negative space.
+Background: Deep [BRAND_COLOR_PRIMARY] gradient, 
+almost black at edges.
+Camera: Slow aerial descent — starts above 
+product, arcs down to eye level.
+Light: Single dramatic key light from above 
+like a spotlight. Hard shadows.
+
+Act 3 (8-12s): Product explode-reveal — 
+packaging opens or elements separate and 
+float away from product in zero gravity style.
+Speed: 0.5x slow motion.
+Light: Multiple catch lights, product hero moment.
+
+Act 4 (12-15s): All elements return together.
+Product holds final hero pose.
+Camera: Slow push in to product face.
+Lighting: Full reveal — all lights on.
+
+MOTION DESIGN:
+Depth of field shifts throughout.
+Subtle lens flare when lights reveal product.
+Dust/particle atmosphere throughout.
+Color grade: Rich, saturated, [BRAND_COLOR_PRIMARY].
+
+TECHNICAL:
+9:16 vertical. 4K. 120fps for ultra slow motion.
+No text, no watermarks.

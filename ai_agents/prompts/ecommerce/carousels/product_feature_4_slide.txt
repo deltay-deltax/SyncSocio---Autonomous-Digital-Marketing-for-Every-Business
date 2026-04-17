@@ -1,0 +1,39 @@
+Create a 4-slide product feature carousel 
+for [PRODUCT_IMAGE].
+
+VISUAL DIRECTION:
+Inspired by Apple product launch slides —
+each feature gets its own cinematic moment.
+
+SLIDE 1 — Full Product Hero:
+Product [PRODUCT_IMAGE] on pure 
+[BRAND_COLOR_PRIMARY] background.
+Three-quarter elevated angle.
+Full studio lighting — complete product visible.
+This is the establishing shot.
+
+SLIDE 2 — Feature 1 Macro:
+Extreme close up of primary product feature.
+Fill frame with detail.
+Lighting: Single side light for texture drama.
+Background: [BRAND_COLOR_SECONDARY] soft gradient.
+Camera: razor sharp macro, 1:1 magnification feel.
+
+SLIDE 3 — Feature 2 Macro:
+Different product feature — different angle.
+Camera: overhead looking down into product.
+Lighting: Overhead with catchlights.
+Background: [BRAND_COLOR_PRIMARY] soft.
+Same macro intensity as Slide 2.
+
+SLIDE 4 — Full Product Return:
+Same composition as Slide 1.
+Now subtly different lighting angle — 
+warm glow, slightly more intimate.
+Viewer now knows the product deeply.
+Maximum negative space for final CTA text.
+
+CONSISTENT ELEMENTS:
+4:5 portrait all slides.
+Seamless color palette across all slides.
+No text, no watermarks.

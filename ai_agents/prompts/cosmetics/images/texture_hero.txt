@@ -1,0 +1,42 @@
+Create a sensory cosmetics texture photograph 
+for [PRODUCT_IMAGE].
+
+CINEMATOGRAPHER DIRECTION:
+Concept: The texture IS the advertisement.
+Camera: True macro — product texture fills frame.
+Angle: Varies by product:
+- Cream/serum: overhead pour or swipe
+- Powder: side view of product mid-fall
+- Lipstick: 45-degree tip focus
+- Palette: overhead top view
+Lighting: Cross polarization — 
+eliminates hot spots, reveals true texture.
+With small fill-in light for 
+shimmer/glitter products to catch light.
+
+COMPOSITION:
+Product application texture — 
+swatch or applied texture fills 60% of frame.
+Product packaging visible in 
+soft background bokeh — 40% of frame.
+Texture placement: diagonal across frame — 
+dynamic direction.
+
+TEXTURE TREATMENT:
+Cream: swatch with spatula drag — 
+peaks and valleys visible.
+Powder: micro shimmer particles.
+Liquid: surface tension and flow.
+Matte: precise flat finish.
+Glitter: each particle catches separate light.
+
+ENVIRONMENT:
+Surface: [BRAND_COLOR_PRIMARY] toned 
+marble or glass — 
+reflects product and adds luxury.
+
+STYLE:
+Scientific beauty — 
+showing formula and texture = trust signal.
+4K macro. 1:1 square.
+No text, no watermarks.

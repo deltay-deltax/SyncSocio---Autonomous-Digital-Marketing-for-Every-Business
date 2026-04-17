@@ -1,0 +1,37 @@
+Create a 15-second premium ecommerce product 
+reveal video featuring [PRODUCT_IMAGE].
+
+DIRECTOR OF PHOTOGRAPHY DIRECTION:
+Opening: Black screen — 0.5s
+Act 1 (0-5s): Extreme close up of product texture
+— slow push in from 80% to 100% fill frame.
+Speed: 0.3x slow motion.
+Camera move: Imperceptible forward dolly.
+
+Act 2 (5-10s): Camera pulls back from macro to 
+full product reveal. Product rotates 180 degrees 
+on its axis at 2 RPM. Studio environment revealed.
+Lighting: Dramatic single key light sweeping 
+from left to right as product rotates, 
+creating moving highlight across product surface.
+
+Act 3 (10-15s): Camera settles at hero angle 
+(three-quarter elevated). Product holds position. 
+Floating elements drift into frame slowly.
+Camera: Slight push in toward product.
+
+MOTION DESIGN:
+Light particles drift upward throughout.
+Soft bloom effect when key light hits product.
+Background gradient pulses subtly.
+Color grade: [BRAND_COLOR_PRIMARY] tones.
+
+AUDIO CUE NOTE:
+Leave space for music overlay.
+Video should work silently.
+
+TECHNICAL:
+Resolution: 4K.
+Aspect ratio: 9:16 vertical for Reels.
+Frame rate: 60fps for smooth slow motion.
+No text, no watermarks.

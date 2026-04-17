@@ -1,0 +1,37 @@
+Create a premium lifestyle ecommerce scene 
+featuring [PRODUCT_IMAGE] in natural daily use context.
+
+CINEMATOGRAPHER DIRECTION:
+Handheld editorial photography feel.
+Angle: Eye-level or slight downward 20-degree tilt.
+Lens: 50mm natural perspective.
+Lighting: Golden hour window light from left — 
+warm, directional, casting long soft shadows.
+
+COMPOSITION:
+Rule of thirds — product at right third intersection.
+Human hand holding or using product (no face visible).
+Lifestyle props that match [TARGET_AUDIENCE] lifestyle.
+Background: real environment — kitchen counter / 
+desk / dressing table — blurred but recognizable.
+
+ENVIRONMENT:
+Real-world setting relevant to [PRODUCT_CATEGORY].
+Props: linen textures, wooden surfaces, 
+ceramic elements, plants — depending on brand tone.
+Color palette of entire scene harmonizes with 
+[BRAND_COLOR_PRIMARY] and [BRAND_COLOR_SECONDARY].
+
+DETAILS:
+Natural skin texture on hand visible.
+Product packaging catches light naturally.
+Environmental storytelling — tell a daily ritual story.
+Shallow focus — product sharp, background painterly.
+
+STYLE:
+Organic, authentic, editorial lifestyle photography.
+[BRAND_TONE] aesthetic — not over-styled.
+Magazine quality — think Kinfolk or Cereal Magazine.
+4K, film-like color grade, slight warm tone.
+Aspect ratio 4:5 portrait.
+No text, no watermarks.

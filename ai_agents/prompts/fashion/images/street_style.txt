@@ -1,0 +1,36 @@
+Create a luxury street style fashion photograph 
+featuring [PRODUCT_IMAGE].
+
+CINEMATOGRAPHER DIRECTION:
+Location: Premium urban environment — 
+empty cobblestone street / brutalist architecture / 
+minimalist storefront — [BRAND_TONE] appropriate.
+Camera: 35mm street photography feel.
+Angle: Eye level, slight movement in frame.
+Lighting: Overcast natural daylight — 
+flat, diffused, true color rendering.
+OR: Golden hour backlight — 
+subject silhouetted against warm sky.
+
+COMPOSITION:
+Environmental portrait — garment in context.
+Subject: Faceless model or mannequin-style 
+perfect posture — no face needed.
+Garment fills center third of frame.
+Urban environment contextualizes but 
+does not compete.
+
+DETAILS:
+Fabric texture and construction perfectly visible.
+Natural light renders [BRAND_COLOR_PRIMARY] 
+tones accurately.
+Ground surface reflection if wet street — 
+adds luxury dimension.
+
+STYLE:
+High-end streetwear or luxury casual — 
+depends on [BRAND_TONE].
+Real, gritty, aspirational simultaneously.
+4K, natural color grade.
+4:5 portrait.
+No text, no watermarks.

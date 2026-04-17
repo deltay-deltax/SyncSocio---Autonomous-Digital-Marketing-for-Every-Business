@@ -1,0 +1,33 @@
+Create a world-class commercial product 
+photograph of [PRODUCT_IMAGE].
+
+CINEMATOGRAPHER DIRECTION:
+Treat this as if it is the hero image for 
+[PRODUCT_NAME] launch campaign — 
+Apple product launch quality.
+Camera: Medium format.
+Angle: Product's natural best angle — 
+the angle that shows form and function.
+Lighting: Perfect three-point — 
+key, fill, rim.
+
+COMPOSITION:
+Product: dominant — fills 60% of frame.
+Background: [BRAND_COLOR_PRIMARY] gradient.
+Product shadow: clean, soft, below.
+Foreground: subtle — 
+2-3 small complementary elements.
+
+DETAILS:
+Surface texture of product: 
+maximum detail visibility.
+Materials accurate: 
+matte is matte, gloss is gloss, 
+metal is metal.
+Product angles show function.
+
+STYLE:
+Premium commercial product photography.
+Conversion-optimized — this image 
+should make someone want to buy immediately.
+4K. 4:5. No text, no watermarks.

@@ -1,0 +1,35 @@
+You are a Senior Art Director.
+Generate a 5-slide premium carousel visual prompt for [PRODUCT_NAME].
+
+CAROUSEL HIERARCHY:
+
+SLIDE 1 (The Hook):
+   - Product centered, dramatic lighting.
+   - Use [BRAND_COLOR_PRIMARY] dominating the frame.
+   - Premium "First Look" energy.
+
+SLIDE 2 & 3 (The Details):
+   - Macro focus on "Feature A" and "Feature B".
+   - Forensic detail — texture, mechanism, or ingredient.
+   - Consistent lighting angle across slides.
+
+SLIDE 4 (The Lifestyle/Context):
+   - Product in its intended world.
+   - Human element (hands/movement) or aspirational environment.
+
+SLIDE 5 (The Closing/CTA):
+   - Similar to Slide 1 but more intimate.
+   - Maximum negative space for CTA text.
+
+CONSISTENCY:
+   - Unified color palette ([BRAND_COLOR_PRIMARY], [BRAND_COLOR_SECONDARY]).
+   - Same aspect ratio (4:5).
+   - Same visual grain/texture across all slides.
+
+PRODUCT: [PRODUCT_NAME]
+BRAND: [BRAND_NAME]
+
+GENERATE THE FINAL CAROUSEL VISION NOW:
+---
+[THE CAROUSEL PROMPT]
+---

@@ -4,6 +4,7 @@ import {
   Plus, MessageCircle, Zap, ArrowRight, ArrowLeft, Trash2, ToggleLeft, ToggleRight,
   Eye, PenLine, X, Search, MessageSquare, Hash, MousePointerClick,
   Send, Sparkles, Copy, Link2, UserPlus, ExternalLink, MoveDown,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,8 @@ interface Flow {
   id: string;
   name: string;
   trigger: 'comment' | 'story_reply' | 'dm_keyword';
+  targetType: 'all' | 'specific';
+  targetMediaId?: string;
   keyword: string;
   messages: FlowMessage[];
   active: boolean;
@@ -52,7 +55,7 @@ const buttonTypeMeta: Record<ButtonType, { label: string; icon: any; color: stri
 
 const defaultFlows: Flow[] = [
   {
-    id: '1', name: 'Link Drop Flow', trigger: 'comment', keyword: 'Link',
+    id: '1', name: 'Link Drop Flow', trigger: 'comment', targetType: 'all', keyword: 'Link',
     messages: [
       {
         id: 'm1',
@@ -78,7 +81,7 @@ const defaultFlows: Flow[] = [
     stats: { triggered: 124, replied: 118, clicked: 87, conversions: 34 },
   },
   {
-    id: '2', name: 'Pricing Inquiry', trigger: 'comment', keyword: 'price',
+    id: '2', name: 'Pricing Inquiry', trigger: 'comment', targetType: 'all', keyword: 'price',
     messages: [
       {
         id: 'm1',
@@ -104,26 +107,52 @@ const DashboardDMs = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'paused'>('all');
   const [previewFlow, setPreviewFlow] = useState<Flow | null>(null);
+  const [media, setMedia] = useState<any[]>([]);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
 
-  // Builder state
+  // Fetch real media on mount
+  React.useEffect(() => {
+    const fetchMedia = async () => {
+      setIsLoadingMedia(true);
+      try {
+        const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const res = await fetch(`${BASE_URL}/instagram/feed`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await res.json();
+        if (data.data) setMedia(data.data);
+      } catch (err) {
+        console.error('Failed to fetch media:', err);
+      } finally {
+        setIsLoadingMedia(false);
+      }
+    };
+    fetchMedia();
+  }, []);
+
   const [newFlow, setNewFlow] = useState<{
     name: string;
     trigger: Flow['trigger'];
+    targetType: Flow['targetType'];
+    targetMediaId?: string;
     keyword: string;
     messages: FlowMessage[];
   }>({
-    name: '', trigger: 'comment', keyword: '',
+    name: '', trigger: 'comment', targetType: 'all', keyword: '',
     messages: [{ id: uid(), text: '', buttons: [] }],
   });
 
   const wizardSteps = [
-    { title: 'Trigger', desc: 'How should this automation start?' },
+    { title: 'Target', desc: 'Where should this trigger?' },
+    { title: 'Type', desc: 'How should this automation start?' },
     { title: 'Keyword', desc: 'What word triggers the DM?' },
-    { title: 'Messages', desc: 'Build your DM flow with messages & buttons' },
+    { title: 'Sequence', desc: 'Build your DM flow' },
   ];
 
   const resetWizard = () => {
-    setNewFlow({ name: '', trigger: 'comment', keyword: '', messages: [{ id: uid(), text: '', buttons: [] }] });
+    setNewFlow({ name: '', trigger: 'comment', targetType: 'all', keyword: '', messages: [{ id: uid(), text: '', buttons: [] }] });
     setWizardStep(0);
     setView('list');
   };
@@ -164,6 +193,8 @@ const DashboardDMs = () => {
       id: Date.now().toString(),
       name: newFlow.name || `${newFlow.keyword} Flow`,
       trigger: newFlow.trigger,
+      targetType: newFlow.targetType,
+      targetMediaId: newFlow.targetMediaId,
       keyword: newFlow.keyword,
       messages: newFlow.messages.filter(m => m.text.trim().length > 0),
       active: true, createdAt: 'Just now',
@@ -184,9 +215,10 @@ const DashboardDMs = () => {
 
   const canProceed = () => {
     switch (wizardStep) {
-      case 0: return true;
-      case 1: return newFlow.keyword.trim().length > 0;
-      case 2: return newFlow.messages.some(m => m.text.trim().length > 0);
+      case 0: return newFlow.targetType === 'all' || !!newFlow.targetMediaId;
+      case 1: return true;
+      case 2: return newFlow.keyword.trim().length > 0;
+      case 3: return newFlow.messages.some(m => m.text.trim().length > 0);
       default: return false;
     }
   };
@@ -248,8 +280,91 @@ const DashboardDMs = () => {
                 exit={{ opacity: 0, x: -30 }}
                 transition={{ duration: 0.25 }}
               >
-                {/* Step 0: Trigger */}
+                {/* Step 0: Target */}
                 {wizardStep === 0 && (
+                  <div className="bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl p-6 space-y-6">
+                    <div>
+                      <label className="text-xs font-semibold text-foreground block mb-3">Targeting Scope</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          onClick={() => setNewFlow({ ...newFlow, targetType: 'all' })}
+                          className={cn(
+                            'p-6 rounded-2xl border text-center transition-all',
+                            newFlow.targetType === 'all' ? 'border-primary bg-primary/10' : 'border-border/40 bg-muted/20'
+                          )}
+                        >
+                          <Zap size={24} className={cn('mx-auto mb-2', newFlow.targetType === 'all' ? 'text-primary' : 'text-muted-foreground')} />
+                          <p className="text-sm font-bold">All Posts</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">Triggers on any post</p>
+                        </button>
+                        <button
+                          onClick={() => setNewFlow({ ...newFlow, targetType: 'specific' })}
+                          className={cn(
+                            'p-6 rounded-2xl border text-center transition-all',
+                            newFlow.targetType === 'specific' ? 'border-primary bg-primary/10' : 'border-border/40 bg-muted/20'
+                          )}
+                        >
+                          <ImageIcon size={24} className={cn('mx-auto mb-2', newFlow.targetType === 'specific' ? 'text-primary' : 'text-muted-foreground')} />
+                          <p className="text-sm font-bold">Specific Post</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">Triggers on selected media</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    {newFlow.targetType === 'specific' && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-3">
+                         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Select Media from Feed</label>
+                         <div className="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto p-1 scrollbar-hide">
+                            {isLoadingMedia ? (
+                              Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="aspect-square rounded-xl bg-muted animate-pulse" />
+                              ))
+                            ) : media.length > 0 ? (
+                              media.map((post) => (
+                                <button 
+                                  key={post.id}
+                                  onClick={() => setNewFlow({ ...newFlow, targetMediaId: post.id })}
+                                  className={cn(
+                                    "aspect-square rounded-xl overflow-hidden border-2 transition-all relative group",
+                                    newFlow.targetMediaId === post.id ? "border-primary scale-[1.02] shadow-lg shadow-primary/20" : "border-transparent opacity-60 hover:opacity-100"
+                                  )}
+                                >
+                                  {post.type === 'VIDEO' ? (
+                                     <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                                       <Zap size={20} className="text-white/40" />
+                                       <img src={post.media_url} className="absolute inset-0 w-full h-full object-cover opacity-50" />
+                                     </div>
+                                  ) : (
+                                    <img src={post.media_url} className="w-full h-full object-cover" />
+                                  )}
+                                  
+                                  {newFlow.targetMediaId === post.id && (
+                                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
+                                      <div className="bg-white rounded-full p-1 text-primary shadow-xl">
+                                        <Zap size={14} fill="currentColor" />
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Hover caption preview */}
+                                  <div className="absolute inset-x-0 bottom-0 p-1.5 translate-y-full group-hover:translate-y-0 transition-transform bg-black/60 backdrop-blur-sm">
+                                    <p className="text-[8px] text-white truncate text-center">{post.caption || 'Product Reel'}</p>
+                                  </div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="col-span-3 py-10 text-center">
+                                <p className="text-xs text-muted-foreground">No media found or Instagram not connected.</p>
+                              </div>
+                            )}
+                         </div>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 1: Trigger */}
+                {wizardStep === 1 && (
                   <div className="bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl p-6 space-y-5">
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-2">Flow Name (optional)</label>
@@ -288,8 +403,8 @@ const DashboardDMs = () => {
                   </div>
                 )}
 
-                {/* Step 1: Keyword */}
-                {wizardStep === 1 && (
+                {/* Step 2: Keyword */}
+                {wizardStep === 2 && (
                   <div className="bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl p-6 space-y-5">
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-1">Trigger Keyword</label>
@@ -702,6 +817,13 @@ const DashboardDMs = () => {
                     <div>
                       <h3 className="text-sm font-bold text-foreground">{flow.name}</h3>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className={cn(
+                          "text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                          flow.targetType === 'specific' ? "bg-amber-100 text-amber-600" : "bg-muted text-muted-foreground"
+                        )}>
+                          {flow.targetType === 'specific' ? 'Single Post' : 'All Posts'}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">•</span>
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{triggerLabels[flow.trigger].label}</span>
                         <span className="text-[10px] text-muted-foreground">•</span>
                         <span className="text-[10px] font-mono text-muted-foreground">"{flow.keyword}"</span>

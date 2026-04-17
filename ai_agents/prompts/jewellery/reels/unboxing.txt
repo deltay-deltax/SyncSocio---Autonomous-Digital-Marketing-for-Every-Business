@@ -1,0 +1,35 @@
+Create a 15-second luxury unboxing reel 
+for [PRODUCT_IMAGE] jewellery piece.
+
+Act 1 (0-4s): Premium jewellery box — 
+closed, [BRAND_COLOR_PRIMARY] velvet exterior.
+Camera: Close, intimate, still.
+Hands enter frame — elegant, minimal movement.
+Lighting: Warm, directional, golden.
+Speed: Real time — deliberate.
+
+Act 2 (4-9s): Box opens — 
+slow motion lid reveal.
+Speed: 0.25x — every millimetre of reveal 
+takes a moment.
+As lid opens: light escapes the box — 
+piece catches light dramatically.
+Camera: Slow push in as box opens.
+Lighting: Key light positioned so piece 
+catches it the moment it is revealed.
+
+Act 3 (9-13s): Piece lifted from box.
+Speed: 0.3x slow motion.
+Camera: Follows piece upward — 
+tilt up with piece lift.
+Piece held up to light — 
+caustic light scatter moment.
+
+Act 4 (13-15s): Piece held still in light.
+Camera: Slow orbit around piece.
+Maximum sparkle moment.
+
+COLOR GRADE: Warm luxury — 
+amber and gold tones.
+9:16. 4K. 120fps.
+No text, no watermarks.

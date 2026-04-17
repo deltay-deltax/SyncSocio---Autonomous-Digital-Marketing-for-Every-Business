@@ -1,0 +1,42 @@
+Create a dramatic flat lay ecommerce 
+creative featuring [PRODUCT_IMAGE] as centerpiece.
+
+CINEMATOGRAPHER DIRECTION:
+Straight-down overhead shot — 90 degrees perpendicular.
+Lens: Wide angle 35mm for spatial context.
+Lighting: Diffused overhead softbox — 
+shadowless, even, product-focused.
+Color correction: slightly cooler temperature 
+to make [BRAND_COLOR_PRIMARY] pop.
+
+COMPOSITION:
+Product perfectly centered.
+Surrounding elements in concentric arrangement — 
+near items sharp, outer items slightly soft.
+Visual hierarchy: product → supporting items → 
+texture background.
+White negative space deliberately placed for 
+text overlay area on one side.
+
+ENVIRONMENT:
+Surface texture: [BRAND_TONE] appropriate —
+Marble for luxury, reclaimed wood for organic,
+concrete for minimal, linen for lifestyle.
+Supporting props: items that complete the 
+product story — ingredients, tools, 
+complementary products, natural elements.
+Color of all props: palette-matched to brand colors.
+
+DETAILS:
+Every product detail crisp and readable.
+Subtle long shadows from side lighting on props.
+Micro-texture visible on surface material.
+Color graded for maximum saturation of brand colors.
+
+STYLE:
+Premium editorial flat lay — think high-end 
+brand catalogue.
+Architectural, intentional, artful.
+Commercial quality, 4K resolution.
+Aspect ratio 1:1 square.
+No text, no watermarks.

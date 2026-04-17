@@ -11,6 +11,7 @@ class BrandInfo(BaseModel):
     visualVibe: Optional[str] = ""
     contentMix: Dict[str, int] = {"education": 50, "promotion": 50}
     socialPlatforms: List[str] = []
+    productBrief: Optional[Dict[str, str]] = {"name": "", "description": "", "category": ""}
 
 class CalendarItem(BaseModel):
     day: str

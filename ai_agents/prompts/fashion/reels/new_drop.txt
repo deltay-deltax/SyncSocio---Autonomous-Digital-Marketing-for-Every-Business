@@ -1,0 +1,34 @@
+Create a 15-second new drop campaign reel 
+for [PRODUCT_IMAGE].
+
+CINEMATOGRAPHER DIRECTION:
+Energy: Supreme drop meets luxury house launch.
+Urgency and desire simultaneously.
+
+Act 1 (0-3s): Pure [BRAND_COLOR_PRIMARY] screen.
+Single product element enters frame from above — 
+falls in slow motion.
+Camera: Static. Product is the only motion.
+Speed: 0.2x ultra slow motion.
+
+Act 2 (3-7s): Product lands / settles.
+Camera: Slow zoom in from wide to close.
+Multiple angles cut — product from 3 sides 
+in 4 seconds (edit rhythm: cut every 1.3s).
+Light: dramatic changes with each cut — 
+front, side, back light.
+
+Act 3 (7-12s): Full product display.
+Lighting: Theatrical — single spotlight on 
+product in void darkness around it.
+Camera: Imperceptible slow push in.
+Atmosphere: Dust particles in spotlight beam.
+
+Act 4 (12-15s): Product pushed off screen — 
+next drop energy. Screen back to 
+[BRAND_COLOR_PRIMARY].
+
+COLOR GRADE: High contrast, rich blacks, 
+saturated [BRAND_COLOR_PRIMARY].
+9:16. 4K. 120fps.
+No text, no watermarks.

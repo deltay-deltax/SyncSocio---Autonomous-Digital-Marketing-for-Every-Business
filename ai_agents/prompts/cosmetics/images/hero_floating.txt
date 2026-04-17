@@ -1,0 +1,44 @@
+Create an ultra-premium cosmetics advertisement 
+featuring [PRODUCT_IMAGE].
+
+CINEMATOGRAPHER DIRECTION:
+Style: Charlotte Tilbury meets MAC — 
+glamorous, precise, desire-creating.
+Camera: Product photography specialist — 
+medium format equivalent.
+Angle: Three-quarter elevated — 15 degrees above, 
+30 degrees to side.
+Lens: 90mm macro — every product detail sharp.
+Lighting: Beauty lighting adapted for product:
+- Key light: Large softbox, top-front — 
+  even, flattering, true color
+- Kicker light: Small spot from behind — 
+  rim light separates product from background
+- Fill: Reflector below — eliminates 
+  unflattering under shadows
+
+COMPOSITION:
+Product floating — 5% above center of frame.
+Slight tilt — 8 degrees — dynamic not static.
+Product shadow: soft, diffused, directly below.
+Background: [BRAND_COLOR_PRIMARY] gradient — 
+lighter at top, richer at bottom.
+Foreground elements: floating micro product 
+ingredients or brand elements — 
+flowers, pearls, gold leaf, depending on brand.
+
+DETAILS:
+Product label/packaging: every word readable.
+Product texture visible: if cream — 
+soft skin texture; if lipstick — 
+precise tip; if foundation — 
+smooth liquid surface.
+Finish accuracy: matte/satin/glossy/metallic — 
+true to product.
+Condensation if applicable.
+
+STYLE:
+Luxury cosmetics counter display energy.
+Desire-creating, precise, premium.
+4K. 4:5 portrait.
+No text, no watermarks.

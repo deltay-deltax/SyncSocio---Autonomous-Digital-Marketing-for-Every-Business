@@ -60,6 +60,8 @@ interface FormData {
   analytics: { followers: string; reach: string; engagement: string };
   contentMix: { education: number; promotion: number };
   primaryCTA: string;
+  primaryColor: string;
+  secondaryColor: string;
 }
 
 interface LeftPanelContent {
@@ -96,7 +98,9 @@ const Onboarding = () => {
     socialPlatforms: ['Instagram', 'Facebook'],
     analytics: { followers: '', reach: '', engagement: '' },
     contentMix: { education: 80, promotion: 20 },
-    primaryCTA: ''
+    primaryCTA: '',
+    primaryColor: '#2563EB',
+    secondaryColor: '#60A5FA'
   });
 
   const handleNext = () => setStep(prev => Math.min(prev + 1, totalSteps));
@@ -586,6 +590,34 @@ const Onboarding = () => {
                       <input type="text" placeholder="e.g. Sustainable, Authentic, Bold..." value={formData.brandKeywords}
                         onChange={(e) => setFormData({...formData, brandKeywords: e.target.value})}
                         className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl px-5 py-4 outline-none border border-border transition-all" />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Brand Colors</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Primary Color</label>
+                          <div className="flex items-center gap-2">
+                            <input type="color" value={formData.primaryColor} 
+                              onChange={(e) => setFormData({...formData, primaryColor: e.target.value})}
+                              className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0 p-0" />
+                            <input type="text" placeholder="#000000" value={formData.primaryColor}
+                              onChange={(e) => setFormData({...formData, primaryColor: e.target.value})}
+                              className="flex-1 bg-muted/30 text-foreground text-xs font-bold rounded-lg px-3 py-2.5 outline-none border border-border" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Secondary Color</label>
+                          <div className="flex items-center gap-2">
+                            <input type="color" value={formData.secondaryColor} 
+                              onChange={(e) => setFormData({...formData, secondaryColor: e.target.value})}
+                              className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0 p-0" />
+                            <input type="text" placeholder="#000000" value={formData.secondaryColor}
+                              onChange={(e) => setFormData({...formData, secondaryColor: e.target.value})}
+                              className="flex-1 bg-muted/30 text-foreground text-xs font-bold rounded-lg px-3 py-2.5 outline-none border border-border" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

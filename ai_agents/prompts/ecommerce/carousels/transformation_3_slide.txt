@@ -1,0 +1,37 @@
+Create a 3-slide transformation carousel 
+for [PRODUCT_NAME].
+
+SLIDE 1 — Before:
+Environment: Real, relatable, slightly imperfect.
+Lighting: Flat, slightly unflattering, 
+cool temperature.
+Color grade: Desaturated, grey tones dominant.
+Composition: Problem visible — without product.
+Mood: Something is missing.
+Camera angle: Slightly below eye level — 
+subtle vulnerability.
+
+SLIDE 2 — Product Moment:
+Product [PRODUCT_IMAGE] as the turning point.
+Lighting: Warm golden light breaking through — 
+like sunrise entering a dark room.
+Camera: Close, intimate, reverent.
+Product perfectly centered, heroic.
+Background: Transitioning from Slide 1 
+cool tones to warm [BRAND_COLOR_PRIMARY].
+Motion feel: This is the change moment.
+
+SLIDE 3 — After:
+Same environment as Slide 1 — transformed.
+Lighting: Warm, radiant, [BRAND_COLOR_PRIMARY] tones.
+Color grade: Rich, saturated, elevated.
+Composition: Same framing as Slide 1 — 
+but everything looks better.
+Mood: Problem solved. Life elevated.
+Camera angle: Same as Slide 1 — now empowered.
+
+CONSISTENT ELEMENTS:
+4:5 aspect ratio all slides.
+Same subject/environment — only lighting 
+and grade changes.
+No text, no watermarks.

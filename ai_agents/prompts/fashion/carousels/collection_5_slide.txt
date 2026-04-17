@@ -1,0 +1,40 @@
+Create a 5-slide fashion collection carousel 
+for [BRAND_NAME].
+
+VISUAL DIRECTION:
+Each slide: same model / mannequin / 
+garment treatment — different garment or detail.
+Consistent editorial voice throughout.
+
+SLIDE 1 — Campaign Hero:
+Full collection hero shot.
+All pieces visible or key piece dominant.
+Background: [BRAND_COLOR_PRIMARY].
+Lighting: Full fashion editorial.
+Energy: This is the world of [BRAND_NAME].
+
+SLIDE 2 — Detail 1:
+Macro of key design detail — 
+embroidery, hardware, texture, cut.
+Lighting: Raking side light — texture story.
+Background: [BRAND_COLOR_SECONDARY].
+
+SLIDE 3 — Detail 2:
+Second key detail — different element.
+Consistent macro treatment.
+Lighting: Same raking side light direction.
+
+SLIDE 4 — Lifestyle Context:
+Collection piece in aspirational real-world setting.
+Editorial location — urban/nature/interior 
+matching [BRAND_TONE].
+Natural or dramatic location lighting.
+
+SLIDE 5 — Clean Hero:
+Single hero piece on pure background.
+Maximum negative space.
+Definitive campaign image.
+Final frame — most purchase-triggering shot.
+
+ALL SLIDES: 4:5. Consistent grade. 
+No text, no watermarks.
