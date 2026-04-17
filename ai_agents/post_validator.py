@@ -384,6 +384,71 @@ Return ONLY valid JSON:
         "iteration": iteration + 1
     }
 
+# ── Node 3b: Caption Generator (Simple Mode) ──────────────────────────────
+def caption_generator_node(state: PostState) -> PostState:
+    """Generates a high-quality caption and hashtags based on media analysis."""
+    brand = state["brand_profile"]
+    description = state["description"]
+    media_analysis = state.get("media_analysis", "")
+    content_type = state["content_type"]
+
+    prompt = f"""
+    You are a Viral Social Media Copywriter (Velocity Optimizer). Write a high-converting caption for this content.
+
+    CONTEXT:
+    - Brand: {brand.get('brandName', '')} ({brand.get('businessCategory', '')})
+    - Goal: {brand.get('mainGoal', '')}
+    - Tone: {brand.get('brandTone', 'Professional')}
+    - Target Audience: {brand.get('targetAudience', 'General')}
+    - USP (Unique Selling Point): {brand.get('usp', '')}
+    - Primary CTA: {brand.get('primaryCTA', '')}
+    - Location: {brand.get('businessLocation', 'Global')}
+    - User's Intent: "{description}"
+    - Media Analysis (Pre-Calculated): {media_analysis}
+    - Content Format: {content_type}
+
+    TASK:
+    1. Analyze the Media Analysis provided to incorporate visual cues (colors, objects, mood).
+    2. Write a caption that aligns with the Brand Tone and Target Audience.
+    3. Ensure a pattern-interrupt hook and a strong CTA.
+    4. Provide 15-20 viral hashtags.
+    5. Provide 2-3 specific "Logic Points" for the UI.
+
+    Return ONLY valid JSON:
+    {{
+      "caption": "Full caption text here...",
+      "hashtags": ["#tag1", "#tag2", "..."],
+      "logic": ["Reason 1", "Reason 2"]
+    }}
+    """
+    
+    try:
+        raw, model = invoke_llm_with_fallback(prompt)
+        print(f"✅ Caption generation successful with {model}")
+        data = json.loads(raw)
+        
+        caption = data.get("caption", "")
+        hashtags = data.get("hashtags", [])
+        logic = data.get("logic", [])
+    except Exception as e:
+        print(f"Caption optimization error: {str(e)}")
+        caption = description
+        hashtags = ["#trending", "#viral", "#growth"]
+        logic = ["Baseline engagement optimization"]
+
+    return {
+        **state,
+        "critique": {
+            "improved_hook": caption,
+            "hashtags": hashtags,
+            "verdict": "Optimized",
+            "weak_signals": [],
+            "power_moves": logic, # We'll put logic here for now
+            "confidence_score": 85
+        },
+        "suggestions": ["Caption and tags optimized based on content analysis"]
+    }
+
 # ── Node 4: Scheduler (Best Time to Post) ─────────────────────────────────
 # ── Node 4: Strategist (Audience-Aware Timing) ─────────────────────────────
 def strategist_node(state: PostState) -> PostState:
@@ -391,6 +456,7 @@ def strategist_node(state: PostState) -> PostState:
     insights = state["account_insights"]
     brand = state["brand_profile"]
     content_type = state["content_type"]
+    description = state["description"]
     
     prompt = f"""
 You are the Velocity Timing Strategist. Your goal is to pick the single best time to post based on data.
@@ -405,12 +471,13 @@ CONTEXT:
 
 TASK:
 1. Pick the absolute best time (HH:MM AM/PM) from the peak_hours or near them.
-2. Provide a 1-2 sentence strategic reason WHY this time works for this specific audience.
+2. Provide 2-3 specific "Logic Points" for why this time is optimal.
 
 Return ONLY valid JSON:
 {{
   "optimal_time": "HH:MM AM/PM",
-  "reason": "Because your {brand.get('businessCategory', '')} audience is most active during lunch and likely to engage with {content_type}s then."
+  "reason": "Combined explanation text...",
+  "logic": ["Logic Point 1", "Logic Point 2"]
 }}
 """
     try:
@@ -418,18 +485,20 @@ Return ONLY valid JSON:
         data = json.loads(raw)
         reason = data.get("reason", "Optimized based on historical audience patterns.")
         time_suggested = data.get("optimal_time", "9:00 AM")
+        logic = data.get("logic", ["Activity peak alignment"])
     except Exception as e:
         print(f"⚠️ Strategist AI failed, using fallback logic: {str(e)}")
         time_suggested = "9:00 AM"
         reason = "Optimized for global baseline engagement peaks."
+        logic = ["High-traffic benchmark alignment"]
     
     print(f"\n[AGENT: STRATEGIST] - Recommended Window: {time_suggested}")
-    print(f"[AGENT: STRATEGIST] - Logic: {reason}")
     
     return {
         **state,
         "best_posting_time": time_suggested,
-        "scheduling_reason": reason
+        "scheduling_reason": reason,
+        "suggestions": state.get("suggestions", []) + logic
     }
 
 def scheduler_node(state: PostState) -> PostState:
@@ -578,12 +647,32 @@ def build_validation_graph():
 
     return graph.compile()
 
+def build_optimizer_graph():
+    """Insights -> Vision (See the Media) -> Caption Generator -> Strategist -> Scheduler"""
+    graph = StateGraph(PostState)
+
+    graph.add_node("fetch_insights", fetch_insights_node)
+    graph.add_node("vision_actor", vision_actor_node)
+    graph.add_node("caption_generator", caption_generator_node)
+    graph.add_node("strategist", strategist_node)
+    graph.add_node("scheduler", scheduler_node)
+
+    graph.set_entry_point("fetch_insights")
+    graph.add_edge("fetch_insights", "vision_actor")
+    graph.add_edge("vision_actor", "caption_generator")
+    graph.add_edge("caption_generator", "strategist")
+    graph.add_edge("strategist", "scheduler")
+    graph.add_edge("scheduler", END)
+
+    return graph.compile()
+
 validation_app = build_validation_graph()
+optimizer_app = build_optimizer_graph()
 
 def validate_post(post_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Entry point for the validation pipeline."""
+    """Entry point for the Actor-Critic pipeline (Viral Analysis)."""
     print(f"\n{'='*60}")
-    print(f"🚀 VELOCITY PIPELINE STARTING - User: {post_data.get('userId')}")
+    print(f"🚀 VELOCITY VIRAL ANALYSIS STARTING - User: {post_data.get('userId')}")
     print(f"{'='*60}")
     
     initial_state = {
@@ -606,7 +695,47 @@ def validate_post(post_data: Dict[str, Any]) -> Dict[str, Any]:
     result = validation_app.invoke(initial_state)
     
     print(f"\n{'='*60}")
-    print(f"✅ VELOCITY PIPELINE COMPLETE")
+    print(f"✅ VELOCITY VIRAL ANALYSIS COMPLETE")
+    print(f"{'='*60}\n")
+    return result
+
+def optimize_post(post_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Entry point for the Post Optimizer (Simple Generation)."""
+    print(f"\n{'='*60}")
+    print(f"⚡ VELOCITY OPTIMIZER STARTING - User: {post_data.get('userId')}")
+    print(f"{'='*60}")
+    
+    initial_state = {
+        "user_id": post_data.get("userId", ""),
+        "media_path": post_data.get("mediaPath", ""),
+        "content_type": post_data.get("contentType", "static"),
+        "description": post_data.get("description", ""),
+        "brand_profile": post_data.get("brandProfile", {}),
+        "account_insights": {},
+        "winner_posts": [],
+        "critique": {},
+        "growth_factor": 0.0,
+        "best_posting_time": "",
+        "scheduling_reason": "",
+        "suggestions": [],
+        "media_analysis": "",
+        "iteration": 0,
+        "error": ""
+    }
+    result = optimizer_app.invoke(initial_state)
+    
+    # Map reasoning points to power_moves for UI
+    if result.get("critique"):
+        # Combine caption and timing logic into reasoning array
+        reasoning = result["critique"].get("power_moves", []) + result.get("suggestions", [])
+        # Deduplicate suggestions (which might have generic text)
+        clean_reasoning = [r for r in reasoning if r != "Caption and tags optimized based on content analysis"]
+        
+        result["critique"]["power_moves"] = clean_reasoning
+        result["critique"]["optimal_time_reason"] = result.get("scheduling_reason", "")
+
+    print(f"\n{'='*60}")
+    print(f"✅ VELOCITY OPTIMIZER COMPLETE")
     print(f"{'='*60}\n")
     return result
 

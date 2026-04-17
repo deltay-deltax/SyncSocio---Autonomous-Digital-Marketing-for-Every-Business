@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Grid3X3, List, Eye, Heart, MessageSquare, Sparkles, ExternalLink, Calendar } from 'lucide-react';
+import { Grid3X3, List, Eye, Heart, Activity, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,33 +33,45 @@ const DashboardFeed = () => {
     fetchFeed();
   }, []);
 
+  const getEmoji = (type: string) => {
+    switch(type?.toUpperCase()) {
+      case 'VIDEO': return '🎬';
+      case 'CAROUSEL_ALBUM': return '🎠';
+      default: return '📸';
+    }
+  };
+
+  const isAgentPost = (post: any) => {
+    return post.caption?.includes('🤖') || post.caption?.toLowerCase().includes('velocity');
+  };
+
   const filtered = activeTab === 'All' ? posts
-    : activeTab === 'Agent Posts' ? posts.filter(p => p.caption?.includes('🤖') || p.caption?.toLowerCase().includes('velocity'))
-    : posts; // Simplifying for now
+    : activeTab === 'Agent Posts' ? posts.filter(p => isAgentPost(p))
+    : posts.filter(p => !isAgentPost(p));
 
   if (loading) {
     return (
-        <div className="space-y-6">
-            <div className="h-10 w-48 bg-muted rounded-xl animate-pulse" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square bg-muted rounded-[2rem] animate-pulse" />)}
-            </div>
+      <div className="h-[70vh] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <div className="text-center space-y-2">
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse">Synchronizing Feed</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Retrieving Meta Assets...</p>
+          </div>
         </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-            <h2 className="text-2xl font-black text-foreground uppercase tracking-tight italic">Your <span className="text-primary">Feed</span></h2>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Live Instagram Sync</p>
-        </div>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-white border border-border/50 shadow-sm">
-          <button onClick={() => setViewMode('grid')} className={cn('p-2 rounded-lg transition-all duration-200', viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground')}>
+    <div className="space-y-5 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-lg font-bold text-foreground">Your Instagram Feed</h2>
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/60">
+          <button onClick={() => setViewMode('grid')} className={cn('p-2 rounded-lg transition-all duration-200', viewMode === 'grid' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
             <Grid3X3 size={16} />
           </button>
-          <button onClick={() => setViewMode('list')} className={cn('p-2 rounded-lg transition-all duration-200', viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground')}>
+          <button onClick={() => setViewMode('list')} className={cn('p-2 rounded-lg transition-all duration-200', viewMode === 'list' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
             <List size={16} />
           </button>
         </div>
@@ -72,10 +84,10 @@ const DashboardFeed = () => {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300',
+              'px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200',
               activeTab === tab
-                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200'
-                : 'bg-white text-muted-foreground hover:bg-muted border border-border/40'
+                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
           >
             {tab}
@@ -85,81 +97,78 @@ const DashboardFeed = () => {
 
       {/* Posts */}
       {filtered.length === 0 ? (
-        <Card className="rounded-[3rem] border-dashed border-2 border-border/50 bg-white">
+        <Card className="border-border/50 bg-white">
           <CardContent className="py-24 text-center">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 opacity-40">
-                <Sparkles size={24} />
-            </div>
-            <p className="text-sm font-black uppercase tracking-tight">No Posts Found</p>
-            <p className="text-[11px] text-muted-foreground mt-2 max-w-xs mx-auto">Your Instagram feed is empty or your agent is still preparing the first drop.</p>
+            <p className="text-4xl mb-4 animate-bounce">🤖</p>
+            <h3 className="text-sm font-bold uppercase tracking-tight text-slate-900 mb-2">Establishing Connection</h3>
+            <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">Your agent is either preparing your first post or synchronizing with your live Instagram account.</p>
           </CardContent>
         </Card>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {filtered.map((post, i) => (
-            <motion.div key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="overflow-hidden border-none shadow-xl shadow-slate-200/50 rounded-[2.5rem] bg-white group hover:-translate-y-2 transition-all duration-500">
-                <div className="aspect-square relative overflow-hidden bg-slate-100">
+            <motion.div key={post.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
+              <Card className="overflow-hidden hover-lift cursor-default border-border/50 group bg-white shadow-sm border-0">
+                <div className="aspect-square bg-slate-100 flex items-center justify-center text-4xl relative overflow-hidden">
                   {post.media_url ? (
-                    <img src={post.media_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                    <img 
+                      src={post.media_url} 
+                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 will-change-transform" 
+                      alt="" 
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">📸</div>
+                    <span className="group-hover:scale-[1.03] transition-transform duration-500">{getEmoji(post.media_type)}</span>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-5">
-                     <a href={post.permalink} target="_blank" rel="noreferrer" className="text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20">
-                        View on Insta <ExternalLink size={12} />
-                     </a>
-                  </div>
-                  <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[9px] font-black bg-white/90 backdrop-blur-md text-slate-900 shadow-sm uppercase tracking-widest">{post.type}</span>
-                </div>
-                <CardContent className="p-5">
-                  <p className="text-xs text-slate-700 line-clamp-2 mb-4 font-bold leading-relaxed">{post.caption || 'No caption'}</p>
-                  <div className="flex items-center justify-between border-t border-slate-50 pt-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 text-[11px] font-black text-slate-800">
-                            <Heart size={14} className="text-rose-500 fill-rose-500" /> {post.likes}
-                        </div>
-                        <div className="flex items-center gap-1 text-[11px] font-black text-slate-800">
-                            <MessageSquare size={14} className="text-primary" /> {post.comments}
-                        </div>
-                    </div>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">
-                        {new Date(post.timestamp).toLocaleDateString()}
+                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-white/90 backdrop-blur-sm text-foreground shadow-sm uppercase tracking-widest leading-none flex items-center h-5">{post.media_type === 'VIDEO' ? 'REEL' : 'POST'}</span>
+                  {isAgentPost(post) && (
+                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-primary text-white flex items-center gap-1 shadow-sm uppercase tracking-widest leading-none h-5">
+                      <Sparkles size={8} /> AI
                     </span>
+                  )}
+                </div>
+                <CardContent className="p-3">
+                  <p className="text-xs text-foreground line-clamp-2 mb-3 font-medium leading-relaxed">{post.caption || 'No caption provided'}</p>
+                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><Heart size={12} className="text-rose-500" /> {post.likes || 0}</span>
+                    <span className="flex items-center gap-1"><Activity size={12} className="text-primary" /> {post.comments || 0}</span>
                   </div>
+                  <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest opacity-60">
+                    {new Date(post.timestamp).toLocaleDateString()}
+                  </p>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filtered.map((post, i) => (
-            <motion.div key={post.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="border-none shadow-lg shadow-slate-200/40 rounded-[2rem] bg-white group hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-4 flex items-center gap-5">
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
-                    <img src={post.media_url} className="w-full h-full object-cover" alt="" />
+            <motion.div key={post.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
+              <Card className="hover-lift cursor-default border-border/50 group bg-white shadow-sm border-0">
+                <CardContent className="p-3 flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform duration-300 overflow-hidden border border-slate-50">
+                    {post.media_url ? (
+                      <img src={post.media_url} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      getEmoji(post.media_type)
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                        <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest">{post.type}</span>
-                        <span className="text-[10px] font-bold text-slate-400">{new Date(post.timestamp).toLocaleString()}</span>
+                    <p className="text-sm text-foreground truncate font-medium">{post.caption || 'No caption provided'}</p>
+                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+                      <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-[9px] font-black uppercase tracking-widest">{post.media_type === 'VIDEO' ? 'REEL' : 'POST'}</span>
+                      <span className="text-[10px] font-bold text-slate-400">{new Date(post.timestamp).toLocaleDateString()}</span>
+                      {isAgentPost(post) && <span className="text-primary font-black uppercase tracking-widest text-[9px] flex items-center gap-1"><Sparkles size={10} /> AI Agent</span>}
                     </div>
-                    <p className="text-sm text-slate-800 truncate font-bold">{post.caption || 'No caption'}</p>
                   </div>
-                  <div className="flex gap-8 shrink-0 px-6 border-l border-slate-50">
+                  <div className="flex gap-6 shrink-0 px-6 border-l border-slate-50 hidden sm:flex">
                     <div className="text-center">
-                        <span className="block text-xl font-black text-slate-900">{post.likes}</span>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Likes</span>
+                      <span className="block text-sm font-black text-slate-900">{post.likes || 0}</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">likes</span>
                     </div>
                     <div className="text-center">
-                        <span className="block text-xl font-black text-slate-900">{post.comments}</span>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Comments</span>
-                    </div>
-                    <div className="text-center">
-                        <span className="block text-xl font-black text-emerald-500 italic">{( ((post.likes + post.comments) / 1000) * 10).toFixed(1)}%</span>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rate</span>
+                      <span className="block text-sm font-black text-slate-900">{post.comments || 0}</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">eng.</span>
                     </div>
                   </div>
                 </CardContent>

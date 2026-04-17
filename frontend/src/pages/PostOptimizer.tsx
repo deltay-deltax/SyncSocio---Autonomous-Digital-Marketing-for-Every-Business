@@ -15,7 +15,11 @@ import {
   Video,
   Layers,
   ArrowRight,
-  Info
+  Info,
+  Smartphone,
+  Edit3,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -57,6 +61,9 @@ const PostOptimizer: React.FC = () => {
   const [isScheduling, setIsScheduling] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState<'content' | 'strategy'>('content');
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,6 +115,7 @@ const PostOptimizer: React.FC = () => {
       });
 
       setResult(res.data);
+      setShowPreview(true); // Auto switch to preview on success
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Analysis failed. Please try again.');
     } finally {
@@ -115,27 +123,26 @@ const PostOptimizer: React.FC = () => {
     }
   };
 
-  const handleSchedule = async () => {
-    if (!result?.analysisId) return;
-    setIsScheduling(true);
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE}/posts/schedule/${result.analysisId}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      alert(`Post scheduled for ${new Date(result.bestPostingTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`);
-    } catch (err: any) {
-      setError('Failed to schedule post. Please check your connection.');
-    } finally {
-      setIsScheduling(false);
-    }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const getGFactorColor = (g: number) => {
-    if (g >= 2.0) return 'text-emerald-500';
-    if (g >= 1.0) return 'text-amber-500';
-    return 'text-rose-500';
+  const formatTime = (dateStr: string) => {
+    if (!dateStr) return "Schedule Pending";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "Check Setup";
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
   };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "Date pending";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "Date pending";
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  };
+
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500 text-slate-900">
@@ -161,200 +168,241 @@ const PostOptimizer: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Left Column: Creator Sandbox & Preview */}
-        <div className="space-y-8 flex flex-col">
-          <Card className="border-none shadow-2xl shadow-slate-200/60 rounded-[2.5rem] bg-white overflow-hidden order-1">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg font-black uppercase tracking-tight">Post Setup</CardTitle>
-                  <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Step 01: Configure</CardDescription>
-                </div>
-                <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
-                  <Layout size={20} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-8 font-display">
-              {/* Content Type Picker */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Format</label>
-                <div className="grid grid-cols-3 gap-2 p-1.5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
-                  {[
-                    { id: 'static', icon: ImageIcon, label: 'Post' },
-                    { id: 'reel', icon: Video, label: 'Reel' },
-                    { id: 'carousel', icon: Layers, label: 'Slide' }
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setContentType(t.id as ContentType)}
-                      className={cn(
-                        "flex flex-col items-center gap-2 py-3.5 rounded-2xl transition-all duration-300",
-                        contentType === t.id
-                          ? "bg-white text-primary shadow-md shadow-primary/5 ring-1 ring-slate-200/50 scale-100"
-                          : "text-slate-400 hover:text-slate-600 hover:bg-white/50 scale-95 opacity-70"
-                      )}
-                    >
-                      <t.icon size={18} />
-                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">{t.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Enhanced Upload Zone */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Media Assets</label>
-                <div
-                  onDrop={handleDrop}
-                  onDragOver={e => e.preventDefault()}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={cn(
-                    "relative group cursor-pointer transition-all duration-500 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center min-h-[260px] overflow-hidden",
-                    preview
-                      ? "border-primary/20 bg-slate-50"
-                      : "border-slate-200 hover:border-primary/40 hover:bg-primary/[0.02] bg-slate-50/50"
-                  )}
-                >
-                  {preview ? (
-                    <div className="relative w-full h-full flex items-center justify-center p-4">
-                      {contentType === 'reel' ? (
-                        <video src={preview} className="max-h-[220px] rounded-3xl shadow-lg border border-white" />
-                      ) : (
-                        <img src={preview} alt="Preview" className="max-h-[220px] rounded-3xl shadow-lg border border-white object-cover aspect-video" />
-                      )}
-                      <div className="absolute inset-x-0 bottom-6 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
-                        <div className="bg-slate-900/80 backdrop-blur-md text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-white/10">
-                          <Upload size={14} /> Replace Media
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center space-y-4 p-8">
-                      <div className="w-16 h-16 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                        <Upload className="text-primary" size={24} />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-black text-slate-800 text-sm uppercase tracking-tighter">Drag Assets Here</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">or browse files (max 50MB)</p>
-                      </div>
-                    </div>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,video/*"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </div>
-              </div>
-
-              {/* Context Textarea */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Context & Narrative</label>
-                  <span className="text-[10px] font-bold text-slate-300 uppercase">{description.length}/1000</span>
-                </div>
-                <Textarea
-                  placeholder="Describe your post vision..."
-                  className="rounded-[1.5rem] border-slate-200 focus:ring-primary/20 min-h-[120px] bg-slate-50/50 text-sm font-medium p-4 transition-all"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-
-              <Button
-                onClick={handleAnalyze}
-                disabled={isAnalyzing || !description}
-                className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs hover-lift shadow-xl shadow-primary/20 transition-all duration-300 border-0"
-              >
-                {isAnalyzing ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Processing...</span>
-                  </div>
-                ) : (
-                  <>
-                    <span>Ignite Analysis</span>
-                    <Zap size={18} className="ml-2 fill-current text-white" />
-                  </>
-                )}
-              </Button>
-
-              {error && (
-                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-600 animate-in slide-in-from-top-2 duration-300">
-                  <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                  <p className="text-[11px] font-bold uppercase leading-tight">{error}</p>
-                </div>
+        <div className="space-y-8 flex flex-col pt-4">
+          {/* View Toggle */}
+          <div className="flex bg-slate-100/80 p-1 rounded-2xl w-fit self-center border border-slate-200/50 backdrop-blur-sm">
+            <button
+              onClick={() => setShowPreview(false)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                !showPreview ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
-            </CardContent>
-          </Card>
+            >
+              <Edit3 size={12} /> Setup
+            </button>
+            <button
+              onClick={() => preview && setShowPreview(true)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                showPreview ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600",
+                !preview && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Smartphone size={12} /> Preview
+            </button>
+          </div>
 
-          {/* iPhone Instagram Preview (Pixel Perfect) */}
-          <AnimatePresence>
-            {result && (
+          <AnimatePresence mode="wait">
+            {!showPreview ? (
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center order-2 py-8 bg-slate-50/50 rounded-[3rem] border border-slate-100"
+                key="setup"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
               >
-                <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-8 flex items-center gap-2">
-                  <Layout size={12} /> Mobile Vision Preview
-                </div>
-
-                {/* iPhone Frame */}
-                <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] shadow-2xl">
-                  <div className="w-[148px] h-[18px] bg-gray-800 top-0 left-1/2 -translate-x-1/2 absolute rounded-b-[1rem] z-20"></div>
-                  <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
-                  <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
-                  <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
-
-                  <div className="rounded-[2rem] overflow-hidden w-full h-full bg-white flex flex-col">
-                    {/* Instagram Header */}
-                    <div className="p-3 pt-6 flex items-center justify-between border-b border-slate-100 shrink-0">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-primary" />
-                        <span className="text-[10px] font-black text-slate-900">brand_handle</span>
+                <Card className="border-none shadow-2xl shadow-slate-200/60 rounded-[2.5rem] bg-white overflow-hidden">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg font-black uppercase tracking-tight">Post Setup</CardTitle>
+                        <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Step 01: Configure</CardDescription>
                       </div>
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3].map(i => <div key={i} className="w-1 h-1 rounded-full bg-slate-200" />)}
+                      <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+                        <Layout size={20} />
                       </div>
                     </div>
-
-                    {/* Media */}
-                    <div className="aspect-[4/5] bg-slate-50 flex items-center justify-center overflow-hidden">
-                      {preview ? (
-                        <img src={preview} className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon size={40} className="text-slate-100" />
-                      )}
-                    </div>
-
-                    {/* Interactions */}
-                    <div className="p-3 flex items-center justify-between">
-                      <div className="flex gap-3">
-                        <TrendingUp size={18} className="text-slate-800" />
-                        <MessageSquare size={18} className="text-slate-800" />
-                        <Zap size={18} className="text-slate-800" />
-                      </div>
-                      <Badge variant="secondary" className="bg-slate-50 text-slate-400 text-[8px] font-black uppercase py-0.5 px-1.5 rounded-md border-0">Save</Badge>
-                    </div>
-
-                    {/* Caption */}
-                    <div className="px-3 pb-8 space-y-2 overflow-y-auto hide-scrollbar">
-                      <p className="text-[9px] font-bold text-slate-900">0 Likes</p>
-                      <p className="text-[10px] leading-relaxed">
-                        <span className="font-black text-slate-900 mr-1.5">brand_handle</span>
-                        <span className="text-slate-600 font-medium italic">"{result.critique.improved_hook}"</span>
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {result.critique.hashtags.map((tag, i) => (
-                          <span key={i} className="text-[9px] font-black text-primary italic">#{tag.replace('#', '')}</span>
+                  </CardHeader>
+                  <CardContent className="space-y-8 font-display">
+                    {/* Content Type Picker */}
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Format</label>
+                      <div className="grid grid-cols-3 gap-2 p-1.5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                        {[
+                          { id: 'static', icon: ImageIcon, label: 'Post' },
+                          { id: 'reel', icon: Video, label: 'Reel' },
+                          { id: 'carousel', icon: Layers, label: 'Slide' }
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => setContentType(t.id as ContentType)}
+                            className={cn(
+                              "flex flex-col items-center gap-2 py-3.5 rounded-2xl transition-all duration-300",
+                              contentType === t.id
+                                ? "bg-white text-primary shadow-md shadow-primary/5 ring-1 ring-slate-200/50 scale-100"
+                                : "text-slate-400 hover:text-slate-600 hover:bg-white/50 scale-95 opacity-70"
+                            )}
+                          >
+                            <t.icon size={18} />
+                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">{t.label}</span>
+                          </button>
                         ))}
                       </div>
                     </div>
+
+                    {/* Enhanced Upload Zone */}
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Media Assets</label>
+                      <div
+                        onDrop={handleDrop}
+                        onDragOver={e => e.preventDefault()}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={cn(
+                          "relative group cursor-pointer transition-all duration-500 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center min-h-[260px] overflow-hidden",
+                          preview
+                            ? "border-primary/20 bg-slate-50"
+                            : "border-slate-200 hover:border-primary/40 hover:bg-primary/[0.02] bg-slate-50/50"
+                        )}
+                      >
+                        {preview ? (
+                          <div className="relative w-full h-full flex items-center justify-center p-4">
+                            {contentType === 'reel' ? (
+                              <video src={preview} className="max-h-[220px] rounded-3xl shadow-lg border border-white" />
+                            ) : (
+                              <img src={preview} alt="Preview" className="max-h-[220px] rounded-3xl shadow-lg border border-white object-cover aspect-video" />
+                            )}
+                            <div className="absolute inset-x-0 bottom-6 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
+                              <div className="bg-slate-900/80 backdrop-blur-md text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-white/10">
+                                <Upload size={14} /> Replace Media
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center space-y-4 p-8">
+                            <div className="w-16 h-16 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                              <Upload className="text-primary" size={24} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-black text-slate-800 text-sm uppercase tracking-tighter">Drag Assets Here</p>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">or browse files (max 50MB)</p>
+                            </div>
+                          </div>
+                        )}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*,video/*"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Context Textarea */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between ml-1">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Context & Narrative</label>
+                        <span className="text-[10px] font-bold text-slate-300 uppercase">{description.length}/1000</span>
+                      </div>
+                      <Textarea
+                        placeholder="Describe your post vision..."
+                        className="rounded-[1.5rem] border-slate-200 focus:ring-primary/20 min-h-[120px] bg-slate-50/50 text-sm font-medium p-4 transition-all"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                      />
+                    </div>
+
+                    <Button
+                      onClick={handleAnalyze}
+                      disabled={isAnalyzing || !description}
+                      className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs hover-lift shadow-xl shadow-primary/20 transition-all duration-300 border-0"
+                    >
+                      {isAnalyzing ? (
+                        <div className="flex items-center gap-3">
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Processing...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <span>Ignite Analysis</span>
+                          <Zap size={18} className="ml-2 fill-current text-white" />
+                        </>
+                      )}
+                    </Button>
+
+                    {error && (
+                      <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-600 animate-in slide-in-from-top-2 duration-300">
+                        <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                        <p className="text-[11px] font-bold uppercase leading-tight">{error}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="preview"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="flex flex-col items-center bg-slate-50/80 p-8 rounded-[3.5rem] border border-slate-200/50 shadow-inner"
+              >
+                {/* iPhone 17 Pro Max Frame */}
+                <div className="relative mx-auto border-[#1C1C1E] bg-[#1C1C1E] border-[8px] rounded-[3.2rem] h-[640px] w-[300px] shadow-2xl ring-1 ring-slate-900/10">
+                  {/* Dynamic Island */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-30 flex items-center justify-end px-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500/20" />
+                  </div>
+                  
+                  <div className="rounded-[2.7rem] overflow-hidden w-full h-full bg-white flex flex-col relative">
+                    {/* IG Top Bar */}
+                    <div className="pt-8 pb-3 px-4 flex justify-between items-center border-b border-slate-50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-[1.5px]">
+                          <div className="w-full h-full rounded-full bg-white p-[1px]">
+                            <div className="w-full h-full rounded-full bg-slate-200" />
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold tracking-tight">Your Brand</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <div className="w-1 h-1 rounded-full bg-slate-300" />
+                        <div className="w-1 h-1 rounded-full bg-slate-300" />
+                        <div className="w-1 h-1 rounded-full bg-slate-300" />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto no-scrollbar" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                      <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+                      {/* Media */}
+                      <div className="aspect-[4/5] bg-slate-100 flex items-center justify-center">
+                        {preview ? (
+                          <img src={preview} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon size={40} className="text-slate-200" />
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="p-3 flex items-center justify-between">
+                        <div className="flex gap-4">
+                          <TrendingUp size={20} className="text-slate-900" />
+                          <MessageSquare size={20} className="text-slate-900" />
+                          <Zap size={20} className="text-slate-900" />
+                        </div>
+                      </div>
+
+                      {/* Caption/Tags */}
+                      <div className="px-3 pb-10 space-y-2">
+                        <p className="text-[10px] font-bold text-slate-900">0 Likes</p>
+                        <div className="text-[11px] leading-relaxed">
+                          <span className="font-bold mr-2">brand_account</span>
+                          <span className="text-slate-700">
+                            {result?.critique?.improved_hook || "Optimized caption will appear here..."}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {result?.critique?.hashtags?.map((tag, i) => (
+                            <span key={i} className="text-[10px] text-blue-600 font-medium">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                <p className="text-[10px] font-black uppercase mt-6 text-slate-400 tracking-widest italic flex items-center gap-2">
+                  <Smartphone size={12} /> iPhone 17 Pro Max Concept
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -422,136 +470,143 @@ const PostOptimizer: React.FC = () => {
             {result && !isAnalyzing && (
               <motion.div
                 key="results"
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="space-y-6"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="h-full min-h-[600px] bg-white rounded-[4rem] border border-slate-100 shadow-2xl relative overflow-hidden flex flex-col"
               >
-                {/* Score & Schedule Header */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="border-none shadow-xl rounded-[2.5rem] bg-white border-t-4 border-primary overflow-hidden">
-                    <CardContent className="pt-10 flex flex-col items-center text-center">
-                      <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6 flex items-center gap-2">
-                        <TrendingUp size={12} /> Predicted G-Factor
-                      </div>
-
-                      <div className="relative w-32 h-32 mb-6">
-                        <svg className="w-full h-full rotate-[-90deg]">
-                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-slate-100" />
-                          <circle
-                            cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="10" fill="transparent"
-                            strokeDasharray={364}
-                            strokeDashoffset={364 - (364 * Math.min(result.growthFactor / 3, 1))}
-                            strokeLinecap="round"
-                            className={cn("transition-all duration-1000 ease-out",
-                              result.growthFactor >= 2 ? "text-emerald-500" : result.growthFactor >= 1 ? "text-primary" : "text-rose-500"
-                            )}
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-4xl font-black text-slate-900 leading-none">{result.growthFactor.toFixed(1)}</span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase mt-1">Score</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4 w-full px-4">
-                        <div className="flex-1 h-1.5 rounded-full bg-slate-50 relative overflow-hidden">
-                          <div className="absolute inset-y-0 left-0 bg-emerald-500/20 w-[66%]" title="Viral Zone" />
-                        </div>
-                      </div>
-                      <p className="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {result.growthFactor >= 2 ? 'High Viral Potential' : 'Consistent Engagement'}
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-none shadow-xl rounded-[2.5rem] bg-gradient-to-br from-white via-blue-50/30 to-blue-100/50 text-slate-900 overflow-hidden relative group border border-blue-100/50">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <Clock size={120} className="text-primary" />
+                {/* Header: Time Window (TOP) */}
+                <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                      <Clock size={24} />
                     </div>
-                    <CardContent className="pt-10 h-full flex flex-col justify-between relative z-10">
-                      <div className="space-y-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-[10px] font-black uppercase tracking-widest text-primary">
-                          <Clock size={12} /> Optimal Window
-                        </div>
-                        <div>
-                          <h3 className="text-4xl font-black tracking-tight italic text-primary">
-                            {new Date(result.bestPostingTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase()}
-                          </h3>
-                          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
-                            {new Date(result.bestPostingTime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                          </p>
-                        </div>
-                        {result.schedulingReason && (
-                          <div className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 animate-in fade-in slide-in-from-bottom-1 duration-700">
-                            <p className="text-[11px] font-medium text-slate-600 leading-relaxed italic">
-                              "{result.schedulingReason}"
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Optimal Velocity Window</p>
+                      <h3 className="text-2xl font-black italic tracking-tighter text-slate-900">
+                        {formatTime(result.bestPostingTime)} <span className="text-slate-300 font-normal">|</span> <span className="text-primary">{formatDate(result.bestPostingTime)}</span>
+                      </h3>
+                    </div>
+                  </div>
+                  <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black uppercase tracking-widest text-[10px] py-1.5 px-3 rounded-xl">
+                    High Reach Probability
+                  </Badge>
+                </div>
+
+                {/* Navigation Tabs (Carousel Control) */}
+                <div className="px-8 pt-6 pb-2 flex gap-6 border-b border-slate-50">
+                  {[
+                    { id: 'content', label: '01. Adjusted Content', icon: MessageSquare },
+                    { id: 'strategy', label: '02. Growth Logic', icon: Zap }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={cn(
+                        "flex items-center gap-2 pb-4 text-[10px] font-black uppercase tracking-widest transition-all relative",
+                        activeTab === tab.id ? "text-primary" : "text-slate-400 hover:text-slate-600"
+                      )}
+                    >
+                      <tab.icon size={12} />
+                      {tab.label}
+                      {activeTab === tab.id && (
+                        <motion.div
+                          layoutId="activeTabUnderline"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex-1 relative overflow-hidden bg-slate-50/20">
+                  <AnimatePresence mode="wait">
+                    {activeTab === 'content' ? (
+                      <motion.div
+                        key="content-slide"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="p-10 space-y-8"
+                      >
+                        {/* Strategic Caption */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Optimized Caption</label>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(`${result.critique.improved_hook}\n\n${result.critique.hashtags.join(' ')}`)}
+                              className="rounded-xl hover:bg-slate-50 h-8 gap-2 text-[10px] font-black uppercase tracking-widest"
+                            >
+                              {copied ? <Check size={14} className="text-emerald-500" /> : <><Copy size={14} /> Copy</>}
+                            </Button>
+                          </div>
+                          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative group min-h-[160px] flex items-center">
+                            <p className="text-lg font-medium text-slate-700 leading-relaxed italic">
+                              "{result.critique.improved_hook || "Engine processing..."}"
                             </p>
                           </div>
-                        )}
-                      </div>
-                      <Button
-                        onClick={handleSchedule}
-                        disabled={isScheduling}
-                        className="w-full bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] h-12 rounded-2xl mt-8 shadow-lg shadow-primary/20 border-0"
+                        </div>
+
+                        {/* Hashtags */}
+                        <div className="space-y-4">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Viral Hashtag Cloud</label>
+                          <div className="flex flex-wrap gap-2">
+                            {result.critique.hashtags?.map((tag, i) => (
+                              <span key={i} className="bg-white border border-slate-100 text-primary font-black py-2.5 px-4 rounded-2xl shadow-sm text-[10px] uppercase tracking-tight">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="strategy-slide"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="p-10 space-y-8"
                       >
-                        {isScheduling ? 'Syncing...' : 'Confirm Schedule'}
-                        <ArrowRight size={16} className="ml-2" />
-                      </Button>
-                    </CardContent>
-                  </Card>
+                        <div className="grid grid-cols-1 gap-6">
+                           {/* AI Logic Resonance */}
+                          <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Cognitive Reasoning</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {result.critique.power_moves?.map((move, i) => (
+                                <div key={i} className="flex gap-4 p-5 bg-white rounded-3xl border border-slate-100 shadow-sm group">
+                                  <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
+                                    <Zap size={16} />
+                                  </div>
+                                  <span className="text-[11px] font-bold text-slate-600 uppercase italic tracking-tight leading-tight">{move}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-6 bg-primary/5 rounded-[2.5rem] border border-primary/10">
+                           <p className="text-[10px] font-medium text-primary uppercase tracking-widest text-center">These signals were derived from your Brand Profile & visual media analysis.</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                {/* Feedback Matrix */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Positive Signals */}
-                  <Card className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-4 border-emerald-500 overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100/50">
-                          <CheckCircle2 size={20} />
-                        </div>
-                        <CardTitle className="text-sm font-black uppercase tracking-tight">Growth Magnets</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-3">
-                        {result.critique.power_moves.map((move, i) => (
-                          <li key={i} className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-2xl group transition-all hover:bg-slate-50 border border-transparent hover:border-slate-100">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0 group-hover:scale-150 transition-transform" />
-                            <span className="text-xs font-medium text-slate-600 leading-relaxed font-display">{move}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-
-                  {/* Improvements */}
-                  <Card className="border-none shadow-lg rounded-[2.5rem] bg-white border-l-4 border-amber-500 overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100/50">
-                          <AlertCircle size={20} />
-                        </div>
-                        <CardTitle className="text-sm font-black uppercase tracking-tight">Strategy Leaks</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-3">
-                        {result.critique.weak_signals.map((weak, i) => (
-                          <li key={i} className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-2xl group transition-all hover:bg-slate-50 border border-transparent hover:border-slate-100">
-                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0 group-hover:scale-150 transition-transform" />
-                            <span className="text-xs font-medium text-slate-600 leading-relaxed font-display">{weak}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="flex justify-center pt-8">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-2">
-                    <Info size={12} /> Data calibrated via Velocity Neural Grid
-                  </p>
+                {/* Footer Action (Light Theme) */}
+                <div className="p-8 bg-white border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status</span>
+                    <span className="text-[12px] font-bold text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Ready to Scale
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => alert(`Scheduled for ${result.bestPostingTime}`)}
+                    className="bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[11px] px-8 h-14 rounded-2xl shadow-xl shadow-primary/20 border-0 group"
+                  >
+                    Confirm Schedule <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
                 </div>
               </motion.div>
             )}

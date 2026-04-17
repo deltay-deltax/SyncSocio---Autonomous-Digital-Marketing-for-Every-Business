@@ -22,7 +22,6 @@ const navItems = [
   { label: 'Ads', icon: Target, path: '/dashboard/ads' },
   { label: 'Strategy', icon: Sparkles, path: '/dashboard/strategy' },
   { label: 'Post Optimizer', icon: Upload, path: '/dashboard/post-optimizer' },
-  { label: 'Metrics', icon: BarChart3, path: '/dashboard/metrics' },
   { label: 'DMs', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
 ];

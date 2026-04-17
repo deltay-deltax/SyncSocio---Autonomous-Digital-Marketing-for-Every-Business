@@ -19,7 +19,6 @@ import DashboardAds from './pages/dashboard/DashboardAds';
 import DashboardSettings from './pages/dashboard/DashboardSettings';
 import ContentStrategy from './pages/dashboard/ContentStrategy';
 import PostOptimizer from './pages/PostOptimizer';
-import Metrics from './pages/dashboard/Metrics';
 import DashboardDMs from './pages/dashboard/DashboardDMs';
 
 
@@ -45,7 +44,6 @@ function App() {
             <Route path="ads" element={<DashboardAds />} />
             <Route path="strategy" element={<ContentStrategy />} />
             <Route path="post-optimizer" element={<PostOptimizer />} />
-            <Route path="metrics" element={<Metrics />} />
             <Route path="dms" element={<DashboardDMs />} />
             <Route path="settings" element={<DashboardSettings />} />
           </Route>

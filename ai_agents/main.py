@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from bson import ObjectId
 from agents import generate_strategy
 from models import BrandInfo, StrategyResponse
-from post_validator import validate_post, publisher_node
+from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
 import shutil
 
@@ -86,11 +86,18 @@ async def api_validate_post(
 
         # 2. Fetch brand profile from MongoDB (using ObjectId for correct matching)
         brand_doc = await db["brandprofiles"].find_one({"user": ObjectId(userId)})
+        loc = brand_doc.get("location", {}) if brand_doc else {}
+        location_str = f"{loc.get('city', '')}, {loc.get('country', '')}".strip(", ") or "Global"
+        
         brand_profile = {
             "brandName": brand_doc.get("brandName", "") if brand_doc else "",
             "businessCategory": brand_doc.get("businessCategory", "") if brand_doc else "",
             "mainGoal": brand_doc.get("mainGoal", "") if brand_doc else "",
-            "brandTone": brand_doc.get("brandTone", "") if brand_doc else "",
+            "brandTone": brand_doc.get("brandTone", "Professional & Engaging") if brand_doc else "",
+            "targetAudience": ", ".join(brand_doc.get("targetAudiences", [])) if brand_doc else "General",
+            "usp": brand_doc.get("usp", "") if brand_doc else "",
+            "primaryCTA": brand_doc.get("primaryCTA", "") if brand_doc else "",
+            "businessLocation": location_str,
             "instagramAccessToken": brand_doc.get("instagramAccessToken", "") if brand_doc else "",
             "instagramBusinessAccountId": brand_doc.get("instagramBusinessAccountId", "") if brand_doc else "",
         }
@@ -98,8 +105,8 @@ async def api_validate_post(
         # 3. Retrieve 'Winner's Circle' posts from Vector Search
         winner_posts = await find_similar_posts(description, userId)
 
-        # 4. Run Actor-Critic Validation
-        result = validate_post({
+        # 4. Run Velocity Optimizer Flow
+        result = optimize_post({
             "userId": userId,
             "mediaPath": media_path,
             "contentType": contentType,
