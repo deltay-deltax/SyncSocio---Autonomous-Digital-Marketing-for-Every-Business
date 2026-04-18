@@ -1,6 +1,6 @@
 import BrandProfile from '../models/BrandProfile.js';
 import User from '../models/User.js';
-import { sendWelcomeEmail } from '../utils/sendWelcomeEmail.js';
+import { sendSignupWelcomeEmail } from '../utils/sendWelcomeEmail.js';
 
 const inferAuthProvider = (user) => {
   if (user?.googleId) return 'google';
@@ -35,7 +35,7 @@ export const createOrUpdateProfile = async (req, res) => {
       try {
         const user = await User.findById(req.user._id).select('name email googleId appleId');
         if (user?.email) {
-          const mailInfo = await sendWelcomeEmail({
+          const mailInfo = await sendSignupWelcomeEmail({
             to: user.email,
             name: user.name,
             provider: inferAuthProvider(user),
