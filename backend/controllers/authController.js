@@ -5,8 +5,15 @@ import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import appleSigninAuth from 'apple-signin-auth';
+import { sendLoginNotificationEmail, sendSignupNotificationEmail } from '../utils/sendWelcomeEmail.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const inferAuthProvider = (user) => {
+  if (user?.googleId) return 'google';
+  if (user?.appleId) return 'apple';
+  return 'email';
+};
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET || 'fallback_secret', {
@@ -79,7 +86,10 @@ export const signup = async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser && existingUser.isVerified === true) {
-      return res.status(400).json({ message: 'User already exists' });
+      if (normalizedEmail.endsWith('@gmail.com') || existingUser.googleId) {
+        return res.status(400).json({ message: 'Already have an account? Try logging in either through email/password or Google sign-in.' });
+      }
+      return res.status(400).json({ message: 'Already have an account? Try signing in.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -140,6 +150,17 @@ export const login = async (req, res) => {
       return res.status(403).json({ message: 'Please verify your email before logging in.' });
     }
 
+    // Send login notification email
+    try {
+      await sendLoginNotificationEmail({
+        to: user.email,
+        name: user.name,
+      });
+    } catch (mailError) {
+      console.error('Login notification email failed:', mailError.message);
+      // Don't fail login if email fails
+    }
+
     res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -147,7 +168,7 @@ export const login = async (req, res) => {
 };
 
 export const googleLogin = async (req, res) => {
-  const { idToken, plan } = req.body;
+  const { idToken, plan, isSignup } = req.body;
   try {
     let email, name, googleId;
     if (idToken === 'mock_google_token') {
@@ -171,6 +192,9 @@ export const googleLogin = async (req, res) => {
       user = await User.create({ name, email, googleId, isVerified: true });
       isNewUser = true;
     } else {
+      if (isSignup) {
+        return res.status(400).json({ message: 'Already have an account? Try logging in either through email/password or Google sign-in.' });
+      }
       let shouldSave = false;
 
       if (!user.googleId) {
@@ -192,9 +216,28 @@ export const googleLogin = async (req, res) => {
 
     if (isNewUser) {
       // Email will be sent when user selects plan on Setup page
+    } else {
+      // Send login notification for returning users
+      try {
+        await sendLoginNotificationEmail({
+          to: user.email,
+          name: user.name,
+        });
+      } catch (mailError) {
+        console.error('Google login notification email failed:', mailError.message);
+      }
     }
 
-    res.status(200).json({ user, token: generateToken(user._id) });
+    if (isNewUser && !user.password) {
+      // New user via Google - require password setup
+      res.status(200).json({ 
+        user, 
+        requiresPasswordSetup: true,
+        tempToken: generateToken(user._id)
+      });
+    } else {
+      res.status(200).json({ user, token: generateToken(user._id) });
+    }
   } catch (error) {
     console.error('Google Auth Error:', error);
     res.status(500).json({ message: 'Google Auth failed' });
@@ -202,7 +245,7 @@ export const googleLogin = async (req, res) => {
 };
 
 export const appleLogin = async (req, res) => {
-  const { idToken, name: providedName, plan } = req.body;
+  const { idToken, name: providedName, plan, isSignup } = req.body;
   try {
     let email, appleId;
     let name = providedName;
@@ -225,6 +268,9 @@ export const appleLogin = async (req, res) => {
       user = await User.create({ name, email, appleId, isVerified: true });
       isNewUser = true;
     } else {
+      if (isSignup) {
+        return res.status(400).json({ message: 'Already have an account? Try logging in either through email/password or Apple sign-in.' });
+      }
       let shouldSave = false;
 
       if (!user.appleId) {
@@ -246,9 +292,28 @@ export const appleLogin = async (req, res) => {
 
     if (isNewUser) {
       // Email will be sent when user selects plan on Setup page
+    } else {
+      // Send login notification for returning users
+      try {
+        await sendLoginNotificationEmail({
+          to: user.email,
+          name: user.name,
+        });
+      } catch (mailError) {
+        console.error('Apple login notification email failed:', mailError.message);
+      }
     }
     
-    res.status(200).json({ user, token: generateToken(user._id) });
+    if (isNewUser && !user.password) {
+      // New user via Apple - require password setup
+      res.status(200).json({ 
+        user, 
+        requiresPasswordSetup: true,
+        tempToken: generateToken(user._id)
+      });
+    } else {
+      res.status(200).json({ user, token: generateToken(user._id) });
+    }
   } catch (error) {
     console.error('Apple Auth Error:', error);
     res.status(500).json({ message: 'Apple Auth failed' });
@@ -290,6 +355,18 @@ export const verifyOtp = async (req, res) => {
     user.otpCode = undefined;
     user.otpExpiry = undefined;
     await user.save();
+
+    // Send signup notification email
+    try {
+      await sendSignupNotificationEmail({
+        to: user.email,
+        name: user.name,
+        provider: inferAuthProvider(user),
+      });
+    } catch (mailError) {
+      console.error('Signup notification email failed:', mailError.message);
+      // Don't fail verification if email fails
+    }
 
     res.status(200).json({
       message: 'Email verified successfully',
@@ -449,6 +526,37 @@ export const resetPassword = async (req, res) => {
 
     res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const setPassword = async (req, res) => {
+  const { password, confirmPassword } = req.body;
+  try {
+    if (!password || !confirmPassword) {
+      return res.status(400).json({ message: 'Password and confirmation are required' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: 'Password set successfully', token: generateToken(user._id) });
+  } catch (error) {
+    console.error('Set Password Error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

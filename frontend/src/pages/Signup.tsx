@@ -27,12 +27,14 @@ export const checkPasswordStrength = (pw: string) => {
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedPlan, setSelectedPlan] = useState("");
   const [error, setError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
@@ -49,6 +51,7 @@ const Signup = () => {
     setLastName("");
     setEmail("");
     setPassword("");
+    setConfirmPassword("");
 
     const queryPlan = new URLSearchParams(window.location.search).get("plan")?.trim() || "";
     const storedPlan = localStorage.getItem(PLAN_STORAGE_KEY)?.trim() || "";
@@ -97,6 +100,10 @@ const Signup = () => {
     e.preventDefault();
     if (strength < 5) {
       setError("Please ensure your password meets all strong password requirements.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
     setError("");
@@ -393,6 +400,16 @@ const Signup = () => {
                   )}
                 </div>
 
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password</label>
+                  <div className="relative">
+                    <Input type={showConfirmPassword ? "text" : "password"} placeholder="Confirm your password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20 pr-10" />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
                 <Button disabled={loading} size="lg" className="w-full h-12 gradient-bg text-primary-foreground border-0 text-base" type="submit">
                   {loading ? "Creating Account..." : "Create Account"} <ArrowRight size={18} className="ml-2" />
                 </Button>
@@ -421,13 +438,22 @@ const Signup = () => {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
-                            idToken: credentialResponse.credential
+                            idToken: credentialResponse.credential,
+                            isSignup: true
                           })
                         });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.message || "Google login failed");
-                        localStorage.setItem("token", data.token);
-                        window.location.href = "/onboarding";
+                        
+                        if (data.requiresPasswordSetup) {
+                          // New user - redirect to password setup
+                          localStorage.setItem("tempToken", data.tempToken);
+                          window.location.href = "/set-password";
+                        } else {
+                          // Existing user
+                          localStorage.setItem("token", data.token);
+                          window.location.href = "/onboarding";
+                        }
                       } catch (err: any) {
                         setError(err.message);
                       }
@@ -462,13 +488,22 @@ const Signup = () => {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
-                              idToken: response.authorization.id_token
+                              idToken: response.authorization.id_token,
+                              isSignup: true
                             })
                           });
                           const data = await res.json();
                           if (!res.ok) throw new Error(data.message || "Apple login failed");
-                          localStorage.setItem("token", data.token);
-                          window.location.href = "/onboarding";
+                          
+                          if (data.requiresPasswordSetup) {
+                            // New user - redirect to password setup
+                            localStorage.setItem("tempToken", data.tempToken);
+                            window.location.href = "/set-password";
+                          } else {
+                            // Existing user
+                            localStorage.setItem("token", data.token);
+                            window.location.href = "/onboarding";
+                          }
                         } catch (err: any) {
                           setError(err.message);
                         }

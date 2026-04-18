@@ -139,10 +139,28 @@ const Setup = () => {
     try {
       const token = localStorage.getItem('token');
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+
+      if (!token) {
+        setError('Your session has expired. Please log in again.');
+        navigate('/login', { replace: true });
+        return;
+      }
+
       const res = await fetch(`${API_BASE}/auth/instagram/auth`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await res.json();
+
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('token');
+        setError('Your session has expired. Please log in again.');
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || `Request failed (${res.status})`);
+      }
       if (data.url) window.location.href = data.url;
       else throw new Error(data.message || 'Failed to get auth URL');
     } catch (err: any) {

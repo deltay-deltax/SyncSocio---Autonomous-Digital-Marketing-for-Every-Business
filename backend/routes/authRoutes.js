@@ -1,5 +1,6 @@
 import express from 'express';
-import { signup, login, googleLogin, appleLogin, verifyOtp, resendOtp, forgotPassword, resetPassword } from '../controllers/authController.js';
+import { signup, login, googleLogin, appleLogin, verifyOtp, resendOtp, forgotPassword, resetPassword, setPassword } from '../controllers/authController.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -9,6 +10,7 @@ router.post('/resend-otp', resendOtp);
 router.post('/login', login);
 router.post('/google', googleLogin);
 router.post('/apple', appleLogin);
+router.post('/set-password', protect, setPassword);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:resetToken', resetPassword);
 

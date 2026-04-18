@@ -6,6 +6,7 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Setup from './pages/Setup';
+import SetPassword from './pages/SetPassword';
 import InstagramInstructions from './pages/InstagramInstructions';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -30,6 +31,7 @@ function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/set-password" element={<SetPassword />} />
         <Route path="/setup" element={<Setup />} />
         <Route path="/instagram-setup" element={<InstagramInstructions />} />
         <Route path="/forgotpassword" element={<ForgotPassword />} />
