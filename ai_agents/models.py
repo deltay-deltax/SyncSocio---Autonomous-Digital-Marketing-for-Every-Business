@@ -1,9 +1,9 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 class BrandInfo(BaseModel):
     userId: str
-    brandName: str
+    brandName: Optional[str] = ""
     businessCategory: Optional[str] = ""
     mainGoal: Optional[str] = ""
     targetAudiences: List[str] = []
@@ -12,6 +12,7 @@ class BrandInfo(BaseModel):
     contentMix: Dict[str, int] = {"education": 50, "promotion": 50}
     socialPlatforms: List[str] = []
     productBrief: Optional[Dict[str, str]] = {"name": "", "description": "", "category": ""}
+    suggestedMix: Optional[Dict[str, Any]] = None
 
 class CalendarItem(BaseModel):
     day: str

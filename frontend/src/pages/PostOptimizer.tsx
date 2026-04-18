@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn, fileToBase64 } from '@/lib/utils';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
@@ -64,7 +64,44 @@ const PostOptimizer: React.FC = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<'content' | 'strategy'>('content');
   const [copied, setCopied] = useState(false);
+  const [aiVisual, setAiVisual] = useState<string | null>(null);
+  const [isGeneratingVisual, setIsGeneratingVisual] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGenerateAIVisual = async () => {
+    if (!result || !file) return;
+    setIsGeneratingVisual(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const AGENT_API_URL = 'http://localhost:8000'; // FastAPI
+      const res = await fetch(`${AGENT_API_URL}/generate-visuals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `High fashion editorial photograph of the product, ${result.critique.improved_hook}, professional studio lighting, 4k commercial quality, trending on instagram`,
+          format: contentType === 'reel' ? 'Reel' : 'Static Image',
+          image: base64
+        })
+      });
+
+      if (!res.ok) throw new Error('Visual generation failed');
+      const data = await res.json();
+      
+      let visualUrl = "";
+      if (data.type === 'image') {
+        const b64 = data.data?.data?.[0]?.b64_json || data.data?.image;
+        visualUrl = `data:image/png;base64,${b64}`;
+      } else if (data.type === 'video') {
+        visualUrl = data.data.url;
+      }
+      
+      setAiVisual(visualUrl);
+    } catch (err) {
+      console.error('AI Visual Error:', err);
+    } finally {
+      setIsGeneratingVisual(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -496,7 +533,8 @@ const PostOptimizer: React.FC = () => {
                 <div className="px-8 pt-6 pb-2 flex gap-6 border-b border-slate-50">
                   {[
                     { id: 'content', label: '01. Adjusted Content', icon: MessageSquare },
-                    { id: 'strategy', label: '02. Growth Logic', icon: Zap }
+                    { id: 'strategy', label: '02. Growth Logic', icon: Zap },
+                    { id: 'visuals', label: '03. AI Enhancements', icon: Sparkles }
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -560,7 +598,7 @@ const PostOptimizer: React.FC = () => {
                           </div>
                         </div>
                       </motion.div>
-                    ) : (
+                    ) : activeTab === 'strategy' ? (
                       <motion.div
                         key="strategy-slide"
                         initial={{ opacity: 0, x: 20 }}
@@ -588,6 +626,72 @@ const PostOptimizer: React.FC = () => {
                         <div className="p-6 bg-primary/5 rounded-[2.5rem] border border-primary/10">
                            <p className="text-[10px] font-medium text-primary uppercase tracking-widest text-center">These signals were derived from your Brand Profile & visual media analysis.</p>
                         </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="visuals-slide"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="p-10 flex flex-col items-center justify-center min-h-[400px] text-center"
+                      >
+                        {aiVisual ? (
+                          <div className="space-y-6 w-full animate-in zoom-in-95 duration-500">
+                             <div className="relative aspect-square rounded-[3rem] overflow-hidden border-8 border-slate-50 shadow-2xl bg-slate-100">
+                                {contentType === 'reel' ? (
+                                  <video src={aiVisual} className="w-full h-full object-cover" autoPlay loop muted />
+                                ) : (
+                                  <img src={aiVisual} className="w-full h-full object-cover" />
+                                )}
+                                <div className="absolute top-6 right-6">
+                                   <Badge className="bg-primary text-white font-black uppercase tracking-widest py-2 px-4 rounded-2xl shadow-xl shadow-primary/20">NVIDIA FLUX PRO</Badge>
+                                </div>
+                             </div>
+                             <div className="flex gap-4">
+                                <Button 
+                                  onClick={handleGenerateAIVisual} 
+                                  disabled={isGeneratingVisual}
+                                  variant="outline" 
+                                  className="flex-1 h-14 rounded-2xl border-slate-200 text-slate-500 font-black uppercase tracking-widest text-[10px]"
+                                >
+                                   Regenerate Variation
+                                </Button>
+                                <Button className="flex-1 h-14 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] shadow-xl">
+                                   Use This Visual
+                                </Button>
+                             </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-8 max-w-sm">
+                            <div className="w-24 h-24 rounded-[2.5rem] bg-amber-50 flex items-center justify-center text-amber-500 mx-auto shadow-inner border border-amber-100/50">
+                               <Sparkles size={40} className="animate-pulse" />
+                            </div>
+                            <div className="space-y-3">
+                              <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Velocity AI Visuals</h4>
+                              <p className="text-sm font-medium text-slate-400 leading-relaxed">
+                                Transform your raw content into high-end editorial visuals. Using **NVIDIA FLUX I2I**, we'll upscale and stylize your post to match your brand's AI-optimized hook.
+                              </p>
+                            </div>
+                            <Button 
+                              onClick={handleGenerateAIVisual}
+                              disabled={isGeneratingVisual}
+                              className="w-full h-16 rounded-[2rem] bg-primary text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all group"
+                            >
+                              {isGeneratingVisual ? (
+                                <div className="flex items-center gap-3">
+                                   <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                   <span>Flux Processing...</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Zap className="fill-current" size={18} />
+                                  <span>Generate High-End Variation</span>
+                                </div>
+                              )}
+                            </Button>
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Uses 1 AI Credit</p>
+                          </div>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
