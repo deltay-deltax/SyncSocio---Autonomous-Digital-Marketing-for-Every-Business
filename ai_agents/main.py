@@ -275,6 +275,7 @@ class VisualGenRequest(BaseModel):
     format: str
     slides: Optional[int] = 3
     image: Optional[str] = None
+    slide_prompts: Optional[List[str]] = None
 
 @app.post("/generate-visuals")
 async def api_generate_visuals(request: VisualGenRequest):
@@ -289,7 +290,7 @@ async def api_generate_visuals(request: VisualGenRequest):
             type_str = "image"
         elif request.format == "Carousel":
             count = request.slides if request.slides else 3
-            result = generate_carousel_images(request.prompt, image=request.image, count=count)
+            result = generate_carousel_images(request.prompt, image=request.image, count=count, slide_prompts=request.slide_prompts)
             type_str = "carousel"
         elif request.format == "Reel":
             result = mock_video_gen(request.prompt)

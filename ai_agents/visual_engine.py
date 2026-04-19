@@ -6,10 +6,10 @@ from typing import List, Dict, Any
 
 def generate_nvidia_image(prompt: str, image: str = None, width: int = 1024, height: int = 1024):
     """
-    Generates a single image using NVIDIA's FLUX.2-klein-4b model.
+    Generates a single image using NVIDIA's FLUX.1-dev model.
     Supports image-to-image/reference if 'image' is provided as a base64 string.
     """
-    invoke_url = "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.2-klein-4b"
+    invoke_url = "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-dev"
     api_key = os.getenv("NVIDIA_API_KEY")
     
     if not api_key:
@@ -25,10 +25,12 @@ def generate_nvidia_image(prompt: str, image: str = None, width: int = 1024, hei
 
     payload = {
         "prompt": safe_prompt,
+        "mode": "base",
+        "cfg_scale": 3.5,
         "width": width,
         "height": height,
         "seed": 0,
-        "steps": 4 # Klein model is optimized for low steps
+        "steps": 50 
     }
 
     try:
@@ -40,10 +42,12 @@ def generate_nvidia_image(prompt: str, image: str = None, width: int = 1024, hei
             
             payload = {
                 "prompt": safe_prompt,
+                "mode": "base",
+                "cfg_scale": 3.5,
                 "width": width,
                 "height": height,
                 "seed": 0,
-                "steps": 4,
+                "steps": 50,
                 "image": [f"data:image/png;base64,{raw_b64}"]
             }
             print(f"NVIDIA Engine: Trying I2I-JSON for prompt: {prompt[:50]}...")
@@ -55,18 +59,12 @@ def generate_nvidia_image(prompt: str, image: str = None, width: int = 1024, hei
                 print(f"NVIDIA I2I Failed ({response.status_code}): {response.text}. Falling back to T2I...")
         
         # Fallback / Default T2I with Retries
-        payload = {
-            "prompt": safe_prompt,
-            "width": width,
-            "height": height,
-            "seed": 0,
-            "steps": 4
-        }
+        # payload is already set above for T2I
         
         for attempt in range(3):
             try:
                 print(f"NVIDIA Engine: Generating T2I-JSON (Attempt {attempt+1}) for prompt length: {len(safe_prompt)}")
-                response = requests.post(invoke_url, headers=headers, json=payload, timeout=30)
+                response = requests.post(invoke_url, headers=headers, json=payload, timeout=50) # Increased timeout for more steps
                 response.raise_for_status()
                 
                 res_data = response.json()
@@ -94,16 +92,18 @@ def generate_nvidia_image(prompt: str, image: str = None, width: int = 1024, hei
         
     return response.json()
 
-def generate_carousel_images(base_prompt: str, image: str = None, count: int = 3):
+def generate_carousel_images(base_prompt: str, image: str = None, count: int = 3, slide_prompts: List[str] = None):
     """
     Generates multiple images for a carousel.
-    In a real scenario, we might want to vary the prompts slightly to tell a story.
+    If slide_prompts is provided, it uses each prompt specifically.
     """
     results = []
     for i in range(count):
-        # Slightly vary the prompt for variety if needed, or keep it consistent
-        # For now, we'll use the same prompt or append slide number
-        slide_prompt = f"{base_prompt}, slide {i+1} of a visual sequence, consistent style"
+        if slide_prompts and i < len(slide_prompts):
+            slide_prompt = slide_prompts[i]
+        else:
+            slide_prompt = f"{base_prompt}, slide {i+1} of a visual sequence, consistent style"
+            
         img_data = generate_nvidia_image(slide_prompt, image=image)
         results.append(img_data)
         

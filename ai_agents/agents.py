@@ -88,7 +88,7 @@ def planner_node(state: GraphState):
     
     BRAND: {brand.get('brandName')} ({brand.get('businessCategory', '')})
     PRODUCT: {brief.get('name')}
-    BRIEF: {brief.get('description')}
+    BRIEF: {str(brief.get('description', ''))[:60]}
     INDUSTRY PILL: {brief.get('category')}
     TONE: {brand.get('brandTone', 'Luxury/Premium')}
     BRAND COLORS: Primary: {brand.get('primaryColor', '#2563EB')}, Secondary: {brand.get('secondaryColor', '#60A5FA')}
@@ -136,73 +136,210 @@ def planner_node(state: GraphState):
         return {"error": str(e)}
 
 # Node 2: Visual Illustrator (The Actor/Generator)
+def generate_brand_visual_dna(brand_info: Dict[str, Any]):
+    """
+    Dedicated agent to distill the full brand profile (Identity + Color + Tone) into a 200-char DNA string.
+    """
+    prompt = f"""
+    Distill this brand's entire identity into a 200-character DNA string for an image generator.
+    YOU MUST INCLUDE:
+    1. What the brand actually is/does.
+    2. The core color palette (Primary & Secondary).
+    3. The brand tone and emotional vibe.
+    
+    BRAND DATA:
+    - Name: {brand_info.get('brandName')}
+    - Category: {brand_info.get('businessCategory')}
+    - Tone: {brand_info.get('brandTone')}
+    - Primary Color: {brand_info.get('primaryColor')}
+    - Secondary Color: {brand_info.get('secondaryColor')}
+    - Main Goal: {brand_info.get('mainGoal')}
+    
+    OUTPUT: RETURN ONLY THE 200 CHAR IDENTITY STRING. NO INTRO.
+    """
+    try:
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+        res = llm.invoke(prompt)
+        content = res.content
+        if isinstance(content, list):
+            content = "".join([part.get('text', '') if isinstance(part, dict) else str(part) for part in content])
+        return content.strip()[:200]
+    except:
+        return f"Style: {brand_info.get('brandTone')}. Palette: {brand_info.get('primaryColor')}, {brand_info.get('secondaryColor')}."[:200]
+
 def visual_illustrator_node(state: GraphState):
     calendar = state['content_calendar']
     brand = state['brand_info']
     brief = state['product_brief']
     llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
     
-    print(f"Illustrator Agent: Designing 7 high-end visual prompts...")
+    # Layer 1: Foundation (Dynamic based on Category)
+    category_raw = brand.get("businessCategory", "other").lower()
+    is_luxury_cpg = any(k in category_raw for k in ["cosmetic", "beauty", "jewel", "food", "drink", "cpg"])
+    
+    if is_luxury_cpg:
+        # High-end studio look for luxury/food
+        universal_base = "Professional cinematic studio product photography, 8k, medium format, 90mm macro lens. Three-point lighting (Key, Fill, Rim). Sharp textures, no artifacts. STRICTLY NO TEXT, NO LOGOS."
+    else:
+        # Organic, real-world look for services/startups
+        universal_base = "Raw, authentic high-fidelity photography, candid shot, real-world environment, natural ambient lighting, organic textures, non-studio, shot on 35mm lens. STRICTLY NO TEXT, NO LOGOS."
+
+    # Layer 2: Brand DNA (Synthesized by Agent, Fixed ~200 chars)
+    print(f"Brand Agent: Distilling holistic identity for {brand.get('brandName')}...")
+    brand_dna = generate_brand_visual_dna(brand)
+    brand_dna = brand_dna[:200]
+
+    print(f"Illustrator Agent: Designing high-fidelity visual payloads for {brand.get('brandName')}...")
     
     enriched_calendar = []
     for i, item in enumerate(calendar):
-        # Map item format to our prompt manager library names
-        format_for_engine = item.get('format', 'Static Image')
-        if format_for_engine == 'Static Image': format_for_engine = 'images'
-        elif format_for_engine == 'Reel': format_for_engine = 'reels'
-        elif format_for_engine == 'Carousel': format_for_engine = 'carousels'
+        fmt = item.get('format', '').lower()
+        topic = item.get('topic', 'General Awareness')
         
-        # Use template - if no template, get_formatted_prompt returns a basic fallback
-        base_prompt = get_formatted_prompt(
-            format_type=format_for_engine,
-            topic=item.get('topic', ''),
-            brand_info={
-                **brand,
-                'PRODUCT_NAME': brief.get('name'),
-                'PRODUCT_CATEGORY': brief.get('category'),
-                'BRAND_COLOR_PRIMARY': brand.get('primaryColor', '#2563EB'),
-                'BRAND_COLOR_SECONDARY': brand.get('secondaryColor', '#60A5FA')
-            }
-        )
+        # Layer 3: Strategic Context (Topic + Product Info) - Fixed ~150 chars
+        p_name = brief.get('name', 'Product')
+        if not p_name or p_name.strip() == "": p_name = "[PRODUCT_NAME_MISSING]"
+        p_desc = str(brief.get('description', ''))[:50]
+        if not p_desc or p_desc.strip() == "": p_desc = "[PRODUCT_DESC_MISSING]"
+        
+        # Format: Topic: [Topic]. Product: [Name] ([Desc]).
+        strategic_context = f"Topic: {topic}. Product: {p_name} ({p_desc})."
+        strategic_context = strategic_context[:150]
 
-        refinement_prompt = f"""
-        TASK: Convert this into a high-end, 60-word cinematic prompt for NVIDIA FLUX.
-        BRAND: {brand.get('brandName')}
-        NICHE/CATEGORY: {brand.get('businessCategory')}
-        TONE: {brand.get('brandTone')}
-        PRODUCT: {brief.get('name')}
-        PRODUCT CONTEXT: {brief.get('description')}
-        
-        VISUAL DNA:
-        - Primary Color Atmosphere: {brand.get('primaryColor')}
-        - Secondary Accents: {brand.get('secondaryColor')}
-        
-        STRICT OUTPUT RULES:
-        - STYLE: Cinematic, professional studio lighting, depth of field.
-        - STRICTLY NO TEXT, NO LOGOS, NO GIBBERISH.
-        - Focus on textures and the high-end essence of the {brand.get('businessCategory')} niche.
-        - Output ONLY the final visual description.
-        - Must be under 600 characters.
-        """
-        
-        print(f"DEBUG: Designer Prompt Context: Brand={brand.get('brandName')}, Category={brand.get('businessCategory')}")
-        
-        try:
-            res = llm.invoke(refinement_prompt)
-            final_prompt = res.content.strip()
-            # If the LLM still returns a "Here is..." or similar, try to extract if markers exist
-            if "---" in final_prompt:
-                parts = final_prompt.split("---")
-                final_prompt = parts[1].strip() if len(parts) > 1 else parts[0].strip()
+        # Apply specific layering only to images and carousels
+        if 'static' in fmt or 'image' in fmt or 'carousel' in fmt:
+            is_carousel = 'carousel' in fmt
+            slides_count = item.get('carousel_slides', 3) if is_carousel else 1
             
-            # Final truncation and cleansing
-            item['visual_prompt'] = final_prompt[:790]
-        except:
-            item['visual_prompt'] = base_prompt[:790]
+            refinement_prompt = f"""
+            TASK: Create a super-detailed cinematic visual description and text overlays for this {"carousel" if is_carousel else "image"}.
+            SCENE TOPIC: {topic}
+            HOOK: {item.get('content_hook')}
+            DETAILS: {item.get('why')}
+            SLIDES: {slides_count}
+            
+            STRICT RULES:
+            - The scene MUST visually represent the topic: {topic}.
+            - Focus on lighting, textures, material physics, and placement.
+            - For visuals: DO NOT include ANY text or letters IN THE IMAGE.
+            - For text overlays: Provide a 'headline', 'subtext', and 'position' (top-left, top-right, bottom-left, bottom-right, center).
+            
+            OUTPUT FORMAT: RETURN ONLY VALID JSON.
+            {{
+              "visual_description": "...",
+              "slides": [
+                {{
+                  "slide_scene_variation": "...",
+                  "headline": "...",
+                  "subtext": "...",
+                  "position": "..."
+                }}
+              ]
+            }}
+            """
+            
+            try:
+                res = llm.invoke([
+                    SystemMessage(content="You are a visual director and copywriter. Output only JSON."),
+                    HumanMessage(content=refinement_prompt)
+                ])
+                content = res.content
+                if isinstance(content, list):
+                    content = "".join([part.get('text', '') if isinstance(part, dict) else str(part) for part in content])
+                
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    visual_data = json.loads(json_match.group())
+                else:
+                    visual_data = json.loads(content)
+                
+                scene_base = visual_data.get('visual_description', '')[:250]
+                
+                # Determine industry for style injection
+                category_raw = brand.get("businessCategory", "other").lower()
+                is_luxury_cpg = any(k in category_raw for k in ["cosmetic", "makeup", "beauty", "jewel", "food", "drink", "cpg"])
+                
+                if is_luxury_cpg:
+                    style_modifier = "3D render, sleek, premium studio lighting, hyper-realistic 8k, glassmorphism, depth of field"
+                else:
+                    style_modifier = "realistic, natural, high-fidelity film photography, candid, authentic, organic shadows, non-studio environment, shun all 3D styles, no rendered effects, shot on 35mm lens"
+
+                # Prepare slides data
+                item['slides_metadata'] = []
+                for s in visual_data.get('slides', []):
+                    v_prompt = f"{universal_base} {brand_dna} {strategic_context} Style: {style_modifier}. Scene: {s.get('slide_scene_variation', '') or scene_base}"
+                    item['slides_metadata'].append({
+                        "visual_prompt": v_prompt[:795],
+                        "headline": s.get('headline', ''),
+                        "subtext": s.get('subtext', ''),
+                        "position": s.get('position', 'center')
+                    })
+                
+                # Fallback / Legacy field
+                item['visual_prompt'] = item['slides_metadata'][0]['visual_prompt'] if item['slides_metadata'] else f"{universal_base} {brand_dna} {strategic_context}"[:795]
+                item['detailed_visual_description'] = scene_base
+                
+                # DETAILED CONSOLE LOGGING
+                print(f"\n" + "="*60)
+                print(f"🚀 AI ARTIFACT GENERATION: DAY {i+1} ({fmt})")
+                print(f"📌 TOPIC: {topic}")
+                print(f"---" + "-"*57)
+                print(f"🎨 LAYER 1 (Foundation): {universal_base[:120]}...")
+                print(f"🧬 LAYER 2 (Identity DNA): {brand_dna}")
+                print(f"📦 LAYER 3 (Strategic Context): {strategic_context}")
+                print(f"🔥 SLIDES GENERATED: {len(item.get('slides_metadata', []))}")
+                print("="*60 + "\n")
+
+            except Exception as e:
+                print(f"DEBUG: Illustrator Error: {e}")
+                item['visual_prompt'] = f"{universal_base} {brand_dna} {strategic_context}"[:795]
+                item['slides_metadata'] = [{
+                    "visual_prompt": item['visual_prompt'],
+                    "headline": topic,
+                    "subtext": item.get('content_hook', ''),
+                    "position": "center"
+                }]
+        else:
+            # Enhanced Reel Prompting
+            refinement_prompt = f"""
+            TASK: Create a super-detailed cinematic MOTION/VIDEO description for a Reel.
+            TOPIC: {topic}
+            HOOK: {item.get('content_hook')}
+            DETAILS: {item.get('why')}
+            
+            RULES:
+            - Describe camera movements, transitions, and specific visual actions.
+            - Ensure it feels viral and high-energy.
+            - Provide ONLY the detailed description.
+            """
+            try:
+                res = llm.invoke([
+                    SystemMessage(content="You are a cinematic director. Output only the prompt."),
+                    HumanMessage(content=refinement_prompt)
+                ])
+                content = res.content
+                if isinstance(content, list):
+                    content = "".join([part.get('text', '') if isinstance(part, dict) else str(part) for part in content])
+                
+                # Determine industry style for video
+                category_raw = brand.get("businessCategory", "other").lower()
+                style_mod = "realistic, cinematic lighting, 4k 60fps"
+                if any(k in category_raw for k in ["cosmetic", "jewel", "food", "cpg"]):
+                    style_mod = "sleek 3D motion, premium studio lighting, hyper-realistic"
+
+                item['visual_prompt'] = f"Video Prompt ({style_mod}): {content.strip()[:600]}"
+                item['detailed_visual_description'] = content.strip()
+            except:
+                item['visual_prompt'] = f"Vibrant social media motion content for {p_name}: {item.get('topic')}"
+            
+            item['slides_metadata'] = []
             
         enriched_calendar.append(item)
         
     return {"content_calendar": enriched_calendar}
+
+
+
 
 # Node 3: Strategy Critic (The Validator)
 def strategy_critic_node(state: GraphState):

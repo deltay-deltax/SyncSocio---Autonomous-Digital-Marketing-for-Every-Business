@@ -19,7 +19,11 @@ export const generateStrategy = async (req, res) => {
       brandTone: profile.brandTone,
       visualVibe: profile.visualVibe,
       contentMix: profile.contentMix,
-      socialPlatforms: profile.socialPlatforms
+      socialPlatforms: profile.socialPlatforms,
+      primaryColor: profile.primaryColor,
+      secondaryColor: profile.secondaryColor,
+      productBrief: req.body.productBrief,
+      suggestedMix: req.body.suggestedMix
     });
 
     // Strategy is already saved to Mongo by the Python service
@@ -45,3 +49,37 @@ export const getCalendar = async (req, res) => {
     res.status(500).json({ message: 'Error fetching calendar' });
   }
 };
+
+import { overlayText } from '../utils/visualOptimizer.js';
+
+export const processVisual = async (req, res) => {
+  try {
+    const { image, metadata, brandColors } = req.body;
+    
+    if (!image) {
+      return res.status(400).json({ message: 'Image data is required' });
+    }
+
+    // Convert base64 to buffer if needed
+    let inputBuffer = image;
+    if (typeof image === 'string' && image.includes('base64,')) {
+      inputBuffer = Buffer.from(image.split('base64,')[1], 'base64');
+    } else if (typeof image === 'string') {
+      inputBuffer = Buffer.from(image, 'base64');
+    }
+
+    const processedBuffer = await overlayText(inputBuffer, {
+      ...metadata,
+      primaryColor: brandColors?.primary || '#ffffff',
+      secondaryColor: brandColors?.secondary || '#f0f0f0'
+    });
+
+    const processedBase64 = `data:image/png;base64,${processedBuffer.toString('base64')}`;
+    
+    res.status(200).json({ image: processedBase64 });
+  } catch (error) {
+    console.error('Visual Process Error:', error);
+    res.status(500).json({ message: 'Error processing visual overlay' });
+  }
+};
+

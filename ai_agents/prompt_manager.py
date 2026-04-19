@@ -189,4 +189,16 @@ def get_formatted_prompt(format_type: str, topic: str, brand_info: Dict[str, Any
     for placeholder, value in replacements.items():
         formatted_prompt = formatted_prompt.replace(placeholder, str(value))
     
+    # Inject style modifiers based on industry
+    if industry in ["cosmetics", "jewellery", "food_cpg"]:
+        style_suffix = ", 3D render, sleek, premium studio lighting, hyper-realistic 8k, glassmorphism, depth of field"
+    else:
+        style_suffix = ", realistic, natural, high-fidelity film photography, candid, authentic, organic shadows, non-studio environment, shun all 3D styles, no rendered effects, shot on 35mm lens"
+    
+    formatted_prompt += style_suffix
+
+    # Ensure we stay within NVIDIA's 800 character limit
+    if len(formatted_prompt) > 800:
+        formatted_prompt = formatted_prompt[:797] + "..."
+
     return formatted_prompt

@@ -28,6 +28,12 @@ interface ScheduledPost {
   currentSlide?: number;
   gScore?: number;
   verdict?: string;
+  slidesMetadata?: Array<{
+    visual_prompt: string;
+    headline: string;
+    subtext: string;
+    position: string;
+  }>;
 }
 
 const getInitialDate = (daysAhead: number) => {
@@ -179,8 +185,9 @@ const ContentStrategy = () => {
           scheduledAt: finalDate.toISOString(),
           visualPrompt: item.visual_prompt,
           contentHook: item.content_hook || item.visual_prompt,
-          carouselSlides: 3,
-          isEditing: false
+          carouselSlides: item.carousel_slides || 3,
+          isEditing: false,
+          slidesMetadata: item.slides_metadata
         };
       });
 
@@ -217,9 +224,6 @@ const ContentStrategy = () => {
     const post = (currentPosts || posts).find(p => p.id === postId);
     if (!post) return;
 
-    // Use currentPosts if provided (for auto-gen) or fall back to state
-    const targetPosts = currentPosts || posts;
-
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, isGeneratingVisual: true } : p));
 
     try {
@@ -229,6 +233,8 @@ const ContentStrategy = () => {
       }
 
       const AGENT_API_URL = 'http://localhost:8000'; // FastAPI URL
+      const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
       const res = await fetch(`${AGENT_API_URL}/generate-visuals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,7 +242,8 @@ const ContentStrategy = () => {
           prompt: post.visualPrompt,
           format: post.type === 'Static' ? 'Static Image' : post.type,
           slides: post.carouselSlides,
-          image: imageBase64
+          image: imageBase64,
+          slide_prompts: post.slidesMetadata?.map(m => m.visual_prompt)
         })
       });
 
@@ -254,6 +261,48 @@ const ContentStrategy = () => {
         });
       } else if (result.type === 'video') {
         visualUrls = [result.data.url];
+      }
+
+      // NEW: Text Overlay Processing via Sharp (Backend)
+      if (post.type !== 'Reel') {
+        const processedUrls = await Promise.all(visualUrls.map(async (rawB64, idx) => {
+          const metadata = post.slidesMetadata?.[idx] || { 
+            headline: post.title, 
+            subtext: post.contentHook, 
+            position: 'center' 
+          };
+          
+          try {
+            const processRes = await fetch(`${BASE_URL}/ai/process-visual`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                image: rawB64,
+                metadata: {
+                  headline: metadata.headline,
+                  subtext: metadata.subtext,
+                  position: metadata.position
+                },
+                brandColors: {
+                  primary: profile?.primaryColor,
+                  secondary: profile?.secondaryColor
+                }
+              })
+            });
+            
+            if (processRes.ok) {
+              const procData = await processRes.json();
+              return procData.image;
+            }
+          } catch (e) {
+            console.warn("Overlay failed for slide", idx, e);
+          }
+          return rawB64; // Fallback to raw image
+        }));
+        visualUrls = processedUrls;
       }
 
       setPosts(prev => prev.map(p => p.id === postId ? {
@@ -386,7 +435,20 @@ const ContentStrategy = () => {
                 {/* Media Section */}
                 <div className="flex-1 bg-black relative flex items-center justify-center overflow-hidden">
                   {livePost.type === 'Reel' ? (
-                     <video src={livePost.generatedVisuals?.[0]} className="w-full h-full object-contain" autoPlay loop controls />
+                     <div className="w-full h-full p-12 flex items-center justify-center bg-zinc-900 overflow-y-auto">
+                        <div className="max-w-2xl space-y-6 text-left">
+                           <Badge className="bg-primary/20 text-primary border-none font-black text-[10px] uppercase tracking-[0.3em] px-4 py-1.5 rounded-full">
+                              AI Video Blueprint
+                           </Badge>
+                           <p className="text-xl font-medium text-slate-300 leading-relaxed italic">
+                              "{livePost.visualPrompt}"
+                           </p>
+                           <div className="pt-6 border-t border-white/5 flex items-center gap-3">
+                              <Sparkles className="text-primary" size={18} />
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Autonomous Motion Concept</span>
+                           </div>
+                        </div>
+                     </div>
                   ) : (
                     <div className="w-full h-full relative flex items-center justify-center">
                       <img
@@ -477,8 +539,11 @@ const ContentStrategy = () => {
                   >
                     {isAnalyzingMix ? (
                       <div className="flex items-center gap-3">
-                        <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Reading Meta Insights...</span>
+                        <div className="relative w-5 h-5">
+                          <div className="absolute inset-0 border-2 border-white/20 rounded-full" />
+                          <div className="absolute inset-0 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        </div>
+                        <span className="animate-pulse">Reading Meta Insights...</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -585,8 +650,15 @@ const ContentStrategy = () => {
                   >
                     {isGenerating ? (
                       <div className="flex items-center gap-3">
-                        <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Initializing Agents...</span>
+                        <div className="relative w-5 h-5">
+                          <motion.div 
+                            className="absolute inset-0 border-2 border-primary-foreground/30 rounded-full"
+                            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                          />
+                          <div className="absolute inset-0 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        </div>
+                        <span className="tracking-tighter">Initializing Autonomous Agents...</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
@@ -656,12 +728,24 @@ const ContentStrategy = () => {
           >
              <div className="relative group">
                 {/* Neural Glow Effect */}
-                <div className="absolute inset-[-20px] bg-primary/20 blur-[60px] rounded-full animate-pulse" />
+                <div className="absolute inset-[-40px] bg-primary/20 blur-[80px] rounded-full animate-pulse" />
+                <motion.div 
+                   animate={{ rotate: 360 }}
+                   transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+                   className="absolute inset-[-10px] border-2 border-dashed border-primary/20 rounded-full" 
+                />
+                <motion.div 
+                   animate={{ rotate: -360 }}
+                   transition={{ repeat: Infinity, duration: 12, ease: "linear" }}
+                   className="absolute inset-[-20px] border border-primary/10 rounded-full" 
+                />
                 <div className="relative w-32 h-32 bg-white rounded-[3rem] shadow-2xl flex items-center justify-center overflow-hidden border-4 border-slate-50">
-                   <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
-                   <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="text-primary animate-pulse" size={40} />
+                   <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/5" />
+                   <div className="relative group">
+                      <Sparkles className="text-primary animate-bounce" size={40} />
+                      <div className="absolute inset-0 text-primary blur-md animate-pulse opacity-50">
+                        <Sparkles size={40} />
+                      </div>
                    </div>
                 </div>
              </div>
@@ -685,7 +769,12 @@ const ContentStrategy = () => {
                              ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
                              : "bg-slate-50 border-slate-100 text-slate-300 animate-pulse"
                          )}>
-                            {p.generatedVisuals ? <CheckCircle2 size={20} /> : <div className="w-5 h-5 border-2 border-slate-200 border-t-primary rounded-full animate-spin" />}
+                            {p.generatedVisuals ? <CheckCircle2 size={20} /> : (
+                               <div className="relative w-6 h-6">
+                                 <div className="absolute inset-0 border-2 border-primary/10 rounded-full" />
+                                 <div className="absolute inset-0 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                               </div>
+                             )}
                          </div>
                          <span className={cn("text-[8px] font-black uppercase tracking-widest", p.generatedVisuals ? "text-emerald-500" : "text-slate-400")}>
                            Day {idx + 1}
@@ -760,12 +849,17 @@ const ContentStrategy = () => {
                         {post.isGeneratingVisual ? (
                           <div className="flex flex-col items-center gap-2">
                             <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase">NVIDIA Flux Gen...</span>
+                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Neural Render...</span>
                           </div>
                         ) : post.generatedVisuals ? (
                           <div className="w-full h-full relative group/media overflow-hidden">
                             {post.type === 'Reel' ? (
-                              <video src={post.generatedVisuals[0]} className="w-full h-full object-cover shadow-2xl" autoPlay loop muted onClick={() => setLightboxPost(post)} />
+                              <div className="w-full h-full p-6 bg-slate-900 flex flex-col items-center justify-center text-center cursor-zoom-in" onClick={() => setLightboxPost(post)}>
+                                 <Video className="text-primary mb-4 animate-pulse" size={32} />
+                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed line-clamp-4 px-2">
+                                    {post.visualPrompt}
+                                 </p>
+                              </div>
                             ) : (
                               <div className="w-full h-full relative" onClick={() => setLightboxPost(post)}>
                                 <img
