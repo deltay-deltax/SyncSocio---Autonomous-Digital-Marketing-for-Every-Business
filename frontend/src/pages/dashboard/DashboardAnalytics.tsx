@@ -8,35 +8,59 @@ import { cn } from '@/lib/utils';
 
 const ranges = ['This Week', 'This Month', 'All Time'];
 
+let cachedAnalyticsData: Record<string, any> = {};
+
 const DashboardAnalytics = () => {
   const [range, setRange] = useState('This Week');
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(cachedAnalyticsData['This Week'] || null);
+  const [loading, setLoading] = useState(!cachedAnalyticsData['This Week']);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
+    if (cachedAnalyticsData[range]) {
+      setData(cachedAnalyticsData[range]);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     const fetchMetrics = async () => {
       try {
         const token = localStorage.getItem('token');
         const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-        const res = await fetch(`${API_BASE}/instagram/metrics`, {
+        const res = await fetch(`${API_BASE}/instagram/metrics?range=${encodeURIComponent(range)}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const result = await res.json();
-        if (res.ok) {
+        if (res.ok && isMounted) {
+          cachedAnalyticsData[range] = result.data;
           setData(result.data);
-        } else {
+          setError(null);
+        } else if (isMounted && !res.ok) {
           setError(result.message);
         }
       } catch (err) {
         console.error('Failed to fetch metrics:', err);
-        setError('Connection failed');
+        if (isMounted && !cachedAnalyticsData[range]) setError('Connection failed');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+    
     fetchMetrics();
-  }, []);
+    
+    // Background auto-polling every 60 seconds for live data
+    const intervalId = setInterval(() => {
+      fetchMetrics();
+    }, 60000);
+    
+    return () => { 
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [range]);
 
   if (loading) {
     return (
@@ -81,11 +105,17 @@ const DashboardAnalytics = () => {
     { label: 'Engagement Rate', value: '6.2%', change: '+0.8%', icon: Activity, gradient: 'from-amber-500/15 to-amber-500/5' },
   ];
 
-  const hourlyData = Array.from({ length: 24 }, (_, i) => ({
-    hour: `${i}:00`,
-    reach: Math.floor(Math.random() * 400) + (i >= 18 && i <= 21 ? 600 : 50),
-    peak: i === 20,
-  }));
+  const hourlyData = data?.hourlyActivity && data.hourlyActivity.length > 0 
+    ? data.hourlyActivity.map((d: any) => ({
+        hour: d.hour,
+        reach: d.active, // Map to reach so the chart config doesn't break
+        peak: d.peak
+      })) 
+    : Array.from({ length: 24 }, (_, i) => ({
+        hour: `${i}:00`,
+        reach: Math.floor(Math.random() * 400) + (i >= 18 && i <= 21 ? 600 : 50),
+        peak: i === 20,
+      }));
 
   const postBreakdown = [
     { post: '5 baking secrets...', type: 'Reel', reach: '2.1K', likes: '186', engagement: '8.2%', posted: '2h ago' },
@@ -150,7 +180,7 @@ const DashboardAnalytics = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card className="border-border/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold">Hourly Reach — Best day this week</CardTitle>
+            <CardTitle className="text-sm font-bold">Audience Activity — Best Time to Post</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -167,7 +197,7 @@ const DashboardAnalytics = () => {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-2 font-medium">⚡ Peak engagement: 8PM — agent posts at this time</p>
+            <p className="text-[11px] text-muted-foreground mt-2 font-medium">⚡ Peak follower activity: {data?.peakHourText || '8 PM'} — agent will schedule future posts slightly before this time</p>
           </CardContent>
         </Card>
       </motion.div>

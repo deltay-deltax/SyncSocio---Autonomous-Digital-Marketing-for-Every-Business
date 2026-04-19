@@ -7,30 +7,46 @@ import { cn } from '@/lib/utils';
 
 const tabs = ['All', 'Agent Posts', 'Original Posts'];
 
+let cachedFeedData: any = null;
+
 const DashboardFeed = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<any[]>(cachedFeedData || []);
+  const [loading, setLoading] = useState(!cachedFeedData);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchFeed = async () => {
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${import.meta.env.VITE_API_URL}/instagram/feed`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const result = await res.json();
-          setPosts(result.data || []);
+          cachedFeedData = result.data || [];
+          setPosts(cachedFeedData);
         }
       } catch (err) {
         console.error('Failed to fetch feed:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+
     fetchFeed();
+
+    // Background auto-polling every 60 seconds for live data
+    const intervalId = setInterval(() => {
+      fetchFeed();
+    }, 60000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   const getEmoji = (type: string) => {

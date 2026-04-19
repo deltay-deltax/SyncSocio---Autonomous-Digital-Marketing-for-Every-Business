@@ -34,11 +34,17 @@ router.get('/metrics', protect, async (req, res) => {
 
         // 2. Account-Level Insights (Reach and Views - v25.0 implementation)
         const insightsUrl = `https://graph.facebook.com/v25.0/${igId}/insights`;
+        
+        const range = req.query.range || 'This Week';
+        let datePreset = 'last_7_days';
+        if (range === 'This Month') datePreset = 'last_28_days';
+        if (range === 'All Time') datePreset = 'last_90_days'; // Instagram limits to 90 days usually
+
         const insightsParams = {
             metric: 'views,reach',
             metric_type: 'total_value',
             period: 'day',
-            date_preset: 'last_28_days',
+            date_preset: datePreset,
             access_token: accessToken
         };
 
@@ -72,13 +78,55 @@ router.get('/metrics', protect, async (req, res) => {
             // v25.0 total_value structure
             if (metric.total_value) return metric.total_value.value || 0;
             
-            // Fallback for traditional structure
+            // Fallback for traditional array structure: sum the entire requested range!
             if (metric.values && metric.values.length > 0) {
-                return metric.values[metric.values.length - 1].value || 0;
+                return metric.values.reduce((total, current) => total + (current.value || 0), 0);
             }
             
             return 0;
         };
+
+        // 4. Online Followers (Best Time to Post Prediction)
+        const onlineFollowersUrl = `https://graph.facebook.com/v25.0/${igId}/insights`;
+        let hourlyActivity = [];
+        let peakHourText = "12 PM"; // fallback
+        try {
+            const onlineRes = await axios.get(onlineFollowersUrl, {
+                params: {
+                    metric: 'online_followers',
+                    period: 'lifetime',
+                    access_token: accessToken
+                }
+            });
+            const metrics = onlineRes.data.data;
+            const onlineMetric = metrics.find(m => m.name === 'online_followers');
+            
+            if (onlineMetric && onlineMetric.values && onlineMetric.values.length > 0) {
+               const hours = onlineMetric.values[0].value;
+               let maxActive = -1;
+               let peakHourIndex = 0;
+               
+               for (let i = 0; i < 24; i++) {
+                 const count = hours[i.toString()] || 0;
+                 if (count > maxActive) {
+                   maxActive = count;
+                   peakHourIndex = i;
+                 }
+                 hourlyActivity.push({
+                   hour: `${i}:00`,
+                   active: count,
+                   peak: false
+                 });
+               }
+               
+               if (hourlyActivity.length > 0) {
+                 hourlyActivity[peakHourIndex].peak = true;
+                 peakHourText = peakHourIndex === 0 ? "12 AM" : peakHourIndex < 12 ? `${peakHourIndex} AM` : peakHourIndex === 12 ? "12 PM" : `${peakHourIndex - 12} PM`;
+               }
+            }
+        } catch (e) {
+            console.warn('Online followers fetch warning:', e.response?.data?.error?.message || e.message);
+        }
 
         res.json({
             message: 'Real-time v25.0 Meta metrics loaded.',
@@ -93,7 +141,9 @@ router.get('/metrics', protect, async (req, res) => {
                 profile_info: {
                     name: userRes.data.name,
                     biography: userRes.data.biography
-                }
+                },
+                hourlyActivity,
+                peakHourText
             }
         });
 
