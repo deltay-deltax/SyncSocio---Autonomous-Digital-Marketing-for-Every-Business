@@ -10,6 +10,12 @@ import aiRoutes from './routes/aiRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import instagramMetricsRoutes from './routes/instagramMetricsRoutes.js';
+import dmFlowRoutes from './routes/dmFlowRoutes.js';
+import {
+  receiveInstagramWebhook,
+  verifyInstagramWebhook,
+} from './controllers/instagramWebhookController.js';
+import { startPolling } from './services/commentPoller.js';
 
 dotenv.config();
 
@@ -18,6 +24,11 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Compatibility webhook routes. Meta setups often use "/webhook" directly;
+// keep these in sync with "/api/auth/instagram/webhook" routes.
+app.get('/webhook', verifyInstagramWebhook);
+app.post('/webhook', receiveInstagramWebhook);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -28,6 +39,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/instagram', instagramMetricsRoutes);
+app.use('/api/dm-flows', dmFlowRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
@@ -43,6 +55,8 @@ if (process.env.MONGO_URI) {
       console.log('Connected to MongoDB');
       app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
+        // Start polling for Instagram comments (bypasses webhook delivery issues)
+        startPolling();
       });
     })
     .catch((err) => {
