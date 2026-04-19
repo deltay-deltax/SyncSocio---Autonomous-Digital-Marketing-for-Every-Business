@@ -127,12 +127,30 @@ export const getDashboardSummary = async (req, res) => {
             };
           }
 
+          let reelCount = 0;
+          let staticCount = 0;
+          let carouselCount = 0;
+          
+          posts.forEach(post => {
+             if (post.media_type === 'VIDEO') reelCount++;
+             else if (post.media_type === 'CAROUSEL_ALBUM') carouselCount++;
+             else staticCount++;
+          });
+          
+          const totalMix = reelCount + staticCount + carouselCount || 1;
+          const contentMix = {
+             reels: Math.round((reelCount / totalMix) * 100),
+             static: Math.round((staticCount / totalMix) * 100),
+             carousel: Math.round((carouselCount / totalMix) * 100)
+          };
+
           realMetrics = {
             postsThisMonth,
             reachThisWeek: reachThisWeek.toLocaleString(),
             likesThisWeek: likesThisWeek.toLocaleString(),
             engagementRate: engagementRate + '%',
-            topPost: topPostInfo
+            topPost: topPostInfo,
+            contentMix
           };
 
         } catch (apiError) {
@@ -144,6 +162,7 @@ export const getDashboardSummary = async (req, res) => {
 
     let metrics;
     let topPost = null;
+    let contentMix = { reels: 40, static: 35, carousel: 25 };
     if (fallbackToMock) {
       metrics = [
         { label: 'Posts This Month', value: '12', change: '+3', icon: 'TrendingUp', gradient: 'from-primary/15 to-primary/5' },
@@ -159,6 +178,7 @@ export const getDashboardSummary = async (req, res) => {
         { label: 'Engagement Rate', value: realMetrics.engagementRate, change: 'Live', icon: 'Activity', gradient: 'from-amber-500/15 to-amber-500/5' },
       ];
       topPost = realMetrics.topPost;
+      contentMix = realMetrics.contentMix;
     }
 
     const activities = [
@@ -170,7 +190,7 @@ export const getDashboardSummary = async (req, res) => {
       { status: 'upcoming', time: 'Tonight', message: 'Will post improved Carousel at 8PM' },
     ];
 
-    res.json({ metrics, activities, topPost });
+    res.json({ metrics, activities, topPost, contentMix });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching dashboard summary' });
   }

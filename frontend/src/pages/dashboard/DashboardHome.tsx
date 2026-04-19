@@ -90,6 +90,8 @@ const DashboardHome = () => {
     );
   }
 
+  const contentMix = data?.contentMix || { reels: 40, static: 35, carousel: 25 };
+
   return (
     <div className="space-y-6">
       {/* Metrics */}
@@ -214,15 +216,15 @@ const DashboardHome = () => {
             <CardContent className="px-6 pb-6">
               <div className="flex items-center gap-1.5 mb-3">
                 <div className="flex-1 h-3 rounded-full bg-slate-50 overflow-hidden flex gap-0.5 border border-slate-100">
-                  <motion.div initial={{ width: 0 }} animate={{ width: '40%' }} transition={{ delay: 0.6, duration: 0.8 }} className="bg-primary h-full rounded-full" />
-                  <motion.div initial={{ width: 0 }} animate={{ width: '35%' }} transition={{ delay: 0.8, duration: 0.8 }} className="bg-primary/50 h-full rounded-full" />
-                  <motion.div initial={{ width: 0 }} animate={{ width: '25%' }} transition={{ delay: 1, duration: 0.8 }} className="bg-primary/25 h-full rounded-full" />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.reels}%` }} transition={{ delay: 0.6, duration: 0.8 }} className="bg-primary h-full rounded-full" />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.static}%` }} transition={{ delay: 0.8, duration: 0.8 }} className="bg-primary/50 h-full rounded-full" />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.carousel}%` }} transition={{ delay: 1, duration: 0.8 }} className="bg-primary/25 h-full rounded-full" />
                 </div>
               </div>
               <div className="flex justify-between text-[10px] text-muted-foreground font-black uppercase tracking-tighter">
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary" /> Reels 40%</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary/50" /> Static 35%</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary/25" /> Carousel 25%</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary" /> Reels {Math.round(contentMix.reels)}%</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary/50" /> Static {Math.round(contentMix.static)}%</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary/25" /> Carousel {Math.round(contentMix.carousel)}%</span>
               </div>
             </CardContent>
           </Card>

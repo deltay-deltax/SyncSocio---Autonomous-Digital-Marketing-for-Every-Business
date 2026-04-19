@@ -111,19 +111,11 @@ const DashboardAnalytics = () => {
         reach: d.active, // Map to reach so the chart config doesn't break
         peak: d.peak
       })) 
-    : Array.from({ length: 24 }, (_, i) => ({
-        hour: `${i}:00`,
-        reach: Math.floor(Math.random() * 400) + (i >= 18 && i <= 21 ? 600 : 50),
-        peak: i === 20,
-      }));
+    : [];
 
-  const postBreakdown = [
-    { post: '5 baking secrets...', type: 'Reel', reach: '2.1K', likes: '186', engagement: '8.2%', posted: '2h ago' },
-    { post: 'Morning bake routine...', type: 'Reel', reach: '3.2K', likes: '290', engagement: '9.1%', posted: '3d ago' },
-    { post: 'Flour to focaccia...', type: 'Carousel', reach: '1.4K', likes: '128', engagement: '5.6%', posted: '2d ago' },
-    { post: 'Sourdough starter...', type: 'Static', reach: '890', likes: '94', engagement: '4.1%', posted: '1d ago' },
-    { post: 'Cinnamon rolls...', type: 'Static', reach: '670', likes: '72', engagement: '3.8%', posted: '4d ago' },
-  ];
+  const postBreakdown = data?.postBreakdown && data.postBreakdown.length > 0 
+    ? data.postBreakdown 
+    : [];
 
   const insights = [
     'Reels consistently outperform static posts by 4x in reach',
@@ -184,20 +176,34 @@ const DashboardAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={hourlyData}>
-                  <XAxis dataKey="hour" tick={{ fontSize: 10 }} interval={2} stroke="#94a3b8" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid hsl(var(--border))' }} />
-                  <Bar dataKey="reach" radius={[6, 6, 0, 0]}>
-                    {hourlyData.map((entry, i) => (
-                      <Cell key={i} fill={entry.peak ? 'hsl(var(--primary))' : 'rgba(59, 130, 246, 0.2)'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {hourlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={hourlyData}>
+                    <XAxis dataKey="hour" tick={{ fontSize: 10 }} interval={2} stroke="#94a3b8" />
+                    <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid hsl(var(--border))' }} />
+                    <Bar dataKey="reach" radius={[6, 6, 0, 0]}>
+                      {hourlyData.map((entry: any, i: number) => (
+                        <Cell key={i} fill={entry.peak ? 'hsl(var(--primary))' : 'rgba(59, 130, 246, 0.2)'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-3 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+                    <Brain className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-700">Not Enough Data</h3>
+                  <p className="text-xs text-slate-500 max-w-[250px] leading-relaxed">
+                    Need at least <span className="font-semibold text-slate-700">100 followers</span> to track online audience activity securely via the Graph API.
+                  </p>
+                </div>
+              )}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-2 font-medium">⚡ Peak follower activity: {data?.peakHourText || '8 PM'} — agent will schedule future posts slightly before this time</p>
+            {hourlyData.length > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-2 font-medium">⚡ Peak follower activity: {data?.peakHourText || '8 PM'} — agent will schedule future posts slightly before this time</p>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -224,7 +230,7 @@ const DashboardAnalytics = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {postBreakdown.map((p, i) => (
+                    {postBreakdown.map((p: any, i: number) => (
                       <tr key={i} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                         <td className="p-3 text-foreground max-w-[150px] truncate font-medium">{p.post}</td>
                         <td className="p-3"><span className="px-2 py-0.5 rounded-lg bg-muted text-[10px] font-semibold">{p.type}</span></td>
