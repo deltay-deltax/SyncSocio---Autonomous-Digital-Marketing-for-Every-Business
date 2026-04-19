@@ -99,10 +99,10 @@ const DashboardAnalytics = () => {
   }
 
   const liveMetrics = [
-    { label: 'Total Reach', value: data?.reach?.toLocaleString() || '0', change: '+3', icon: TrendingUp, gradient: 'from-primary/15 to-primary/5' },
-    { label: 'Total Followers', value: data?.followers?.toLocaleString() || '0', change: '+18%', icon: Eye, gradient: 'from-emerald-500/15 to-emerald-500/5' },
-    { label: 'Impressions', value: data?.impressions?.toLocaleString() || '0', change: '+24%', icon: Heart, gradient: 'from-rose-500/15 to-rose-500/5' },
-    { label: 'Engagement Rate', value: '6.2%', change: '+0.8%', icon: Activity, gradient: 'from-amber-500/15 to-amber-500/5' },
+    { label: 'Total Reach', value: data?.reach?.toLocaleString() || '0', change: data?.reachChange || 'Live', icon: TrendingUp, gradient: 'from-primary/15 to-primary/5' },
+    { label: 'Total Followers', value: data?.followers?.toLocaleString() || '0', change: data?.followersChange || 'Live', icon: Eye, gradient: 'from-emerald-500/15 to-emerald-500/5' },
+    { label: 'Impressions', value: data?.impressions?.toLocaleString() || '0', change: data?.impressionsChange || 'Live', icon: Heart, gradient: 'from-rose-500/15 to-rose-500/5' },
+    { label: 'Engagement Rate', value: data?.engagementRate || '0.0%', change: data?.engagementRateChange || 'Live', icon: Activity, gradient: 'from-amber-500/15 to-amber-500/5' },
   ];
 
   const hourlyData = data?.hourlyActivity && data.hourlyActivity.length > 0 

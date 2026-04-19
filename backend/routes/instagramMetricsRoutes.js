@@ -35,10 +35,15 @@ router.get('/metrics', protect, async (req, res) => {
         // 2. Account-Level Insights (Reach and Views - v25.0 implementation)
         const insightsUrl = `https://graph.facebook.com/v25.0/${igId}/insights`;
         
-        const range = req.query.range || 'This Week';
+        const dateNow = Math.floor(Date.now() / 1000);
+        let periodDays = 7;
         let datePreset = 'last_7_days';
-        if (range === 'This Month') datePreset = 'last_28_days';
-        if (range === 'All Time') datePreset = 'last_90_days'; // Instagram limits to 90 days usually
+        const range = req.query.range || 'This Week';
+        if (range === 'This Month') { datePreset = 'last_28_days'; periodDays = 28; }
+        if (range === 'All Time') { datePreset = 'last_90_days'; periodDays = 90; }
+
+        const previousUntil = dateNow - (periodDays * 86400);
+        const previousSince = previousUntil - (periodDays * 86400);
 
         const insightsParams = {
             metric: 'views,reach',
@@ -48,12 +53,22 @@ router.get('/metrics', protect, async (req, res) => {
             access_token: accessToken
         };
 
+        const prevInsightsParams = {
+            metric: 'views,reach',
+            metric_type: 'total_value',
+            period: 'day',
+            since: previousSince,
+            until: previousUntil,
+            access_token: accessToken
+        };
+
         let insightsData = [];
+        let prevInsightsData = [];
         try {
             const insightsRes = await axios.get(insightsUrl, { params: insightsParams });
             insightsData = insightsRes.data.data;
-            console.log('--- DEBUG: v25.0 Insights Data ---');
-            console.log(JSON.stringify(insightsData, null, 2));
+            const prevInsightsRes = await axios.get(insightsUrl, { params: prevInsightsParams });
+            prevInsightsData = prevInsightsRes.data.data;
         } catch (e) {
             const insightError = e.response?.data?.error;
             console.warn('IG v25.0 Insights warning:', insightError?.message || e.message);
@@ -127,20 +142,43 @@ router.get('/metrics', protect, async (req, res) => {
             }));
         }
 
-        const getMetricValue = (name) => {
-            const metric = insightsData.find(m => m.name === name);
+        const getMetricValue = (dataArr, name) => {
+            const metric = dataArr.find(m => m.name === name);
             if (!metric) return 0;
-            
-            // v25.0 total_value structure
             if (metric.total_value) return metric.total_value.value || 0;
-            
-            // Fallback for traditional array structure: sum the entire requested range!
             if (metric.values && metric.values.length > 0) {
                 return metric.values.reduce((total, current) => total + (current.value || 0), 0);
             }
-            
             return 0;
         };
+
+        const currentReach = getMetricValue(insightsData, 'reach');
+        const prevReach = getMetricValue(prevInsightsData, 'reach');
+        const currentViews = getMetricValue(insightsData, 'views');
+        const prevViews = getMetricValue(prevInsightsData, 'views');
+        
+        const calcChange = (curr, prev) => {
+            if (curr === 0 && prev === 0) return 'Live';
+            if (prev === 0) return '+100%';
+            const pct = ((curr - prev) / prev) * 100;
+            const sign = pct > 0 ? '+' : '';
+            return `${sign}${pct.toFixed(1)}%`;
+        };
+
+        let totalLikes = 0;
+        let totalReachFromPosts = 0;
+        if (postBreakdown.length > 0) {
+           postBreakdown.forEach(p => {
+               totalLikes += p.likes;
+               let r = parseFloat(p.reach.replace('K', ''));
+               if (p.reach.includes('K')) r = r * 1000;
+               totalReachFromPosts += r;
+           });
+        }
+        let engagementRate = '0.0%';
+        if (totalReachFromPosts > 0) {
+           engagementRate = ((totalLikes / totalReachFromPosts) * 100).toFixed(1) + '%';
+        }
 
         // 4. Online Followers (Best Time to Post Prediction)
         const onlineFollowersUrl = `https://graph.facebook.com/v25.0/${igId}/insights`;
@@ -189,9 +227,14 @@ router.get('/metrics', protect, async (req, res) => {
             mock: false,
             data: {
                 followers: userRes.data.followers_count || 0,
-                reach: getMetricValue('reach'),
-                impressions: getMetricValue('views'), // 'views' replaces 'impressions' in many v25 sub-nodes
-                profile_views: getMetricValue('profile_views') || 0,
+                followersChange: 'Live', // Meta doesn't easily expose history for accounts < 100 followers
+                reach: currentReach,
+                reachChange: calcChange(currentReach, prevReach),
+                impressions: currentViews, 
+                impressionsChange: calcChange(currentViews, prevViews),
+                engagementRate: engagementRate,
+                engagementRateChange: 'Live', // Needs historical post processing
+                profile_views: getMetricValue(insightsData, 'profile_views') || 0,
                 post_count: mediaRes.data.summary?.total_count || userRes.data.media_count || 0,
                 username: userRes.data.username,
                 profile_info: {
