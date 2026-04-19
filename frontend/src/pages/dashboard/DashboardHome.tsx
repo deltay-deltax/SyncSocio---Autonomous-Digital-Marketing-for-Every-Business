@@ -12,12 +12,16 @@ const iconMap: Record<string, any> = {
   Activity: Activity,
 };
 
+let cachedSummaryData: any = null;
+
 const DashboardHome = () => {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(cachedSummaryData);
+  const [loading, setLoading] = useState(!cachedSummaryData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchSummary = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -25,24 +29,36 @@ const DashboardHome = () => {
         const res = await fetch(`${API_BASE}/dashboard/summary`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const summaryData = await res.json();
+          cachedSummaryData = summaryData;
           setData(summaryData);
           setError(null);
-        } else if (res.status === 401) {
+        } else if (res.status === 401 && isMounted) {
           localStorage.removeItem('token');
           window.location.href = '/login';
-        } else {
+        } else if (isMounted) {
           setError(`Server responded with ${res.status}`);
         }
       } catch (err) {
         console.error('Failed to fetch summary:', err);
-        setError('Connection failed');
+        if (!cachedSummaryData && isMounted) setError('Connection failed');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+
     fetchSummary();
+
+    // Background auto-polling every 60 seconds for live data
+    const intervalId = setInterval(() => {
+      fetchSummary();
+    }, 60000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   if (loading) {
@@ -158,15 +174,35 @@ const DashboardHome = () => {
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-6">
-              <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-transparent aspect-video flex items-center justify-center mb-3 overflow-hidden shadow-inner">
-                <span className="text-4xl text-primary opacity-20">🎬</span>
-              </div>
-              <p className="text-xs text-foreground line-clamp-2 mb-2 font-medium">"5 baking secrets nobody tells you — save this reel! 🍞"</p>
-              <div className="flex gap-3 text-[11px] text-muted-foreground">
-                <span className="px-2 py-0.5 rounded-full bg-muted font-medium">2.1K views</span>
-                <span className="px-2 py-0.5 rounded-full bg-muted font-medium">186 likes</span>
-                <span className="px-2 py-0.5 rounded-full bg-muted font-medium">8.2%</span>
-              </div>
+              {data.topPost ? (
+                <>
+                  <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-transparent aspect-video flex items-center justify-center mb-3 overflow-hidden shadow-inner relative">
+                    {data.topPost.image ? (
+                      <img src={data.topPost.image} alt="Top Post" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-4xl text-primary opacity-20">📸</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-foreground line-clamp-2 mb-2 font-medium">"{data.topPost.caption}"</p>
+                  <div className="flex gap-3 text-[11px] text-muted-foreground">
+                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.views} views</span>
+                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.likes} likes</span>
+                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.engagement}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-transparent aspect-video flex items-center justify-center mb-3 overflow-hidden shadow-inner">
+                    <span className="text-4xl text-primary opacity-20">🎬</span>
+                  </div>
+                  <p className="text-xs text-foreground line-clamp-2 mb-2 font-medium">"5 baking secrets nobody tells you — save this reel! 🍞"</p>
+                  <div className="flex gap-3 text-[11px] text-muted-foreground">
+                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">2.1K views</span>
+                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">186 likes</span>
+                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">8.2%</span>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
