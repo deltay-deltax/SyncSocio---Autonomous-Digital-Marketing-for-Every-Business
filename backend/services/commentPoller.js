@@ -1,0 +1,390 @@
+/**
+ * Comment Polling Service
+ * 
+ * Bypasses Meta's webhook delivery restriction for unpublished apps by
+ * polling the Instagram Graph API for new comments every 30 seconds.
+ * When a new comment is detected, it runs it through the same DM flow
+ * matching and private-reply pipeline used by the webhook handler.
+ */
+
+import axios from 'axios';
+import BrandProfile from '../models/BrandProfile.js';
+import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
+import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
+
+const FB_API_VERSION = 'v25.0';
+const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
+const POLL_INTERVAL_MS = 30_000; // 30 seconds
+const clickTrackingBaseUrl = (process.env.BACKEND_PUBLIC_URL || process.env.WEBHOOK_PUBLIC_URL || '').trim();
+
+const safeTrim = (v) => (typeof v === 'string' ? v.trim() : '');
+
+const getConnectedProfileUrl = (profile) => {
+  const username = safeTrim(profile?.instagramUsername);
+  return username ? `https://instagram.com/${username}` : 'https://instagram.com';
+};
+
+const buildTrackedButtonUrl = ({ flowId, buttonId, targetUrl }) => {
+  if (!safeTrim(clickTrackingBaseUrl) || !safeTrim(targetUrl)) {
+    return targetUrl;
+  }
+
+  const trackUrl = new URL('/api/dm-flows/track-click', clickTrackingBaseUrl.replace(/\/+$/, ''));
+  trackUrl.searchParams.set('flowId', String(flowId));
+  trackUrl.searchParams.set('buttonId', String(buttonId || ''));
+  trackUrl.searchParams.set('url', targetUrl);
+  return trackUrl.toString();
+};
+
+// Track which comments we have already processed so we never double-reply
+const processedCommentIds = new Set();
+let pollTimer = null;
+
+// ── Keyword matching (duplicated from webhookController to keep this self-contained) ──
+
+const escapeRegExp = (v = '') => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const keywordMatchScore = (incomingText, configuredKeyword) => {
+  const incoming = normalizeKeywordInput(incomingText);
+  const keyword = normalizeKeywordInput(configuredKeyword);
+  if (!incoming || !keyword) return 0;
+  if (incoming === keyword) return 3;
+  const boundary = new RegExp(`(^|\\W)${escapeRegExp(keyword)}(\\W|$)`, 'i');
+  if (boundary.test(incoming)) return 2;
+  if (incoming.includes(keyword)) return 1;
+  return 0;
+};
+
+const findBestFlowMatch = async ({ userId, incomingText, mediaId }) => {
+  const query = { active: true, trigger: 'comment' };
+  if (safeTrim(mediaId)) {
+    query.$or = [
+      { targetType: 'all' },
+      { targetType: 'specific', targetMediaId: safeTrim(mediaId) },
+    ];
+  } else {
+    query.targetType = 'all';
+  }
+
+  const candidates = await DMFlow.find(query).sort({ updatedAt: -1 }).limit(50);
+  let bestFlow = null;
+  let bestScore = 0;
+
+  for (const flow of candidates) {
+    const score = keywordMatchScore(incomingText, flow.keywordNormalized || flow.keyword);
+    if (score > bestScore) {
+      bestScore = score;
+      bestFlow = flow;
+      if (bestScore === 3) break;
+    }
+  }
+
+  return { flow: bestFlow, score: bestScore };
+};
+
+// ── Build DM text (same logic as webhook controller) ──
+
+const buildDmMessagePayload = (flow, profile) => {
+  if (!Array.isArray(flow.messages) || flow.messages.length === 0) return null;
+
+  const hookMessage = flow.messages[0];
+  const hookText = safeTrim(hookMessage?.text) || 'Thanks for reaching out!';
+  const buttons = hookMessage?.buttons || [];
+
+  if (buttons.length === 0) {
+    return { text: hookText.slice(0, 1000) };
+  }
+
+  // Map only our first button to the Instagram UI button (Meta limit is 3, but 1 is cleanest)
+  const formattedButtons = buttons.slice(0, 3).map((btn) => {
+    if (btn.type === 'url' || btn.type === 'visit_profile' || btn.type === 'follow') {
+      let url = safeTrim(btn.url);
+      if (btn.type === 'visit_profile' || btn.type === 'follow') {
+        url = getConnectedProfileUrl(profile);
+      }
+      if (btn.type === 'url') {
+        url = buildTrackedButtonUrl({ flowId: flow._id, buttonId: btn.id, targetUrl: url });
+      }
+      return {
+        type: 'web_url',
+        url: url || getConnectedProfileUrl(profile),
+        title: safeTrim(btn.label) || 'Open Link',
+      };
+    } else {
+      return {
+        type: 'postback',
+        title: safeTrim(btn.label) || 'Continue',
+        payload: `FLOW_${flow._id}_MSG_${hookMessage.id}_BTN_${btn.id}`,
+      };
+    }
+  });
+
+  return {
+    attachment: {
+      type: 'template',
+      payload: {
+        template_type: 'generic',
+        elements: [
+          {
+            title: hookText.slice(0, 80),
+            subtitle: hookText.length > 80 ? hookText.slice(80, 150) : undefined,
+            buttons: formattedButtons,
+          },
+        ],
+      },
+    },
+  };
+};
+
+const getPendingFollowUpMessageIndex = (flow) => {
+  if (!Array.isArray(flow?.messages)) return -1;
+
+  return flow.messages.findIndex((message, index) => index > 0 && message?.conditional === 'if_following');
+};
+
+const queueFollowUpMessage = async ({ profile, flow, commentId, recipientId }) => {
+  const followUpMessageIndex = getPendingFollowUpMessageIndex(flow);
+  if (followUpMessageIndex === -1 || !safeTrim(recipientId)) {
+    return null;
+  }
+
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  return DMFlowFollowUp.findOneAndUpdate(
+    {
+      user: profile.user,
+      flow: flow._id,
+      recipientId: safeTrim(recipientId),
+      status: 'pending',
+    },
+    {
+      $set: {
+        commentId: safeTrim(commentId),
+        followUpMessageIndex,
+        initialReplyAt: new Date(),
+        respondedAt: null,
+        completedAt: null,
+        expiresAt,
+        status: 'pending',
+      },
+    },
+    {
+      upsert: true,
+      new: true,
+    }
+  );
+};
+
+// ── Send Private Reply via Messaging API ──
+
+const sendPrivateReply = async ({ pageToken, commentId, messagePayload, pageId }) => {
+  const response = await axios.post(
+    `${FB_API_BASE}/${pageId}/messages`,
+    { recipient: { comment_id: commentId }, message: messagePayload },
+    {
+      params: { access_token: pageToken },
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 20_000,
+    }
+  );
+  return response.data;
+};
+
+// ── Resolve Page Access Token ──
+
+const resolvePageToken = async (profile) => {
+  if (profile.instagramPageAccessToken) return profile.instagramPageAccessToken;
+
+  console.log('[POLLER] Page token missing, fetching on the fly...');
+  const res = await axios.get(`${FB_API_BASE}/me/accounts`, {
+    params: { fields: 'id,access_token', access_token: profile.instagramAccessToken },
+  });
+  const page = res.data.data.find((p) => String(p.id) === String(profile.instagramPageId));
+  return page?.access_token || null;
+};
+
+// ── Core polling logic ──
+
+const pollProfileComments = async (profile) => {
+  const igId = profile.instagramBusinessAccountId;
+  const token = profile.instagramAccessToken;
+
+  if (!igId || !token) return;
+
+  try {
+    // 1. Fetch recent media (last 5 posts)
+    const mediaRes = await axios.get(`${FB_API_BASE}/${igId}/media`, {
+      params: { fields: 'id', limit: 5, access_token: token },
+    });
+
+    const mediaItems = mediaRes.data?.data || [];
+    if (mediaItems.length === 0) return;
+
+    for (const media of mediaItems) {
+      // 2. Fetch comments on each media
+      const commentsRes = await axios.get(`${FB_API_BASE}/${media.id}/comments`, {
+        params: { fields: 'id,text,username,timestamp', access_token: token },
+      });
+
+      const comments = commentsRes.data?.data || [];
+
+      for (const comment of comments) {
+        // Skip already-processed comments
+        if (processedCommentIds.has(comment.id)) continue;
+
+        // Mark as processed IMMEDIATELY to prevent double-processing
+        processedCommentIds.add(comment.id);
+
+        // Skip old comments (older than 2 minutes) on first run to avoid replying to ancient comments
+        const commentAge = Date.now() - new Date(comment.timestamp).getTime();
+        if (commentAge > 2 * 60 * 1000 && processedCommentIds.size <= comments.length) {
+          continue;
+        }
+
+        console.log(`[POLLER] New comment detected! ID: ${comment.id} | Text: "${comment.text}" | By: ${comment.username}`);
+
+        // 3. Match against DM flows
+        const matchResult = await findBestFlowMatch({
+          userId: profile.user,
+          incomingText: comment.text,
+          mediaId: media.id,
+        });
+
+        if (!matchResult.flow) {
+          console.log(`[POLLER] No flow matched for "${comment.text}"`);
+          continue;
+        }
+
+        console.log(`[POLLER] Matched flow: ${matchResult.flow.name} (score=${matchResult.score})`);
+
+        // 4. Build message
+        const messagePayload = buildDmMessagePayload(matchResult.flow, profile);
+        if (!messagePayload) {
+          console.log('[POLLER] Empty message from flow, skipping');
+          continue;
+        }
+
+        // 5. Increment triggered stat
+        await DMFlow.updateOne({ _id: matchResult.flow._id }, { $inc: { 'stats.triggered': 1 } });
+
+        // 6. Send the DM
+        try {
+          const pageToken = await resolvePageToken(profile);
+          if (!pageToken) {
+            console.error('[POLLER] Could not resolve page token, skipping DM');
+            continue;
+          }
+
+          const result = await sendPrivateReply({
+            pageToken,
+            commentId: comment.id,
+            messagePayload: messagePayload,
+            pageId: profile.instagramPageId,
+          });
+
+          await queueFollowUpMessage({
+            profile,
+            flow: matchResult.flow,
+            commentId: comment.id,
+            recipientId: result?.recipient_id,
+          });
+
+          await DMFlow.updateOne({ _id: matchResult.flow._id }, { $inc: { 'stats.replied': 1 } });
+
+          console.log(`[POLLER] ✅ DM SENT SUCCESSFULLY to ${comment.username}!`, {
+            commentId: comment.id,
+            flowName: matchResult.flow.name,
+            recipientId: result.recipient_id,
+          });
+        } catch (dmError) {
+          const metaErr = dmError?.response?.data?.error || dmError.message;
+          console.error(`[POLLER] ❌ DM send failed for comment ${comment.id}:`, metaErr);
+        }
+      }
+    }
+  } catch (error) {
+    const metaErr = error?.response?.data?.error || error.message;
+    // Don't spam logs for token issues - just log once
+    if (metaErr?.code === 190) {
+      console.error('[POLLER] Access token expired or invalid. Polling paused until reconnection.');
+      stopPolling();
+      return;
+    }
+    console.error('[POLLER] Error during polling cycle:', metaErr);
+  }
+};
+
+const runPollCycle = async () => {
+  try {
+    // Find all profiles with Instagram connected
+    const profiles = await BrandProfile.find({
+      instagramIsConnected: true,
+      instagramAccessToken: { $exists: true, $ne: '' },
+      instagramBusinessAccountId: { $exists: true, $ne: '' },
+    }).lean();
+
+    if (profiles.length === 0) return;
+
+    for (const profile of profiles) {
+      await pollProfileComments(profile);
+    }
+  } catch (err) {
+    console.error('[POLLER] Unexpected error in poll cycle:', err.message);
+  }
+};
+
+// ── Public API ──
+
+export const startPolling = () => {
+  if (pollTimer) return; // Already running
+
+  console.log(`[POLLER] 🚀 Comment polling started (every ${POLL_INTERVAL_MS / 1000}s)`);
+
+  // Run the first cycle after a short delay to let the server finish starting
+  setTimeout(async () => {
+    // Seed the processedCommentIds with existing comments so we don't reply to old ones
+    console.log('[POLLER] Seeding existing comments to avoid replying to old ones...');
+    try {
+      const profiles = await BrandProfile.find({
+        instagramIsConnected: true,
+        instagramAccessToken: { $exists: true, $ne: '' },
+        instagramBusinessAccountId: { $exists: true, $ne: '' },
+      }).lean();
+
+      for (const profile of profiles) {
+        const igId = profile.instagramBusinessAccountId;
+        const token = profile.instagramAccessToken;
+        try {
+          const mediaRes = await axios.get(`${FB_API_BASE}/${igId}/media`, {
+            params: { fields: 'id', limit: 5, access_token: token },
+          });
+          for (const media of (mediaRes.data?.data || [])) {
+            const commentsRes = await axios.get(`${FB_API_BASE}/${media.id}/comments`, {
+              params: { fields: 'id', access_token: token },
+            });
+            for (const c of (commentsRes.data?.data || [])) {
+              processedCommentIds.add(c.id);
+            }
+          }
+        } catch (e) {
+          // Ignore seeding errors
+        }
+      }
+      console.log(`[POLLER] Seeded ${processedCommentIds.size} existing comment IDs`);
+    } catch (e) {
+      // Continue anyway
+    }
+
+    // Now start the regular polling interval
+    pollTimer = setInterval(runPollCycle, POLL_INTERVAL_MS);
+    console.log('[POLLER] ✅ Now actively watching for new comments...');
+  }, 5000);
+};
+
+export const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+    console.log('[POLLER] Polling stopped');
+  }
+};

@@ -24,7 +24,7 @@ export const createOrUpdateProfile = async (req, res) => {
       profile = await BrandProfile.findOneAndUpdate(
         { user: req.user._id },
         profileData,
-        { new: true, runValidators: true }
+        { returnDocument: 'after', runValidators: true }
       );
     } else {
       profile = await BrandProfile.create(profileData);

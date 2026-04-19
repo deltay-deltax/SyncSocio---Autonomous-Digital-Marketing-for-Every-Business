@@ -43,8 +43,88 @@ interface Flow {
   stats: { triggered: number; replied: number; clicked: number; conversions: number };
 }
 
-// ─── DEFAULTS ───
+interface ApiFlow {
+  _id: string;
+  name: string;
+  trigger: Flow['trigger'];
+  targetType: Flow['targetType'];
+  targetMediaId?: string;
+  keyword: string;
+  messages: FlowMessage[];
+  active: boolean;
+  createdAt: string;
+  stats?: Partial<Flow['stats']>;
+}
+
+// ─── HELPERS ───
 const uid = () => Math.random().toString(36).slice(2, 9);
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+
+const getAuthHeaders = (includeJson = false): HeadersInit => {
+  const token = localStorage.getItem('token');
+  return {
+    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
+    Authorization: `Bearer ${token}`,
+  };
+};
+
+const formatRelativeTime = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Just now';
+
+  const diffMs = Date.now() - date.getTime();
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diffMs < minute) return 'Just now';
+  if (diffMs < hour) return `${Math.floor(diffMs / minute)} min ago`;
+  if (diffMs < day) return `${Math.floor(diffMs / hour)} hr ago`;
+  if (diffMs < 7 * day) return `${Math.floor(diffMs / day)} days ago`;
+
+  return date.toLocaleDateString();
+};
+
+const toUIFlow = (flow: ApiFlow): Flow => {
+  const safeMessages = Array.isArray(flow.messages)
+    ? flow.messages
+        .filter((message) => typeof message?.text === 'string' && message.text.trim().length > 0)
+        .map((message) => ({
+          id: message.id || uid(),
+          text: message.text,
+          buttons: Array.isArray(message.buttons)
+            ? message.buttons.map((button) => ({
+                id: button.id || uid(),
+                label: button.label || '',
+                type: button.type,
+                url: button.url,
+              }))
+            : [],
+          conditional:
+            message.conditional === 'if_following' || message.conditional === 'if_not_following'
+              ? message.conditional
+              : null,
+        }))
+    : [];
+
+  return {
+    id: flow._id,
+    name: flow.name,
+    trigger: flow.trigger,
+    targetType: flow.targetType,
+    targetMediaId: flow.targetMediaId || undefined,
+    keyword: flow.keyword,
+    messages: safeMessages,
+    active: flow.active,
+    createdAt: formatRelativeTime(flow.createdAt),
+    stats: {
+      triggered: flow.stats?.triggered ?? 0,
+      replied: flow.stats?.replied ?? 0,
+      clicked: flow.stats?.clicked ?? 0,
+      conversions: flow.stats?.conversions ?? 0,
+    },
+  };
+};
 
 const buttonTypeMeta: Record<ButtonType, { label: string; icon: any; color: string; desc: string }> = {
   url: { label: 'Open Link', icon: Link2, color: 'text-blue-500', desc: 'Opens a URL in browser' },
@@ -53,47 +133,6 @@ const buttonTypeMeta: Record<ButtonType, { label: string; icon: any; color: stri
   visit_profile: { label: 'Visit Profile', icon: ExternalLink, color: 'text-amber-500', desc: 'Opens your IG profile' },
 };
 
-const defaultFlows: Flow[] = [
-  {
-    id: '1', name: 'Link Drop Flow', trigger: 'comment', targetType: 'all', keyword: 'Link',
-    messages: [
-      {
-        id: 'm1',
-        text: "Hey! 👋 Thanks for reaching out — tap below and I'll send the link your way.",
-        buttons: [{ id: 'b1', label: 'Send Me', type: 'next' }],
-      },
-      {
-        id: 'm2',
-        text: "Looks like you're not following yet 😅 Hit follow & visit my profile to unlock it!",
-        buttons: [
-          { id: 'b2', label: 'Follow', type: 'follow' },
-          { id: 'b3', label: 'Visit Profile', type: 'visit_profile', url: 'https://instagram.com/yourbrand' },
-        ],
-        conditional: 'if_not_following',
-      },
-      {
-        id: 'm3',
-        text: "🔥 Here's your link! Hope you love it.",
-        buttons: [{ id: 'b4', label: 'Open Link', type: 'url', url: 'https://example.com/link' }],
-      },
-    ],
-    active: true, createdAt: '2 days ago',
-    stats: { triggered: 124, replied: 118, clicked: 87, conversions: 34 },
-  },
-  {
-    id: '2', name: 'Pricing Inquiry', trigger: 'comment', targetType: 'all', keyword: 'price',
-    messages: [
-      {
-        id: 'm1',
-        text: "Thanks for your interest! 💰 Tap below to view our latest pricing.",
-        buttons: [{ id: 'b1', label: 'See Pricing', type: 'url', url: 'https://example.com/pricing' }],
-      },
-    ],
-    active: true, createdAt: '5 days ago',
-    stats: { triggered: 89, replied: 82, clicked: 56, conversions: 21 },
-  },
-];
-
 const triggerLabels = {
   comment: { label: 'Comment Trigger', icon: MessageSquare, color: 'text-primary' },
   story_reply: { label: 'Story Reply', icon: Send, color: 'text-amber-500' },
@@ -101,7 +140,7 @@ const triggerLabels = {
 };
 
 const DashboardDMs = () => {
-  const [flows, setFlows] = useState<Flow[]>(defaultFlows);
+  const [flows, setFlows] = useState<Flow[]>([]);
   const [view, setView] = useState<'list' | 'create'>('list');
   const [wizardStep, setWizardStep] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,16 +148,18 @@ const DashboardDMs = () => {
   const [previewFlow, setPreviewFlow] = useState<Flow | null>(null);
   const [media, setMedia] = useState<any[]>([]);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
+  const [isLoadingFlows, setIsLoadingFlows] = useState(false);
+  const [isSavingFlow, setIsSavingFlow] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
 
-  // Fetch real media on mount
+  // Fetch media + flow data on mount
   React.useEffect(() => {
     const fetchMedia = async () => {
       setIsLoadingMedia(true);
       try {
-        const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const res = await fetch(`${BASE_URL}/instagram/feed`, {
+        const res = await fetch(`${API_BASE}/instagram/feed`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           }
         });
         const data = await res.json();
@@ -129,7 +170,32 @@ const DashboardDMs = () => {
         setIsLoadingMedia(false);
       }
     };
+
+    const fetchFlows = async () => {
+      setIsLoadingFlows(true);
+      setFlowError(null);
+      try {
+        const res = await fetch(`${API_BASE}/dm-flows`, {
+          headers: getAuthHeaders(),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.message || 'Failed to fetch flows');
+        }
+
+        const mapped = Array.isArray(data?.data) ? data.data.map((item: ApiFlow) => toUIFlow(item)) : [];
+        setFlows(mapped);
+      } catch (err) {
+        console.error('Failed to fetch flows:', err);
+        setFlowError('Unable to load your DM flows right now.');
+      } finally {
+        setIsLoadingFlows(false);
+      }
+    };
+
     fetchMedia();
+    fetchFlows();
   }, []);
 
   const [newFlow, setNewFlow] = useState<{
@@ -188,24 +254,103 @@ const DashboardDMs = () => {
     updateMessage(mid, { buttons: msg.buttons.filter(b => b.id !== bid) });
   };
 
-  const handleCreateFlow = () => {
-    const flow: Flow = {
-      id: Date.now().toString(),
-      name: newFlow.name || `${newFlow.keyword} Flow`,
-      trigger: newFlow.trigger,
-      targetType: newFlow.targetType,
-      targetMediaId: newFlow.targetMediaId,
-      keyword: newFlow.keyword,
-      messages: newFlow.messages.filter(m => m.text.trim().length > 0),
-      active: true, createdAt: 'Just now',
-      stats: { triggered: 0, replied: 0, clicked: 0, conversions: 0 },
-    };
-    setFlows([flow, ...flows]);
-    resetWizard();
+  const handleCreateFlow = async () => {
+    const preparedMessages = newFlow.messages
+      .filter((message) => message.text.trim().length > 0)
+      .map((message) => ({
+        ...message,
+        text: message.text.trim(),
+        buttons: message.buttons.map((button) => ({
+          ...button,
+          label: button.label.trim(),
+          url: button.url?.trim(),
+        })),
+      }));
+
+    if (preparedMessages.length === 0) {
+      setFlowError('Please add at least one message before activating the flow.');
+      return;
+    }
+
+    setIsSavingFlow(true);
+    setFlowError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/dm-flows`, {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+          name: newFlow.name,
+          trigger: newFlow.trigger,
+          targetType: newFlow.targetType,
+          targetMediaId: newFlow.targetType === 'specific' ? newFlow.targetMediaId : undefined,
+          keyword: newFlow.keyword,
+          messages: preparedMessages,
+          active: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.errors?.[0] || data?.message || 'Failed to create flow');
+      }
+
+      setFlows((prev) => [toUIFlow(data as ApiFlow), ...prev]);
+      resetWizard();
+    } catch (err) {
+      console.error('Failed to create flow:', err);
+      setFlowError(err instanceof Error ? err.message : 'Failed to create flow.');
+    } finally {
+      setIsSavingFlow(false);
+    }
   };
 
-  const toggleFlow = (id: string) => setFlows(flows.map(f => f.id === id ? { ...f, active: !f.active } : f));
-  const deleteFlow = (id: string) => setFlows(flows.filter(f => f.id !== id));
+  const toggleFlow = async (id: string) => {
+    const flow = flows.find((item) => item.id === id);
+    if (!flow) return;
+
+    setFlowError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/dm-flows/${id}/active`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({ active: !flow.active }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || 'Failed to update flow status');
+      }
+
+      const updated = toUIFlow(data as ApiFlow);
+      setFlows((prev) => prev.map((item) => (item.id === id ? updated : item)));
+    } catch (err) {
+      console.error('Failed to toggle flow:', err);
+      setFlowError(err instanceof Error ? err.message : 'Failed to update flow status.');
+    }
+  };
+
+  const deleteFlow = async (id: string) => {
+    setFlowError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/dm-flows/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.message || 'Failed to delete flow');
+      }
+
+      setFlows((prev) => prev.filter((item) => item.id !== id));
+    } catch (err) {
+      console.error('Failed to delete flow:', err);
+      setFlowError(err instanceof Error ? err.message : 'Failed to delete flow.');
+    }
+  };
 
   const filtered = flows.filter(f => {
     const matchSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase()) || f.keyword.toLowerCase().includes(searchQuery.toLowerCase());
@@ -425,8 +570,8 @@ const DashboardDMs = () => {
                   </div>
                 )}
 
-                {/* Step 2: Messages Builder */}
-                {wizardStep === 2 && (
+                {/* Step 3: Messages Builder */}
+                {wizardStep === 3 && (
                   <div className="space-y-4">
                     <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 flex items-start gap-2.5">
                       <Sparkles size={14} className="text-primary mt-0.5 shrink-0" />
@@ -605,10 +750,10 @@ const DashboardDMs = () => {
               ) : (
                 <Button
                   onClick={handleCreateFlow}
-                  disabled={!canProceed()}
+                  disabled={!canProceed() || isSavingFlow}
                   className="rounded-xl gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/20"
                 >
-                  <Zap size={16} /> Activate Flow
+                  <Zap size={16} /> {isSavingFlow ? 'Saving...' : 'Activate Flow'}
                 </Button>
               )}
             </div>
@@ -637,11 +782,15 @@ const DashboardDMs = () => {
                   {newFlow.messages.map((msg, mi) => {
                     const hasTextOrButtons = msg.text || msg.buttons.length > 0;
                     if (!hasTextOrButtons) return null;
+                    const previousButtonLabel = mi > 0
+                      ? newFlow.messages[mi - 1].buttons.find(b => b.type === 'next')?.label || 'Clicked Button'
+                      : '';
+                    const shouldShowTransitionBubble = mi > 0 && msg.conditional !== 'if_following';
 
                     return (
                       <React.Fragment key={msg.id}>
                         {/* User reply from previous message's button */}
-                        {mi > 0 && (
+                        {shouldShowTransitionBubble && (
                           <motion.div
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -649,7 +798,7 @@ const DashboardDMs = () => {
                           >
                             <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-3.5 py-2 max-w-[85%] shadow-sm">
                               <p className="text-[12px] font-medium leading-tight">
-                                {newFlow.messages[mi - 1].buttons.find(b => b.type === 'next')?.label || "Clicked Button"}
+                                {previousButtonLabel}
                               </p>
                             </div>
                           </motion.div>
@@ -763,6 +912,12 @@ const DashboardDMs = () => {
         </Button>
       </div>
 
+      {flowError && (
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          {flowError}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
@@ -799,65 +954,72 @@ const DashboardDMs = () => {
 
       {/* Flows */}
       <div className="space-y-3">
-        <AnimatePresence mode="popLayout">
-          {filtered.length === 0 ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 bg-card/40 rounded-2xl border border-border/30">
-              <MessageCircle size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-              <p className="text-sm text-muted-foreground">No flows found. Create your first automation! 🤖</p>
-            </motion.div>
-          ) : filtered.map((flow, i) => (
-            <motion.div key={flow.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ delay: i * 0.03 }}
-              className="group bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl p-4 sm:p-5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', flow.active ? 'bg-primary/10' : 'bg-muted')}>
-                      {React.createElement(triggerLabels[flow.trigger].icon, { size: 18, className: flow.active ? triggerLabels[flow.trigger].color : 'text-muted-foreground' })}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground">{flow.name}</h3>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className={cn(
-                          "text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                          flow.targetType === 'specific' ? "bg-amber-100 text-amber-600" : "bg-muted text-muted-foreground"
-                        )}>
-                          {flow.targetType === 'specific' ? 'Single Post' : 'All Posts'}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">•</span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{triggerLabels[flow.trigger].label}</span>
-                        <span className="text-[10px] text-muted-foreground">•</span>
-                        <span className="text-[10px] font-mono text-muted-foreground">"{flow.keyword}"</span>
-                        <span className="text-[10px] text-muted-foreground">•</span>
-                        <span className="text-[10px] text-muted-foreground">{flow.messages.length} msg{flow.messages.length > 1 ? 's' : ''}</span>
-                        <span className="text-[10px] text-muted-foreground">• {flow.createdAt}</span>
+        {isLoadingFlows ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 bg-card/40 rounded-2xl border border-border/30">
+            <MessageCircle size={36} className="mx-auto text-muted-foreground/30 mb-3 animate-pulse" />
+            <p className="text-sm text-muted-foreground">Loading your automation flows...</p>
+          </motion.div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {filtered.length === 0 ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 bg-card/40 rounded-2xl border border-border/30">
+                <MessageCircle size={40} className="mx-auto text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">No flows found. Create your first automation! 🤖</p>
+              </motion.div>
+            ) : filtered.map((flow, i) => (
+              <motion.div key={flow.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ delay: i * 0.03 }}
+                className="group bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl p-4 sm:p-5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', flow.active ? 'bg-primary/10' : 'bg-muted')}>
+                        {React.createElement(triggerLabels[flow.trigger].icon, { size: 18, className: flow.active ? triggerLabels[flow.trigger].color : 'text-muted-foreground' })}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground">{flow.name}</h3>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className={cn(
+                            "text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                            flow.targetType === 'specific' ? "bg-amber-100 text-amber-600" : "bg-muted text-muted-foreground"
+                          )}>
+                            {flow.targetType === 'specific' ? 'Single Post' : 'All Posts'}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">•</span>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{triggerLabels[flow.trigger].label}</span>
+                          <span className="text-[10px] text-muted-foreground">•</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">"{flow.keyword}"</span>
+                          <span className="text-[10px] text-muted-foreground">•</span>
+                          <span className="text-[10px] text-muted-foreground">{flow.messages.length} msg{flow.messages.length > 1 ? 's' : ''}</span>
+                          <span className="text-[10px] text-muted-foreground">• {flow.createdAt}</span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-4 ml-[52px]">
+                      {[
+                        { label: 'Triggered', value: flow.stats.triggered },
+                        { label: 'Replied', value: flow.stats.replied },
+                        { label: 'Clicks', value: flow.stats.clicked },
+                        { label: 'Conversions', value: flow.stats.conversions },
+                      ].map(s => (
+                        <div key={s.label} className="text-center">
+                          <p className="text-sm font-bold text-foreground">{s.value}</p>
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 ml-[52px]">
-                    {[
-                      { label: 'Triggered', value: flow.stats.triggered },
-                      { label: 'Replied', value: flow.stats.replied },
-                      { label: 'Clicks', value: flow.stats.clicked },
-                      { label: 'Conversions', value: flow.stats.conversions },
-                    ].map(s => (
-                      <div key={s.label} className="text-center">
-                        <p className="text-sm font-bold text-foreground">{s.value}</p>
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-2 sm:ml-auto shrink-0">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setPreviewFlow(flow)}><Eye size={16} className="text-muted-foreground" /></Button>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => toggleFlow(flow.id)}>
+                      {flow.active ? <ToggleRight size={18} className="text-emerald-500" /> : <ToggleLeft size={18} className="text-muted-foreground" />}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => deleteFlow(flow.id)}><Trash2 size={15} className="text-muted-foreground hover:text-destructive" /></Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 sm:ml-auto shrink-0">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setPreviewFlow(flow)}><Eye size={16} className="text-muted-foreground" /></Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => toggleFlow(flow.id)}>
-                    {flow.active ? <ToggleRight size={18} className="text-emerald-500" /> : <ToggleLeft size={18} className="text-muted-foreground" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => deleteFlow(flow.id)}><Trash2 size={15} className="text-muted-foreground hover:text-destructive" /></Button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
       </div>
 
       {/* Preview Modal */}
@@ -886,11 +1048,11 @@ const DashboardDMs = () => {
 
                 {previewFlow.messages.map((msg, mi) => (
                   <React.Fragment key={msg.id}>
-                    {mi > 0 && (
+                    {mi > 0 && msg.conditional !== 'if_following' && (
                       <div className="flex justify-end">
                         <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[85%] shadow-sm">
                           <p className="text-xs font-medium">
-                            {previewFlow.messages[mi-1].buttons.find(b => b.type === 'next')?.label || "Clicked Button"}
+                            {previewFlow.messages[mi - 1].buttons.find(b => b.type === 'next')?.label || 'Clicked Button'}
                           </p>
                         </div>
                       </div>

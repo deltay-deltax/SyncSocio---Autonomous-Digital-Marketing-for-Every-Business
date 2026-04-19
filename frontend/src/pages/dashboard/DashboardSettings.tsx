@@ -195,7 +195,8 @@ const DashboardSettings = () => {
                       onClick={async () => {
                         try {
                           const token = localStorage.getItem('token');
-                          const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/instagram`, {
+                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                          const res = await fetch(`${apiBase}/auth/instagram/auth`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                           });
                           const { url } = await res.json();
