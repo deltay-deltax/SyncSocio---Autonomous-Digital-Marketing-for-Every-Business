@@ -1,110 +1,84 @@
-import os, time
-import requests
-import json
-import base64
+import os, requests, json, base64
 from typing import List, Dict, Any
+from google import genai
+from google.genai import types
 
-def generate_nvidia_image(prompt: str, image: str = None, width: int = 1024, height: int = 1024):
+def generate_google_image(prompt: str, image: str = None, aspect_ratio: str = "3:4"):
     """
-    Generates a single image using NVIDIA's FLUX.1-dev model.
-    Supports image-to-image/reference if 'image' is provided as a base64 string.
+    Generates a high-fidelity image using Nano Banana 2 (Gemini 3.1 Flash Image).
+    Utilizes the multimodal ImageConfig protocol for perfect product anchoring.
     """
-    invoke_url = "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-dev"
-    api_key = os.getenv("NVIDIA_API_KEY")
-    
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("NVIDIA_API_KEY not found in environment")
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/json",
-    }
-
-    # NVIDIA NIM for FLUX has a strict 800 character limit for prompts
-    safe_prompt = prompt[:795] if len(prompt) > 800 else prompt
-
-    payload = {
-        "prompt": safe_prompt,
-        "mode": "base",
-        "cfg_scale": 3.5,
-        "width": width,
-        "height": height,
-        "seed": 0,
-        "steps": 50 
-    }
+        raise ValueError("GOOGLE_API_KEY not found in environment")
 
     try:
-        if image:
-            # Attempt I2I with the most standard NIM format for managed services
-            raw_b64 = image
-            if "," in image:
-                raw_b64 = image.split(",")[1]
-            
-            payload = {
-                "prompt": safe_prompt,
-                "mode": "base",
-                "cfg_scale": 3.5,
-                "width": width,
-                "height": height,
-                "seed": 0,
-                "steps": 50,
-                "image": [f"data:image/png;base64,{raw_b64}"]
-            }
-            print(f"NVIDIA Engine: Trying I2I-JSON for prompt: {prompt[:50]}...")
-            response = requests.post(invoke_url, headers=headers, json=payload)
-            
-            if response.status_code == 200:
-                return response.json()
-            else:
-                print(f"NVIDIA I2I Failed ({response.status_code}): {response.text}. Falling back to T2I...")
-        
-        # Fallback / Default T2I with Retries
-        # payload is already set above for T2I
-        
-        for attempt in range(3):
-            try:
-                print(f"NVIDIA Engine: Generating T2I-JSON (Attempt {attempt+1}) for prompt length: {len(safe_prompt)}")
-                response = requests.post(invoke_url, headers=headers, json=payload, timeout=50) # Increased timeout for more steps
-                response.raise_for_status()
-                
-                res_data = response.json()
-                print(f"NVIDIA Response Keys: {list(res_data.keys())}")
-                
-                # Normalize response for frontend
-                if "artifacts" in res_data and len(res_data["artifacts"]) > 0:
-                    res_data["image"] = res_data["artifacts"][0].get("base64")
-                
-                return res_data
-            except Exception as e:
-                print(f"NVIDIA Attempt {attempt+1} failed: {str(e)}")
-                if attempt < 2:
-                    time.sleep(2 * (attempt + 1)) # Exponential backoff
-                else:
-                    raise e
-        
-    except Exception as e:
-        print(f"NVIDIA Critical Error: {str(e)}")
-        raise e
-    
-    if response.status_code != 200:
-        print(f"NVIDIA Error: {response.text}")
-        response.raise_for_status()
-        
-    return response.json()
+        # Step 1: Initialize SDK Client
+        client = genai.Client(api_key=api_key)
+        model_id = "gemini-3.1-flash-image-preview"
 
-def generate_carousel_images(base_prompt: str, image: str = None, count: int = 3, slide_prompts: List[str] = None):
+        # Step 2: Base64 Cleaning (Strip Data URL prefix)
+        image_data = image
+        if image_data and "base64," in image_data:
+            image_data = image_data.split("base64,")[1]
+
+        # Step 3: Build Contents (Images first, then Text for better anchoring)
+        contents = []
+        if image_data:
+            print("GOOGLE ENGINE: Anchoring generation to product reference binary...")
+            contents.append(types.Part.from_bytes(
+                data=base64.b64decode(image_data),
+                mime_type="image/jpeg"
+            ))
+        contents.append(types.Part.from_text(text=prompt))
+
+        # Step 4: THE SDK CONFIG (As confirmed by official beta specs)
+        # We use response_modalities to explicitly tell the model to return an IMAGE.
+        print(f"GOOGLE ENGINE (Nano Banana 2): Generating Image via {model_id}...")
+        
+        response = client.models.generate_content(
+            model=model_id,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                response_modalities=["IMAGE"],
+                image_config=types.ImageConfig(
+                    aspect_ratio=aspect_ratio,
+                    image_size="2K"
+                )
+            )
+        )
+
+        # Step 5: Extract and Base64 Encode the Pixel Data
+        # The SDK returns raw binary (bytes), which FastAPI cannot serialize as JSON.
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if part.inline_data:
+                    raw_bytes = part.inline_data.data
+                    # Convert raw bytes to a standard Base64 string for the web frontend
+                    b64_image = base64.b64encode(raw_bytes).decode('utf-8')
+                    return {"image": b64_image, "status": "success"}
+        
+        raise Exception("No pixel data found in model response parts.")
+
+    except Exception as e:
+        print(f"GOOGLE CRITICAL ENGINE ERROR: {str(e)}")
+        raise e
+
+def generate_carousel_images(base_prompt: str, image: str = None, count: int = 2, slide_prompts: List[str] = None):
     """
-    Generates multiple images for a carousel.
-    If slide_prompts is provided, it uses each prompt specifically.
+    Generates multiple images for a carousel using the Nano Banana Engine.
     """
     results = []
-    for i in range(count):
+    actual_count = min(count, 2)
+    
+    for i in range(actual_count):
         if slide_prompts and i < len(slide_prompts):
             slide_prompt = slide_prompts[i]
         else:
-            slide_prompt = f"{base_prompt}, slide {i+1} of a visual sequence, consistent style"
+            slide_prompt = f"{base_prompt}, slide {i+1} of 2, consistent minimal product photography style"
             
-        img_data = generate_nvidia_image(slide_prompt, image=image)
+        print(f"CAROUSEL: Generating Slide {i+1}/{actual_count} using Nano Banana 2...")
+        img_data = generate_google_image(slide_prompt, image=image)
         results.append(img_data)
         
     return results
@@ -116,6 +90,6 @@ def mock_video_gen(prompt: str):
     return {
         "status": "mock_success",
         "message": "Video generation is currently in preview. Mocking output.",
-        "url": "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-showing-off-a-blue-dress-4433-large.mp4", # A sample stock fashion video
+        "url": "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-showing-off-a-blue-dress-4433-large.mp4",
         "thumbnail": "https://images.unsplash.com/photo-1539109132314-34a9366817f4?auto=format&fit=crop&w=800&q=80"
     }

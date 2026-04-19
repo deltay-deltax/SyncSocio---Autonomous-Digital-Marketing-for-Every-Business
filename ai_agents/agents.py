@@ -29,66 +29,30 @@ class GraphState(TypedDict):
 
 def analyze_brand_mix(brand_info: Dict[str, Any]):
     """
-    Agent that decides the content mix (how many reels/photos/carousels) based on brand profile.
+    Agent that decides the content mix. 
+    ENFORCED CREDIT SAVING MODE: 1 Static, 1 Carousel, 5 Reels.
     """
-    prompt = f"""
-    You are the Velocity AI Content Strategist. Your task is to define the optimal 7-day content mix for a brand.
-    
-    BRAND DATA:
-    - Name: {brand_info.get('brandName')}
-    - Category: {brand_info.get('businessCategory')}
-    - Tone: {brand_info.get('brandTone')}
-    - Target: {brand_info.get('targetAudience')}
-    - Goal: {brand_info.get('mainGoal')}
-    
-    TASK: 
-    1. Decide how many Reels, Static Images, and Carousels should be in a 7-day launch period.
-    2. Total items MUST be exactly 7.
-    3. Provide a strategic reasoning string (max 2 sentences) starting with "Based on your profile..."
-    
-    Output Format: RETURN ONLY VALID JSON.
-    {{
-      "reels": 3,
-      "static": 2,
-      "carousel": 2,
-      "carouselSlides": 3, 
-      "reasoning": "Based on your luxury tone and preference for high engagement, we recommend a Reel-heavy approach to drive discovery."
-    }}
-    """
-    
-    try:
-        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
-        response = llm.invoke([
-            SystemMessage(content="You are a JSON-only strategist."),
-            HumanMessage(content=prompt)
-        ])
-        content = response.content
-        if isinstance(content, list):
-            content = "".join([part.get('text', '') if isinstance(part, dict) else str(part) for part in content])
-        
-        json_match = re.search(r'\{.*\}', content, re.DOTALL)
-        if json_match:
-            result = json.loads(json_match.group())
-        else:
-            result = json.loads(content)
-        return result
-    except Exception as e:
-        print(f"DEBUG: Mix Agent Error Detail: {e}")
-        return {"reels": 3, "static": 2, "carousel": 2, "reasoning": "Using our high-performance default strategy mix."}
+    return {
+      "reels": 5,
+      "static": 1,
+      "carousel": 1,
+      "carouselSlides": 2, 
+      "reasoning": "Credit-saving calibrated mix: 1 Static, 1 Carousel (2 Slides), 5 Reels."
+    }
 
 # Node 1: Strategy Planner (The Strategist)
 def planner_node(state: GraphState):
     brand = state['brand_info']
     brief = state['product_brief']
     
-    mix = state.get('suggested_mix', {"reels": 3, "static": 2, "carousel": 2})
+    mix = state.get('suggested_mix', {"reels": 5, "static": 1, "carousel": 1})
     
     prompt = f"""
     You are the Lead Strategist for Velocity AI. Your goal is to create a high-impact 7-day content strategy for:
     
     BRAND: {brand.get('brandName')} ({brand.get('businessCategory', '')})
     PRODUCT: {brief.get('name')}
-    BRIEF: {str(brief.get('description', ''))[:60]}
+    BRIEF: {str(brief.get('description', ''))[:200]}
     INDUSTRY PILL: {brief.get('category')}
     TONE: {brand.get('brandTone', 'Luxury/Premium')}
     BRAND COLORS: Primary: {brand.get('primaryColor', '#2563EB')}, Secondary: {brand.get('secondaryColor', '#60A5FA')}
@@ -107,7 +71,7 @@ def planner_node(state: GraphState):
     2. format: (Reel / Static Image / Carousel)
     3. content_hook: A high-engagement hook for the post
     4. why: Brief strategic reason for this post
-    5. carousel_slides: (Only if format is Carousel) Number of slides to generate (between 3-5).
+    5. carousel_slides: (Only if format is Carousel) ALWAYS set to 2 to preserve credits.
     6. optimal_time: The best time to post (e.g., "06:00 PM", "09:30 AM") based on the topic and general audience activity.
     
     Output Format: RETURN ONLY A VALID JSON LIST OF 7 OBJECTS.
@@ -179,10 +143,10 @@ def visual_illustrator_node(state: GraphState):
     
     if is_luxury_cpg:
         # High-end studio look for luxury/food
-        universal_base = "Professional cinematic studio product photography, 8k, medium format, 90mm macro lens. Three-point lighting (Key, Fill, Rim). Sharp textures, no artifacts. STRICTLY NO TEXT, NO LOGOS."
+        universal_base = "Professional cinematic studio product photography, 8k, medium format, 90mm macro lens. Three-point lighting (Key, Fill, Rim). Sharp textures, no artifacts."
     else:
         # Organic, real-world look for services/startups
-        universal_base = "Raw, authentic high-fidelity photography, candid shot, real-world environment, natural ambient lighting, organic textures, non-studio, shot on 35mm lens. STRICTLY NO TEXT, NO LOGOS."
+        universal_base = "Raw, authentic high-fidelity photography, candid shot, real-world environment, natural ambient lighting, organic textures, non-studio, shot on 35mm lens."
 
     # Layer 2: Brand DNA (Synthesized by Agent, Fixed ~200 chars)
     print(f"Brand Agent: Distilling holistic identity for {brand.get('brandName')}...")
@@ -199,17 +163,17 @@ def visual_illustrator_node(state: GraphState):
         # Layer 3: Strategic Context (Topic + Product Info) - Fixed ~150 chars
         p_name = brief.get('name', 'Product')
         if not p_name or p_name.strip() == "": p_name = "[PRODUCT_NAME_MISSING]"
-        p_desc = str(brief.get('description', ''))[:50]
+        p_desc = str(brief.get('description', ''))[:200]
         if not p_desc or p_desc.strip() == "": p_desc = "[PRODUCT_DESC_MISSING]"
         
         # Format: Topic: [Topic]. Product: [Name] ([Desc]).
         strategic_context = f"Topic: {topic}. Product: {p_name} ({p_desc})."
-        strategic_context = strategic_context[:150]
+        strategic_context = strategic_context[:200]
 
         # Apply specific layering only to images and carousels
         if 'static' in fmt or 'image' in fmt or 'carousel' in fmt:
             is_carousel = 'carousel' in fmt
-            slides_count = item.get('carousel_slides', 3) if is_carousel else 1
+            slides_count = item.get('carousel_slides', 2) if is_carousel else 1
             
             refinement_prompt = f"""
             TASK: Create a super-detailed cinematic visual description and text overlays for this {"carousel" if is_carousel else "image"}.
@@ -219,10 +183,13 @@ def visual_illustrator_node(state: GraphState):
             SLIDES: {slides_count}
             
             STRICT RULES:
-            - The scene MUST visually represent the topic: {topic}.
+            - RADICAL UNIQUENESS: Every slide MUST have a different headline and subtext. Progress the story (e.g., Slide 1: Hook, Slide 2: Problem, Slide 3: Solution).
+            - DO NOT REPEAT: Never use the same headline twice in one carousel.
+            - NO BRACKETS: Do not use [] brackets.
+            - PURE COPY: Provide only the final text that should appear on the image.
             - Focus on lighting, textures, material physics, and placement.
-            - For visuals: DO NOT include ANY text or letters IN THE IMAGE.
-            - For text overlays: Provide a 'headline', 'subtext', and 'position' (top-left, top-right, bottom-left, bottom-right, center).
+            - For text overlays: Provide a unique 'headline', 'subtext', and 'position' for each slide.
+            - DO NOT use meta-labels like 'Headline:' or 'Subject:' in the image description itself.
             
             OUTPUT FORMAT: RETURN ONLY VALID JSON.
             {{
@@ -327,7 +294,7 @@ def visual_illustrator_node(state: GraphState):
                 if any(k in category_raw for k in ["cosmetic", "jewel", "food", "cpg"]):
                     style_mod = "sleek 3D motion, premium studio lighting, hyper-realistic"
 
-                item['visual_prompt'] = f"Video Prompt ({style_mod}): {content.strip()[:600]}"
+                item['visual_prompt'] = f"Video Prompt ({style_mod}): {content.strip()[:2000]}"
                 item['detailed_visual_description'] = content.strip()
             except:
                 item['visual_prompt'] = f"Vibrant social media motion content for {p_name}: {item.get('topic')}"

@@ -50,36 +50,5 @@ export const getCalendar = async (req, res) => {
   }
 };
 
-import { overlayText } from '../utils/visualOptimizer.js';
-
-export const processVisual = async (req, res) => {
-  try {
-    const { image, metadata, brandColors } = req.body;
-    
-    if (!image) {
-      return res.status(400).json({ message: 'Image data is required' });
-    }
-
-    // Convert base64 to buffer if needed
-    let inputBuffer = image;
-    if (typeof image === 'string' && image.includes('base64,')) {
-      inputBuffer = Buffer.from(image.split('base64,')[1], 'base64');
-    } else if (typeof image === 'string') {
-      inputBuffer = Buffer.from(image, 'base64');
-    }
-
-    const processedBuffer = await overlayText(inputBuffer, {
-      ...metadata,
-      primaryColor: brandColors?.primary || '#ffffff',
-      secondaryColor: brandColors?.secondary || '#f0f0f0'
-    });
-
-    const processedBase64 = `data:image/png;base64,${processedBuffer.toString('base64')}`;
-    
-    res.status(200).json({ image: processedBase64 });
-  } catch (error) {
-    console.error('Visual Process Error:', error);
-    res.status(500).json({ message: 'Error processing visual overlay' });
-  }
-};
+// Note: Sharp.js processing removed. Text is now handled natively by AI.
 

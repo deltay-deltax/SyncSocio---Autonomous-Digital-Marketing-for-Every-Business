@@ -5,7 +5,7 @@ import {
   Calendar, Sparkles, Zap, Clock, Trash2, CheckCircle2,
   Video, Layers, Image as ImageIcon, ArrowRight,
   TrendingUp, Settings2, RotateCcw, Send, Edit3,
-  ChevronLeft, ChevronRight, X
+  ChevronLeft, ChevronRight, X, Copy, Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -75,6 +75,7 @@ const ContentStrategy = () => {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [lightboxPost, setLightboxPost] = useState<ScheduledPost | null>(null);
   const [generatingCount, setGeneratingCount] = useState(0);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Product Brief State
   const [brief, setBrief] = useState({
@@ -134,6 +135,12 @@ const ContentStrategy = () => {
     { id: 'Tech & SaaS', label: 'Startup' },
     { id: 'Other', label: 'Other' }
   ];
+
+  const handleCopy = (postId: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(postId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -235,6 +242,15 @@ const ContentStrategy = () => {
       const AGENT_API_URL = 'http://localhost:8000'; // FastAPI URL
       const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+      // Map industry category to Refiner Agent specific categories
+      const mapCategoryForRefiner = (cat: string) => {
+        const luxury = ['Beauty & Cosmetics', 'Fine Jewellery', 'Food & CPG', 'Fashion & Lifestyle'];
+        const tech = ['Tech & SaaS'];
+        if (luxury.includes(cat)) return "Lifestyle/Luxury";
+        if (tech.includes(cat)) return "Startups/Tech";
+        return "Advertising Poster/Sale";
+      };
+
       const res = await fetch(`${AGENT_API_URL}/generate-visuals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,7 +259,10 @@ const ContentStrategy = () => {
           format: post.type === 'Static' ? 'Static Image' : post.type,
           slides: post.carouselSlides,
           image: imageBase64,
-          slide_prompts: post.slidesMetadata?.map(m => m.visual_prompt)
+          slide_prompts: post.slidesMetadata?.map(m => m.visual_prompt),
+          category: mapCategoryForRefiner(brief.category),
+          headline: post.title,
+          userId: profile?._id || profile?.id
         })
       });
 
@@ -263,47 +282,7 @@ const ContentStrategy = () => {
         visualUrls = [result.data.url];
       }
 
-      // NEW: Text Overlay Processing via Sharp (Backend)
-      if (post.type !== 'Reel') {
-        const processedUrls = await Promise.all(visualUrls.map(async (rawB64, idx) => {
-          const metadata = post.slidesMetadata?.[idx] || { 
-            headline: post.title, 
-            subtext: post.contentHook, 
-            position: 'center' 
-          };
-          
-          try {
-            const processRes = await fetch(`${BASE_URL}/ai/process-visual`, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              },
-              body: JSON.stringify({
-                image: rawB64,
-                metadata: {
-                  headline: metadata.headline,
-                  subtext: metadata.subtext,
-                  position: metadata.position
-                },
-                brandColors: {
-                  primary: profile?.primaryColor,
-                  secondary: profile?.secondaryColor
-                }
-              })
-            });
-            
-            if (processRes.ok) {
-              const procData = await processRes.json();
-              return procData.image;
-            }
-          } catch (e) {
-            console.warn("Overlay failed for slide", idx, e);
-          }
-          return rawB64; // Fallback to raw image
-        }));
-        visualUrls = processedUrls;
-      }
+      // Note: Sharp.js processing removed. AI now generates text natively via Refiner/Imagen 4.0.
 
       setPosts(prev => prev.map(p => p.id === postId ? {
         ...p,
@@ -434,21 +413,40 @@ const ContentStrategy = () => {
               >
                 {/* Media Section */}
                 <div className="flex-1 bg-black relative flex items-center justify-center overflow-hidden">
-                  {livePost.type === 'Reel' ? (
-                     <div className="w-full h-full p-12 flex items-center justify-center bg-zinc-900 overflow-y-auto">
-                        <div className="max-w-2xl space-y-6 text-left">
-                           <Badge className="bg-primary/20 text-primary border-none font-black text-[10px] uppercase tracking-[0.3em] px-4 py-1.5 rounded-full">
-                              AI Video Blueprint
-                           </Badge>
-                           <p className="text-xl font-medium text-slate-300 leading-relaxed italic">
-                              "{livePost.visualPrompt}"
-                           </p>
-                           <div className="pt-6 border-t border-white/5 flex items-center gap-3">
-                              <Sparkles className="text-primary" size={18} />
-                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Autonomous Motion Concept</span>
-                           </div>
-                        </div>
-                     </div>
+                   {livePost.type === 'Reel' ? (
+                      <div className="w-full h-full flex flex-col bg-zinc-900">
+                         {/* Fixed Header */}
+                         <div className="px-12 py-6 border-b border-white/5 bg-zinc-900 flex items-center justify-between flex-shrink-0">
+                            <Badge className="bg-primary/20 text-primary border-none font-black text-[10px] uppercase tracking-[0.3em] px-4 py-1.5 rounded-full">
+                               AI Video Blueprint
+                            </Badge>
+                            <button 
+                               onClick={() => handleCopy(livePost.id, livePost.visualPrompt || "")}
+                               className={cn(
+                                 "p-2 px-6 rounded-xl transition-all flex items-center gap-2 border border-white/10 shadow-lg",
+                                 copiedId === livePost.id ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/30" : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                               )}
+                            >
+                               {copiedId === livePost.id ? <Check size={14} /> : <Copy size={14} />}
+                               <span className="text-[10px] font-black uppercase tracking-tight">
+                                 {copiedId === livePost.id ? "Copied Script" : "Copy Script"}
+                               </span>
+                            </button>
+                         </div>
+                         
+                         {/* Scrollable Script Body */}
+                         <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
+                            <div className="max-w-2xl mx-auto">
+                               <p className="text-xl font-medium text-slate-300 leading-relaxed italic">
+                                  "{livePost.visualPrompt}"
+                               </p>
+                               <div className="pt-8 mt-8 border-t border-white/5 flex items-center gap-3 opacity-50">
+                                  <Sparkles className="text-primary" size={18} />
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Autonomous Motion Concept</span>
+                               </div>
+                            </div>
+                         </div>
+                      </div>
                   ) : (
                     <div className="w-full h-full relative flex items-center justify-center">
                       <img

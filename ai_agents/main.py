@@ -9,7 +9,7 @@ import re
 from dotenv import load_dotenv
 from bson import ObjectId
 from agents import generate_strategy, analyze_brand_mix
-from visual_engine import generate_nvidia_image, generate_carousel_images, mock_video_gen
+from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from models import BrandInfo, StrategyResponse
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
@@ -273,37 +273,179 @@ async def api_schedule_post(analysis_id: str):
 class VisualGenRequest(BaseModel):
     prompt: str
     format: str
-    slides: Optional[int] = 3
+    slides: Optional[int] = 2
     image: Optional[str] = None
     slide_prompts: Optional[List[str]] = None
+    category: Optional[str] = "Lifestyle/Luxury"
+    headline: Optional[str] = "Viral Content"
+    userId: Optional[str] = None
+
+async def refine_image_prompt(brand_dna: str, user_desc: str, headline: str, category: str, prev_slide_context: Optional[str] = None):
+    """
+    The 'Refiner Agent' System Instruction implementation.
+    Transforms raw input into a professional, high-fidelity image prompt.
+    """
+    system_instruction = f"""
+Role: You are an expert AI Prompt Architect for Nano Banana 2 (Gemini 3.1 Flash Image). Your task is to transform raw user input into a professional, high-fidelity image prompt.
+
+Judging Criteria & Decision Tree:
+Analyze the USER_INPUT and apply the following logic:
+
+IF Category is "Lifestyle/Luxury" (Jewelry, Cosmetics, F&B):
+Focus: Aesthetic elegance and texture.
+Mandatory: Soft cinematic studio lighting, 85mm f/1.8 lens for shallow depth of field, premium materials (marble, velvet, silk), and warm or jewel-tone palettes.
+Rule: Product must be the hero, centered with soft-focus bokeh.
+
+IF Category is "Startups/Tech" (SaaS, Apps, AaaS):
+Focus: Trust, clarity, and realism.
+Mandatory: Natural daylight, clean white spaces (minimalism), real-world environments (wood desks, plants).
+Strict Rule: Even if "iPhone" or "MacBook" is mentioned, generate it in a natural, bright environment—NEVER use dark "gaming" studios or glowing neon desk setups unless explicitly requested.
+
+IF Category is "Advertising Poster/Sale":
+Focus: Bold hierarchy and readability.
+Mandatory: 4:5 aspect ratio, high-contrast colors, clear separation between the background and the text overlay area. Use "Graphic Design" keywords like 'bold Swiss-style layout' or 'modern sans-serif typography'.
+
+IF Category is "Carousel Slide":
+Focus: Perfect symmetry and safe zones for Instagram UI.
+Layout Rule: Split the composition into three horizontal bands.
+Top 20%: Reserved for the Headline.
+Center 60%: Reserved for the primary Product/Subject.
+Bottom 20%: Reserved for the CTA/Subtext.
+Mandatory: Explicitly mention "Clean minimal layout, 4:5 aspect ratio."
+Visual Rule: Ensure the background (e.g., gradient) is seamless so it connects visually if the user generates multiple slides. 
+
+Memory Rule: If 'Previous Slide Context' is provided, maintain 100% visual consistency with it (lighting, background, material physics) while only changing the primary subject/action.
+
+Global Rules (Apply to all):
+- ZERO LABEL POLICY: Strictly DO NOT include keywords like "HEADLINE:", "SUBTEXT:", or "TEXT:" in your output. Only provide the raw copy.
+- NO HEX CODES: You are provided with hex codes (e.g., #2563EB) only for your internal aesthetic understanding. STRICTLY DO NOT write or render these hex strings anywhere in the final image or prompt text. Instead, describe them as words (e.g., "Corporate Blue" or "Soft Light Blue").
+- NO BRACKETS: Strictly DO NOT use square brackets [ or ] in the text.
+- TEXT VISIBILITY: Ensure the text color provides maximum contrast against the background elements.
+- CONTENT SPECIFIC RULES:
+  * For "Static Image": ALWAYS set TEXT OVERLAY to "STRICTLY NO TEXT. THE IMAGE MUST BE PURE PHOTOGRAPHY WITH NO LETTERS, LOGOS, OR CHARACTERS."
+  * For "Carousel Slide": The TEXT OVERLAY must ONLY contain the raw creative copy for that slide. Each slide MUST have a unique headline/subtext that progresses the narrative.
+
+Output Format (Example):
+"A bright modern tech-lab with soft blue lighting. A technician is focused on a intricate repair. The main headline 'FAST REPAIR' is visible in a bold white sans-serif font at the top. Directly underneath it, the smaller subtext 'Quality you can count on' is layered in a clean readable font. Shot on 35mm, ISO 100."
+
+[ENSURE NO BRACKETS, NO LABELS, NO REPETITION, MUST INCLUDE UNIQUE SUBTEXT]
+
+Input Data:
+Brand DNA: {brand_dna}
+Slide Strategic Context: {user_desc}
+Category: {category}
+Previous Slide Context: {prev_slide_context if prev_slide_context else "None (This is the first slide)"}
+
+Output Guidelines:
+Return ONLY the raw cinematic prompt. DO NOT include meta-labels. 
+Example of what NOT to do: "Headline: Hello". 
+Example of what TO DO: "A bright office. A person typing. The text 'UPGRADE NOW' in bold white."
+"""
+    try:
+        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        # Using gemini-2.0-flash as the "Refiner Agent" (Nano Banana 2)
+        model = genai.GenerativeModel('gemini-flash-latest')
+        response = model.generate_content(system_instruction)
+        refined_prompt = response.text.strip()
+        
+        # Enforce max character limit
+        if len(refined_prompt) > 1200:
+            refined_prompt = refined_prompt[:1197] + "..."
+            
+        return refined_prompt
+    except Exception as e:
+        print(f"Refiner Agent Error: {str(e)}")
+        return user_desc # Fallback to original description
 
 @app.post("/generate-visuals")
 async def api_generate_visuals(request: VisualGenRequest):
     try:
-        print(f"\n--- FULL NVIDIA PROMPT ---\n{request.prompt}\n--------------------------\n")
+        # Step 0: Fetch Brand DNA if possible
+        brand_dna = "A premium growth-focused brand."
+        if request.userId:
+            brand_doc = await db["brandprofiles"].find_one({
+                "$or": [
+                    {"_id": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId},
+                    {"user": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId}
+                ]
+            })
+            if brand_doc:
+                brand_dna = f"""
+                Brand: {brand_doc.get('brandName')}
+                Goal: {brand_doc.get('mainGoal')}
+                Category: {brand_doc.get('businessCategory')}
+                Tone: {brand_doc.get('brandTone')}
+                Vibe: {brand_doc.get('visualVibe')}
+                Target: {", ".join(brand_doc.get('targetAudiences', []))}
+                Primary Color: {brand_doc.get('primaryColor')}
+                Secondary Color: {brand_doc.get('secondaryColor')}
+                Tone: {brand_doc.get('brandTone')}
+                """
+
+        # Step 1: Refine the prompt
+        # Determine category for refiner (Carousel Slide vs others)
+        refiner_category = request.category
+        if request.format == "Carousel":
+            refiner_category = "Carousel Slide"
+            
+        refined_prompt = await refine_image_prompt(
+            brand_dna=brand_dna,
+            user_desc=request.prompt,
+            headline=request.headline,
+            category=refiner_category
+        )
+        
+        print(f"\n--- REFINED IMAGE PROMPT ---\n{refined_prompt}\n--------------------------\n")
         
         type_str = ""
         result = None
         
         if request.format == "Static Image":
-            result = generate_nvidia_image(request.prompt, image=request.image)
+            result = generate_google_image(refined_prompt, image=request.image)
             type_str = "image"
+            # Normalize result for the response handling below
+            result = {"image": result["image"]}
         elif request.format == "Carousel":
-            count = request.slides if request.slides else 3
-            result = generate_carousel_images(request.prompt, image=request.image, count=count, slide_prompts=request.slide_prompts)
+            # HARD CAP: Strictly limit to 2 slides to save credits, even if the request asks for more.
+            requested_count = request.slides if request.slides else 2
+            count = min(requested_count, 2)
+            # For carousels, refine each slide with memory of the previous one
+            slides_results = []
+            current_context = ""
+            
+            # Start with the base prompt as context if needed
+            initial_desc = request.prompt
+            
+            prompts_to_refine = request.slide_prompts if request.slide_prompts else [f"Slide {i+1} for {request.prompt}" for i in range(count)]
+            
+            for i, sp in enumerate(prompts_to_refine):
+                refined_slide = await refine_image_prompt(
+                    brand_dna=brand_dna,
+                    user_desc=sp,
+                    headline=request.headline,
+                    category="Carousel Slide",
+                    prev_slide_context=current_context if i > 0 else None
+                )
+                print(f"DEBUG: Carousel Slide {i+1} Refined Prompt:\n{refined_slide}\n")
+                slides_results.append(refined_slide)
+                current_context = refined_slide # Memory: pass this slide's details to the next one
+            
+            # For the main result, we use the first slide's refined prompt
+            refined_prompt = slides_results[0]
+            result = generate_carousel_images(refined_prompt, image=request.image, count=count, slide_prompts=slides_results)
             type_str = "carousel"
         elif request.format == "Reel":
-            result = mock_video_gen(request.prompt)
+            result = mock_video_gen(refined_prompt)
             type_str = "video"
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported format: {request.format}")
 
         # Step 2: Dynamic Visual Critic (G-Factor)
-        # We audit the visual prompt's "G-Factor"
+        # We audit the refined prompt's "G-Factor"
         critic_prompt = f"""
         Analyze this AI content prompt for its technical and strategic Viral Potential (G-Factor).
         FORMAT: {request.format}
-        PROMPT: {request.prompt}
+        PROMPT: {refined_prompt}
         
         Score from 8.5 to 10.0 based on composition, lighting depth, and brand resonance.
         Return ONLY a number (e.g. 9.6).
@@ -314,17 +456,8 @@ async def api_generate_visuals(request: VisualGenRequest):
         
         try:
             genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-            # Sequential Fallback: gemini-flash-latest -> gemini-1.5-flash -> gemini-pro
-            try:
-                model = genai.GenerativeModel('gemini-flash-latest')
-                response = model.generate_content(critic_prompt)
-            except:
-                try:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = model.generate_content(critic_prompt)
-                except:
-                    model = genai.GenerativeModel('gemini-pro')
-                    response = model.generate_content(critic_prompt)
+            model = genai.GenerativeModel('gemini-flash-latest')
+            response = model.generate_content(critic_prompt)
             
             content = response.text.strip()
             print(f"CRITIC DEBUG: Gemini Response: {content}")
