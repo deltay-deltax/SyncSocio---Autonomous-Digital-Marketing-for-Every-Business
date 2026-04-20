@@ -8,6 +8,8 @@ import ResetPassword from './pages/ResetPassword';
 import Setup from './pages/Setup';
 import SetPassword from './pages/SetPassword';
 import InstagramInstructions from './pages/InstagramInstructions';
+import TermsOfUse from './pages/TermsOfUse';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -34,6 +36,8 @@ function App() {
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/setup" element={<Setup />} />
         <Route path="/instagram-setup" element={<InstagramInstructions />} />
+        <Route path="/terms" element={<TermsOfUse />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/forgotpassword" element={<ForgotPassword />} />
         <Route path="/resetpassword/:resetToken" element={<ResetPassword />} />
         

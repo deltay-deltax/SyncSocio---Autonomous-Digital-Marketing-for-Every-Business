@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock } from 'lucide-react';
+import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-const settingsTabs = ['Brand Profile', 'Connected Accounts', 'Posting Preferences', 'Plan & Billing', 'Danger Zone'];
+const settingsTabs = ['Brand Profile', 'Connected Accounts', 'Posting Preferences', 'Plan & Billing', 'Legal & Privacy', 'Danger Zone'];
 
 const InfoItem = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | string[] }) => (
   <div className="flex items-start gap-4 p-4 rounded-2xl bg-muted/10 border border-border/30 hover:bg-muted/20 transition-all group">
@@ -295,6 +295,66 @@ const DashboardSettings = () => {
                 <Button disabled className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-muted text-muted-foreground border-border/50 cursor-not-allowed">
                   Subscription Managed via Onboarding Flow
                 </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'Legal & Privacy' && (
+            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+              <CardHeader className="p-8 pb-2">
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Legal & Privacy</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">Review legal terms and data practices before using automations.</p>
+              </CardHeader>
+              <CardContent className="p-8 space-y-5">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                          <FileText size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-foreground">Terms of Use</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">Service scope, rights, responsibilities, limits.</p>
+                        </div>
+                      </div>
+                      <ExternalLink size={16} className="text-muted-foreground" />
+                    </div>
+                  </a>
+
+                  <a
+                    href="/privacy"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                          <ShieldCheck size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-foreground">Privacy Policy</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">Data collection, usage, retention, and rights.</p>
+                        </div>
+                      </div>
+                      <ExternalLink size={16} className="text-muted-foreground" />
+                    </div>
+                  </a>
+                </div>
+
+                <div className="rounded-2xl border border-border/40 bg-muted/5 p-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Compliance Note</p>
+                  <p className="mt-2 text-[12px] text-muted-foreground leading-relaxed">
+                    Automation features such as Instagram comment triggers, story mention replies, and DM responses rely on connected Meta permissions and platform policies.
+                    Review these documents before enabling campaigns for production use.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
