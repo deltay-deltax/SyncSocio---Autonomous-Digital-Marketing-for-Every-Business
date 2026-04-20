@@ -3,6 +3,8 @@ import {
 	getInstagramAuthUrl,
 	instagramCallback,
 	resubscribeInstagramWebhooks,
+	getAutomations,
+	updateAutomation,
 } from '../controllers/instagramController.js';
 import { receiveInstagramWebhook, testWebhook, verifyInstagramWebhook } from '../controllers/instagramWebhookController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -17,6 +19,10 @@ router.get('/callback', instagramCallback);
 
 // Re-subscribe webhook targets for already connected IG accounts
 router.post('/resubscribe-webhooks', protect, resubscribeInstagramWebhooks);
+
+// Global Automation Settings
+router.get('/automations', protect, getAutomations);
+router.patch('/automations/:type', protect, updateAutomation);
 
 // Webhook verification and events from Meta
 router.get('/webhook', verifyInstagramWebhook);

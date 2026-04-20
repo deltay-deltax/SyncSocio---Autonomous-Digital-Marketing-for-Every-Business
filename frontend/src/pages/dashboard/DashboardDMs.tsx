@@ -68,6 +68,36 @@ const getAuthHeaders = (includeJson = false): HeadersInit => {
   };
 };
 
+const getInitialFlow = () => ({
+  name: '🎁 Link Delivery Flow', trigger: 'comment' as const, targetType: 'all' as const, keyword: 'link',
+  messages: [
+    {
+      id: uid(),
+      text: "Hey! I'm so glad you're here - thanks a ton for stopping by 😊\nTap below and I'll send you the access in just a moment ✨",
+      buttons: [
+        { id: uid(), label: "Send me the access", type: "next" as const }
+      ],
+    },
+    {
+      id: uid(),
+      conditional: "if_not_following" as const,
+      text: "Oops! Looks like you haven't followed me yet 👀\nIt would mean a lot if you could visit my profile and hit that follow button 😁.",
+      buttons: [
+        { id: uid(), label: "Visit Profile", type: "visit_profile" as const, url: "https://instagram.com/" },
+        { id: uid(), label: "I'm following ✅", type: "next" as const }
+      ]
+    },
+    {
+      id: uid(),
+      conditional: "if_following" as const,
+      text: "Thanks for the comment! 🙌\n\n🔗 Main link: https://poe.com/\n\nThe app in the video is no longer free, but here's a solid free alternative for the same",
+      buttons: [
+        { id: uid(), label: "Open Link", type: "url" as const, url: "https://poe.com/" }
+      ]
+    }
+  ]
+});
+
 const formatRelativeTime = (value: string): string => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Just now';
@@ -151,6 +181,17 @@ const DashboardDMs = () => {
   const [isLoadingFlows, setIsLoadingFlows] = useState(false);
   const [isSavingFlow, setIsSavingFlow] = useState(false);
   const [flowError, setFlowError] = useState<string | null>(null);
+  const [automations, setAutomations] = useState<{
+    storyMention: { active: boolean; message: string };
+    defaultReply: { active: boolean; message: string };
+  }>({
+    storyMention: { active: false, message: "" },
+    defaultReply: { active: false, message: "" }
+  });
+  const [editModal, setEditModal] = useState<{
+    type: 'storyMention' | 'defaultReply' | null;
+    message: string;
+  }>({ type: null, message: '' });
 
   // Fetch media + flow data on mount
   React.useEffect(() => {
@@ -194,8 +235,23 @@ const DashboardDMs = () => {
       }
     };
 
+    const fetchAutomations = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/instagram/automations`, {
+          headers: getAuthHeaders(),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setAutomations(data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch automations:', err);
+      }
+    };
+
     fetchMedia();
     fetchFlows();
+    fetchAutomations();
   }, []);
 
   const [newFlow, setNewFlow] = useState<{
@@ -205,20 +261,17 @@ const DashboardDMs = () => {
     targetMediaId?: string;
     keyword: string;
     messages: FlowMessage[];
-  }>({
-    name: '', trigger: 'comment', targetType: 'all', keyword: '',
-    messages: [{ id: uid(), text: '', buttons: [] }],
-  });
+  }>(getInitialFlow());
 
   const wizardSteps = [
     { title: 'Target', desc: 'Where should this trigger?' },
-    { title: 'Type', desc: 'How should this automation start?' },
+    { title: 'Type', desc: 'Campaign identity' },
     { title: 'Keyword', desc: 'What word triggers the DM?' },
     { title: 'Sequence', desc: 'Build your DM flow' },
   ];
 
   const resetWizard = () => {
-    setNewFlow({ name: '', trigger: 'comment', targetType: 'all', keyword: '', messages: [{ id: uid(), text: '', buttons: [] }] });
+    setNewFlow(getInitialFlow());
     setWizardStep(0);
     setView('list');
   };
@@ -349,6 +402,47 @@ const DashboardDMs = () => {
     } catch (err) {
       console.error('Failed to delete flow:', err);
       setFlowError(err instanceof Error ? err.message : 'Failed to delete flow.');
+    }
+  };
+
+  const toggleAutomation = async (type: 'storyMention' | 'defaultReply') => {
+    const newVal = !automations[type].active;
+    try {
+      const res = await fetch(`${API_BASE}/auth/instagram/automations/${type}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({ active: newVal }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAutomations(prev => ({ ...prev, [type]: { ...prev[type], active: newVal } }));
+      }
+    } catch (err) {
+      console.error('Failed to toggle automation:', err);
+    }
+  };
+
+  const editAutomation = (type: 'storyMention' | 'defaultReply') => {
+    setEditModal({ type, message: automations[type].message });
+  };
+
+  const saveAutomation = async () => {
+    const { type, message } = editModal;
+    if (!type) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/instagram/automations/${type}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({ message }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAutomations(prev => ({ ...prev, [type]: { ...prev[type], message } }));
+        setEditModal({ type: null, message: '' });
+      }
+    } catch (err) {
+      console.error('Failed to save automation:', err);
     }
   };
 
@@ -522,27 +616,14 @@ const DashboardDMs = () => {
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-3">Trigger Type</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {([
-                          { value: 'comment', label: 'Comment', icon: MessageSquare, desc: 'Post comment keyword' },
-                          { value: 'story_reply', label: 'Story Reply', icon: Send, desc: 'Story mention/reply' },
-                          { value: 'dm_keyword', label: 'DM Keyword', icon: Hash, desc: 'Direct message word' },
-                        ] as const).map(t => (
-                          <button
-                            key={t.value}
-                            onClick={() => setNewFlow({ ...newFlow, trigger: t.value })}
-                            className={cn(
-                              'p-5 rounded-xl border text-center transition-all duration-200',
-                              newFlow.trigger === t.value
-                                ? 'border-primary bg-primary/10 shadow-sm shadow-primary/10'
-                                : 'border-border/40 bg-card/60 hover:border-primary/30 hover:bg-muted/40'
-                            )}
-                          >
-                            <t.icon size={22} className={cn('mx-auto mb-2', newFlow.trigger === t.value ? 'text-primary' : 'text-muted-foreground')} />
-                            <p className="text-sm font-semibold text-foreground">{t.label}</p>
-                            <p className="text-[10px] text-muted-foreground mt-1">{t.desc}</p>
-                          </button>
-                        ))}
+                      <div className="p-5 rounded-2xl border border-primary bg-primary/10 shadow-sm shadow-primary/10 transition-all duration-200 text-center max-w-xs mx-auto sm:mx-0 sm:text-left sm:flex sm:items-center sm:gap-4">
+                         <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto sm:mx-0 shrink-0">
+                           <MessageSquare size={20} className="text-primary" />
+                         </div>
+                         <div>
+                           <p className="text-sm font-bold text-foreground mt-2 sm:mt-0">Comment-to-DM Campaign</p>
+                           <p className="text-[11px] text-muted-foreground mt-1 leading-snug">This flow automates a private DM whenever someone drops a specific keyword on your post.</p>
+                         </div>
                       </div>
                     </div>
                   </div>
@@ -918,6 +999,94 @@ const DashboardDMs = () => {
         </div>
       )}
 
+      {/* Global Auto-Replies */}
+      <div>
+        <h2 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-3 px-1 flex items-center gap-2">
+          <Sparkles size={14} className="text-amber-500" /> Always-On Automations
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-card/60 backdrop-blur-sm border border-border/40 hover:border-amber-500/30 rounded-2xl p-5 flex gap-4 transition-all group">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-amber-500/20 transition-colors">
+              <Send size={20} className="text-amber-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+               <div className="flex items-start justify-between gap-2">
+                  <div>
+                     <h3 className="font-bold text-foreground text-sm">📸 Story Mention Reply</h3>
+                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Instantly thank anyone who tags your account in their story.</p>
+                  </div>
+                  <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1 border border-border/50 shrink-0">
+                    <button 
+                      onClick={() => editAutomation('storyMention')}
+                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-background"
+                    >
+                      <PenLine size={13} />
+                    </button>
+                    <button 
+                      onClick={() => toggleAutomation('storyMention')}
+                      className={cn(
+                        "p-1 px-2 transition-colors flex items-center gap-1.5",
+                        automations.storyMention.active ? "text-emerald-500" : "text-muted-foreground/40"
+                      )}
+                    >
+                      {automations.storyMention.active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                      <span className="text-[10px] font-bold">{automations.storyMention.active ? 'ON' : 'OFF'}</span>
+                    </button>
+                  </div>
+               </div>
+               <div className="mt-3 bg-muted/40 rounded-xl p-3 border border-border/40">
+                  <p className="text-[11px] text-muted-foreground italic line-clamp-1">
+                    {automations.storyMention.message ? `"${automations.storyMention.message.slice(0, 40)}..."` : "No message set"}
+                  </p>
+               </div>
+            </div>
+          </div>
+          
+          <div className="bg-card/60 backdrop-blur-sm border border-border/40 hover:border-emerald-500/30 rounded-2xl p-5 flex gap-4 transition-all group">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-emerald-500/20 transition-colors">
+              <MessageSquare size={20} className="text-emerald-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+               <div className="flex items-start justify-between gap-2">
+                  <div>
+                     <h3 className="font-bold text-foreground text-sm">👋 Default DM Auto-Reply</h3>
+                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Instantly greet anyone who sends you a fresh direct message.</p>
+                  </div>
+                  <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1 border border-border/50 shrink-0">
+                    <button 
+                      onClick={() => editAutomation('defaultReply')}
+                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-background"
+                    >
+                      <PenLine size={13} />
+                    </button>
+                    <button 
+                      onClick={() => toggleAutomation('defaultReply')}
+                      className={cn(
+                        "p-1 px-2 transition-colors flex items-center gap-1.5",
+                        automations.defaultReply.active ? "text-emerald-500" : "text-muted-foreground/40"
+                      )}
+                    >
+                      {automations.defaultReply.active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                      <span className="text-[10px] font-bold">{automations.defaultReply.active ? 'ON' : 'OFF'}</span>
+                    </button>
+                  </div>
+               </div>
+               <div className="mt-3 bg-muted/40 rounded-xl p-3 border border-border/40">
+                  <p className="text-[11px] text-muted-foreground italic line-clamp-1">
+                    {automations.defaultReply.message ? `"${automations.defaultReply.message.slice(0, 40)}..."` : "No message set"}
+                  </p>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent my-2" />
+
+      <h2 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-3 px-1 flex items-center gap-2">
+        <Zap size={14} className="text-primary" /> Multi-Step Campaigns
+      </h2>
+      
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
@@ -1100,9 +1269,77 @@ const DashboardDMs = () => {
                   </React.Fragment>
                 ))}
               </div>
-              <div className="p-4 border-t border-border/50 bg-muted/20 flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1 rounded-xl text-xs gap-1.5"><Copy size={12} /> Duplicate</Button>
-                <Button variant="outline" size="sm" className="flex-1 rounded-xl text-xs gap-1.5"><PenLine size={12} /> Edit</Button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Automation Edit Modal */}
+      <AnimatePresence>
+        {editModal.type && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setEditModal({ type: null, message: '' })}
+              className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-lg bg-card border border-border/60 rounded-3xl shadow-2xl shadow-primary/10 overflow-hidden"
+            >
+              <div className="p-6 border-b border-border/40">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-2xl flex items-center justify-center",
+                    editModal.type === 'storyMention' ? "bg-amber-500/10 text-amber-500" : "bg-emerald-500/10 text-emerald-500"
+                  )}>
+                    {editModal.type === 'storyMention' ? <Send size={20} /> : <MessageSquare size={20} />}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      Edit {editModal.type === 'storyMention' ? 'Story Mention' : 'Welcome'} Message
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-widest font-black">Automation Configuration</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground px-1 uppercase tracking-tight">Response Content</label>
+                  <Textarea 
+                    value={editModal.message}
+                    onChange={(e) => setEditModal(prev => ({ ...prev, message: e.target.value }))}
+                    placeholder="Type your automated response here..."
+                    className="min-h-[140px] rounded-2xl bg-muted/20 border-border/40 focus:ring-primary/20 text-sm leading-relaxed scrollbar-hide"
+                  />
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1.5"><Sparkles size={12} className="text-primary" /> Keep it friendly and concise</p>
+                    <p className={cn("text-[10px] font-mono", editModal.message.length > 280 ? "text-destructive" : "text-muted-foreground")}>
+                      {editModal.message.length}/280
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-muted/30 flex gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setEditModal({ type: null, message: '' })}
+                  className="flex-1 rounded-2xl h-11 text-sm font-bold border-border/60 hover:bg-background transition-all"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={saveAutomation}
+                  className="flex-1 rounded-2xl h-11 text-sm font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
+                >
+                  Save Changes
+                </Button>
               </div>
             </motion.div>
           </>

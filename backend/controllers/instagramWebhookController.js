@@ -1,6 +1,7 @@
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
 import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
+import DMConversation from '../models/DMConversation.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
 
 const FB_API_VERSION = 'v25.0';
@@ -58,6 +59,8 @@ const createFlowQuery = ({ userId, mediaId }) => {
 
   return query;
 };
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const escapeRegExp = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -160,8 +163,7 @@ const buildDmMessagePayload = (flow, profile) => {
 
 const getPendingFollowUpMessageIndex = (flow) => {
   if (!Array.isArray(flow?.messages)) return -1;
-
-  return flow.messages.findIndex((message, index) => index > 0 && message?.conditional === 'if_following');
+  return flow.messages.length > 1 ? 1 : -1;
 };
 
 const queueFollowUpMessage = async ({ profile, flow, commentId, recipientId }) => {
@@ -239,22 +241,117 @@ const extractCommentEvents = (entry = {}) => {
   const events = [];
 
   for (const change of changes) {
-    if (change.field !== 'comments') continue;
     const value = change.value;
     if (!value || value.verb !== 'add') continue;
 
-    const commentId = safeTrim(value?.id || value?.comment_id);
-    const text = safeTrim(value?.text || value?.message);
+    if (change.field === 'comments') {
+      const commentId = safeTrim(value?.id || value?.comment_id);
+      const text = safeTrim(value?.text || value?.message);
+      if (!commentId || !text) continue;
 
-    if (!commentId || !text) continue;
+      events.push({
+        commentId,
+        text,
+        mediaId: safeTrim(value?.media?.id || value?.media_id),
+        actorId: safeTrim(value?.from?.id),
+        actorUsername: safeTrim(value?.from?.username),
+      });
+    } else if (change.field === 'feed' && value.item === 'comment') {
+      const commentId = safeTrim(value?.comment_id);
+      const text = safeTrim(value?.message);
+      if (!commentId || !text) continue;
 
-    events.push({
-      commentId,
-      text,
-      mediaId: safeTrim(value?.media?.id || value?.media_id),
-      actorId: safeTrim(value?.from?.id),
-      actorUsername: safeTrim(value?.from?.username),
+      events.push({
+        commentId,
+        text,
+        mediaId: safeTrim(value?.post_id),
+        actorId: safeTrim(value?.from?.id),
+        actorUsername: safeTrim(value?.from?.name),
+      });
+    }
+  }
+  return events;
+};
+
+const processedMessageIds = new Set();
+const processedMentionMediaIds = new Set();
+
+const resolvePageToken = async (profile) => {
+  if (profile.instagramPageAccessToken) return profile.instagramPageAccessToken;
+
+  console.log('[WEBHOOK] Page token missing, fetching on the fly...');
+  try {
+    const res = await axios.get(`${FB_API_BASE}/me/accounts`, {
+      params: { fields: 'id,access_token', access_token: profile.instagramAccessToken },
     });
+    const page = res.data.data.find((p) => String(p.id) === String(profile.instagramPageId));
+    if (page?.access_token) {
+        profile.instagramPageAccessToken = page.access_token; // Cache it in memory for this run
+        return page.access_token;
+    }
+  } catch (err) {
+      console.error('[WEBHOOK] Failed to resolve page token on the fly');
+  }
+  return null;
+};
+
+const checkUserFollows = async (profile, senderId) => {
+  if (!senderId) return false;
+  try {
+    if (profile.instagramBusinessAccountId) {
+      try {
+          const url = `${FB_API_BASE}/${profile.instagramBusinessAccountId}/followers`;
+          const res = await axios.get(url, {
+            params: { user_id: senderId, access_token: profile.instagramAccessToken },
+            timeout: 10000,
+          });
+          if (res.data?.data && res.data.data.length > 0) return true;
+      } catch (igErr) {
+          // Meta API restricts /followers edge often. If it throws #100, we trust the user.
+          console.warn('[WEBHOOK] IG Follow check failed (expected privacy block), trusting user');
+          return true; 
+      }
+    }
+    if (profile.instagramPageId) {
+      try {
+          const pageToken = await resolvePageToken(profile);
+          if (!pageToken) return false;
+          const url = `${FB_API_BASE}/${profile.instagramPageId}/likes`;
+          const res = await axios.get(url, {
+            params: { user_id: senderId, access_token: pageToken },
+            timeout: 10000,
+          });
+          if (res.data?.data && res.data.data.length > 0) return true;
+      } catch (fbErr) {
+          console.warn('[WEBHOOK] FB Like check failed');
+      }
+    }
+    return false;
+  } catch (err) {
+    console.error('Error checking follows:', err?.response?.data || err.message);
+    return false;
+  }
+};
+
+const extractMentionEvents = (entry = {}) => {
+  const changes = Array.isArray(entry.changes) ? entry.changes : [];
+  const events = [];
+
+  for (const change of changes) {
+    if (change.field !== 'mentions') continue;
+    const value = change.value;
+    if (!value) continue;
+
+    const mediaId = safeTrim(value.media_id || value.id);
+    const senderId = safeTrim(value.sender?.id || value.user?.id);
+
+    if (!mediaId || !senderId) continue;
+
+    if (processedMentionMediaIds.has(mediaId)) continue;
+    processedMentionMediaIds.add(mediaId);
+    if (processedMentionMediaIds.size > 10000) processedMentionMediaIds.delete(processedMentionMediaIds.keys().next().value);
+
+    events.push({ mediaId, senderId });
   }
   return events;
 };
@@ -265,6 +362,13 @@ const extractMessageEvents = (entry = {}) => {
 
   for (const msg of messaging) {
     if (msg.message && msg.message.is_echo) continue;
+
+    const mid = msg.message?.mid;
+    if (mid) {
+      if (processedMessageIds.has(mid)) continue;
+      processedMessageIds.add(mid);
+      if (processedMessageIds.size > 10000) processedMessageIds.delete(processedMessageIds.keys().next().value);
+    }
 
     let text = null;
     if (msg.message && msg.message.text) {
@@ -297,7 +401,7 @@ const findProfilesForEntry = async (entryId) => {
       { instagramPageId: normalizedId },
     ],
   })
-    .select('user instagramAccessToken instagramPageAccessToken instagramBusinessAccountId instagramPageId instagramUsername')
+    .select('user instagramAccessToken instagramPageAccessToken instagramBusinessAccountId instagramPageId instagramUsername automations')
     .sort({ updatedAt: -1 })
     .lean();
 };
@@ -320,7 +424,17 @@ const sendPrivateReply = async ({ pageToken, commentId, messagePayload, pageId }
 };
 
 const processCommentEventForProfile = async (profile, event) => {
-  console.log(`processCommentEventForProfile: Starting for text="${event.text}", actor="${event.actorUsername}"`);
+  console.log(`processCommentEventForProfile: Starting for id="${event.commentId}", text="${event.text}", actor="${event.actorUsername}"`);
+  
+  // Deduplication check
+  if (safeTrim(event.commentId)) {
+    const alreadyProcessed = await DMFlowFollowUp.findOne({ commentId: event.commentId }).lean();
+    if (alreadyProcessed) {
+      console.log(`Skipping: Comment ${event.commentId} already processed.`);
+      return false;
+    }
+  }
+
   if (!safeTrim(profile.instagramAccessToken)) {
     console.log('Skipping: no instagramAccessToken on profile');
     return false;
@@ -416,7 +530,7 @@ const findNextMessageForText = async (incomingText) => {
         if (matchingBtn) {
             // Find all potential next messages
             const nextMessages = flow.messages.slice(i + 1);
-            return { flow, nextMessages };
+            return { flow, nextMessages, matchingMsgIndex: i };
         }
     }
   }
@@ -490,17 +604,69 @@ const sendStandardMessage = async ({ pageToken, igScopedId, messagePayload, page
   );
 };
 
+const processMentionEventForProfile = async (profile, event) => {
+  console.log(`processMention: sender="${event.senderId}"`);
+
+  const automations = profile.automations || {};
+  if (!automations.storyMention?.active) {
+    console.log('processMention: storyMention automation is inactive. Skipping.');
+    return false;
+  }
+
+  const messagePayload = { text: automations.storyMention.message || "Hey! 🙌 Thanks so much for tagging us in your story — we really appreciate it! ❤️" };
+
+  try {
+    const pageToken = await resolvePageToken(profile);
+    if (!pageToken) {
+        console.error('Mention DM check failed: Could not resolve page token.');
+        return false;
+    }
+    await sendStandardMessage({
+      pageToken,
+      igScopedId: event.senderId,
+      messagePayload,
+      pageId: profile.instagramPageId
+    });
+    return true;
+  } catch (err) {
+    console.error('Mention DM send failed', err?.response?.data || err.message);
+    return false;
+  }
+};
+
 const processMessageEventForProfile = async (profile, event) => {
   console.log(`processMsg: text="${event.text}", sender="${event.senderId}"`);
 
   const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.senderId });
   if (pendingFollowUp && matchesFollowUpConfirmation(pendingFollowUp.flow, pendingFollowUp.pending, event.text)) {
+    const messages = pendingFollowUp.flow.messages || [];
+    let currentIndex = pendingFollowUp.pending.followUpMessageIndex;
+    let matchedMsg = messages[currentIndex];
+
+    if (matchedMsg && matchedMsg.conditional) {
+       const isFollowing = await checkUserFollows(profile, event.senderId);
+       matchedMsg = null;
+       for (let i = currentIndex; i < messages.length; i++) {
+           if (messages[i].conditional === 'if_following' && isFollowing) {
+               matchedMsg = messages[i]; break;
+           }
+           if (messages[i].conditional === 'if_not_following' && !isFollowing) {
+               matchedMsg = messages[i]; break;
+           }
+           if (!messages[i].conditional) {
+               matchedMsg = messages[i]; break;
+           }
+       }
+       if (!matchedMsg) matchedMsg = messages[currentIndex];
+    }
+
     const messagePayload = buildMessagePayloadForNextMessage(
       pendingFollowUp.flow,
-      pendingFollowUp.messageObj,
+      matchedMsg,
       profile,
-      { forcePrimaryLinkOnly: true }
+      { forcePrimaryLinkOnly: matchedMsg?.conditional === 'if_following' }
     );
+    
     if (!messagePayload) {
       return false;
     }
@@ -510,6 +676,8 @@ const processMessageEventForProfile = async (profile, event) => {
       if (!pageToken) {
         return false;
       }
+
+      await sleep(1500);
 
       await sendStandardMessage({
         pageToken,
@@ -538,25 +706,112 @@ const processMessageEventForProfile = async (profile, event) => {
   }
   
   const match = await findNextMessageForText(event.text);
-  if (!match) return false;
+  if (match && match.nextMessages.length > 0) {
+    const { flow, nextMessages, matchingMsgIndex } = match;
+    let targetMessage = nextMessages[0];
+    const previousMessage = flow.messages[matchingMsgIndex];
 
-  const { flow, nextMessages } = match;
-  if (!nextMessages.length) return false;
+    if (targetMessage && targetMessage.conditional) {
+       const isFollowing = await checkUserFollows(profile, event.senderId);
+       let foundMatchingSeqMsg = null;
+       
+       for (const msg of nextMessages) {
+           if (msg.conditional === 'if_following' && isFollowing) {
+               foundMatchingSeqMsg = msg; break;
+           }
+           if (msg.conditional === 'if_not_following' && !isFollowing) {
+               foundMatchingSeqMsg = msg; break;
+           }
+           if (!msg.conditional) {
+               foundMatchingSeqMsg = msg; break;
+           }
+       }
+       targetMessage = foundMatchingSeqMsg || previousMessage;
+    }
 
-  const targetMessage = nextMessages[0];
-  const messagePayload = buildMessagePayloadForNextMessage(flow, targetMessage, profile);
-  
+    const messagePayload = buildMessagePayloadForNextMessage(flow, targetMessage, profile, {
+      forcePrimaryLinkOnly: targetMessage?.conditional === 'if_following'
+    });
+    
+    try {
+      const pageToken = await resolvePageToken(profile);
+      if (!pageToken) {
+          console.error('Standard DM failed: Could not resolve page token.');
+          return false;
+      }
+
+      await sleep(1500);
+
+      await sendStandardMessage({
+        pageToken,
+        igScopedId: event.senderId,
+        messagePayload,
+        pageId: profile.instagramPageId
+      });
+      return true;
+    } catch (err) {
+      console.error('Standard DM send failed', err?.response?.data || err.message);
+      return false;
+    }
+  }
+
+  // Auto-reply fallback for ANY DM
   try {
-    let pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
+    const automations = profile.automations || {};
+    if (!automations.defaultReply?.active) {
+      console.log('processMessage: defaultReply automation is inactive. Skipping.');
+      return false;
+    }
+
+    // ─── 24 HOUR WINDOW CHECK ───
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+    const now = new Date();
+    
+    let convo = await DMConversation.findOne({ user: profile.user, senderId: event.senderId });
+    
+    if (convo && convo.lastDefaultReplyAt) {
+      const timeSinceLastReply = now.getTime() - convo.lastDefaultReplyAt.getTime();
+      if (timeSinceLastReply < TWENTY_FOUR_HOURS_MS) {
+        console.log(`processMessage: Sent auto-reply recently (${Math.round(timeSinceLastReply/3600000)}h ago). Skipping to avoid spam.`);
+        return false;
+      }
+    }
+
+    const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
+    if (!pageToken) {
+      console.log('processMessage: No token found. Skipping.');
+      return false;
+    }
+
+    const messagePayload = { text: automations.defaultReply.message || "Hi there! How can we help you today?" };
+
+    await sleep(2000);
+
     await sendStandardMessage({
       pageToken,
       igScopedId: event.senderId,
       messagePayload,
-      pageId: profile.instagramPageId
+      pageId: profile.instagramPageId,
     });
+
+    // Update the last reply time
+    if (!convo) {
+      await DMConversation.create({
+        user: profile.user,
+        senderId: event.senderId,
+        lastDefaultReplyAt: now
+      });
+    } else {
+      await DMConversation.updateOne(
+        { _id: convo._id },
+        { $set: { lastDefaultReplyAt: now } }
+      );
+    }
+
+    console.log('processMessage: Default auto-reply sent and timestamp updated.');
     return true;
   } catch (err) {
-    console.error('Standard DM send failed', err?.response?.data || err.message);
+    console.error('Auto-reply DM send failed', err?.response?.data || err.message);
     return false;
   }
 };
@@ -598,6 +853,20 @@ const processWebhookPayload = async (payload) => {
       for (const profile of profiles) {
         console.log(`Evaluating DM for profile ${profile.instagramUsername}:`, event);
         const didHandle = await processMessageEventForProfile(profile, event);
+        if (didHandle) {
+          handled = true;
+          break;
+        }
+      }
+    }
+
+    // Process mentions
+    const mentionEvents = extractMentionEvents(entry);
+    for (const event of mentionEvents) {
+      let handled = false;
+      for (const profile of profiles) {
+        console.log(`Evaluating Mention for profile ${profile.instagramUsername}:`, event);
+        const didHandle = await processMentionEventForProfile(profile, event);
         if (didHandle) {
           handled = true;
           break;

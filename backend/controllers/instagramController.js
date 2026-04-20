@@ -349,3 +349,47 @@ export const resubscribeInstagramWebhooks = async (req, res) => {
     return res.status(500).json({ message: 'Failed to resubscribe webhook targets.' });
   }
 };
+
+/**
+ * GET /api/instagram/automations
+ */
+export const getAutomations = async (req, res) => {
+  try {
+    const profile = await BrandProfile.findOne({ user: req.user._id });
+    if (!profile) return res.status(404).json({ success: false, message: 'Brand profile not found' });
+    
+    res.json({
+      success: true,
+      data: profile.automations || {
+        storyMention: { active: false, message: "Hey! 🙌 Thanks so much for tagging us..." },
+        defaultReply: { active: false, message: "Hi there! How can we help you today?" }
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/instagram/automations/:type
+ */
+export const updateAutomation = async (req, res) => {
+  const { type } = req.params; // storyMention or defaultReply
+  const { active, message } = req.body;
+
+  try {
+    const profile = await BrandProfile.findOne({ user: req.user._id });
+    if (!profile) return res.status(404).json({ success: false, message: 'Brand profile not found' });
+
+    if (!profile.automations) profile.automations = {};
+    if (!profile.automations[type]) profile.automations[type] = {};
+
+    if (active !== undefined) profile.automations[type].active = active;
+    if (message !== undefined) profile.automations[type].message = message;
+
+    await profile.save();
+    res.json({ success: true, data: profile.automations[type] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

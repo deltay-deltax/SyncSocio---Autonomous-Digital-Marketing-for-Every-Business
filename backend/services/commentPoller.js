@@ -24,6 +24,8 @@ const getConnectedProfileUrl = (profile) => {
   return username ? `https://instagram.com/${username}` : 'https://instagram.com';
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const buildTrackedButtonUrl = ({ flowId, buttonId, targetUrl }) => {
   if (!safeTrim(clickTrackingBaseUrl) || !safeTrim(targetUrl)) {
     return targetUrl;
@@ -211,6 +213,8 @@ const pollProfileComments = async (profile) => {
 
   if (!igId || !token) return;
 
+  console.log(`[POLLER] 🔍 Checking for new comments on ${profile.instagramUsername || profile.instagramPageId}...`);
+
   try {
     // 1. Fetch recent media (last 5 posts)
     const mediaRes = await axios.get(`${FB_API_BASE}/${igId}/media`, {
@@ -229,15 +233,23 @@ const pollProfileComments = async (profile) => {
       const comments = commentsRes.data?.data || [];
 
       for (const comment of comments) {
-        // Skip already-processed comments
+        // 1. Skip already-processed comments in-memory
         if (processedCommentIds.has(comment.id)) continue;
+
+        // 2. Double-check database to prevent double-replies across server restarts
+        const alreadyProcessed = await DMFlowFollowUp.findOne({ commentId: comment.id }).lean();
+        if (alreadyProcessed) {
+          processedCommentIds.add(comment.id);
+          continue;
+        }
 
         // Mark as processed IMMEDIATELY to prevent double-processing
         processedCommentIds.add(comment.id);
 
-        // Skip old comments (older than 2 minutes) on first run to avoid replying to ancient comments
+        // 3. Skip old comments (older than 5 minutes) to avoid replying to historical data
         const commentAge = Date.now() - new Date(comment.timestamp).getTime();
-        if (commentAge > 2 * 60 * 1000 && processedCommentIds.size <= comments.length) {
+        if (commentAge > 5 * 60 * 1000) {
+          processedCommentIds.add(comment.id);
           continue;
         }
 
@@ -274,6 +286,11 @@ const pollProfileComments = async (profile) => {
             console.error('[POLLER] Could not resolve page token, skipping DM');
             continue;
           }
+
+          // Humanize: wait 1.5s before replying
+          await sleep(1500);
+
+          console.log('[POLLER] Sending DM payload:', JSON.stringify(messagePayload));
 
           const result = await sendPrivateReply({
             pageToken,
@@ -342,37 +359,15 @@ export const startPolling = () => {
 
   // Run the first cycle after a short delay to let the server finish starting
   setTimeout(async () => {
-    // Seed the processedCommentIds with existing comments so we don't reply to old ones
-    console.log('[POLLER] Seeding existing comments to avoid replying to old ones...');
+    console.log('[POLLER] Seeding previously replied comments from DB...');
     try {
-      const profiles = await BrandProfile.find({
-        instagramIsConnected: true,
-        instagramAccessToken: { $exists: true, $ne: '' },
-        instagramBusinessAccountId: { $exists: true, $ne: '' },
-      }).lean();
-
-      for (const profile of profiles) {
-        const igId = profile.instagramBusinessAccountId;
-        const token = profile.instagramAccessToken;
-        try {
-          const mediaRes = await axios.get(`${FB_API_BASE}/${igId}/media`, {
-            params: { fields: 'id', limit: 5, access_token: token },
-          });
-          for (const media of (mediaRes.data?.data || [])) {
-            const commentsRes = await axios.get(`${FB_API_BASE}/${media.id}/comments`, {
-              params: { fields: 'id', access_token: token },
-            });
-            for (const c of (commentsRes.data?.data || [])) {
-              processedCommentIds.add(c.id);
-            }
-          }
-        } catch (e) {
-          // Ignore seeding errors
-        }
+      const existingReplies = await DMFlowFollowUp.find({ commentId: { $exists: true } }).select('commentId').lean();
+      for (const reply of existingReplies) {
+        if (reply.commentId) processedCommentIds.add(reply.commentId);
       }
-      console.log(`[POLLER] Seeded ${processedCommentIds.size} existing comment IDs`);
+      console.log(`[POLLER] Seeded ${processedCommentIds.size} comments from database.`);
     } catch (e) {
-      // Continue anyway
+      console.error('[POLLER] Database seeding failed:', e.message);
     }
 
     // Now start the regular polling interval

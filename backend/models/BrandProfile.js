@@ -54,6 +54,16 @@ const brandProfileSchema = new mongoose.Schema({
   selectedPlan: {
     type: String,
     default: 'Free'
+  },
+  automations: {
+    storyMention: {
+      active: { type: Boolean, default: false },
+      message: { type: String, default: "Hey! 🙌 Thanks so much for tagging us in your story — we really appreciate it! ❤️" }
+    },
+    defaultReply: {
+      active: { type: Boolean, default: false },
+      message: { type: String, default: "Hi there! Thanks for reaching out. How can we help you today? 😊" }
+    }
   }
 }, { timestamps: true });
 
