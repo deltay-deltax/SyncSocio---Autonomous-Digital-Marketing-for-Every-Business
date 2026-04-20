@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, Outlet } from 'react-router-dom';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -21,9 +21,11 @@ const navItems = [
   { label: 'Analytics', icon: BarChart3, path: '/dashboard/analytics' },
   { label: 'Ads', icon: Target, path: '/dashboard/ads' },
   { label: 'Strategy', icon: Sparkles, path: '/dashboard/strategy' },
+  { label: 'Content Mix', icon: Zap, path: '/dashboard/content' },
   { label: 'Post Optimizer', icon: Upload, path: '/dashboard/post-optimizer' },
   { label: 'DMs', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
+  { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
 ];
 
 const DashboardLayout = () => {
@@ -100,7 +102,7 @@ const DashboardLayout = () => {
       {/* Nav Items */}
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
         {navItems.map((item) => {
-          const isActive = item.path === '/dashboard' 
+          const isActive = item.path === '/dashboard'
             ? location.pathname === '/dashboard'
             : location.pathname.startsWith(item.path);
 
@@ -110,8 +112,8 @@ const DashboardLayout = () => {
               to={item.path}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
-                isActive 
-                  ? "bg-primary/8 text-primary font-bold shadow-sm" 
+                isActive
+                  ? "bg-primary/8 text-primary font-bold shadow-sm"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
@@ -132,19 +134,19 @@ const DashboardLayout = () => {
       {/* Agent Status Card in Sidebar */}
       <div className="p-4 mt-auto">
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 rounded-[2rem] border border-primary/10 mb-4">
-           <div className="flex items-center gap-2 mb-3">
-              <div className="relative flex items-center justify-center">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-30" />
-              </div>
-              <span className="text-xs font-bold text-foreground">Agent Active</span>
-           </div>
-           <p className="text-[11px] text-muted-foreground leading-relaxed mb-4">
-             Next post scheduled for <span className="text-foreground font-bold">Today 8PM</span>
-           </p>
-           <Button variant="outline" size="sm" className="w-full text-[10px] h-8 rounded-xl border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive bg-transparent group uppercase tracking-widest font-black">
-              <Pause size={12} className="mr-1.5 group-hover:scale-90 transition-transform" /> Pause Agent
-           </Button>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="relative flex items-center justify-center">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-30" />
+            </div>
+            <span className="text-xs font-bold text-foreground">Agent Active</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed mb-4">
+            Next post scheduled for <span className="text-foreground font-bold">Today 8PM</span>
+          </p>
+          <Button variant="outline" size="sm" className="w-full text-[10px] h-8 rounded-xl border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive bg-transparent group uppercase tracking-widest font-black">
+            <Pause size={12} className="mr-1.5 group-hover:scale-90 transition-transform" /> Pause Agent
+          </Button>
         </div>
 
       </div>
@@ -175,7 +177,7 @@ const DashboardLayout = () => {
         {/* HEADER */}
         <header className="h-16 border-b border-border/50 bg-white/50 backdrop-blur-sm px-6 flex items-center justify-between relative z-30 shrink-0">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(false)}
               className="lg:hidden p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground"
             >
@@ -192,17 +194,17 @@ const DashboardLayout = () => {
               <span className="text-[10px] font-black text-primary uppercase tracking-widest">Strategy v2.1</span>
             </div>
 
-            <button 
+            <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground relative"
             >
               <Bell size={18} />
               <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
             </button>
-            
+
             <div className="h-8 w-px bg-border/50 mx-2" />
-            
-            <button onClick={() => window.location.href='/dashboard/settings'}>
+
+            <button onClick={() => window.location.href = '/dashboard/settings'}>
               <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-primary/20 ring-offset-1 shadow-sm hover:ring-primary/60 transition-all">
                 {profile?.instagramProfilePicture ? (
                   <img src={profile.instagramProfilePicture} alt={brandName} className="object-cover w-full h-full" />
@@ -245,7 +247,7 @@ const DashboardLayout = () => {
       <AnimatePresence>
         {showNotifications && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

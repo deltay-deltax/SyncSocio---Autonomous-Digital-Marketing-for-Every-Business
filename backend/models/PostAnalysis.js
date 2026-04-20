@@ -40,6 +40,15 @@ const postAnalysisSchema = new mongoose.Schema({
   embedding: {
     type: [Number], // For Vector Search (Length will match Gemini text-embedding-004)
     index: false // We define the vector index in Atlas
+  },
+  instagramMediaId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  isAgentAssisted: {
+    type: Boolean,
+    default: true
   }
 }, { timestamps: true, collection: 'post_analyses' });
 

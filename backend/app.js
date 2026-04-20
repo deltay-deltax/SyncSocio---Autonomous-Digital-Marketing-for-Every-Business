@@ -17,6 +17,8 @@ import {
 } from './controllers/instagramWebhookController.js';
 import { startPolling } from './services/commentPoller.js';
 
+import { startStrategicPoller } from './utils/strategicPoller.js';
+
 dotenv.config();
 
 const app = express();
@@ -58,6 +60,8 @@ if (process.env.MONGO_URI) {
         console.log(`Server running on port ${PORT}`);
         // Start polling for Instagram comments (bypasses webhook delivery issues)
         startPolling();
+        // Start autonomous strategic audit agent
+        startStrategicPoller();
       });
     })
     .catch((err) => {

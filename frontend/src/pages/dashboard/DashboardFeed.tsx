@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Grid3X3, List, Eye, Heart, Activity, Sparkles } from 'lucide-react';
+import { Grid3X3, List, Eye, Heart, Activity, Sparkles, MessageCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -145,8 +145,9 @@ const DashboardFeed = () => {
                 <CardContent className="p-3">
                   <p className="text-xs text-foreground line-clamp-2 mb-3 font-medium leading-relaxed">{post.caption || 'No caption provided'}</p>
                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><Heart size={12} className="text-rose-500" /> {post.likes || 0}</span>
-                    <span className="flex items-center gap-1"><Activity size={12} className="text-primary" /> {post.comments || 0}</span>
+                    <span className="flex items-center gap-1"><Heart size={12} className="text-rose-500 fill-rose-500/10" /> {post.likes || 0}</span>
+                    <span className="flex items-center gap-1"><Activity size={12} className="text-blue-500" /> {post.reach || 0} Reach</span>
+                    <span className="flex items-center gap-1"><MessageCircle size={12} className="text-slate-400" /> {post.comments || 0}</span>
                   </div>
                   <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest opacity-60">
                     {new Date(post.timestamp).toLocaleDateString()}

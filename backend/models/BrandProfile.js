@@ -38,6 +38,13 @@ const brandProfileSchema = new mongoose.Schema({
     education: Number,
     promotion: Number
   },
+  predictedMix: {
+    reels: { type: Number, default: 0 },
+    static: { type: Number, default: 0 },
+    carousel: { type: Number, default: 0 }
+  },
+  agentRecommendation: { type: String, default: "" },
+  lastStrategicAudit: { type: Date },
    primaryCTA: String,
    primaryColor: { type: String, default: '#2563EB' },
    secondaryColor: { type: String, default: '#60A5FA' },
@@ -64,7 +71,12 @@ const brandProfileSchema = new mongoose.Schema({
       active: { type: Boolean, default: false },
       message: { type: String, default: "Hi there! Thanks for reaching out. How can we help you today? 😊" }
     }
-  }
+  },
+  followerHistory: [{
+    date: String, // Format: 'MMM D' e.g. 'Apr 19'
+    count: Number,
+    timestamp: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 export default mongoose.model('BrandProfile', brandProfileSchema);

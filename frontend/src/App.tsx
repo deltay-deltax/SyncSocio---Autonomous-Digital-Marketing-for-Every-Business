@@ -23,7 +23,9 @@ import DashboardSettings from './pages/dashboard/DashboardSettings';
 import ContentStrategy from './pages/dashboard/ContentStrategy';
 import PostOptimizer from './pages/PostOptimizer';
 import DashboardDMs from './pages/dashboard/DashboardDMs';
-
+import ContentMix from './pages/dashboard/ContentMix';
+import ContentPlan from './pages/dashboard/ContentPlan';
+import DashboardFAQ from './pages/dashboard/DashboardFAQ';
 
 function App() {
   return (
@@ -48,10 +50,13 @@ function App() {
             <Route path="feed" element={<DashboardFeed />} />
             <Route path="analytics" element={<DashboardAnalytics />} />
             <Route path="ads" element={<DashboardAds />} />
+            <Route path="content" element={<ContentMix />} />
+            <Route path="content/plan" element={<ContentPlan />} />
             <Route path="strategy" element={<ContentStrategy />} />
             <Route path="post-optimizer" element={<PostOptimizer />} />
             <Route path="dms" element={<DashboardDMs />} />
             <Route path="settings" element={<DashboardSettings />} />
+            <Route path="faq" element={<DashboardFAQ />} />
           </Route>
         </Route>
 

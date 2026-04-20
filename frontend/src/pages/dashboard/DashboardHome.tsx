@@ -61,7 +61,7 @@ const DashboardHome = () => {
     };
   }, []);
 
-  if (loading) {
+  if (loading && !data) {
      return (
         <div className="h-[70vh] flex items-center justify-center">
           <div className="flex flex-col items-center gap-6">
@@ -167,7 +167,68 @@ const DashboardHome = () => {
 
         {/* Quick Stats */}
         <motion.div className="lg:col-span-2 space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          {/* Top Post */}
+          {/* Content Mix - Current */}
+          <Card className="border-border/50">
+            <CardHeader className="p-6 pb-2">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Content Mix This Week</CardTitle>
+            </CardHeader>
+            <CardContent className="px-6 pb-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <div className="flex-1 h-3 rounded-full bg-slate-50 overflow-hidden flex gap-1 border border-slate-100">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.reels}%` }} transition={{ delay: 0.6, duration: 0.8 }} className="bg-rose-500 h-full border-r border-white/40" />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.static}%` }} transition={{ delay: 0.8, duration: 0.8 }} className="bg-sky-500 h-full border-r border-white/40" />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.carousel}%` }} transition={{ delay: 1, duration: 0.8 }} className="bg-amber-500 h-full" />
+                </div>
+              </div>
+              <div className="flex justify-between text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Reels {Math.round(contentMix.reels)}%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-500" /> Static {Math.round(contentMix.static)}%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Carousel {Math.round(contentMix.carousel)}%</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Content Mix - Predicted Agent Pulse */}
+          {data.predictedMix && (data.predictedMix.reels > 0 || data.predictedMix.static > 0) && (
+            <Card className="border-primary/20 bg-primary/[0.02]">
+              <CardHeader className="p-6 pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">Predicted Agent Pulse</CardTitle>
+                  <div className="px-2 py-0.5 bg-primary/10 rounded-md text-[8px] font-black uppercase tracking-widest text-primary border border-primary/10">Neural Optimal</div>
+                </div>
+              </CardHeader>
+              <CardContent className="px-6 pb-4">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <div className="flex-1 h-3 rounded-full bg-white overflow-hidden flex gap-1 border border-primary/10">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${data.predictedMix.reels}%` }} transition={{ delay: 1.2, duration: 1 }} className="bg-rose-500 h-full border-r border-white/30" />
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${data.predictedMix.static}%` }} transition={{ delay: 1.4, duration: 1 }} className="bg-sky-500 h-full border-r border-white/30" />
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${data.predictedMix.carousel}%` }} transition={{ delay: 1.6, duration: 1 }} className="bg-amber-500 h-full" />
+                  </div>
+                </div>
+                <div className="flex justify-between text-[9px] text-violet-500/70 font-black uppercase tracking-tighter">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Reels {Math.round(data.predictedMix.reels)}%</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-500" /> Static {Math.round(data.predictedMix.static)}%</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Carousel {Math.round(data.predictedMix.carousel)}%</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Agent Recommendation */}
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/8 to-primary/3 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-full blur-2xl" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-primary" />
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Agent Recommendation</p>
+              </div>
+              <p className="text-[11px] text-foreground leading-relaxed italic font-medium">
+                {data.agentRecommendation || "Analyze your profile to receive a custom performance recommendation."}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Top Post - Moved Down */}
           <Card className="border-border/50 overflow-hidden">
             <CardHeader className="p-6 pb-2">
               <div className="flex items-center gap-2">
@@ -205,41 +266,6 @@ const DashboardHome = () => {
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Content Mix */}
-          <Card className="border-border/50">
-            <CardHeader className="p-6 pb-2">
-              <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Content Mix This Week</CardTitle>
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="flex items-center gap-1.5 mb-3">
-                <div className="flex-1 h-3 rounded-full bg-slate-50 overflow-hidden flex gap-0.5 border border-slate-100">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.reels}%` }} transition={{ delay: 0.6, duration: 0.8 }} className="bg-primary h-full rounded-full" />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.static}%` }} transition={{ delay: 0.8, duration: 0.8 }} className="bg-primary/50 h-full rounded-full" />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.carousel}%` }} transition={{ delay: 1, duration: 0.8 }} className="bg-primary/25 h-full rounded-full" />
-                </div>
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground font-black uppercase tracking-tighter">
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary" /> Reels {Math.round(contentMix.reels)}%</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary/50" /> Static {Math.round(contentMix.static)}%</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary/25" /> Carousel {Math.round(contentMix.carousel)}%</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Agent Recommendation */}
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/8 to-primary/3 overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-full blur-2xl" />
-            <CardContent className="p-6 relative">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={14} className="text-primary" />
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Agent Recommendation</p>
-              </div>
-              <p className="text-[11px] text-foreground leading-relaxed italic font-medium">
-                Reels are outperforming static 4x. Agent has shifted your content mix to 70% Reels going forward.
-              </p>
             </CardContent>
           </Card>
         </motion.div>

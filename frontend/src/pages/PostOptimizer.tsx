@@ -192,9 +192,9 @@ const PostOptimizer: React.FC = () => {
             </div>
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Strategy Intelligence</span>
           </div>
-          {/* <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase italic">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 leading-tight">
             Post <span className="text-primary">Optimizer</span>
-          </h1> */}
+          </h1>
           <p className="text-slate-500 max-w-lg font-medium">
             {/* AI-powered content validation. Predict performance and automate your publishing schedule.aaa */}
           </p>
@@ -241,7 +241,7 @@ const PostOptimizer: React.FC = () => {
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-lg font-black uppercase tracking-tight">Post Setup</CardTitle>
+                        <CardTitle className="text-lg font-bold tracking-tight">Post Setup</CardTitle>
                         <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Step 01: Configure</CardDescription>
                       </div>
                       <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
@@ -460,7 +460,7 @@ const PostOptimizer: React.FC = () => {
                   <div className="absolute inset-0 bg-primary/5 rounded-[2.5rem] animate-ping opacity-20" />
                   <Sparkles className="text-slate-300" size={40} />
                 </div>
-                <h3 className="text-2xl font-black text-slate-800 mb-3 uppercase italic tracking-tight">System <span className="text-slate-300">Offline</span></h3>
+                <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">System <span className="text-slate-300 font-normal">Offline</span></h3>
                 <p className="text-slate-400 max-w-sm text-[13px] font-medium leading-relaxed">
                   Provide your content on the left to activate our <span className="text-primary font-bold">Velocity Cognitive Engine</span> and see your high-confidence growth predictions.
                 </p>
@@ -494,7 +494,7 @@ const PostOptimizer: React.FC = () => {
                 </div>
 
                 <div className="text-center space-y-6 px-6 max-w-sm">
-                  <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Optimizing Signals</h3>
+                  <h3 className="text-xl font-bold text-slate-800 tracking-tight">Optimizing Signals</h3>
                   <div className="space-y-3">
                     <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">Running Computer Vision...</p>
                     <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Analyzing Audience Resonance...</p>
@@ -519,7 +519,7 @@ const PostOptimizer: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Optimal Velocity Window</p>
-                      <h3 className="text-2xl font-black italic tracking-tighter text-slate-900">
+                      <h3 className="text-2xl font-bold tracking-tight text-slate-900">
                         {formatTime(result.bestPostingTime)} <span className="text-slate-300 font-normal">|</span> <span className="text-primary">{formatDate(result.bestPostingTime)}</span>
                       </h3>
                     </div>
@@ -667,7 +667,7 @@ const PostOptimizer: React.FC = () => {
                                <Sparkles size={40} className="animate-pulse" />
                             </div>
                             <div className="space-y-3">
-                              <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Velocity AI Visuals</h4>
+                              <h4 className="text-xl font-bold text-slate-800 tracking-tight">Velocity AI Visuals</h4>
                               <p className="text-sm font-medium text-slate-400 leading-relaxed">
                                 Transform your raw content into high-end editorial visuals. Using **NVIDIA FLUX I2I**, we'll upscale and stylize your post to match your brand's AI-optimized hook.
                               </p>

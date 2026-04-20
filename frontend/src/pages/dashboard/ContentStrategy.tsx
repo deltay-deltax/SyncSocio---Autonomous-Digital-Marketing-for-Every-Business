@@ -362,13 +362,13 @@ const ContentStrategy = () => {
             <Calendar size={16} />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">7-Day Content Engine</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase italic">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 leading-tight">
             Visual <span className="text-primary">Strategy</span>
             {generationSource === 'mock' && (
-              <span className="ml-4 px-3 py-1 bg-amber-100 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-full align-middle italic">Demo Mode</span>
+              <span className="ml-4 px-3 py-1 bg-amber-100 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-full align-middle border border-amber-200">Demo Mode</span>
             )}
             {generationSource === 'ai' && (
-              <span className="ml-4 px-3 py-1 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest rounded-full align-middle italic border border-primary/20">AI Generated</span>
+              <span className="ml-4 px-3 py-1 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest rounded-full align-middle border border-primary/20">AI Generated</span>
             )}
           </h1>
         </div>
@@ -485,7 +485,7 @@ const ContentStrategy = () => {
                       <Badge className="bg-primary/20 text-primary border-none font-black text-[10px] uppercase tracking-[0.2em] px-3 py-1">
                         {livePost.type}
                       </Badge>
-                      <h2 className="text-2xl font-black text-white italic tracking-tight leading-tight uppercase">
+                      <h2 className="text-2xl font-bold text-white tracking-tight leading-tight">
                         {livePost.title}
                       </h2>
                     </div>
@@ -526,7 +526,7 @@ const ContentStrategy = () => {
                   <Sparkles size={40} />
                 </div>
                 <div className="max-w-md space-y-6">
-                  <h2 className="text-3xl font-black uppercase italic tracking-tight">Activate <span className="text-primary">Cognitive Engine</span></h2>
+                  <h2 className="text-3xl font-bold tracking-tight">Activate <span className="text-primary">Cognitive Engine</span></h2>
                   <p className="text-sm font-medium text-slate-400 leading-relaxed uppercase tracking-widest px-4">
                     Our Strategy Agent needs to analyze your **@{profile?.instagramUsername || 'profile'}** and current IG metrics to determine your optimal 7-day content mix.
                   </p>
@@ -561,7 +561,7 @@ const ContentStrategy = () => {
                     <Edit3 size={32} />
                   </div>
                   <div className="text-left">
-                    <h3 className="text-2xl font-black italic tracking-tight uppercase">Product <span className="text-primary">Brief</span></h3>
+                    <h3 className="text-2xl font-bold tracking-tight">Product <span className="text-primary">Brief</span></h3>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Provide context for the AI Agents</p>
                   </div>
                 </div>
@@ -682,7 +682,7 @@ const ContentStrategy = () => {
                       <Sparkles size={16} />
                       <span className="text-[10px] font-black uppercase tracking-widest">Strategist Suggestion</span>
                     </div>
-                    <h4 className="text-xl font-black text-white uppercase italic tracking-tight">AI Content Mix</h4>
+                    <h4 className="text-xl font-bold text-white tracking-tight">AI Content Mix</h4>
                   </div>
 
                   <p className="text-sm font-medium text-slate-400 leading-relaxed italic text-left">
@@ -753,7 +753,7 @@ const ContentStrategy = () => {
                    <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-4">
                       Multi-Agent Autonomous Neural Link
                    </Badge>
-                   <h3 className="text-4xl font-black uppercase italic tracking-tighter leading-none">
+                   <h3 className="text-4xl font-bold tracking-tighter leading-tight">
                       Synthesizing <span className="text-primary">Collective Intelligence</span>
                    </h3>
                 </div>

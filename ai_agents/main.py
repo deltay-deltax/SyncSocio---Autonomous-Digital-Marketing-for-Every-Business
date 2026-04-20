@@ -16,6 +16,8 @@ from vector_utils import find_similar_posts
 import shutil
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
+from auditors.meta_auditor import MetaAuditor
+from auditors.models import AuditorInput, AuditorResponse
 
 load_dotenv()
 
@@ -491,6 +493,22 @@ async def api_generate_visuals(request: VisualGenRequest):
             
     except Exception as e:
         print(f"Visual Generation Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- PERFORMANCE AUDITOR ---
+@app.post("/audit-performance", response_model=AuditorResponse)
+async def api_audit_performance(input_data: AuditorInput):
+    """
+    The 'Velocity Pulse' Auditor endpoint.
+    Analyzes historical Meta metrics and predicts the optimal Content Mix.
+    """
+    try:
+        auditor = MetaAuditor()
+        result = await auditor.audit_and_align(input_data)
+        return result
+    except Exception as e:
+        print(f"Audit Route Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

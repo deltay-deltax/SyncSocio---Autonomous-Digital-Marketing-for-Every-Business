@@ -1,41 +1,36 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Brain, Zap, Target } from 'lucide-react';
+import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, ArrowDownRight, Brain, Zap, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { cn } from '@/lib/utils';
-
-const ranges = ['This Week', 'This Month', 'All Time'];
 
 let cachedAnalyticsData: Record<string, any> = {};
 
 const DashboardAnalytics = () => {
-  const [range, setRange] = useState('This Week');
-  const [data, setData] = useState<any>(cachedAnalyticsData['This Week'] || null);
-  const [loading, setLoading] = useState(!cachedAnalyticsData['This Week']);
+  const [data, setData] = useState<any>(cachedAnalyticsData['default'] || null);
+  const [loading, setLoading] = useState(!cachedAnalyticsData['default']);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (cachedAnalyticsData[range]) {
-      setData(cachedAnalyticsData[range]);
-      setLoading(false);
-    } else {
-      setLoading(true);
+    if (cachedAnalyticsData['default']) {
+      setData(cachedAnalyticsData['default']);
     }
 
     const fetchMetrics = async () => {
       try {
         const token = localStorage.getItem('token');
         const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-        const res = await fetch(`${API_BASE}/instagram/metrics?range=${encodeURIComponent(range)}`, {
+        // Defaulting to 4-week context automatically on backend
+        const res = await fetch(`${API_BASE}/instagram/metrics`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const result = await res.json();
         if (res.ok && isMounted) {
-          cachedAnalyticsData[range] = result.data;
+          cachedAnalyticsData['default'] = result.data;
           setData(result.data);
           setError(null);
         } else if (isMounted && !res.ok) {
@@ -43,7 +38,7 @@ const DashboardAnalytics = () => {
         }
       } catch (err) {
         console.error('Failed to fetch metrics:', err);
-        if (isMounted && !cachedAnalyticsData[range]) setError('Connection failed');
+        if (isMounted && !cachedAnalyticsData['default']) setError('Connection failed');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -51,18 +46,15 @@ const DashboardAnalytics = () => {
     
     fetchMetrics();
     
-    // Background auto-polling every 60 seconds for live data
-    const intervalId = setInterval(() => {
-      fetchMetrics();
-    }, 60000);
+    const intervalId = setInterval(fetchMetrics, 60000);
     
     return () => { 
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [range]);
+  }, []);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="h-[70vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
@@ -99,10 +91,10 @@ const DashboardAnalytics = () => {
   }
 
   const liveMetrics = [
-    { label: 'Total Reach', value: data?.reach?.toLocaleString() || '0', change: data?.reachChange || 'Live', icon: TrendingUp, gradient: 'from-primary/15 to-primary/5' },
-    { label: 'Total Followers', value: data?.followers?.toLocaleString() || '0', change: data?.followersChange || 'Live', icon: Eye, gradient: 'from-emerald-500/15 to-emerald-500/5' },
-    { label: 'Impressions', value: data?.impressions?.toLocaleString() || '0', change: data?.impressionsChange || 'Live', icon: Heart, gradient: 'from-rose-500/15 to-rose-500/5' },
-    { label: 'Engagement Rate', value: data?.engagementRate || '0.0%', change: data?.engagementRateChange || 'Live', icon: Activity, gradient: 'from-amber-500/15 to-amber-500/5' },
+    { label: 'Total Reach', value: data?.reach?.toLocaleString() || '0', change: data?.reachChange || 'Live', basis: 'Unique', icon: TrendingUp, gradient: 'from-primary/15 to-primary/5' },
+    { label: 'Total Followers', value: data?.followers?.toLocaleString() || '0', change: data?.followersChange || 'Live', basis: 'Current', icon: Eye, gradient: 'from-emerald-500/15 to-emerald-500/5' },
+    { label: 'Impressions', value: data?.impressions?.toLocaleString() || '0', change: data?.impressionsChange || 'Live', basis: 'Total', icon: Heart, gradient: 'from-rose-500/15 to-rose-500/5' },
+    { label: 'Engagement Rate', value: data?.engagementRate || '0.0%', change: data?.engagementRateChange || 'Live', basis: 'Ratio', icon: Activity, gradient: 'from-amber-500/15 to-amber-500/5' },
   ];
 
   const hourlyData = data?.hourlyActivity && data.hourlyActivity.length > 0 
@@ -129,20 +121,6 @@ const DashboardAnalytics = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-lg font-bold text-foreground">Analytics</h2>
-        <div className="flex gap-1 p-1 rounded-xl bg-muted/60">
-          {ranges.map(r => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={cn(
-                'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
-                range === r ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Metrics Grid */}
@@ -153,11 +131,19 @@ const DashboardAnalytics = () => {
               <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
               <CardContent className="p-4 relative">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <m.icon size={16} className="text-primary" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <m.icon size={16} className="text-primary" />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                      {m.basis}
+                    </span>
                   </div>
-                  <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-500/10">
-                    {m.change} <ArrowUpRight size={10} />
+                  <span className={cn(
+                    "text-[11px] font-bold flex items-center gap-0.5 px-2 py-0.5 rounded-full",
+                    m.change?.startsWith('-') ? "text-rose-500 bg-rose-500/10" : "text-emerald-500 bg-emerald-500/10"
+                  )}>
+                    {m.change} {m.change?.startsWith('-') ? <ArrowDownRight size={10} /> : <ArrowUpRight size={10} />}
                   </span>
                 </div>
                 <p className="text-xl font-bold text-foreground">{m.value}</p>
@@ -168,7 +154,117 @@ const DashboardAnalytics = () => {
         ))}
       </div>
 
-      {/* Chart */}
+      {/* Reach Growth Chart */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+        <Card className="border-border/50">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-bold">Reach Growth Over Time</CardTitle>
+              <p className="text-[10px] text-muted-foreground">Comparative performance (Last 4 Weeks)</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Total Reach</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Agent Assisted</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {data?.weeklyGrowth && data.weeklyGrowth.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.weeklyGrowth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="week" tick={{ fontSize: 10 }} stroke="#94a3b8" axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" axisLine={false} tickLine={false} />
+                    <Tooltip 
+                      contentStyle={{ fontSize: 12, borderRadius: 16, border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      labelStyle={{ fontWeight: 'bold', marginBottom: 4 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="totalReach" 
+                      stroke="#3b82f6" 
+                      strokeWidth={3} 
+                      dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="agentReach" 
+                      name="Agent Assisted"
+                      stroke="#10b981" 
+                      strokeWidth={3} 
+                      dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-xs text-muted-foreground italic">
+                  Calibrating 8-week growth telemetry...
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Follower Growth Chart */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <Card className="border-border/50">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-bold">Follower Growth</CardTitle>
+              <p className="text-[10px] text-muted-foreground">Audience expansion (Last 30 Days)</p>
+            </div>
+            <div className="flex items-center gap-2">
+               <span className={cn(
+                 "text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest",
+                 (data?.newFollowersCount || 0) > 0 ? "text-emerald-500 bg-emerald-500/10" : 
+                 (data?.newFollowersCount || 0) < 0 ? "text-rose-500 bg-rose-500/10" : 
+                 "text-slate-400 bg-slate-100"
+               )}>
+                  {(data?.newFollowersCount || 0) > 0 ? '+' : ''}{data?.newFollowersCount || 0} followers { (data?.newFollowersCount || 0) > 0 ? 'gained' : (data?.newFollowersCount || 0) < 0 ? 'lost' : 'stable' }
+               </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {data?.followerGrowth && data.followerGrowth.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.followerGrowth} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="#94a3b8" axisLine={false} tickLine={false} interval={6} />
+                    <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" axisLine={false} tickLine={false} domain={['auto', 'auto']} />
+                    <Tooltip 
+                      contentStyle={{ fontSize: 12, borderRadius: 16, border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke="#10b981" 
+                      strokeWidth={4} 
+                      dot={false}
+                      activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-xs text-muted-foreground italic">
+                  Analyzing follower telemetry...
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Audience Activity Chart */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card className="border-border/50">
           <CardHeader className="pb-2">
@@ -232,7 +328,16 @@ const DashboardAnalytics = () => {
                   <tbody>
                     {postBreakdown.map((p: any, i: number) => (
                       <tr key={i} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                        <td className="p-3 text-foreground max-w-[150px] truncate font-medium">{p.post}</td>
+                        <td className="p-3 text-foreground max-w-[150px] truncate font-medium">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="truncate">{p.post}</span>
+                            {p.isAgentAssisted && (
+                              <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500">
+                                <Zap size={8} className="fill-emerald-500" /> Neural Verified
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-3"><span className="px-2 py-0.5 rounded-lg bg-muted text-[10px] font-semibold">{p.type}</span></td>
                         <td className="p-3 text-right text-foreground">{p.reach}</td>
                         <td className="p-3 text-right text-foreground">{p.likes}</td>
