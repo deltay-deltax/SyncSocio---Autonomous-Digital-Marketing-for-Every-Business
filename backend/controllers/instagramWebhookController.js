@@ -335,6 +335,7 @@ const checkUserFollows = async (profile, senderId) => {
 
 const extractMentionEvents = (entry = {}) => {
   const changes = Array.isArray(entry.changes) ? entry.changes : [];
+  const messaging = Array.isArray(entry.messaging) ? entry.messaging : [];
   const events = [];
 
   for (const change of changes) {
@@ -353,6 +354,43 @@ const extractMentionEvents = (entry = {}) => {
 
     events.push({ mediaId, senderId });
   }
+
+  // Meta may deliver story mentions as messaging attachments instead of changes[].
+  for (const msg of messaging) {
+    if (msg?.message?.is_echo) continue;
+
+    const senderId = safeTrim(msg?.sender?.id);
+    if (!senderId) continue;
+
+    const attachments = Array.isArray(msg?.message?.attachments) ? msg.message.attachments : [];
+    const storyMention = attachments.find((a) => safeTrim(a?.type).toLowerCase() === 'story_mention');
+    if (!storyMention) continue;
+
+    const mentionUrl = safeTrim(storyMention?.payload?.url);
+    let mediaId = '';
+
+    if (mentionUrl) {
+      try {
+        const url = new URL(mentionUrl);
+        mediaId = safeTrim(url.searchParams.get('asset_id'));
+      } catch {
+        mediaId = '';
+      }
+    }
+
+    if (!mediaId) {
+      mediaId = safeTrim(msg?.message?.mid) || `${senderId}_${safeTrim(String(msg?.timestamp || ''))}`;
+    }
+
+    if (!mediaId) continue;
+    if (processedMentionMediaIds.has(mediaId)) continue;
+
+    processedMentionMediaIds.add(mediaId);
+    if (processedMentionMediaIds.size > 10000) processedMentionMediaIds.delete(processedMentionMediaIds.keys().next().value);
+
+    events.push({ mediaId, senderId });
+  }
+
   return events;
 };
 
