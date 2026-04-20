@@ -758,8 +758,11 @@ const processMessageEventForProfile = async (profile, event) => {
   // Auto-reply fallback for ANY DM
   try {
     const automations = profile.automations || {};
-    if (!automations.defaultReply?.active) {
-      console.log('processMessage: defaultReply automation is inactive. Skipping.');
+    const isActive = automations.defaultReply?.active;
+    
+    console.log(`processMessage: evaluating defaultReply for ${profile.instagramUsername}. active=${isActive}`);
+    
+    if (!isActive) {
       return false;
     }
 

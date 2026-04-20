@@ -387,9 +387,13 @@ export const updateAutomation = async (req, res) => {
     if (active !== undefined) profile.automations[type].active = active;
     if (message !== undefined) profile.automations[type].message = message;
 
+    profile.markModified('automations');
     await profile.save();
+    
+    console.log(`[AUTOMATION] Updated ${type}: active=${active}, msgLength=${message?.length || 'no-change'}`);
     res.json({ success: true, data: profile.automations[type] });
   } catch (err) {
+    console.error('[AUTOMATION] Update failed:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
