@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Video,
   Image as ImageIcon,
@@ -22,7 +22,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { buildWeek, type ContentDay, type ContentType } from "@/lib/content-plan";
+import { type ContentType } from "@/lib/content-plan";
+import { mediaCache } from "@/lib/media-cache";
+
+const API_BASE = 'http://localhost:5050/api';
 
 const TYPE_META: Record<
   ContentType,
@@ -48,12 +51,21 @@ const TYPE_META: Record<
   },
 };
 
-interface PlanItem extends ContentDay {
+interface PlanItem {
   id: string;
+  day: string;
+  date: string;
+  iso_date?: string;
+  type: ContentType;
+  topic: string;
+  optimalTime: string;
+  prompt: string;
+  why?: string;
   selected: boolean;
   file?: File;
   previewUrl?: string;
   publishing?: boolean;
+  published?: boolean;
 }
 
 const ContentPlan: React.FC = () => {
@@ -61,21 +73,115 @@ const ContentPlan: React.FC = () => {
   const [generating, setGenerating] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [captions, setCaptions] = useState<Record<number, { caption: string; hashtags: string; hashtag_strategy: string }>>({});
+  const [captionsLoading, setCaptionsLoading] = useState(false);
+  const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const navigate = useNavigate();
 
-  // Auto-generate on mount
+  // Fetch real plan from AI agent on mount — restores from sessionStorage if already generated
   useEffect(() => {
-    const t = setTimeout(() => {
-      const week = buildWeek().map((d, i) => ({
-        ...d,
-        id: `${d.day}-${i}`,
-        selected: false,
-      }));
-      setItems(week);
-      setGenerating(false);
-    }, 700);
-    return () => clearTimeout(t);
+    const fetchPlan = async () => {
+      setGenerating(true);
+      // Restore cached plan to avoid re-fetching on nav
+      const cached = sessionStorage.getItem('content_plan');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          const rawItems = parsed.items || [];
+          
+          // restore files from global module cache (since sessionStorage strips them)
+          const itemsWithFiles = rawItems.map((item: any) => {
+            const cachedMedia = mediaCache.get(item.id);
+            if (cachedMedia) {
+              return { ...item, file: cachedMedia.file, previewUrl: cachedMedia.previewUrl };
+            }
+            return item;
+          });
+
+          setItems(itemsWithFiles);
+          setCaptions(parsed.captions || {});
+          setGenerating(false);
+          return;
+        } catch {}
+      }
+      try {
+        const token = localStorage.getItem('token') || '';
+        // Get the stored mix from sessionStorage (written by ContentMix page)
+        const storedMix = JSON.parse(sessionStorage.getItem('content_mix') || 'null');
+        const res = await fetch(`${API_BASE}/ai/plan`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ mix: storedMix })
+        });
+        if (!res.ok) throw new Error('Plan fetch failed');
+        const data = await res.json();
+
+        console.log("\n--- Generating content (7-day plan) ---");
+        if (data.prompts && data.prompts.length > 0) {
+          data.prompts.forEach((p: string, i: number) => {
+            console.log(`agent prompt ${i + 1}:`, p);
+          });
+        }
+        console.log("agent res:", data.plan || data);
+
+        const week = (data.plan || []).map((d: any, i: number) => ({
+          ...d,
+          id: `${d.day}-${i}`,
+          selected: false,
+        }));
+        setItems(week);
+        // Persist initial skeleton immediately
+        sessionStorage.setItem('content_plan', JSON.stringify({ items: week, captions: {} }));
+        // Now fetch captions for all posts
+        fetchCaptions(week, token);
+      } catch (e) {
+        console.error('Failed to load AI plan:', e);
+        // Fallback: use current date-based static plan
+        const { buildWeek } = await import("@/lib/content-plan");
+        const week = buildWeek().map((d, i) => ({ ...d, id: `${d.day}-${i}`, selected: false }));
+        setItems(week);
+      } finally {
+        setGenerating(false);
+      }
+    };
+    fetchPlan();
   }, []);
+
+  const fetchCaptions = async (planItems: PlanItem[], token?: string) => {
+    try {
+      setCaptionsLoading(true);
+      const t = token || localStorage.getItem('token') || '';
+      const res = await fetch(`${API_BASE}/ai/captions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+        body: JSON.stringify({ posts: planItems.map(p => ({ type: p.type, topic: p.topic, prompt: p.prompt })) })
+      });
+      if (!res.ok) throw new Error('Caption fetch failed');
+      const data = await res.json();
+
+      console.log("\n--- Generating Captions ---");
+      if (data.prompts && data.prompts.length > 0) {
+        data.prompts.forEach((p: string, i: number) => {
+          console.log(`agent prompt ${i + 1}:`, p);
+        });
+      }
+      console.log("agent res:", data.captions || data);
+
+      const captionMap: Record<number, any> = {};
+      (data.captions || []).forEach((c: any) => { captionMap[c.day_index] = c; });
+      setCaptions(captionMap);
+      // Persist everything to sessionStorage
+      sessionStorage.setItem('content_plan', JSON.stringify({ items: planItems, captions: captionMap }));
+    } catch (e) {
+      console.error('Failed to load captions:', e);
+    } finally {
+      setCaptionsLoading(false);
+    }
+  };
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -85,19 +191,53 @@ const ContentPlan: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const regenerate = () => {
+  const regenerate = async () => {
     setGenerating(true);
     setOpenId(null);
+    // Clear cached plan so fresh AI data is fetched
+    sessionStorage.removeItem('content_plan');
+    sessionStorage.removeItem('content_mix');
+    mediaCache.clear();
     items.forEach((it) => it.previewUrl && URL.revokeObjectURL(it.previewUrl));
-    setTimeout(() => {
-      const week = buildWeek().map((d, i) => ({
-        ...d,
-        id: `${d.day}-${i}-${Date.now()}`,
-        selected: false,
-      }));
+    try {
+      const token = localStorage.getItem('token') || '';
+      const storedMix = JSON.parse(sessionStorage.getItem('content_mix') || 'null');
+      const res = await fetch(`${API_BASE}/ai/plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ mix: storedMix })
+      });
+      if (!res.ok) throw new Error('Regenerate failed');
+      const data = await res.json();
+
+      console.log("\n--- Regenerating content (7-day plan) ---");
+      if (data.prompts && data.prompts.length > 0) {
+        data.prompts.forEach((p: string, i: number) => {
+          console.log(`agent prompt ${i + 1}:`, p);
+        });
+      }
+      console.log("agent res:", data.plan || data);
+
+      const week = (data.plan || []).map((d: any, i: number) => ({ ...d, id: `${d.day}-${i}-${Date.now()}`, selected: false }));
       setItems(week);
+      // Fulfill user requirement: Ensure regenerated plan is also persisted!
+      fetchCaptions(week, token);
+    } catch (err) {
+      console.error('Regeneration failed:', err);
+      const { buildWeek } = await import("@/lib/content-plan");
+      const week = buildWeek().map((d, i) => ({ ...d, id: `${d.day}-${i}-${Date.now()}`, selected: false }));
+      setItems(week);
+      sessionStorage.setItem('content_plan', JSON.stringify({ items: week, captions: {} }));
+    } finally {
       setGenerating(false);
-    }, 700);
+    }
+  };
+
+  const handleBack = () => {
+    // Clear session so user goes to the "Generate" page, not the redirect
+    sessionStorage.removeItem('content_plan');
+    sessionStorage.removeItem('content_mix');
+    navigate("/dashboard/content");
   };
 
   const toggleSelect = (id: string) => {
@@ -113,37 +253,76 @@ const ContentPlan: React.FC = () => {
   };
 
   const handleFile = (id: string, file: File) => {
-    setItems((prev) =>
-      prev.map((it) => {
+    const previewUrl = URL.createObjectURL(file);
+    setItems((prev) => {
+      const newItems = prev.map((it) => {
         if (it.id !== id) return it;
         if (it.previewUrl) URL.revokeObjectURL(it.previewUrl);
-        return { ...it, file, previewUrl: URL.createObjectURL(file) };
-      }),
-    );
+        return { ...it, file, previewUrl };
+      });
+      // Persist to sessionStorage (strips File but keeps state)
+      sessionStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
+      return newItems;
+    });
+    // Persist to global cache
+    mediaCache.set(id, file, previewUrl);
   };
 
   const removeFile = (id: string) => {
-    setItems((prev) =>
-      prev.map((it) => {
+    setItems((prev) => {
+      const newItems = prev.map((it) => {
         if (it.id !== id) return it;
         if (it.previewUrl) URL.revokeObjectURL(it.previewUrl);
         return { ...it, file: undefined, previewUrl: undefined };
-      }),
-    );
+      });
+      // Persist to sessionStorage
+      sessionStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
+      return newItems;
+    });
+    mediaCache.remove(id);
   };
 
-  const handlePublish = (id: string) => {
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, publishing: true } : it)),
-    );
-    setTimeout(() => {
-      setItems((prev) => {
-        const target = prev.find((it) => it.id === id);
-        if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
-        return prev.filter((it) => it.id !== id);
+  const handlePublish = async (id: string) => {
+    const item = items.find(it => it.id === id);
+    if (!item?.file) return;
+    setItems(prev => prev.map(it => it.id === id ? { ...it, publishing: true } : it));
+    try {
+      const token = localStorage.getItem('token') || '';
+      const formData = new FormData();
+      formData.append('file', item.file);
+      formData.append('contentType', item.type);
+      formData.append('description', item.prompt);
+      // Schedule for the optimal time on the post's date
+      const scheduledAt = item.iso_date
+        ? `${item.iso_date}T${convertTimeTo24h(item.optimalTime)}:00`
+        : new Date().toISOString();
+      formData.append('scheduledAt', scheduledAt);
+      await fetch(`${API_BASE}/posts/validate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
       });
-      setOpenId((cur) => (cur === id ? null : cur));
+    } catch (e) {
+      console.error('Publish error', e);
+    }
+    setTimeout(() => {
+      setItems(prev => {
+        const target = prev.find(it => it.id === id);
+        if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+        return prev.filter(it => it.id !== id);
+      });
+      setOpenId(cur => cur === id ? null : cur);
     }, 900);
+  };
+
+  const convertTimeTo24h = (time: string): string => {
+    try {
+      const [timePart, modifier] = time.split(' ');
+      let [hours, minutes] = timePart.split(':').map(Number);
+      if (modifier === 'PM' && hours !== 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      return `${String(hours).padStart(2, '0')}:${String(minutes ?? 0).padStart(2, '0')}`;
+    } catch { return '20:00'; }
   };
 
   const allDone = !generating && items.length === 0;
@@ -153,12 +332,12 @@ const ContentPlan: React.FC = () => {
       <div className="max-w-5xl mx-auto py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Link
-            to="/dashboard/content"
+          <button
+            onClick={handleBack}
             className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
           >
-            <ArrowLeft size={14} /> Back
-          </Link>
+            <ArrowLeft size={14} /> Regenerate Content Mix
+          </button>
           <Button
             onClick={regenerate}
             disabled={generating}
@@ -491,6 +670,56 @@ const ContentPlan: React.FC = () => {
                                   </Badge>
                                 </div>
                               </div>
+
+                              {/* AI Caption + Hashtag Section */}
+                              {captionsLoading && !captions[items.indexOf(item)] && (
+                                <div className="mt-3 rounded-2xl bg-primary/5 border border-primary/10 p-4 flex items-center gap-3">
+                                  <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">AI writing caption &amp; hashtags…</span>
+                                </div>
+                              )}
+                              {captions[items.indexOf(item)] && (() => {
+                                const cap = captions[items.indexOf(item)];
+                                const capKey = `cap-${item.id}`;
+                                const hashKey = `hash-${item.id}`;
+                                return (
+                                  <div className="space-y-3 mt-4">
+                                    <div className="rounded-3xl bg-white border-2 border-slate-100 p-5">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                          <Wand2 size={13} className="text-primary" />
+                                          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">AI Caption</span>
+                                        </div>
+                                        <Button variant="ghost" size="sm"
+                                          onClick={() => { navigator.clipboard.writeText(cap.caption); setCopiedCaptionId(capKey); setTimeout(() => setCopiedCaptionId(null), 2000); }}
+                                          className="h-8 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-[10px] font-black uppercase tracking-widest gap-2 border border-border"
+                                        >
+                                          {copiedCaptionId === capKey ? <><Check size={12} className="text-emerald-500" strokeWidth={3} /> Copied</> : <><Copy size={12} /> Copy</>}
+                                        </Button>
+                                      </div>
+                                      <p className="text-sm leading-relaxed text-foreground font-medium">{cap.caption}</p>
+                                    </div>
+                                    <div className="rounded-3xl bg-indigo-50/60 border-2 border-indigo-100 p-5">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                          <Zap size={13} className="text-indigo-500 fill-indigo-500" />
+                                          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600">Strategic Hashtags</span>
+                                        </div>
+                                        <Button variant="ghost" size="sm"
+                                          onClick={() => { navigator.clipboard.writeText(cap.hashtags); setCopiedCaptionId(hashKey); setTimeout(() => setCopiedCaptionId(null), 2000); }}
+                                          className="h-8 px-3 rounded-xl bg-white hover:bg-white text-[10px] font-black uppercase tracking-widest gap-2 shadow-sm border border-border"
+                                        >
+                                          {copiedCaptionId === hashKey ? <><Check size={12} className="text-emerald-500" strokeWidth={3} /> Copied</> : <><Copy size={12} /> Copy All</>}
+                                        </Button>
+                                      </div>
+                                      <p className="text-sm text-indigo-700 font-medium leading-relaxed break-all">{cap.hashtags}</p>
+                                      {cap.hashtag_strategy && (
+                                        <p className="mt-3 text-[11px] text-muted-foreground font-medium italic border-t border-indigo-100 pt-3">📈 {cap.hashtag_strategy}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </motion.div>
                         )}

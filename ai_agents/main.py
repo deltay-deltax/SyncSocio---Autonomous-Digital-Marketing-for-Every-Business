@@ -7,19 +7,23 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 import re
 from dotenv import load_dotenv
+
+load_dotenv()
+
 from bson import ObjectId
 from agents import generate_strategy, analyze_brand_mix
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from models import BrandInfo, StrategyResponse
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
+from mix_agent import predict_brand_mix
+from plan_agent import generate_weekly_plan
+from caption_agent import generate_captions_and_hashtags
 import shutil
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 from auditors.meta_auditor import MetaAuditor
 from auditors.models import AuditorInput, AuditorResponse
-
-load_dotenv()
 
 app = FastAPI(title="Velocity AI Strategy Service")
 
@@ -137,6 +141,45 @@ async def api_generate_strategy(brand_info: BrandInfo):
         }
     except Exception as e:
         print(f"Error in strategy generation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict-mix")
+async def api_predict_mix(payload: Dict[str, Any]):
+    try:
+        print(f"DEBUG: Predicting mix for {payload.get('brandName')}")
+        result = predict_brand_mix(payload)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-plan")
+async def api_generate_plan(payload: Dict[str, Any]):
+    try:
+        brand_name = payload.get('brandName', 'Unknown')
+        print(f"DEBUG: Generating 7-day plan for {brand_name}")
+        result = generate_weekly_plan(payload)
+        return {
+            "plan": result.get("plan", []),
+            "prompts": result.get("prompts", []),
+            "count": len(result.get("plan", []))
+        }
+    except Exception as e:
+        print(f"Error in plan generation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-captions")
+async def api_generate_captions(payload: Dict[str, Any]):
+    try:
+        brand_name = payload.get('brandName', 'Unknown')
+        print(f"DEBUG: Generating captions for {brand_name}")
+        result = generate_captions_and_hashtags(payload)
+        return {
+            "captions": result.get("captions", []),
+            "prompts": result.get("prompts", []),
+            "count": len(result.get("captions", []))
+        }
+    except Exception as e:
+        print(f"Error in caption generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/validate-post")
