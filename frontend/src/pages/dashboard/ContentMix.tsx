@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Sparkles,
   Video,
@@ -38,6 +38,55 @@ const TYPE_META: Record<
 };
 
 const ContentMix: React.FC = () => {
+  const [mixData, setMixData] = useState<Record<string, number> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // fulfill user requirement: if plan exists, skip this generate page and go to plan
+  React.useEffect(() => {
+    const cachedPlan = sessionStorage.getItem('content_plan');
+    if (cachedPlan) {
+      console.log("Existing plan found, redirecting to plan page...");
+      navigate("/dashboard/content/plan", { replace: true });
+    }
+  }, [navigate]);
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch('http://localhost:5050/api/ai/mix', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || "Failed to fetch mix from backend.");
+      }
+      const data = await res.json();
+      
+      console.log("\n--- Generating Mix ---");
+      if (data.prompts && data.prompts.length > 0) {
+        data.prompts.forEach((p: string, i: number) => {
+          console.log(`agent prompt ${i + 1}:`, p);
+        });
+      }
+      console.log("agent res:", data.mix || data);
+
+      // Persist mix for the plan agent to consume
+      const mixToStore = data.mix || data;
+      sessionStorage.setItem('content_mix', JSON.stringify(mixToStore));
+      setMixData(mixToStore);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Backend Error: ${err.message}\nMake sure your Node server was restarted!`);
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center animate-in fade-in duration-500">
       <div className="max-w-3xl mx-auto px-6 py-10 md:py-16">
@@ -57,45 +106,57 @@ const ContentMix: React.FC = () => {
             Content <span className="text-primary">Mix</span>
           </h1>
           <p className="mt-5 max-w-xl mx-auto text-muted-foreground text-sm md:text-base leading-relaxed">
-            Plan a perfectly balanced 7-day content week — 3 reels, 2 images, and
-            2 carousels — with optimal posting times and ready-to-use prompts.
+            Plan a perfectly balanced 7-day content week with optimal posting times and ready-to-use prompts.
             Generate, select, upload your media, and publish in one elegant flow.
           </p>
 
-          <Link to="/dashboard/content/plan">
+          {!mixData ? (
             <Button
+              onClick={handleGenerate}
+              disabled={loading}
               className="mt-9 h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover-lift border-0 group"
             >
-              <Wand2 size={16} className="mr-2" />
-              Generate Content Mix
-              <ArrowRight size={16} className="ml-2 group-hover:translate-x-0.5 transition-transform" />
+              <Wand2 size={16} className={cn("mr-2", loading && "animate-pulse")} />
+              {loading ? "Analyzing Profile..." : "Generate Content Mix"}
+              {!loading && <ArrowRight size={16} className="ml-2 group-hover:translate-x-0.5 transition-transform" />}
             </Button>
-          </Link>
+          ) : (
+            <Link to="/dashboard/content/plan">
+              <Button
+                className="mt-9 h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover-lift border-0 group"
+              >
+                Continue
+                <ArrowRight size={16} className="ml-2 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </Link>
+          )}
 
-          <div className="mt-12 flex items-center justify-center flex-wrap gap-4">
-            {(["reel", "image", "carousel"] as ContentType[]).map((t) => {
-              const meta = TYPE_META[t];
-              const Icon = meta.icon;
-              const count = WEEK_PLAN.filter((p) => p === t).length;
-              return (
-                <div
-                  key={t}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-border shadow-sm ring-1",
-                    meta.ring,
-                  )}
-                >
-                  <span className={cn("w-8 h-8 rounded-xl flex items-center justify-center", meta.tint)}>
-                    <Icon size={14} />
-                  </span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">
-                    {count} {meta.label}
-                    {count > 1 ? "s" : ""}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {mixData && (
+            <div className="mt-12 flex items-center justify-center flex-wrap gap-4 animate-in fade-in zoom-in duration-500">
+              {(["reel", "image", "carousel"] as ContentType[]).map((t) => {
+                const meta = TYPE_META[t];
+                const Icon = meta.icon;
+                const count = mixData[t] || mixData[t + 's'] || 0; // handle 'reel' vs 'reels'
+                return (
+                  <div
+                    key={t}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-border shadow-sm ring-1",
+                      meta.ring,
+                    )}
+                  >
+                    <span className={cn("w-8 h-8 rounded-xl flex items-center justify-center", meta.tint)}>
+                      <Icon size={14} />
+                    </span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">
+                      {count} {meta.label}
+                      {count !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
       </div>
     </div>
