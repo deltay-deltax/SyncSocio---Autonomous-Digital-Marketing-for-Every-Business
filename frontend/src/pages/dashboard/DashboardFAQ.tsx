@@ -21,11 +21,43 @@ const FAQS = [
   },
   {
     q: "How is the optimal posting time decided?",
-    a: "Velocity analyzes engagement patterns by content format and audience behavior to suggest the time slot most likely to maximize reach for each individual post.",
+    a: "Velocity analyzes your specific audience behavior via the Instagram Graph API to identify the 'Peak Hour' when the highest number of your followers are online and active.",
+  },
+  {
+    q: "What does 'Posts This Month' represent?",
+    a: "This represents the total number of media items (reels, images, and carousels) you have published on your connected Instagram account during the current calendar month.",
+  },
+  {
+    q: "What is 'Total Reach' and how is it measured?",
+    a: "Total Reach measures the number of unique Instagram accounts that have seen your content. Even if one person views your post multiple times, it still counts as only 1 towards your unique Reach.",
+  },
+  {
+    q: "What does 'Reach This Week' measure?",
+    a: "This tracks the number of unique accounts that interacted with or viewed your content specifically within the last 7 days. It is a critical metric for understanding your weekly growth and organic visibility.",
+  },
+  {
+    q: "What are 'Impressions'?",
+    a: "Impressions are the total number of times your content was on screen. Unlike Reach, if a single person views your post three times, it counts as 3 Impressions.",
+  },
+  {
+    q: "How is the 'Engagement Rate' calculated?",
+    a: "We calculate accuracy by taking the total weight of interactions (Likes, Comments, and Saves) and dividing it by the Total Reach of those posts. Formula: ((Likes + Comments + Saves) / Reach) × 100.",
+  },
+  {
+    q: "What does 'Likes This Week' track?",
+    a: "This metric provides a cumulative count of all likes received across your posts within a rolling 7-day window, helping you track short-term audience appreciation trends.",
+  },
+  {
+    q: "What are 'Total Followers'?",
+    a: "This is your current, live follower count directly from Instagram. We also track 'Follower Growth' over 30 days to help you visualize your audience expansion velocity.",
+  },
+  {
+    q: "What do the percentage changes (e.g., +10.5%) mean?",
+    a: "These indicators show your 'Growth Velocity' by comparing your current performance (e.g., this week) against the previous period. A positive percentage means your reach or engagement is trending up.",
   },
   {
     q: "Is my data private?",
-    a: "Absolutely. Your prompts, uploads and schedules are tied to your workspace and never shared. You stay in full control of every piece of content.",
+    a: "Absolutely. Your prompts, uploads, and performance schedules are tied to your private workspace and never shared. You stay in full control of your creative data.",
   },
 ];
 
