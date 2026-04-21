@@ -29,140 +29,115 @@ def _extract_json_list(text: str) -> list:
         return json.loads(match.group())
     return json.loads(text)
 
+from common import get_brand_dna, get_universal_system_prompt
+
 # ── Node 1: Caption Writer ─────────────────────────────────────────────────────
 def caption_writer_node(state: CaptionState) -> Dict:
     """
     For each of the 7 posts, writes an engaging Instagram caption
     tailored to the brand tone and post type.
     """
-    brand = state.get("brand_info", {})
+    brand_dna = get_brand_dna(state)
     posts = state.get("posts", [])
 
     posts_summary = "\n".join([
-        f"Day {i+1}: [{p.get('type','reel').upper()}] {p.get('topic','')} | Prompt: {p.get('prompt','')}"
+        f"Post {i+1}: [{p.get('type','reel').upper()}] {p.get('topic','')} | Creative Direction: {p.get('prompt','')}"
         for i, p in enumerate(posts)
     ])
 
     prompt = f"""
-    You are a professional Instagram Caption Writer for a social media agency.
+{brand_dna}
 
-    BRAND: {brand.get("brandName", "Unknown")}
-    CATEGORY: {brand.get("businessCategory", "General")}
-    TONE: {brand.get("brandTone", "Professional")}
+TASK:
+Write an Instagram caption for EACH of these 7 posts:
+{posts_summary}
 
-    Write an Instagram caption for EACH of these 7 posts:
-    {posts_summary}
+For each post, write a compelling, high-conversion caption that matches the brand tone.
+Include a hook, value-driven body, and a clear call-to-action.
 
-    For each post, write:
-    - A compelling, engaging caption that matches the brand tone (2-4 sentences)
-    - Start with a hook (first line grabs attention)
-    - End with a clear call-to-action
-    - Use emojis sparingly but effectively
-
-    Output ONLY a valid JSON array of 7 objects, each with:
-    - "day_index": (0-6, matching the post order above)
-    - "caption": The full Instagram caption text
-    """
+OUTPUT ONLY A VALID JSON ARRAY of 7 objects:
+- "day_index": (0-6)
+- "caption": Full text
+"""
+    print("\n" + "="*50)
+    print("✍️ AI AGENT: CAPTION WRITER")
+    print("="*50)
+    print(f"PROMPT PASSED:\n{prompt}")
+    print("-" * 30)
     try:
-        print("\n" + "="*50)
-        print("CAPTION WRITER NODE PROMPT:")
-        print(prompt)
-        print("="*50 + "\n")
-        
         res = _llm().invoke([
-            SystemMessage(content="You are a JSON-only Instagram caption writer. Output a list of 7 caption objects."),
+            SystemMessage(content=get_universal_system_prompt("Professional Instagram Caption Writer")),
             HumanMessage(content=prompt)
         ])
         content = res.content
         if isinstance(content, list):
             content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
         
-        print("CAPTION WRITER RESPONSE:")
-        print(content)
+        print(f"OUTPUT RECEIVED:\n{content.strip()}")
         print("="*50 + "\n")
-        
         captions = _extract_json_list(content)
         return {"raw_captions": captions[:7], "prompts": [prompt]}
     except Exception as e:
-        # Fallback captions
+        print(f"❌ ERROR: {e}")
         fallback = []
         for i, post in enumerate(posts):
             fallback.append({
                 "day_index": i,
-                "caption": f"✨ {post.get('topic', 'Exciting content')} — crafted with purpose and precision. Follow for more insights that matter. 🔖 Save this post for later!"
+                "caption": f"✨ {post.get('topic', 'Exciting content')} — Follow for more!"
             })
-        return {"raw_captions": fallback, "prompts": [prompt], "error": str(e)}
+        return {"raw_captions": fallback, "prompts": [prompt]}
 
 # ── Node 2: Hashtag Analyst & Refiner ─────────────────────────────────────────
 def hashtag_refinement_node(state: CaptionState) -> Dict:
     """
     For each post + caption, generates a strategic hashtag set that
-    maximizes reach. Mix of high-volume, mid-tier, and niche hashtags.
-    Then refines the caption if needed.
+    maximizes reach.
     """
-    brand = state.get("brand_info", {})
+    brand_dna = get_brand_dna(state)
     posts = state.get("posts", [])
     raw_captions = state.get("raw_captions", [])
 
-    # Build a combined context for hashtag generation
     combined = []
     for i, post in enumerate(posts):
-        # Match caption by index
         caption_obj = next((c for c in raw_captions if c.get("day_index") == i), {})
         combined.append({
             "index": i,
             "type": post.get("type", "reel"),
             "topic": post.get("topic", ""),
-            "caption": caption_obj.get("caption", ""),
-            "category": brand.get("businessCategory", "General")
+            "caption": caption_obj.get("caption", "")
         })
 
-    posts_ctx = json.dumps(combined, indent=2)
-
     prompt = f"""
-    You are an expert Instagram Hashtag Strategist.
+{brand_dna}
 
-    BRAND CATEGORY: {brand.get("businessCategory", "General")}
-    BRAND TONE: {brand.get("brandTone", "Professional")}
+TASK:
+For EACH of the following posts, generate the PERFECT hashtag set (mix of reach tiers) and optionally refine the caption.
+Posts: {json.dumps(combined, indent=2)}
 
-    For EACH of the following posts, generate the PERFECT hashtag set to maximize reach and discoverability:
-    {posts_ctx}
-
-    Hashtag strategy per post:
-    - 5 HIGH-VOLUME hashtags (1M+ posts) for broad reach
-    - 8 MID-TIER hashtags (100K-1M posts) for targeted reach  
-    - 5 NICHE hashtags (10K-100K posts) for engaged community
-    Total: 18 hashtags per post
-
-    Also review and optionally improve the caption for engagement.
-
-    Output ONLY a valid JSON array of 7 objects, each with:
-    - "day_index": (0-6)
-    - "caption": The final refined caption (keep or improve)
-    - "hashtags": A single string of all 18 hashtags separated by spaces
-    - "hashtag_strategy": One sentence explaining why these hashtags maximize reach
-    """
+OUTPUT ONLY A VALID JSON ARRAY of 7 objects:
+- "day_index": (0-6)
+- "caption": Final refined caption
+- "hashtags": String of 15-20 hashtags
+- "hashtag_strategy": One sentence explanation
+"""
+    print("\n" + "="*50)
+    print("🏷️ AI AGENT: HASHTAG REFINER")
+    print("="*50)
+    print(f"PROMPT PASSED:\n{prompt}")
+    print("-" * 30)
     try:
-        print("\n" + "="*50)
-        print("HASHTAG REFINEMENT NODE PROMPT:")
-        print(prompt)
-        print("="*50 + "\n")
-        
         res = _llm().invoke([
-            SystemMessage(content="You are a JSON-only hashtag strategist. Output a list of 7 objects."),
+            SystemMessage(content=get_universal_system_prompt("Expert Instagram Hashtag Strategist")),
             HumanMessage(content=prompt)
         ])
         content = res.content
         if isinstance(content, list):
             content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
         
-        print("HASHTAG REFINEMENT RESPONSE:")
-        print(content)
+        print(f"OUTPUT RECEIVED:\n{content}")
         print("="*50 + "\n")
-        
         refined = _extract_json_list(content)
 
-        # Merge into final structure
         final = []
         for i, post in enumerate(posts):
             refined_item = next((r for r in refined if r.get("day_index") == i), {})
@@ -171,22 +146,22 @@ def hashtag_refinement_node(state: CaptionState) -> Dict:
                 "day_index": i,
                 "caption": refined_item.get("caption", raw_caption.get("caption", "")),
                 "hashtags": refined_item.get("hashtags", "#content #instagram #growth"),
-                "hashtag_strategy": refined_item.get("hashtag_strategy", "Balanced mix for maximum reach.")
+                "hashtag_strategy": refined_item.get("hashtag_strategy", "Balanced mix.")
             })
         return {"final_captions": final, "prompts": state.get("prompts", []) + [prompt]}
     except Exception as e:
-        # Fallback hashtags
+        print(f"❌ ERROR: {e}")
         final = []
         for i, post in enumerate(posts):
             raw_caption = next((c for c in raw_captions if c.get("day_index") == i), {})
-            category = brand.get("businessCategory", "business").lower().replace(" ", "")
             final.append({
                 "day_index": i,
                 "caption": raw_caption.get("caption", ""),
-                "hashtags": f"#{category} #instagram #content #growth #socialmedia #marketing #business #entrepreneur #branding #reels #viral #trending #explore #fyp #instagood",
-                "hashtag_strategy": "General growth hashtags as fallback."
+                "hashtags": "#instagram #growth #content",
+                "hashtag_strategy": "Fallback."
             })
-        return {"final_captions": final, "prompts": state.get("prompts", []) + [prompt], "error": str(e)}
+        return {"final_captions": final, "prompts": state.get("prompts", []) + [prompt]}
+
 
 # ── Graph ──────────────────────────────────────────────────────────────────────
 workflow = StateGraph(CaptionState)

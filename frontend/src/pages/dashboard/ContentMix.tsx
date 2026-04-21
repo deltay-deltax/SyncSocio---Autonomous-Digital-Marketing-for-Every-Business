@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Layers,
   Wand2,
+  Clock,
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const TYPE_META: Record<
 const ContentMix: React.FC = () => {
   const [mixData, setMixData] = useState<Record<string, number> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const navigate = useNavigate();
 
   // fulfill user requirement: if plan exists, skip this generate page and go to plan
@@ -53,6 +55,7 @@ const ContentMix: React.FC = () => {
 
   const handleGenerate = async () => {
     setLoading(true);
+    setIsLocked(false);
     try {
       const token = localStorage.getItem('token') || '';
       const res = await fetch('http://localhost:5050/api/ai/mix', {
@@ -64,25 +67,25 @@ const ContentMix: React.FC = () => {
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || "Failed to fetch mix from backend.");
+        const msg = errData.message || errData.error || "Failed to fetch mix";
+        if (msg.includes("PLAN_LOCKED")) {
+          setIsLocked(true);
+          throw new Error("Weekly limit reached. Your next strategy can be generated in 7 days.");
+        }
+        throw new Error(msg);
       }
       const data = await res.json();
       
       console.log("\n--- Generating Mix ---");
-      if (data.prompts && data.prompts.length > 0) {
-        data.prompts.forEach((p: string, i: number) => {
-          console.log(`agent prompt ${i + 1}:`, p);
-        });
-      }
-      console.log("agent res:", data.mix || data);
-
+      // ... logging
       // Persist mix for the plan agent to consume
       const mixToStore = data.mix || data;
       sessionStorage.setItem('content_mix', JSON.stringify(mixToStore));
+      sessionStorage.removeItem('content_plan'); // CRITICAL: Clear old plan so fresh one is generated
       setMixData(mixToStore);
     } catch (err: any) {
       console.error(err);
-      alert(`Backend Error: ${err.message}\nMake sure your Node server was restarted!`);
+      alert(err.message);
     }
     setLoading(false);
   };

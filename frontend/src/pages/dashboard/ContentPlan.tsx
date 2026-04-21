@@ -201,33 +201,23 @@ const ContentPlan: React.FC = () => {
     items.forEach((it) => it.previewUrl && URL.revokeObjectURL(it.previewUrl));
     try {
       const token = localStorage.getItem('token') || '';
-      const storedMix = JSON.parse(sessionStorage.getItem('content_mix') || 'null');
       const res = await fetch(`${API_BASE}/ai/plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ mix: storedMix })
       });
-      if (!res.ok) throw new Error('Regenerate failed');
-      const data = await res.json();
-
-      console.log("\n--- Regenerating content (7-day plan) ---");
-      if (data.prompts && data.prompts.length > 0) {
-        data.prompts.forEach((p: string, i: number) => {
-          console.log(`agent prompt ${i + 1}:`, p);
-        });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error('Regenerate failed');
       }
-      console.log("agent res:", data.plan || data);
-
+      const data = await res.json();
       const week = (data.plan || []).map((d: any, i: number) => ({ ...d, id: `${d.day}-${i}-${Date.now()}`, selected: false }));
       setItems(week);
-      // Fulfill user requirement: Ensure regenerated plan is also persisted!
       fetchCaptions(week, token);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Regeneration failed:', err);
-      const { buildWeek } = await import("@/lib/content-plan");
-      const week = buildWeek().map((d, i) => ({ ...d, id: `${d.day}-${i}-${Date.now()}`, selected: false }));
-      setItems(week);
-      sessionStorage.setItem('content_plan', JSON.stringify({ items: week, captions: {} }));
+      if (!err.message.includes("PLAN_LOCKED")) {
+        alert(err.message);
+      }
     } finally {
       setGenerating(false);
     }

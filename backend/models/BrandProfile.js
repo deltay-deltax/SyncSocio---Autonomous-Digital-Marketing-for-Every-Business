@@ -45,6 +45,7 @@ const brandProfileSchema = new mongoose.Schema({
   },
   agentRecommendation: { type: String, default: "" },
   lastStrategicAudit: { type: Date },
+  lastPlanGeneratedAt: { type: Date },
    primaryCTA: String,
    primaryColor: { type: String, default: '#2563EB' },
    secondaryColor: { type: String, default: '#60A5FA' },

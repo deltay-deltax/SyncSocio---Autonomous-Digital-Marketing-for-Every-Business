@@ -20,7 +20,6 @@ from mix_agent import predict_brand_mix
 from plan_agent import generate_weekly_plan
 from caption_agent import generate_captions_and_hashtags
 import shutil
-import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 from auditors.meta_auditor import MetaAuditor
 from auditors.models import AuditorInput, AuditorResponse
@@ -146,7 +145,9 @@ async def api_generate_strategy(brand_info: BrandInfo):
 @app.post("/predict-mix")
 async def api_predict_mix(payload: Dict[str, Any]):
     try:
-        print(f"DEBUG: Predicting mix for {payload.get('brandName')}")
+        brand_data = payload.get('brand_info', payload)
+        brand_name = brand_data.get('brandName', 'Unknown')
+        print(f"DEBUG: Predicting mix for {brand_name}")
         result = predict_brand_mix(payload)
         return result
     except Exception as e:
@@ -155,7 +156,8 @@ async def api_predict_mix(payload: Dict[str, Any]):
 @app.post("/generate-plan")
 async def api_generate_plan(payload: Dict[str, Any]):
     try:
-        brand_name = payload.get('brandName', 'Unknown')
+        brand_data = payload.get('brand_info', payload)
+        brand_name = brand_data.get('brandName', 'Unknown')
         print(f"DEBUG: Generating 7-day plan for {brand_name}")
         result = generate_weekly_plan(payload)
         return {

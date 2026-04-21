@@ -1,10 +1,13 @@
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
+import ContentCalendar from '../models/ContentCalendar.js';
 
 export async function generateContentPlan(userId, mix) {
   try {
     const brandProfile = await BrandProfile.findOne({ user: userId });
     if (!brandProfile) throw new Error("Brand profile not found");
+
+    // Lock feature removed for now per user request
 
     const accessToken = brandProfile.instagramAccessToken;
     const igId = brandProfile.instagramBusinessAccountId;
@@ -28,10 +31,9 @@ export async function generateContentPlan(userId, mix) {
     }
 
     const payload = {
-      brandName: brandProfile.brandName || 'Unknown',
-      businessCategory: brandProfile.businessCategory || 'General',
-      brandTone: brandProfile.brandTone || 'Professional',
-      mix: mix || { reels: 3, image: 2, carousel: 2 },
+      userId,
+      brand_info: brandProfile,
+      mix: mix || {},
       hourly_data
     };
 
@@ -41,19 +43,20 @@ export async function generateContentPlan(userId, mix) {
     const agentRes = await axios.post(`${agentUrl}/generate-plan`, payload, {
       timeout: 90000
     });
+    
+    // Update lock timestamp disabled for now
+    // brandProfile.lastPlanGeneratedAt = new Date();
+    // await brandProfile.save();
+
     const data = agentRes.data;
 
-    console.log("\n=========================================");
-    console.log("Generating 7-Day Plan");
-    if (data.prompts && data.prompts.length > 0) {
-      data.prompts.forEach((p, i) => {
-        console.log(`Agent prompt ${i + 1}:`);
-        console.log(p);
+    // Persist to database
+    if (data.plan && data.plan.length > 0) {
+      await ContentCalendar.create({
+        userId,
+        posts: data.plan
       });
     }
-    console.log("Agent res:");
-    console.log(JSON.stringify(data.plan || data, null, 2));
-    console.log("=========================================\n");
 
     return data;
   } catch (error) {

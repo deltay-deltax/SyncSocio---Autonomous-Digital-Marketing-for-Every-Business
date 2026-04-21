@@ -20,19 +20,6 @@ export async function generateCaptionsAndHashtags(userId, posts) {
       timeout: 90000
     });
     const data = agentRes.data;
-
-    console.log("\n=========================================");
-    console.log("Generating Captions");
-    if (data.prompts && data.prompts.length > 0) {
-      data.prompts.forEach((p, i) => {
-        console.log(`Agent prompt ${i + 1}:`);
-        console.log(p);
-      });
-    }
-    console.log("Agent res:");
-    console.log(JSON.stringify(data.captions || data, null, 2));
-    console.log("=========================================\n");
-
     return data;
   } catch (error) {
     console.error(`❌ Error in caption generation:`, error.message);

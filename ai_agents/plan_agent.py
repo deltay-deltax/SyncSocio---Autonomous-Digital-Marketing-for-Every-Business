@@ -40,61 +40,48 @@ def _get_day_name(d: datetime) -> str:
 def _get_date_str(d: datetime) -> str:
     return d.strftime("%b %d")
 
+from common import get_brand_dna, get_universal_system_prompt
+
 # ── Node 1: Timing Analyst ─────────────────────────────────────────────────────
 def timing_analyst_node(state: PlanState) -> Dict:
     """
     Analyzes the brand profile and any available hourly data to
     recommend the two best posting windows for the week.
     """
-    brand = state.get("brand_info", {})
-    hourly = state.get("hourly_data", [])
-
-    hourly_ctx = "No live follower hourly data available."
-    if hourly:
-        top_hours = sorted(hourly, key=lambda x: x.get("value", 0), reverse=True)[:5]
-        hourly_ctx = f"Top engagement hours: {[h.get('hour') for h in top_hours]}"
+    brand_dna = get_brand_dna(state)
 
     prompt = f"""
-    You are a Social Media Timing Analyst.
+{brand_dna}
 
-    BRAND: {brand.get("brandName", "Unknown")} | CATEGORY: {brand.get("businessCategory", "General")}
-    HOURLY INSIGHTS: {hourly_ctx}
+TASK:
+Based on the brand category and performance history, recommend the optimal times to maximize reach and visibility for the India and Nepal (IST/NPT) audiences:
+1. The BEST specific time to post Reels (discovery) to catch the regional traffic surge.
+2. The BEST specific time to post Images/Carousels (engagement) for maximum dwell time.
 
-    Based on the brand category and available data, recommend:
-    1. The BEST time to post Reels (high-reach format).
-    2. The BEST time to post Images/Carousels.
-    
-    Use general best practices if no live data:
-    - Reels: 6 PM – 9 PM (peak discovery)
-    - Images/Carousels: 9 AM – 12 PM (morning scroll)
-    """
-
+OUTPUT: Just a clear recommendation for both types.
+"""
     print("\n" + "="*50)
-    print("AI AGENT: TIMING ANALYST PROMPT")
+    print("⏰ AI AGENT: TIMING ANALYST")
     print("="*50)
-    print(prompt)
-    print("="*50 + "\n")
-
+    print(f"PROMPT PASSED:\n{prompt}")
+    print("-" * 30)
     try:
         res = _llm().invoke([
-            SystemMessage(content="You are a concise social-media timing analyst."),
+            SystemMessage(content=get_universal_system_prompt("Social Media Timing Analyst")),
             HumanMessage(content=prompt)
         ])
         content = res.content
         if isinstance(content, list):
             content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
         
-        print("TIMING ANALYST RESPONSE:")
-        print(content)
+        print(f"OUTPUT RECEIVED:\n{content.strip()}")
         print("="*50 + "\n")
-        
         return {"timing_insights": content.strip(), "prompts": [prompt]}
     except Exception as e:
-        print(f"Error in Timing Analyst: {e}")
+        print(f"❌ ERROR: {e}")
         return {
-            "timing_insights": "Post Reels at 8:00 PM for maximum reach. Post Images and Carousels at 11:00 AM for morning engagement.",
-            "prompts": [prompt],
-            "error": str(e)
+            "timing_insights": "Post Reels at 8:00 PM and Images at 11:00 AM.",
+            "prompts": [prompt]
         }
 
 # ── Node 2: Content Strategist ─────────────────────────────────────────────────
@@ -103,8 +90,8 @@ def content_strategist_node(state: PlanState) -> Dict:
     Using the timing insights and content mix, generates a 7-day content
     calendar with topics, AI prompts, and posting times.
     """
-    brand = state.get("brand_info", {})
-    mix = state.get("mix", {"reels": 3, "image": 2, "carousel": 2})
+    brand_dna = get_brand_dna(state)
+    mix = state.get("mix", {})
     insights = state.get("timing_insights", "")
 
     # Build type sequence from mix
@@ -123,65 +110,58 @@ def content_strategist_node(state: PlanState) -> Dict:
         })
 
     prompt = f"""
-    You are the Lead Content Strategist for a social media agency.
-
-    BRAND: {brand.get("brandName", "Unknown")}
-    CATEGORY: {brand.get("businessCategory", "General")}
-    TONE: {brand.get("brandTone", "Professional")}
+{brand_dna}
     
-    TIMING RECOMMENDATION: {insights}
+TIMING RECOMMENDATION: {insights}
 
-    WEEKLY CONTENT MIX:
-    - {reels_count} Reels
-    - {image_count} Images (static)
-    - {carousel_count} Carousels (multi-slide)
-    Total: 7 posts over 7 days.
+WEEKLY CONTENT MIX REQUIRED:
+- {reels_count} Reels
+- {image_count} Images (static)
+- {carousel_count} Carousels (multi-slide)
+Total: 7 posts over 7 days.
 
-    DATES TO SCHEDULE:
-    {json.dumps(dates, indent=2)}
+DATES TO SCHEDULE:
+{json.dumps(dates, indent=2)}
 
-    For EACH of the 7 days, create ONE post entry. Strictly alternate types to use exactly:
-    - {reels_count} Reels, {image_count} Images, {carousel_count} Carousels.
-    
-    Each entry MUST have these exact keys:
-    - "day": The short day name (e.g., "MON")
-    - "date": The date string (e.g., "Apr 21")  
-    - "iso_date": ISO format date (e.g., "2024-04-21")
-    - "type": "reel", "image", or "carousel"
-    - "topic": A catchy, engaging title (max 8 words)
-    - "optimalTime": Best time to post this type (e.g., "8:00 PM" or "11:00 AM")
-    - "prompt": A detailed creative prompt describing EXACTLY what content to create (2 sentences)
-    - "why": One-line strategic reason for this post
+TASK:
+For EACH of the 7 days, create ONE post entry. Use exactly the types requested in the mix.
+Timing: Ensure every post is scheduled at the exact time required to reach the maximum audience in India and Nepal (IST/NPT).
 
-    IMPORTANT: Output ONLY a valid JSON array of 7 objects. No intro, no explanation.
-    """
+Each entry MUST have these exact keys:
+- "day": short day name (e.g., "MON")
+- "date": date string (e.g., "Apr 21")
+- "iso_date": ISO date
+- "type": "reel", "image", or "carousel"
+- "topic": Compelling, benefit-driven title (max 10 words). Directly address the provided Pain Points and USP (Perfumes/Pricing).
+- "optimalTime": Time when the audience will see it the most in India/Nepal (e.g., "6:30 PM").
+- "prompt": A highly detailed, immersive 3-5 sentence production brief. For Reels, specify a scene-by-scene script breakdown. For Carousels, describe each slide's content and visual flow. Include specific instructions for lighting, typography overlays, and the energetic 'Foxeee' vibe.
+- "why": Deep strategic reasoning (2-3 sentences) explaining how this specific content piece addresses the pain points to drive "Sell products / get orders" goal in the India/Nepal market.
 
+OUTPUT ONLY A VALID JSON ARRAY.
+"""
     print("\n" + "="*50)
-    print("AI AGENT: CONTENT STRATEGIST PROMPT")
+    print("📅 AI AGENT: PLAN STRATEGIST")
     print("="*50)
-    print(prompt)
-    print("="*50 + "\n")
-
+    print(f"PROMPT PASSED:\n{prompt}")
+    print("-" * 30)
     try:
         res = _llm().invoke([
-            SystemMessage(content="You are a JSON-only strategist. Output a list of exactly 7 content objects."),
+            SystemMessage(content=get_universal_system_prompt("Lead Content Strategist")),
             HumanMessage(content=prompt)
         ])
         content = res.content
         if isinstance(content, list):
             content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
-            
-        print("CONTENT STRATEGIST RESPONSE:")
-        print(content)
-        print("="*50 + "\n")
         
+        print(f"OUTPUT RECEIVED:\n{content}")
+        print("="*50 + "\n")
         calendar = _extract_json_list(content)
         return {"raw_calendar": calendar[:7], "prompts": state.get("prompts", []) + [prompt]}
     except Exception as e:
-        print(f"Error in Content Strategist: {e}")
-        # Fallback plan
-        fallback = _build_fallback(brand, mix, today)
-        return {"raw_calendar": fallback, "prompts": state.get("prompts", []) + [prompt], "error": str(e)}
+        print(f"❌ ERROR: {e}")
+        fallback = _build_fallback(state.get("brand_info", {}), mix, today)
+        return {"raw_calendar": fallback, "prompts": state.get("prompts", []) + [prompt]}
+
 
 def _build_fallback(brand, mix, today):
     """Emergency fallback if LLM fails."""
@@ -289,13 +269,14 @@ def generate_weekly_plan(payload: Dict[str, Any]) -> Dict[str, Any]:
     Main entrypoint called from FastAPI.
     payload: { brandName, businessCategory, brandTone, mix: {reels, image, carousel}, hourly_data: [...] }
     """
+    brand_data = payload.get("brand_info", payload)
     initial_state = {
         "brand_info": {
-            "brandName": payload.get("brandName", "Unknown"),
-            "businessCategory": payload.get("businessCategory", "General"),
-            "brandTone": payload.get("brandTone", "Professional"),
+            "brandName": brand_data.get("brandName", "Unknown"),
+            "businessCategory": brand_data.get("businessCategory", "General"),
+            "brandTone": brand_data.get("brandTone", "Professional"),
         },
-        "mix": payload.get("mix", {"reels": 3, "image": 2, "carousel": 2}),
+        "mix": payload.get("mix", {}),
         "hourly_data": payload.get("hourly_data", []),
         "timing_insights": "",
         "raw_calendar": [],

@@ -24,8 +24,8 @@ router.post('/mix', async (req, res) => {
 router.post('/plan', async (req, res) => {
     try {
         const { mix } = req.body;
-        const plan = await generateContentPlan(req.user.id, mix);
-        res.json({ plan });
+        const result = await generateContentPlan(req.user.id, mix);
+        res.json(result);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -34,8 +34,8 @@ router.post('/plan', async (req, res) => {
 router.post('/captions', async (req, res) => {
     try {
         const { posts } = req.body;
-        const captions = await generateCaptionsAndHashtags(req.user.id, posts);
-        res.json({ captions });
+        const result = await generateCaptionsAndHashtags(req.user.id, posts);
+        res.json(result);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

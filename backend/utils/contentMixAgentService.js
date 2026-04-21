@@ -51,8 +51,7 @@ export async function generateContentMix(userId) {
 
     const payload = {
       userId: userId,
-      brandName: brandProfile.brandName || "Unknown",
-      businessCategory: brandProfile.businessCategory || "General",
+      brand_info: brandProfile,
       historical_posts: historical_posts
     };
 
@@ -61,19 +60,6 @@ export async function generateContentMix(userId) {
     
     const agentRes = await axios.post(`${agentUrl}/predict-mix`, payload);
     const data = agentRes.data;
-
-    console.log("\n=========================================");
-    console.log("Generating Mix");
-    if (data.prompts && data.prompts.length > 0) {
-      data.prompts.forEach((p, i) => {
-        console.log(`Agent prompt ${i + 1}:`);
-        console.log(p);
-      });
-    }
-    console.log("Agent res:");
-    console.log(JSON.stringify(data.mix || data, null, 2));
-    console.log("=========================================\n");
-
     return data;
   } catch (error) {
     console.error(`❌ Error in predicted mix:`, error.message);
