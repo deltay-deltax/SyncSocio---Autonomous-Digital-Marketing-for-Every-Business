@@ -135,7 +135,7 @@ const DashboardHome = () => {
                 <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                   <Zap size={14} />
                 </div>
-                <CardTitle className="text-base">Agent Activity</CardTitle>
+                <CardTitle className="text-base">Recent Agent Activity</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-6 space-y-1 max-h-[380px] overflow-y-auto pr-2 scrollbar-hide">
