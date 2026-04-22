@@ -5,6 +5,23 @@
 
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
+import AgentActivity from '../models/AgentActivity.js';
+
+const formatTimeAgo = (date) => {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return interval + "y ago";
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return interval + "mo ago";
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return interval + "d ago";
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return interval + "h ago";
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return interval + "m ago";
+  if (seconds < 10) return "Just now";
+  return Math.floor(seconds) + "s ago";
+};
 
 // Summary: Metrics and Activity Feed
 export const getDashboardSummary = async (req, res) => {
@@ -178,14 +195,25 @@ export const getDashboardSummary = async (req, res) => {
       agentRecommendation = realMetrics.agentRecommendation || "Your strategic audit is running in the background. Check back soon for neural insights.";
     }
 
-    const activities = [
-      { message: 'Engine: Synthesized 20+ content nodes in 4.2s', status: 'done', time: '12m ago' },
-      { message: 'Neural Pulse: Optimal content mix shifted to 80% Reels', status: 'active', time: 'Just now' },
-      { message: 'G-Factor: Analysis complete for pending Reel', status: 'done', time: '1h ago' }
-    ];
+    // Fetch real activities from DB
+    const dbActivities = await AgentActivity.find({ user: userId })
+      .sort({ timestamp: -1 })
+      .limit(6);
+    
+    const activities = dbActivities.length > 0 
+      ? dbActivities.map(a => ({
+          message: `${a.agentName}: ${a.message}`,
+          status: a.status,
+          time: formatTimeAgo(a.timestamp)
+        }))
+      : [
+          { message: 'Engine: Ready for content synthesis', status: 'done', time: 'Just now' },
+          { message: 'Neural Pulse: Monitoring strategy trends', status: 'active', time: 'Just now' }
+        ];
 
     res.json({ metrics, activities, topPost, contentMix, predictedMix, agentRecommendation });
   } catch (error) {
+    console.error("Summary error:", error);
     res.status(500).json({ message: 'Error fetching dashboard summary' });
   }
 };
