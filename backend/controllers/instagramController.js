@@ -148,8 +148,9 @@ export const getInstagramAuthUrl = (req, res) => {
   const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
   const userId = req.user.id;
 
-  // Sign a state token containing the user ID
-  const state = jwt.sign({ userId }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '1h' });
+  const { relink } = req.query;
+  // Sign a state token containing the user ID and relink flag
+  const state = jwt.sign({ userId, relink: relink === 'true' }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '1h' });
   
   // Scopes needed for Instagram Graph API (Business/Creator)
   const scopes = [
@@ -162,6 +163,7 @@ export const getInstagramAuthUrl = (req, res) => {
     'pages_manage_engagement',
     'pages_manage_metadata',
     'pages_read_user_content',
+    'pages_manage_posts',
     'business_management',
     'read_insights',
     'instagram_manage_insights',
@@ -178,8 +180,11 @@ export const getInstagramAuthUrl = (req, res) => {
  */
 export const instagramCallback = async (req, res) => {
   const { code, state } = req.query;
+  console.log('--- 🛡️ INSTAGRAM CALLBACK START ---');
+  console.log('Query Params:', { code: code ? 'PRESENT' : 'MISSING', state: state ? 'PRESENT' : 'MISSING' });
 
   if (!code || !state) {
+    console.error('❌ Callback failed: Missing code or state');
     return res.status(400).json({ message: 'Missing code or state' });
   }
 
@@ -187,56 +192,61 @@ export const instagramCallback = async (req, res) => {
     // 0. Verify state to get userId
     const decoded = jwt.verify(state, process.env.JWT_SECRET || 'fallback_secret');
     const userId = decoded.userId;
+    const isRelink = decoded.relink === true;
+    console.log('✅ State verified. User ID:', userId, 'Relink:', isRelink);
 
     const clientId = process.env.INSTAGRAM_CLIENT_ID;
     const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
     const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
 
     // 1. Exchange code for short-lived access token
-    console.log('--- DEBUG: Exchanging short-lived token ---');
+    console.log('📡 Exchanging code for short-lived token...');
     const tokenRes = await fetch(
       `${FB_API_BASE}/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${clientSecret}&code=${code}`
     );
     const tokenData = await tokenRes.json();
 
     if (tokenData.error) {
-      console.error('Meta Token Exchange Error:', tokenData.error);
+      console.error('❌ Meta Token Exchange Error:', tokenData.error);
       throw new Error(`Meta Error: ${tokenData.error.message}`);
     }
 
     const shortLivedToken = tokenData.access_token;
+    console.log('✅ Short-lived token received');
 
     // 2. Exchange short-lived for long-lived access token
-    console.log('--- DEBUG: Exchanging long-lived token ---');
+    console.log('📡 Exchanging for long-lived token...');
     const longLivedRes = await fetch(
       `${FB_API_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${shortLivedToken}`
     );
     const longLivedData = await longLivedRes.json();
     
     if (longLivedData.error) {
-      console.error('Meta Long Lived Token Error:', longLivedData.error);
+      console.error('❌ Meta Long Lived Token Error:', longLivedData.error);
       throw new Error(`Meta LL Error: ${longLivedData.error.message}`);
     }
     
     const accessToken = longLivedData.access_token;
+    console.log('✅ Long-lived token received');
 
     // 3. Resilient Discovery: Nested query for accounts and IG accounts
+    console.log('📡 Starting discovery of Pages and IG accounts...');
     const meRes = await fetch(`${FB_API_BASE}/me?fields=id,name,accounts{name,id,access_token,instagram_business_account}&access_token=${accessToken}`);
     const profileData = await meRes.json();
     
     if (profileData.error) {
-      console.error('Meta Super Discovery Error:', profileData.error);
+      console.error('❌ Meta Super Discovery Error:', profileData.error);
       throw new Error(`Meta Error: ${profileData.error.message}`);
     }
     
-    console.log('--- DEBUG: Discovery Progress ---');
+    console.log('--- 🔍 DISCOVERY RESULTS ---');
     console.log(`User Identified: ${profileData.name} (ID: ${profileData.id})`);
     
     const allPages = (profileData.accounts && profileData.accounts.data) || [];
-    console.log(`Discovery: Found ${allPages.length} potential Facebook pages.`);
+    console.log(`Found ${allPages.length} potential Facebook pages.`);
     
     allPages.forEach(p => {
-      console.log(`- Page: ${p.name} (ID: ${p.id}) | Linked IG: ${p.instagram_business_account ? 'YES' : 'NO'}`);
+      console.log(`- Page: ${p.name} (ID: ${p.id}) | Linked IG: ${p.instagram_business_account ? `YES (${p.instagram_business_account.id})` : 'NO'} | Has Page Token: ${Boolean(p.access_token)}`);
     });
 
     // 4. Look for the Instagram Account
@@ -302,15 +312,29 @@ export const instagramCallback = async (req, res) => {
     });
 
     console.log('Webhook subscription result:', subscriptionResult);
+    
+    const { createNotification } = await import('../utils/notificationHelper.js');
+    if (isRelink) {
+      await createNotification(
+        userId,
+        'success',
+        'Instagram Reconnected Successfully! 🚀',
+        'Your connection to Meta has been updated and all systems are online.'
+      );
+    }
 
     // Redirect back to frontend
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/setup?success=true`);
+    const targetPath = isRelink ? '/dashboard?relinked=true' : '/setup?success=true';
+    res.redirect(`${frontendUrl}${targetPath}`);
 
   } catch (error) {
     console.error('Instagram OAuth Error:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/setup?error=${encodeURIComponent(error.message)}`);
+    // If it was a relink attempt, go back to dashboard settings on error
+    const decoded = jwt.decode(req.query.state);
+    const errorPath = decoded?.relink ? '/dashboard/settings?error=' : '/setup?error=';
+    res.redirect(`${frontendUrl}${errorPath}${encodeURIComponent(error.message)}`);
   }
 };
 

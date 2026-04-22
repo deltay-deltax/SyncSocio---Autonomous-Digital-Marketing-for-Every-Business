@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Upload,
@@ -30,9 +31,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, fileToBase64 } from '@/lib/utils';
 
+interface IconProps {
+  size?: number;
+  className?: string;
+}
+
+// Brand Icons as custom SVG components to avoid lucide-react version issues
+const FacebookIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
+
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
-type ContentType = 'reel' | 'static' | 'carousel';
+type ContentType = 'static' | 'carousel';
 
 interface CritiqueResult {
   verdict: string;
@@ -68,7 +87,12 @@ const PostOptimizer: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [aiVisual, setAiVisual] = useState<string | null>(null);
   const [isGeneratingVisual, setIsGeneratingVisual] = useState(false);
+  const [platforms, setPlatforms] = useState<{ instagram: boolean, facebook: boolean }>({
+    instagram: true,
+    facebook: false
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const handleGenerateAIVisual = async () => {
     if (!result || files.length === 0) return;
@@ -81,7 +105,7 @@ const PostOptimizer: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: `High fashion editorial photograph of the product, ${result.critique.improved_hook}, professional studio lighting, 4k commercial quality, trending on instagram`,
-          format: contentType === 'reel' ? 'Reel' : 'Static Image',
+          format: contentType === 'static' ? 'Static Image' : 'Carousel',
           image: base64
         })
       });
@@ -177,17 +201,21 @@ const PostOptimizer: React.FC = () => {
     setIsPublishing(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE}/posts/schedule/${result.analysisId}`, {}, {
+      await axios.post(`${API_BASE}/posts/schedule/${result.analysisId}`, { platforms }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('🚀 Published successfully to Instagram!');
-      setShowPreview(false);
-      setResult(null);
-      setFiles([]);
-      setPreviews([]);
+      
+      const targetList = [];
+      if (platforms.instagram) targetList.push('Instagram');
+      if (platforms.facebook) targetList.push('Facebook');
+      
+      alert(`🚀 Published successfully to ${targetList.join(' & ')}!`);
+      
+      // Redirect to history to see the new post
+      navigate('/dashboard/history');
     } catch (err) {
       console.error('Publish error', err);
-      alert('Publishing failed. Please check your Instagram connection.');
+      alert('Publishing failed. Please check your social connections.');
     } finally {
       setIsPublishing(false);
     }
@@ -286,10 +314,9 @@ const PostOptimizer: React.FC = () => {
                     {/* Content Type Picker */}
                     <div className="space-y-3">
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Format</label>
-                      <div className="grid grid-cols-3 gap-2 p-1.5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                      <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
                         {[
                           { id: 'static', icon: ImageIcon, label: 'Post' },
-                          { id: 'reel', icon: Video, label: 'Reel' },
                           { id: 'carousel', icon: Layers, label: 'Slide' }
                         ].map((t) => (
                           <button
@@ -344,11 +371,7 @@ const PostOptimizer: React.FC = () => {
                                 ))}
                               </div>
                             ) : (
-                              contentType === 'reel' ? (
-                                <video src={previews[0]} className="max-h-[220px] rounded-3xl shadow-lg border border-white" />
-                              ) : (
                                 <img src={previews[0]} alt="Preview" className="max-h-[220px] rounded-3xl shadow-lg border border-white object-cover aspect-video" />
-                              )
                             )}
                             <div className="absolute inset-x-0 bottom-6 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
                               <div className="bg-slate-900/80 backdrop-blur-md text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-white/10">
@@ -390,6 +413,43 @@ const PostOptimizer: React.FC = () => {
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                       />
+                    </div>
+
+                    {/* Platform Toggles */}
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Target Channels</label>
+                      <div className="inline-flex gap-2 p-1.5 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm w-full">
+                        {(["facebook", "instagram"] as const).map((p) => {
+                          const active = platforms[p];
+                          const Icon = p === "facebook" ? FacebookIcon : InstagramIcon;
+                          const label = p === "facebook" ? "Facebook" : "Instagram";
+                          return (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() =>
+                                setPlatforms((prev) => {
+                                  const next = { ...prev, [p]: !prev[p] };
+                                  if (!next.facebook && !next.instagram) return prev;
+                                  return next;
+                                })
+                              }
+                              className={cn(
+                                "flex-1 flex items-center justify-center gap-2 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                active
+                                  ? p === "facebook"
+                                    ? "bg-[#1877F2] text-white shadow-lg shadow-blue-500/20"
+                                    : "bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white shadow-lg shadow-rose-500/20"
+                                  : "bg-transparent text-slate-400 hover:text-slate-600 hover:bg-white/50",
+                              )}
+                            >
+                              <Icon size={14} />
+                              {label}
+                              {active && <Check size={12} strokeWidth={3} className="ml-1" />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <Button
@@ -464,11 +524,7 @@ const PostOptimizer: React.FC = () => {
                               ))}
                             </div>
                           ) : (
-                             contentType === 'reel' ? (
-                               <video src={previews[0]} className="w-full h-full object-cover" autoPlay loop muted />
-                             ) : (
                                <img src={previews[0]} className="w-full h-full object-cover" />
-                             )
                           )
                         ) : (
                           <ImageIcon size={40} className="text-slate-200" />
@@ -606,8 +662,7 @@ const PostOptimizer: React.FC = () => {
                 <div className="px-8 pt-6 pb-2 flex gap-6 border-b border-slate-50">
                   {[
                     { id: 'content', label: '01. Adjusted Content', icon: MessageSquare },
-                    { id: 'strategy', label: '02. Growth Logic', icon: Zap },
-                    { id: 'visuals', label: '03. AI Enhancements', icon: Sparkles }
+                    { id: 'strategy', label: '02. Growth Logic', icon: Zap }
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -671,7 +726,7 @@ const PostOptimizer: React.FC = () => {
                           </div>
                         </div>
                       </motion.div>
-                    ) : activeTab === 'strategy' ? (
+                    ) : (
                       <motion.div
                         key="strategy-slide"
                         initial={{ opacity: 0, x: 20 }}
@@ -699,72 +754,6 @@ const PostOptimizer: React.FC = () => {
                         <div className="p-6 bg-primary/5 rounded-[2.5rem] border border-primary/10">
                            <p className="text-[10px] font-medium text-primary uppercase tracking-widest text-center">These signals were derived from your Brand Profile & visual media analysis.</p>
                         </div>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="visuals-slide"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        className="p-10 flex flex-col items-center justify-center min-h-[400px] text-center"
-                      >
-                        {aiVisual ? (
-                          <div className="space-y-6 w-full animate-in zoom-in-95 duration-500">
-                             <div className="relative aspect-square rounded-[3rem] overflow-hidden border-8 border-slate-50 shadow-2xl bg-slate-100">
-                                {contentType === 'reel' ? (
-                                  <video src={aiVisual} className="w-full h-full object-cover" autoPlay loop muted />
-                                ) : (
-                                  <img src={aiVisual} className="w-full h-full object-cover" />
-                                )}
-                                <div className="absolute top-6 right-6">
-                                   <Badge className="bg-primary text-white font-black uppercase tracking-widest py-2 px-4 rounded-2xl shadow-xl shadow-primary/20">NVIDIA FLUX PRO</Badge>
-                                </div>
-                             </div>
-                             <div className="flex gap-4">
-                                <Button 
-                                  onClick={handleGenerateAIVisual} 
-                                  disabled={isGeneratingVisual}
-                                  variant="outline" 
-                                  className="flex-1 h-14 rounded-2xl border-slate-200 text-slate-500 font-black uppercase tracking-widest text-[10px]"
-                                >
-                                   Regenerate Variation
-                                </Button>
-                                <Button className="flex-1 h-14 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] shadow-xl">
-                                   Use This Visual
-                                </Button>
-                             </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-8 max-w-sm">
-                            <div className="w-24 h-24 rounded-[2.5rem] bg-amber-50 flex items-center justify-center text-amber-500 mx-auto shadow-inner border border-amber-100/50">
-                               <Sparkles size={40} className="animate-pulse" />
-                            </div>
-                            <div className="space-y-3">
-                              <h4 className="text-xl font-bold text-slate-800 tracking-tight">Velocity AI Visuals</h4>
-                              <p className="text-sm font-medium text-slate-400 leading-relaxed">
-                                Transform your raw content into high-end editorial visuals. Using **NVIDIA FLUX I2I**, we'll upscale and stylize your post to match your brand's AI-optimized hook.
-                              </p>
-                            </div>
-                            <Button 
-                              onClick={handleGenerateAIVisual}
-                              disabled={isGeneratingVisual}
-                              className="w-full h-16 rounded-[2rem] bg-primary text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all group"
-                            >
-                              {isGeneratingVisual ? (
-                                <div className="flex items-center gap-3">
-                                   <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                                   <span>Flux Processing...</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <Zap className="fill-current" size={18} />
-                                  <span>Generate High-End Variation</span>
-                                </div>
-                              )}
-                            </Button>
-                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Uses 1 AI Credit</p>
-                          </div>
-                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>

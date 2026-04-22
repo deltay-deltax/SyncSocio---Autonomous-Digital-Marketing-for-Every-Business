@@ -136,21 +136,25 @@ const Setup = () => {
   }, []);
 
   const handleInstagramConnect = async () => {
+    console.log('🔄 Setup: Connect Instagram clicked. Starting OAuth flow...');
     try {
       const token = localStorage.getItem('token');
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
 
       if (!token) {
+        console.error('❌ Setup: No session token found');
         setError('Your session has expired. Please log in again.');
         navigate('/login', { replace: true });
         return;
       }
 
+      console.log('📡 Setup: Fetching auth URL from:', `${API_BASE}/auth/instagram/auth`);
       const res = await fetch(`${API_BASE}/auth/instagram/auth`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (res.status === 401 || res.status === 403) {
+        console.error('❌ Setup: Auth session invalid (401/403)');
         localStorage.removeItem('token');
         setError('Your session has expired. Please log in again.');
         navigate('/login', { replace: true });
@@ -158,13 +162,19 @@ const Setup = () => {
       }
 
       const data = await res.json().catch(() => ({}));
+      console.log('🚀 Setup: Auth Response:', data);
+
       if (!res.ok) {
         throw new Error(data.message || `Request failed (${res.status})`);
       }
-      if (data.url) window.location.href = data.url;
-      else throw new Error(data.message || 'Failed to get auth URL');
+      if (data.url) {
+        console.log('➡️ Setup: Redirecting to Meta OAuth:', data.url);
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.message || 'Failed to get auth URL');
+      }
     } catch (err: any) {
-      console.error(err);
+      console.error('❌ Setup: Connection Error:', err);
       setError(err.message);
     }
   };

@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import appleSigninAuth from 'apple-signin-auth';
 import { sendLoginNotificationEmail, sendSignupNotificationEmail } from '../utils/sendWelcomeEmail.js';
+import { createNotification } from '../utils/notificationHelper.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -161,6 +162,14 @@ export const login = async (req, res) => {
       // Don't fail login if email fails
     }
 
+    // Push notification to UI drawer
+    await createNotification(
+      user._id,
+      'success',
+      'Account Login',
+      `Successful login detected from a new session.`
+    );
+
     res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -236,6 +245,12 @@ export const googleLogin = async (req, res) => {
         tempToken: generateToken(user._id)
       });
     } else {
+      await createNotification(
+        user._id,
+        'success',
+        'Google Login',
+        `Authenticated successfully via Google.`
+      );
       res.status(200).json({ user, token: generateToken(user._id) });
     }
   } catch (error) {
@@ -312,6 +327,12 @@ export const appleLogin = async (req, res) => {
         tempToken: generateToken(user._id)
       });
     } else {
+      await createNotification(
+        user._id,
+        'success',
+        'Apple Login',
+        `Authenticated successfully via Apple.`
+      );
       res.status(200).json({ user, token: generateToken(user._id) });
     }
   } catch (error) {

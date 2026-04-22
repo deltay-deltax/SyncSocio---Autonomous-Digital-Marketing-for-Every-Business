@@ -18,18 +18,72 @@ const navItems = [
   { label: 'Post Optimizer', icon: Upload, path: '/dashboard/post-optimizer' },
   { label: 'DMs', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'History', icon: Clock, path: '/dashboard/history' },
-  { label: 'Activity', icon: Bell, path: '/dashboard/activity' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
   { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
 ];
 
 const DashboardLayout = () => {
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
+  const [showRelinkSuccess, setShowRelinkSuccess] = useState(false);
+  const [nextScheduled, setNextScheduled] = useState<any>(null);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+
+  useEffect(() => {
+    const fetchNextScheduled = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        // Fetch full history and filter locally (more reliable)
+        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/posts/history`;
+        
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          const now = new Date();
+          
+          // Filter for upcoming posts
+          const scheduled = data
+            .filter((i: any) => {
+              if (i.status === 'failed') return false;
+              if (i.status === 'scheduled') return true;
+              return i.scheduledAt && new Date(i.scheduledAt) > now;
+            })
+            .sort((a: any, b: any) => {
+              const dateA = new Date(a.scheduledAt || a.createdAt).getTime();
+              const dateB = new Date(b.scheduledAt || b.createdAt).getTime();
+              return dateA - dateB; // Closest first
+            });
+
+          if (scheduled.length > 0) {
+            setNextScheduled(scheduled[0]);
+          } else {
+            setNextScheduled(null);
+          }
+        }
+      } catch (err) {
+        console.error('[SIDEBAR] Fetch Error:', err);
+      }
+    };
+    fetchNextScheduled();
+  }, [location.pathname]); // Refresh when navigating
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('relinked') === 'true') {
+      setShowRelinkSuccess(true);
+      const timer = setTimeout(() => setShowRelinkSuccess(false), 6000);
+      // Clean up URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      return () => clearTimeout(timer);
+    }
+  }, [location]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -124,13 +178,14 @@ const DashboardLayout = () => {
           let itemPath = item.path;
           
           // Fulfill user requirement: point "Content Mix" directly to plan if it exists
-          if (item.label === 'Content Mix' && sessionStorage.getItem('content_plan')) {
+          if (item.label === 'Content Mix' && localStorage.getItem('content_plan')) {
             itemPath = '/dashboard/content/plan';
           }
 
-          const isActive = itemPath === '/dashboard'
-            ? location.pathname === '/dashboard'
-            : location.pathname.startsWith(itemPath);
+          const isHome = item.path === '/dashboard';
+          const isActive = isHome 
+            ? location.pathname === '/dashboard' 
+            : location.pathname.startsWith(item.path);
 
           return (
             <NavLink
@@ -158,23 +213,31 @@ const DashboardLayout = () => {
       </nav>
 
       {/* Agent Status Card in Sidebar */}
-      <div className="p-4 mt-auto">
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 rounded-[2rem] border border-primary/10 mb-4">
-          <div className="flex items-center gap-2 mb-3">
+      <div className="px-3 mt-auto mb-2">
+        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 rounded-[1.5rem] border border-primary/10">
+          <div className="flex items-center gap-2 mb-2">
             <div className="relative flex items-center justify-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-30" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="absolute w-2 h-2 rounded-full bg-emerald-500 animate-ping opacity-30" />
             </div>
-            <span className="text-xs font-bold text-foreground">Agent Active</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-foreground">Agent Active</span>
           </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed mb-4">
-            Next post scheduled for <span className="text-foreground font-bold">Today 8PM</span>
+          <p className="text-[10px] text-muted-foreground leading-tight">
+            {nextScheduled ? (
+              <>Next post scheduled for <span className="text-foreground font-bold">{
+                (() => {
+                  const d = new Date(nextScheduled.scheduledAt);
+                  const now = new Date();
+                  const isToday = d.toDateString() === now.toDateString();
+                  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  return `${isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })} ${time}`;
+                })()
+              }</span></>
+            ) : (
+              "Agent is monitoring for new content to optimize."
+            )}
           </p>
-          <Button variant="outline" size="sm" className="w-full text-[10px] h-8 rounded-xl border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive bg-transparent group uppercase tracking-widest font-black">
-            <Pause size={12} className="mr-1.5 group-hover:scale-90 transition-transform" /> Pause Agent
-          </Button>
         </div>
-
       </div>
     </div>
   );
@@ -202,6 +265,15 @@ const DashboardLayout = () => {
       <main className="flex-1 lg:ml-64 flex flex-col min-w-0 overflow-hidden">
         {/* HEADER */}
         <header className="h-16 border-b border-border/50 bg-white/50 backdrop-blur-sm px-6 flex items-center justify-between relative z-30 shrink-0">
+          {showRelinkSuccess && (
+            <motion.div 
+              initial={{ y: -50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="absolute top-full left-0 right-0 h-10 bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] shadow-lg z-50"
+            >
+              <CheckCircle2 size={14} className="mr-2" /> Instagram Reconnected Successfully!
+            </motion.div>
+          )}
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -245,8 +317,34 @@ const DashboardLayout = () => {
         </header>
 
         {/* PAGE CONTENT */}
-        <section className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide">
+        <section className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
           <div className="max-w-6xl mx-auto">
+            <AnimatePresence>
+              {showRelinkSuccess && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -20, height: 0 }}
+                  className="mb-6 overflow-hidden"
+                >
+                  <div className="bg-emerald-500 text-white p-4 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+                        <CheckCircle2 size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">Account Relinked Successfully</p>
+                        <p className="text-[10px] font-medium opacity-90 uppercase tracking-widest">Your Instagram operations are now synchronized</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setShowRelinkSuccess(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                      <X size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <Outlet context={{ profile, setProfile }} />
           </div>
         </section>
@@ -256,7 +354,7 @@ const DashboardLayout = () => {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-border/50 px-8 py-4 flex justify-between items-center z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
         {navItems.map((item) => {
           let itemPath = item.path;
-          if (item.label === 'Content Mix' && sessionStorage.getItem('content_plan')) {
+          if (item.label === 'Content Mix' && localStorage.getItem('content_plan')) {
             itemPath = '/dashboard/content/plan';
           }
           const isActive = itemPath === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(itemPath);
@@ -355,16 +453,9 @@ const DashboardLayout = () => {
                 )}
               </div>
               <div className="p-6 border-t border-border/50">
-                <Button 
-                  variant="outline" 
-                  className="w-full rounded-2xl font-black text-[10px] uppercase tracking-widest h-12"
-                  onClick={() => {
-                    setShowNotifications(false);
-                    window.location.href = '/dashboard/activity';
-                  }}
-                >
-                  View All Activity
-                </Button>
+                <p className="text-[9px] text-center font-bold text-muted-foreground uppercase tracking-widest opacity-40">
+                  End of Activity Log
+                </p>
               </div>
             </motion.div>
           </>

@@ -538,6 +538,17 @@ const processCommentEventForProfile = async (profile, event) => {
       result,
     });
 
+    // Notify user of new lead
+    try {
+      const { createNotification } = await import('../utils/notificationHelper.js');
+      await createNotification(
+        profile.user,
+        'insight',
+        'New Lead Captured',
+        `User ${event.actorUsername || 'on Instagram'} triggered your "${flow.name}" flow via a comment.`
+      );
+    } catch (e) {}
+
     return true;
   } catch (error) {
     const providerError = error?.response?.data?.error || error?.response?.data || error?.message;
@@ -659,12 +670,24 @@ const processMentionEventForProfile = async (profile, event) => {
         console.error('Mention DM check failed: Could not resolve page token.');
         return false;
     }
-    await sendStandardMessage({
+    const result = await sendStandardMessage({
       pageToken,
       igScopedId: event.senderId,
       messagePayload,
       pageId: profile.instagramPageId
     });
+
+    // Notify user of successful story thanks
+    try {
+      const { createNotification } = await import('../utils/notificationHelper.js');
+      await createNotification(
+        profile.user,
+        'success',
+        'Story Thanks Sent',
+        `Agent automatically thanked a user for mentioning you in their story.`
+      );
+    } catch (e) {}
+
     return true;
   } catch (err) {
     console.error('Mention DM send failed', err?.response?.data || err.message);

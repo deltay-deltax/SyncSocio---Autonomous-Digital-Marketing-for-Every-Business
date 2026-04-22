@@ -55,14 +55,14 @@ const ContentMix: React.FC = () => {
   const daysLeft = isHardLocked ? Math.ceil((sevenDays - diff) / (24 * 60 * 60 * 1000)) : 0;
   const triesLeft = (profile?.generationCount || 0) >= 2 ? 0 : 2 - (profile?.generationCount || 0);
 
-  // fulfill user requirement: if plan exists, skip this generate page and go to plan
+  // fulfill user requirement: if plan exists or user is locked, skip this generate page and go to plan
   React.useEffect(() => {
-    const cachedPlan = sessionStorage.getItem('content_plan');
-    if (cachedPlan) {
-      console.log("Existing plan found, redirecting to plan page...");
+    const cachedPlan = localStorage.getItem('content_plan');
+    if (cachedPlan || isHardLocked) {
+      console.log("Existing plan or lock found, redirecting to plan page...");
       navigate("/dashboard/content/plan", { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, isHardLocked]);
 
   const handleGenerate = async () => {
     if (isHardLocked) return;
@@ -70,7 +70,8 @@ const ContentMix: React.FC = () => {
     setIsLocked(false);
     try {
       const token = localStorage.getItem('token') || '';
-      const res = await fetch('http://localhost:5050/api/ai/mix', {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const res = await fetch(`${API_BASE}/ai/mix`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,8 +93,8 @@ const ContentMix: React.FC = () => {
       // ... logging
       // Persist mix for the plan agent to consume
       const mixToStore = data.mix || data;
-      sessionStorage.setItem('content_mix', JSON.stringify(mixToStore));
-      sessionStorage.removeItem('content_plan'); // CRITICAL: Clear old plan so fresh one is generated
+      localStorage.setItem('content_mix', JSON.stringify(mixToStore));
+      localStorage.removeItem('content_plan'); // CRITICAL: Clear old plan so fresh one is generated
       setMixData(mixToStore);
     } catch (err: any) {
       console.error(err);
@@ -101,6 +102,17 @@ const ContentMix: React.FC = () => {
     }
     setLoading(false);
   };
+
+  if (isHardLocked || localStorage.getItem('content_plan')) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center pt-4 animate-in fade-in duration-500">
+        <div className="w-10 h-10 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">
+          Redirecting to active plan...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center pt-4 animate-in fade-in duration-500">
@@ -138,7 +150,7 @@ const ContentMix: React.FC = () => {
                 )}
               >
                 <Wand2 size={16} className={cn("mr-2", loading && "animate-pulse")} />
-                {loading ? "Analyzing Engagement..." : isHardLocked ? `Locked (${hardLockDays} Days)` : "Generate Content Mix"}
+                {loading ? "Analyzing Engagement..." : isHardLocked ? `Locked (${daysLeft} Days)` : "Generate Content Mix"}
               </Button>
               {!isHardLocked && !loading && diff < sevenDays && (
                 <p className="mt-4 text-[10px] font-black text-amber-600 uppercase tracking-widest animate-pulse">

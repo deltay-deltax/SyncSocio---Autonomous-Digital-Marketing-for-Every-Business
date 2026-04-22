@@ -8,8 +8,9 @@ const postAnalysisSchema = new mongoose.Schema({
   },
   mediaUrl: {
     type: String, // Local path or Cloudinary URL
-    required: true
+    required: false
   },
+  mediaUrls: [String], // Array for carousel support
   contentType: {
     type: String,
     enum: ['reel', 'static', 'carousel'],
@@ -49,7 +50,13 @@ const postAnalysisSchema = new mongoose.Schema({
   isAgentAssisted: {
     type: Boolean,
     default: true
-  }
+  },
+  platforms: {
+    instagram: { type: Boolean, default: true },
+    facebook: { type: Boolean, default: false }
+  },
+  scheduledAt: Date,
+  permanentUrl: String // Final URL from Cloudinary/Social
 }, { timestamps: true, collection: 'post_analyses' });
 
 export default mongoose.model('PostAnalysis', postAnalysisSchema);

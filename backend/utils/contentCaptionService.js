@@ -20,6 +20,22 @@ export async function generateCaptionsAndHashtags(userId, posts) {
       timeout: 90000
     });
     const data = agentRes.data;
+
+    // Persist captions to the latest calendar
+    try {
+      const ContentCalendar = (await import('../models/ContentCalendar.js')).default;
+      const latestCalendar = await ContentCalendar.findOne({ userId }).sort({ createdAt: -1 });
+      if (latestCalendar) {
+        const captionMap = {};
+        (data.captions || []).forEach(c => { captionMap[c.day_index] = c; });
+        latestCalendar.captions = captionMap;
+        await latestCalendar.save();
+        console.log(`✅ Captions persisted to calendar for ${userId}`);
+      }
+    } catch (e) {
+      console.error("Failed to persist captions to DB", e.message);
+    }
+
     return data;
   } catch (error) {
     console.error(`❌ Error in caption generation:`, error.message);

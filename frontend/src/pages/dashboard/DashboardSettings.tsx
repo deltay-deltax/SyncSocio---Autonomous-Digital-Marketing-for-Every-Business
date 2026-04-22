@@ -74,8 +74,8 @@ const DashboardSettings = () => {
       const payload = {
         ...formData,
         location: { city: formData.city, country: formData.country },
-        competitors: formData.competitors.split(',').map(s => s.trim()).filter(Boolean),
-        targetAudiences: formData.targetAudiences.split(',').map(s => s.trim()).filter(Boolean)
+        competitors: formData.competitors.split(',').map((s: string) => s.trim()).filter(Boolean),
+        targetAudiences: formData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean)
       };
 
       const res = await fetch(`${apiBase}/profile`, {
@@ -299,16 +299,23 @@ const DashboardSettings = () => {
                       size="sm" 
                       className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
                       onClick={async () => {
+                        console.log('🔄 Relink Instagram clicked. Fetching auth URL...');
                         try {
                           const token = localStorage.getItem('token');
                           const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                          const res = await fetch(`${apiBase}/auth/instagram/auth`, {
+                          const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                           });
-                          const { url } = await res.json();
-                          if (url) window.location.href = url;
+                          const data = await res.json();
+                          console.log('🚀 Auth Response:', data);
+                          if (data.url) {
+                            console.log('➡️ Redirecting to:', data.url);
+                            window.location.href = data.url;
+                          } else {
+                            console.error('❌ No URL returned in auth response');
+                          }
                         } catch (err) {
-                          console.error('Failed to get auth URL:', err);
+                          console.error('❌ Failed to get auth URL:', err);
                         }
                       }}
                     >

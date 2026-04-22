@@ -3,6 +3,8 @@ import axios from 'axios';
 import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
 
+import { createNotification } from '../utils/notificationHelper.js';
+
 const router = express.Router();
 
 router.get('/recommendations', protect, async (req, res) => {
@@ -106,6 +108,18 @@ router.get('/recommendations', protect, async (req, res) => {
         brandProfile.cachedAdsRecommendations = recommendations;
         brandProfile.lastAdsAnalysisAt = now;
         await brandProfile.save();
+
+        // 5. Notify User
+        /* Commented out per user request to focus on operational events
+        if (recommendations.length > 0) {
+            await createNotification(
+                userId,
+                'insight',
+                'Ad Boost Recommendations Ready',
+                `AI identified ${recommendations.length} high-ROI posts for your brand. Check them out in Ads.`
+            );
+        }
+        */
 
         res.json({
             status: 'success',

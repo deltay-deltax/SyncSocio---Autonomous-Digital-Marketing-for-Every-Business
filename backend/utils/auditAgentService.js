@@ -99,12 +99,14 @@ export async function performStrategicAudit(userId, brandProfile) {
         }
       );
       // 5. Notify User
+      /* Commented out per user request to focus on operational events
       await createNotification(
         userId,
         'agent',
         'Strategic Optimization Complete',
         `Agent updated your content strategy. Recommendation: ${recommendation.slice(0, 100)}...`
       );
+      */
 
       console.log(`[AUDIT] ✅ Success! Verdict stored for ${brandProfile.brandName}.`);
     }

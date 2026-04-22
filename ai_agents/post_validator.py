@@ -614,7 +614,8 @@ def publisher_node(state: PostState) -> PostState:
                     "access_token": access_token
                 }, timeout=30).json()
                 if not res.get("id"):
-                    raise ValueError(f"Carousel item failed: {res}")
+                    print(f"FAILED Carousel Item Response: {res}")
+                    raise ValueError(f"Carousel item failed: {res.get('error', {}).get('message', 'Unknown error')}")
                 item_ids.append(res["id"])
             
             # Create Carousel Container
@@ -654,7 +655,25 @@ def publisher_node(state: PostState) -> PostState:
             creation_id = res.get("id")
 
         if not creation_id:
-            raise ValueError("Failed to create main container")
+            print(f"FAILED Response from Meta: {res}")
+            # Fallback Logic: If scheduling is blocked (Whitelist error), retry as immediate post
+            if scheduled_time_unix and "whitelist" in str(res.get('error', {}).get('message', '')).lower():
+                print("[PUBLISHER] ⚠️ Scheduling blocked by whitelist. Falling back to immediate post...")
+                # Remove scheduling param and retry
+                if content_type == "carousel":
+                    carousel_data.pop("scheduled_publish_time", None)
+                    res = requests.post(container_url, data=carousel_data, timeout=30).json()
+                elif content_type == "reel":
+                    container_params.pop("scheduled_publish_time", None)
+                    res = requests.post(container_url, data=container_params, timeout=30).json()
+                else: # static
+                    container_params.pop("scheduled_publish_time", None)
+                    res = requests.post(container_url, data=container_params, timeout=30).json()
+                
+                creation_id = res.get("id")
+            
+            if not creation_id:
+                raise ValueError(f"Failed to create main container: {res.get('error', {}).get('message', 'Unknown error')}")
 
         print(f"Media container created: {creation_id}")
 
@@ -679,17 +698,67 @@ def publisher_node(state: PostState) -> PostState:
 
         if publish_res.get("id"):
             print(f"🚀 Published successfully! Post ID: {publish_res['id']}")
-            # Cleanup (Disabled so user can see media in History)
-            # for pid, rtype in public_ids:
-            #     try: cloudinary.uploader.destroy(pid, resource_type=rtype)
-            #     except: pass
-            return {**state, "ig_media_id": publish_res["id"], "permanent_url": asset_urls[0]}
+            # Update state with IG info
+            state["ig_media_id"] = publish_res["id"]
+            state["permanent_url"] = asset_urls[0]
         else:
             raise ValueError(f"Publish failed: {publish_res}")
 
     except Exception as e:
         print(f"Publisher error: {str(e)}")
-        return {**state, "error": f"Publish failed: {str(e)}"}
+        state["error"] = f"Publish failed: {str(e)}"
+    finally:
+        # --- NEW: Facebook Publishing Hook ---
+        platforms = state.get("platforms", {})
+        if platforms.get("facebook", False):
+            try:
+                fb_page_id = brand.get("instagramPageId")
+                # For FB, we need the Page Access Token. We fallback to User Token if missing.
+                fb_access_token = brand.get("instagramPageAccessToken") or access_token
+                
+                if fb_page_id and fb_access_token:
+                    print(f"[PUBLISHER] Attempting Facebook publish to Page: {fb_page_id}")
+                    
+                    resource_url = asset_urls[0] if asset_urls else None
+                    if resource_url:
+                        # Logic: Use /videos for reels, /photos for images
+                        is_video = content_type == "reel"
+                        fb_endpoint = f"https://graph.facebook.com/v25.0/{fb_page_id}/{'videos' if is_video else 'photos'}"
+                        
+                        fb_data = {
+                            "caption": caption if 'caption' in locals() else state.get("description"),
+                            "access_token": fb_access_token
+                        }
+                        
+                        # Parameter name varies by endpoint for Facebook
+                        if is_video:
+                            fb_data["file_url"] = resource_url
+                            fb_data["description"] = fb_data.pop("caption") # Videos use 'description' for the text
+                        else:
+                            fb_data["url"] = resource_url
+
+                        if 'scheduled_time_unix' in locals() and scheduled_time_unix:
+                            fb_data["scheduled_publish_time"] = scheduled_time_unix
+                            fb_data["published"] = "false"
+                        
+                        fb_res = requests.post(fb_endpoint, data=fb_data, timeout=30).json()
+                        if fb_res.get("id") or fb_res.get("post_id"):
+                            fb_id = fb_res.get("id") or fb_res.get("post_id")
+                            print(f"🚀 Facebook Publish Success! ID: {fb_id}")
+                            state["fb_post_id"] = fb_id
+                        else:
+                            print(f"❌ Facebook Publish Failed: {fb_res}")
+                else:
+                    print("[PUBLISHER] Facebook enabled but Page credentials missing.")
+            except Exception as fbe:
+                print(f"[PUBLISHER] Facebook error: {str(fbe)}")
+
+    # Clean return
+    return {
+        **state, 
+        "ig_media_id": state.get("ig_media_id"), 
+        "permanent_url": state.get("permanent_url")
+    }
 
 # ── Build the Validation Graph ─────────────────────────────────────────────
 def build_validation_graph():

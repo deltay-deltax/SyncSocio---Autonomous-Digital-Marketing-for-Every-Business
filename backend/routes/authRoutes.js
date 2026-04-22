@@ -14,4 +14,11 @@ router.post('/set-password', protect, setPassword);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:resetToken', resetPassword);
 
+router.post('/logout', protect, (req, res) => {
+    import('../utils/notificationHelper.js').then(m => {
+        m.createNotification(req.user._id, 'alert', 'Account Logout', 'User logged out of the current session.');
+    });
+    res.status(200).json({ message: 'Logged out' });
+});
+
 export default router;

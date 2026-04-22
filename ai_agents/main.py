@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorClient
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from dotenv import load_dotenv
 
@@ -248,7 +248,8 @@ async def api_validate_post(
 
         # 5. Save to MongoDB and return
         analysis_entry = {
-            "userId": userId,
+            "userId": ObjectId(userId),
+            "mediaUrl": media_paths[0] if media_paths else "",
             "mediaUrls": media_paths,
             "contentType": contentType,
             "description": description,
@@ -275,11 +276,15 @@ async def api_validate_post(
 
 
 @app.post("/schedule-post/{analysis_id}")
-async def api_schedule_post(analysis_id: str):
+async def api_schedule_post(analysis_id: str, request: Request):
     """Triggers auto-publish for a previously analyzed post."""
     from bson import ObjectId
     from bson.errors import InvalidId
     try:
+        body = await request.json()
+        platforms = body.get("platforms", {"instagram": True, "facebook": False})
+        scheduled_at = body.get("scheduledAt") # New: respect manual adjustments
+        
         doc = await db["post_analyses"].find_one({"_id": ObjectId(analysis_id)})
         if not doc:
             raise HTTPException(status_code=404, detail="Analysis not found")
@@ -289,6 +294,8 @@ async def api_schedule_post(analysis_id: str):
         brand_profile = {
             "instagramAccessToken": brand_doc.get("instagramAccessToken", "") if brand_doc else "",
             "instagramBusinessAccountId": brand_doc.get("instagramBusinessAccountId", "") if brand_doc else "",
+            "instagramPageId": brand_doc.get("instagramPageId", "") if brand_doc else "",
+            "instagramPageAccessToken": brand_doc.get("instagramPageAccessToken", "") if brand_doc else "",
         }
 
         # Build state for publisher
@@ -302,11 +309,12 @@ async def api_schedule_post(analysis_id: str):
             "winner_posts": [],
             "critique": doc.get("analysis", {}),
             "growth_factor": doc.get("growthFactor", 0),
-            "best_posting_time": doc.get("bestPostingTime", ""),
+            "best_posting_time": scheduled_at or doc.get("bestPostingTime", ""),
             "suggestions": doc.get("suggestions", []),
             "media_analysis": "",
             "iteration": 0,
-            "error": ""
+            "error": "",
+            "platforms": platforms
         }
 
         result = publisher_node(post_state)
@@ -322,7 +330,10 @@ async def api_schedule_post(analysis_id: str):
             update_fields["permanentUrl"] = result["permanent_url"]
         
         # Save the actual scheduled time for History grouping
-        if post_state.get("best_posting_time"):
+        # If it was published IMMEDIATELY (fallback), we use now. Otherwise use the target time.
+        if status == "published" and result.get("permanent_url"):
+            update_fields["scheduledAt"] = datetime.now(timezone.utc).isoformat()
+        elif post_state.get("best_posting_time"):
             update_fields["scheduledAt"] = post_state["best_posting_time"]
         else:
             update_fields["scheduledAt"] = datetime.now(timezone.utc).isoformat()
@@ -336,6 +347,106 @@ async def api_schedule_post(analysis_id: str):
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid analysis ID")
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/direct-publish")
+async def api_direct_publish(
+    files: List[UploadFile] = File(...),
+    userId: str = Form(...),
+    contentType: str = Form(...),
+    description: str = Form(...),
+    platforms: str = Form(...),
+    scheduledAt: Optional[str] = Form(None)
+):
+    """Bypasses optimization and publishes content directly."""
+    import json
+    from bson import ObjectId
+    try:
+        # 1. Parse platforms JSON string
+        try:
+            platforms_dict = json.loads(platforms)
+        except:
+            platforms_dict = {"instagram": True, "facebook": False}
+
+        # 2. Save uploaded files locally
+        media_paths = []
+        upload_dir = "uploaded_posts"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        for file in files:
+            ext = os.path.splitext(file.filename)[1]
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            media_path = f"{upload_dir}/{userId}_{timestamp}{ext}"
+            with open(media_path, "wb") as buf:
+                shutil.copyfileobj(file.file, buf)
+            media_paths.append(media_path)
+
+        # 3. Fetch brand profile for credentials
+        brand_doc = await db["brandprofiles"].find_one({
+            "$or": [
+                {"_id": ObjectId(userId)},
+                {"user": ObjectId(userId)}
+            ]
+        })
+        brand_profile = {
+            "instagramAccessToken": brand_doc.get("instagramAccessToken", "") if brand_doc else "",
+            "instagramBusinessAccountId": brand_doc.get("instagramBusinessAccountId", "") if brand_doc else "",
+            "instagramPageId": brand_doc.get("instagramPageId", "") if brand_doc else "",
+            "instagramPageAccessToken": brand_doc.get("instagramPageAccessToken", "") if brand_doc else "",
+        }
+
+        # 4. Build state for publisher (Minimum state needed)
+        post_state = {
+            "user_id": userId,
+            "media_paths": media_paths,
+            "content_type": contentType,
+            "description": description,
+            "brand_profile": brand_profile,
+            "account_insights": {},
+            "winner_posts": [],
+            "critique": {"improved_hook": description, "hashtags": []}, # No AI changes
+            "growth_factor": 0,
+            "best_posting_time": scheduledAt,
+            "suggestions": [],
+            "media_analysis": "Direct Publish",
+            "iteration": 0,
+            "error": "",
+            "platforms": platforms_dict
+        }
+
+        # 5. Run Publisher directly
+        result = publisher_node(post_state)
+
+        status = "failed" if result.get("error") else "published"
+        
+        # 6. Save to history (post_analyses)
+        analysis_entry = {
+            "userId": ObjectId(userId),
+            "mediaUrl": media_paths[0] if media_paths else "",
+            "mediaUrls": media_paths,
+            "contentType": contentType,
+            "description": description,
+            "growthFactor": 0,
+            "analysis": post_state["critique"],
+            "bestPostingTime": scheduledAt or datetime.now(timezone.utc).isoformat(),
+            "scheduledAt": scheduledAt or datetime.now(timezone.utc).isoformat(),
+            "suggestions": [],
+            "status": status,
+            "isAgentAssisted": False, # Flag as direct
+            "createdAt": datetime.now(),
+            "platforms": platforms_dict
+        }
+        
+        if result.get("ig_media_id"):
+            analysis_entry["instagramMediaId"] = result["ig_media_id"]
+        if result.get("permanent_url"):
+            analysis_entry["permanentUrl"] = result["permanent_url"]
+
+        await db["post_analyses"].insert_one(analysis_entry)
+
+        return {"status": status, "error": result.get("error", "")}
+    except Exception as e:
+        print(f"Direct Publish Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

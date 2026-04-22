@@ -23,14 +23,34 @@ import { cn } from "@/lib/utils";
 import axios from "axios";
 import type { ContentType } from "@/lib/content-plan";
 
+const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
 const API_BASE = 'http://localhost:5050/api';
 
 const TYPE_META: Record<
-  ContentType,
+  string,
   { label: string; icon: React.ElementType; tint: string }
 > = {
   reel: { label: "Reel", icon: Video, tint: "bg-primary/10 text-primary" },
   image: { label: "Image", icon: ImageIcon, tint: "bg-sky-100 text-sky-600" },
+  static: { label: "Image", icon: ImageIcon, tint: "bg-sky-100 text-sky-600" },
   carousel: { label: "Carousel", icon: Layers, tint: "bg-indigo-100 text-indigo-600" },
 };
 
@@ -84,16 +104,24 @@ const History: React.FC = () => {
   }, []);
 
   // Filter items that have been through the publisher
-  const processedItems = items.filter(i => i.status === 'published' || i.status === 'failed');
+  const processedItems = items.filter(i => i.status === 'published' || i.status === 'failed' || i.status === 'scheduled');
+  
+  const failed = processedItems.filter(i => i.status === 'failed');
   
   const scheduled = processedItems.filter(i => {
-    if (!i.scheduledAt) return false;
-    return new Date(i.scheduledAt) > now && i.status !== 'failed';
+    if (i.status === 'failed') return false;
+    // If explicitly scheduled status
+    if (i.status === 'scheduled') return true;
+    // If it has a future date, it belongs in scheduled regardless of status string
+    if (i.scheduledAt && new Date(i.scheduledAt) > now) return true;
+    return false;
   });
   
   const published = processedItems.filter(i => {
-    if (!i.scheduledAt) return true;
-    return new Date(i.scheduledAt) <= now || i.status === 'failed';
+    if (i.status !== 'published') return false;
+    // If it's a published post but has a future date, it's still "active" in scheduled
+    if (i.scheduledAt && new Date(i.scheduledAt) > now) return false;
+    return true;
   });
 
   return (
@@ -159,16 +187,35 @@ const History: React.FC = () => {
 
             {/* Published Section */}
             {published.length > 0 && (
-              <div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
                 <div className="flex items-center gap-2 mb-6 px-1">
-                  <CheckCircle2 size={16} className="text-emerald-600" />
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 size={12} className="text-emerald-600" />
+                  </div>
                   <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">
                     Published
                   </h2>
                   <span className="text-[11px] font-medium text-slate-400">— Already live</span>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                    {published.map(item => <HistoryRow key={item._id} entry={item} />)}
+                </div>
+              </div>
+            )}
+
+            {failed.length > 0 && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+                <div className="flex items-center gap-2 mb-6 mt-12 px-1">
+                  <div className="w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center">
+                    <AlertCircle size={12} className="text-rose-600" />
+                  </div>
+                  <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-600">
+                    Delivery Issues
+                  </h2>
+                  <span className="text-[11px] font-medium text-slate-400">— Failed attempts</span>
+                </div>
+                <div className="space-y-4 opacity-80">
+                   {failed.map(item => <HistoryRow key={item._id} entry={item} />)}
                 </div>
               </div>
             )}
@@ -195,7 +242,7 @@ function StatCard({ label, value, icon: Icon, tint }: { label: string; value: nu
 
 function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
   const type = (entry.contentType || 'image') as ContentType;
-  const meta = TYPE_META[type];
+  const meta = TYPE_META[type as keyof typeof TYPE_META] || TYPE_META.image;
   const Icon = meta.icon;
   const isFailed = entry.status === 'failed';
 
@@ -246,6 +293,20 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
                 Published
               </Badge>
             )}
+
+            {/* Platform Icons */}
+            <div className="flex items-center gap-1.5 ml-auto">
+              {entry.platforms?.instagram !== false && (
+                <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                  <InstagramIcon size={12} />
+                </div>
+              )}
+              {entry.platforms?.facebook && (
+                <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                </div>
+              )}
+            </div>
           </div>
 
           <h3 className="text-[15px] md:text-lg font-bold text-slate-900 truncate tracking-tight">

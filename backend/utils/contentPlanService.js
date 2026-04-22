@@ -49,9 +49,10 @@ export async function generateContentPlan(userId, mix) {
       timeout: 90000
     });
     
-    // Update lock timestamp disabled for now
-    // brandProfile.lastPlanGeneratedAt = new Date();
-    // await brandProfile.save();
+    // Update lock timestamp and generation count
+    brandProfile.lastPlanGeneratedAt = new Date();
+    brandProfile.generationCount = (brandProfile.generationCount || 0) + 1;
+    await brandProfile.save();
 
     const data = agentRes.data;
 

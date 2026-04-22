@@ -19,6 +19,24 @@ import {
   X,
   PartyPopper,
 } from "lucide-react";
+
+interface IconProps {
+  size?: number;
+  className?: string;
+}
+
+// Brand Icons as custom SVG components to avoid lucide-react version issues
+const FacebookIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import axios from "axios";
@@ -26,7 +44,7 @@ import { cn } from "@/lib/utils";
 import { type ContentType } from "@/lib/content-plan";
 import { mediaCache } from "@/lib/media-cache";
 
-const API_BASE = 'http://localhost:5050/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
 const TYPE_META: Record<
   ContentType,
@@ -80,12 +98,13 @@ const ContentPlan: React.FC = () => {
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const navigate = useNavigate();
   const { profile } = useOutletContext<{ profile: any }>();
+  const [platforms, setPlatforms] = useState({ instagram: true, facebook: false });
 
   // Fetch real plan from AI agent on mount — restores from sessionStorage if already generated
   useEffect(() => {
     const fetchPlan = async () => {
       setGenerating(true);
-      const cached = sessionStorage.getItem('content_plan');
+      const cached = localStorage.getItem('content_plan');
 
       // Check if user is locked (moved check outside to prevent bypass)
       const now = new Date();
@@ -93,12 +112,43 @@ const ContentPlan: React.FC = () => {
       const diff = last ? now.getTime() - last.getTime() : Infinity;
       const isLocked = diff < 7 * 24 * 60 * 60 * 1000 && (profile?.generationCount || 0) >= 2;
 
-      // If locked and no cache, redirect back
+      // If locked and no cache, try to fetch the last known plan from the DB
       if (isLocked && !cached) {
-        console.log("Strategic lock active, blocking auto-generation.");
-        setGenerating(false);
-        navigate("/dashboard/content", { replace: true });
-        return;
+        console.log("Strategic lock active, restoring plan from database...");
+        try {
+          const token = localStorage.getItem('token') || '';
+          const res = await fetch(`${API_BASE}/ai/calendar`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.posts && data.posts.length > 0) {
+              const week = data.posts.map((d: any, i: number) => ({
+                ...d,
+                id: `${d.day}-${i}`,
+                selected: false,
+                date: d.date || d.day || "Day",
+                type: (d.type || d.format || "image").toLowerCase().replace(/s$/, "") as ContentType,
+                optimalTime: d.optimalTime || (i % 2 === 0 ? "8:00 PM" : "11:00 AM"),
+                prompt: d.prompt || `A high-quality ${d.type || d.format || 'post'} about ${d.topic}`
+              }));
+              setItems(week);
+              
+              if (data.captions && Object.keys(data.captions).length > 0) {
+                setCaptions(data.captions);
+                localStorage.setItem('content_plan', JSON.stringify({ items: week, captions: data.captions }));
+              } else {
+                console.log("Captions missing in DB, triggering recovery...");
+                fetchCaptions(week, token);
+              }
+              
+              setGenerating(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to restore plan from DB:', e);
+        }
       }
 
       // Restore cached plan to avoid re-fetching on nav
@@ -107,7 +157,7 @@ const ContentPlan: React.FC = () => {
           const parsed = JSON.parse(cached);
           const rawItems = parsed.items || [];
 
-          // restore files from global module cache (since sessionStorage strips them)
+          // restore files from global module cache (since localStorage strips them)
           const itemsWithFiles = rawItems.map((item: any) => {
             const cachedMedia = mediaCache.get(item.id);
             if (cachedMedia) {
@@ -125,7 +175,7 @@ const ContentPlan: React.FC = () => {
       try {
         const token = localStorage.getItem('token') || '';
         // Get the stored mix from sessionStorage (written by ContentMix page)
-        const storedMix = JSON.parse(sessionStorage.getItem('content_mix') || 'null');
+        const storedMix = JSON.parse(localStorage.getItem('content_mix') || 'null');
         const res = await fetch(`${API_BASE}/ai/plan`, {
           method: 'POST',
           headers: {
@@ -149,10 +199,12 @@ const ContentPlan: React.FC = () => {
           ...d,
           id: `${d.day}-${i}`,
           selected: false,
+          date: d.date || d.day || "Day", // Fallback
+          type: (d.type || d.format || "image").toLowerCase().replace(/s$/, "") as ContentType
         }));
         setItems(week);
         // Persist initial skeleton immediately
-        sessionStorage.setItem('content_plan', JSON.stringify({ items: week, captions: {} }));
+        localStorage.setItem('content_plan', JSON.stringify({ items: week, captions: {} }));
         // Now fetch captions for all posts
         fetchCaptions(week, token);
       } catch (e) {
@@ -192,7 +244,7 @@ const ContentPlan: React.FC = () => {
       (data.captions || []).forEach((c: any) => { captionMap[c.day_index] = c; });
       setCaptions(captionMap);
       // Persist everything to sessionStorage
-      sessionStorage.setItem('content_plan', JSON.stringify({ items: planItems, captions: captionMap }));
+      localStorage.setItem('content_plan', JSON.stringify({ items: planItems, captions: captionMap }));
     } catch (e) {
       console.error('Failed to load captions:', e);
     } finally {
@@ -210,8 +262,8 @@ const ContentPlan: React.FC = () => {
 
   const regenerate = () => {
     // Clear session so user can generate a fresh mix on the Mix page
-    sessionStorage.removeItem('content_plan');
-    sessionStorage.removeItem('content_mix');
+    localStorage.removeItem('content_plan');
+    localStorage.removeItem('content_mix');
     mediaCache.clear();
     items.forEach((it) => (it.previewUrls || []).forEach(url => URL.revokeObjectURL(url)));
     navigate("/dashboard/content");
@@ -219,8 +271,8 @@ const ContentPlan: React.FC = () => {
 
   const handleBack = () => {
     // Clear session so user goes to the "Generate" page, not the redirect
-    sessionStorage.removeItem('content_plan');
-    sessionStorage.removeItem('content_mix');
+    localStorage.removeItem('content_plan');
+    localStorage.removeItem('content_mix');
     navigate("/dashboard/content");
   };
 
@@ -251,7 +303,7 @@ const ContentPlan: React.FC = () => {
 
         return { ...it, files: updatedFiles, previewUrls: updatedPreviews };
       });
-      sessionStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
+      localStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
 
       // Update global cache
       const updatedItem = newItems.find(it => it.id === id);
@@ -270,7 +322,7 @@ const ContentPlan: React.FC = () => {
         (it.previewUrls || []).forEach(url => URL.revokeObjectURL(url));
         return { ...it, files: undefined, previewUrls: undefined };
       });
-      sessionStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
+      localStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
       return newItems;
     });
     mediaCache.remove(id);
@@ -289,22 +341,46 @@ const ContentPlan: React.FC = () => {
       item.files.forEach(f => formData.append('files', f));
       formData.append('contentType', item.type);
       formData.append('description', fullCaption);
+      formData.append('platforms', JSON.stringify(platforms));
 
-      const res = await fetch(`${API_BASE}/posts/validate`, {
+      // Determine scheduled time from the plan
+      try {
+        const time24 = convertTimeTo24h(item.optimalTime);
+        const [hours, minutes] = time24.split(':');
+        const planDate = new Date(); // Fallback to today
+        const dateParts = item.date.split(' ');
+        if (dateParts.length === 2) {
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const monthIndex = months.indexOf(dateParts[0]);
+          if (monthIndex !== -1) {
+            planDate.setMonth(monthIndex);
+            planDate.setDate(parseInt(dateParts[1]));
+          }
+        }
+        planDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        formData.append('scheduledAt', planDate.toISOString());
+      } catch (de) {
+        console.warn('Date parsing failed', de);
+      }
+
+      const res = await fetch(`${API_BASE}/posts/publish-direct`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) throw new Error('Publishing failed');
       const data = await res.json();
 
-      // Auto-trigger the publish endpoint
-      await axios.post(`${API_BASE}/posts/schedule/${data.analysisId}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (data.status === 'failed') throw new Error(data.error || 'Publishing failed');
 
-      alert('🚀 Published successfully to Instagram!');
+      // Remove the item from the local plan and update storage
+      const updatedItems = items.filter(i => i.id !== item.id);
+      setItems(updatedItems);
+      localStorage.setItem('content_plan', JSON.stringify(updatedItems));
+
+      alert(`🚀 Published successfully to ${platforms.instagram ? 'Instagram' : ''}${platforms.instagram && platforms.facebook ? ' & ' : ''}${platforms.facebook ? 'Facebook' : ''}!`);
+      navigate('/dashboard/history');
     } catch (e) {
       console.error('Publish error', e);
       alert('Publishing failed. Check Instagram connection.');
@@ -321,7 +397,9 @@ const ContentPlan: React.FC = () => {
 
   const convertTimeTo24h = (time: string): string => {
     try {
+      if (!time || !time.includes(' ')) return '20:00';
       const [timePart, modifier] = time.split(' ');
+      if (!timePart) return '20:00';
       let [hours, minutes] = timePart.split(':').map(Number);
       if (modifier === 'PM' && hours !== 12) hours += 12;
       if (modifier === 'AM' && hours === 12) hours = 0;
@@ -359,18 +437,54 @@ const ContentPlan: React.FC = () => {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-left mb-4"
+          className="text-left mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6"
         >
-          <div className="flex items-center gap-2 text-primary mb-2">
-            <Zap size={14} fill="currentColor" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Live Production Pipeline</span>
+          <div>
+            <div className="flex items-center gap-2 text-primary mb-2">
+              <Zap size={14} fill="currentColor" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Live Production Pipeline</span>
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground leading-tight font-display">
+              Your <span className="text-primary italic">7-Day</span> Plan
+            </h1>
+            <p className="mt-3 text-muted-foreground text-sm font-medium">
+              Select a card, upload your media, and publish — one tap at a time.
+            </p>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground leading-tight font-display">
-            Your <span className="text-primary italic">7-Day</span> Plan
-          </h1>
-          <p className="mt-3 text-muted-foreground text-sm font-medium">
-            Select a card, upload your media, and publish — one tap at a time.
-          </p>
+
+          <div className="inline-flex gap-2 p-1.5 rounded-2xl bg-card border border-border shadow-soft">
+            {(["facebook", "instagram"] as const).map((p) => {
+              const active = platforms[p as keyof typeof platforms];
+              const Icon = p === "facebook" ? FacebookIcon : InstagramIcon;
+              const label = p === "facebook" ? "Facebook" : "Instagram";
+              return (
+                <button
+                  key={p}
+                  onClick={() =>
+                    setPlatforms((prev) => {
+                      const next = { ...prev, [p]: !prev[p as keyof typeof prev] };
+                      // ensure at least one stays selected
+                      if (!next.facebook && !next.instagram) return prev;
+                      return next;
+                    })
+                  }
+                  aria-pressed={active}
+                  className={cn(
+                    "flex items-center gap-2 px-4 md:px-5 h-10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all",
+                    active
+                      ? p === "facebook"
+                        ? "bg-[#1877F2] text-white shadow-lg shadow-blue-500/20"
+                        : "bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white shadow-lg shadow-rose-500/20"
+                      : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
+                  )}
+                >
+                  <Icon size={14} />
+                  {label}
+                  {active && <Check size={12} strokeWidth={3} className="ml-1" />}
+                </button>
+              );
+            })}
+          </div>
         </motion.div>
 
         {/* States */}
@@ -426,10 +540,10 @@ const ContentPlan: React.FC = () => {
             >
               <AnimatePresence initial={false}>
                 {items.map((item) => {
-                  const meta = TYPE_META[item.type];
+                  const meta = TYPE_META[item.type] || TYPE_META["image"]; // Fallback to image if type unknown
                   const Icon = meta.icon;
                   const isOpen = openId === item.id;
-                  const isVideo = item.files?.[0]?.type.startsWith("video/");
+                  const isVideo = item.files?.[0]?.type?.startsWith("video/");
                   return (
                     <motion.div
                       key={item.id}
@@ -469,7 +583,7 @@ const ContentPlan: React.FC = () => {
                             {item.day}
                           </span>
                           <span className="text-xl font-bold text-foreground leading-none mt-1">
-                            {item.date.split(" ")[1]}
+                            {item.date?.includes(" ") ? item.date.split(" ")[1] : item.date || "—"}
                           </span>
                         </div>
 
@@ -557,7 +671,7 @@ const ContentPlan: React.FC = () => {
                                     <div className="flex gap-2">
                                       {item.previewUrls.map((url, idx) => (
                                         <div key={idx} className="w-16 h-16 rounded-xl overflow-hidden bg-white border-2 border-border/80 shrink-0 relative shadow-sm">
-                                          {item.files?.[idx]?.type.startsWith("video/") ? (
+                                          {item.files?.[idx]?.type?.startsWith("video/") ? (
                                             <video src={url} className="w-full h-full object-cover" muted />
                                           ) : (
                                             <img src={url} alt="preview" className="w-full h-full object-cover" />
