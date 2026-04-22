@@ -1,8 +1,10 @@
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
 import ContentCalendar from '../models/ContentCalendar.js';
+import { logActivity } from './activityLogger.js';
 
 export async function generateContentPlan(userId, mix) {
+  const startTime = Date.now();
   try {
     const brandProfile = await BrandProfile.findOne({ user: userId });
     if (!brandProfile) throw new Error("Brand profile not found");
@@ -45,6 +47,9 @@ export async function generateContentPlan(userId, mix) {
     const agentUrl = process.env.AGENT_SERVICE_URL || 'http://127.0.0.1:8000';
     console.log(`📡 Generating 7-day plan for ${brandProfile.brandName}...`);
 
+    // Log active start
+    await logActivity(userId, 'Strategist', 'Generating 7-Day content plan...', 'active');
+
     const agentRes = await axios.post(`${agentUrl}/generate-plan`, payload, {
       timeout: 90000
     });
@@ -55,6 +60,8 @@ export async function generateContentPlan(userId, mix) {
     await brandProfile.save();
 
     const data = agentRes.data;
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+    await logActivity(userId, 'Strategist', `7-Day content plan generated in ${duration}`, 'done', duration);
 
     // Persist to database
     if (data.plan && data.plan.length > 0) {
@@ -67,6 +74,7 @@ export async function generateContentPlan(userId, mix) {
     return data;
   } catch (error) {
     console.error(`❌ Error in content plan:`, error.message);
+    await logActivity(userId, 'Strategist', `Error: ${error.message}`, 'error');
     throw error;
   }
 }

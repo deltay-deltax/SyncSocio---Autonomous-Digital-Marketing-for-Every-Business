@@ -1,12 +1,14 @@
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
 import { createNotification } from './notificationHelper.js';
+import { logActivity } from './activityLogger.js';
 
 /**
  * Executes a neural audit for a specific user/brand.
  * Pulls Meta metrics, calls the AI agent, and persists the result.
  */
 export async function performStrategicAudit(userId, brandProfile) {
+  const startTime = Date.now();
   try {
     if (!brandProfile) {
         brandProfile = await BrandProfile.findOne({ user: userId });
@@ -19,7 +21,7 @@ export async function performStrategicAudit(userId, brandProfile) {
 
     console.log(`[AUDIT] 🧠 Starting background audit for ${brandProfile.brandName || brandProfile.instagramUsername || userId}...`);
     
-    const API_BASE = 'https://graph.facebook.com/v25.0'; // Updated to v25.0 to match other routes
+    const API_BASE = 'https://graph.facebook.com/v25.0';
     const accessToken = brandProfile.instagramAccessToken;
     const igId = brandProfile.instagramBusinessAccountId;
 
@@ -27,6 +29,9 @@ export async function performStrategicAudit(userId, brandProfile) {
       console.log(`[AUDIT] ❌ Skipping ${brandProfile.brandName}: Missing Meta credentials.`);
       return;
     }
+
+    // Log active
+    await logActivity(userId, 'Neural Pulse', 'Running strategic performance audit...', 'active');
 
     // 1. Fetch last 20 posts metrics
     const mediaRes = await axios.get(`${API_BASE}/${igId}/media`, {
@@ -98,6 +103,10 @@ export async function performStrategicAudit(userId, brandProfile) {
           lastStrategicAudit: new Date()
         }
       );
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+      await logActivity(userId, 'Neural Pulse', `Strategic audit complete in ${duration}. Mix optimized.`, 'done', duration);
+
       // 5. Notify User
       /* Commented out per user request to focus on operational events
       await createNotification(
@@ -113,5 +122,6 @@ export async function performStrategicAudit(userId, brandProfile) {
 
   } catch (error) {
     console.error(`[AUDIT] ❌ Error in background audit for ${userId}:`, error.message);
+    await logActivity(userId, 'Neural Pulse', `Audit failed: ${error.message}`, 'error');
   }
 }

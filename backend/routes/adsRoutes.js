@@ -2,12 +2,14 @@ import express from 'express';
 import axios from 'axios';
 import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
+import { logActivity } from '../utils/activityLogger.js';
 
 import { createNotification } from '../utils/notificationHelper.js';
 
 const router = express.Router();
 
 router.get('/recommendations', protect, async (req, res) => {
+    const startTime = Date.now();
     try {
         const userId = req.user.id;
         const brandProfile = await BrandProfile.findOne({ user: userId });
@@ -31,6 +33,9 @@ router.get('/recommendations', protect, async (req, res) => {
                 recommendations: brandProfile.cachedAdsRecommendations
             });
         }
+
+        // Log active
+        await logActivity(userId, 'Ads Agent', 'Analyzing viral momentum for recent posts...', 'active');
 
         console.log("🤖 Running FRESH Ad Analysis (3-day window expired or first run)");
         const accessToken = brandProfile.instagramAccessToken;
@@ -109,17 +114,8 @@ router.get('/recommendations', protect, async (req, res) => {
         brandProfile.lastAdsAnalysisAt = now;
         await brandProfile.save();
 
-        // 5. Notify User
-        /* Commented out per user request to focus on operational events
-        if (recommendations.length > 0) {
-            await createNotification(
-                userId,
-                'insight',
-                'Ad Boost Recommendations Ready',
-                `AI identified ${recommendations.length} high-ROI posts for your brand. Check them out in Ads.`
-            );
-        }
-        */
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+        await logActivity(userId, 'Ads Agent', `ROI analysis complete. ${recommendations.length} boost candidates identified in ${duration}.`, 'done', duration);
 
         res.json({
             status: 'success',
@@ -129,6 +125,7 @@ router.get('/recommendations', protect, async (req, res) => {
 
     } catch (error) {
         console.error('Ads Recommendations Error:', error.response?.data || error.message);
+        await logActivity(req.user.id, 'Ads Agent', `ROI analysis failed: ${error.message}`, 'error');
         res.status(500).json({ message: 'Error generating ad recommendations' });
     }
 });

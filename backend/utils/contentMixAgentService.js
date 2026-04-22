@@ -1,7 +1,9 @@
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
+import { logActivity } from './activityLogger.js';
 
 export async function generateContentMix(userId) {
+  const startTime = Date.now();
   try {
     const brandProfile = await BrandProfile.findOne({ user: userId });
     
@@ -76,8 +78,14 @@ export async function generateContentMix(userId) {
     const agentUrl = process.env.AGENT_SERVICE_URL || 'http://127.0.0.1:8000';
     console.log(`📡 Calling AI Predict Mix Agent for ${brandProfile.brandName}...`);
     
+    // Log active start
+    await logActivity(userId, 'Engine', 'Synthesizing content nodes...', 'active');
+
     const agentRes = await axios.post(`${agentUrl}/predict-mix`, payload);
     const data = agentRes.data;
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+    await logActivity(userId, 'Engine', `Synthesized 20+ content nodes in ${duration}`, 'done', duration);
 
     // UPDATE TIMESTAMP & COUNTER
     if (brandProfile.generationCount === 0) {
@@ -89,6 +97,7 @@ export async function generateContentMix(userId) {
     return { ...data, lastPlanGeneratedAt: brandProfile.lastPlanGeneratedAt, generationCount: brandProfile.generationCount };
   } catch (error) {
     console.error(`❌ Error in predicted mix:`, error.message);
+    await logActivity(userId, 'Engine', `Error: ${error.message}`, 'error');
     throw error;
   }
 }
