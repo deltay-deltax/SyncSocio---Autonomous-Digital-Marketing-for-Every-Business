@@ -7,27 +7,27 @@
  */
 
 interface CachedMedia {
-  file: File;
-  previewUrl: string;
+  files: File[];
+  previewUrls: string[];
 }
 
 const cache = new Map<string, CachedMedia>();
 
 export const mediaCache = {
-  set: (id: string, file: File, previewUrl: string) => {
-    cache.set(id, { file, previewUrl });
+  set: (id: string, files: File[], previewUrls: string[]) => {
+    cache.set(id, { files, previewUrls });
   },
   get: (id: string) => cache.get(id),
   remove: (id: string) => {
     const item = cache.get(id);
-    if (item?.previewUrl) {
-      URL.revokeObjectURL(item.previewUrl);
+    if (item?.previewUrls) {
+      item.previewUrls.forEach(url => URL.revokeObjectURL(url));
     }
     cache.delete(id);
   },
   clear: () => {
     cache.forEach(item => {
-      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      item.previewUrls?.forEach(url => URL.revokeObjectURL(url));
     });
     cache.clear();
   },

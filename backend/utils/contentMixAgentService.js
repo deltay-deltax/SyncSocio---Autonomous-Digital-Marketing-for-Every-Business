@@ -9,6 +9,24 @@ export async function generateContentMix(userId) {
         throw new Error("Brand profile not found");
     }
 
+    // Check 7-day lock with 1 free regeneration
+    const now = new Date();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    
+    if (brandProfile.lastPlanGeneratedAt) {
+      const last = new Date(brandProfile.lastPlanGeneratedAt);
+      const diff = now.getTime() - last.getTime();
+      
+      if (diff > sevenDays) {
+        // Window passed, reset cycle
+        brandProfile.generationCount = 0;
+      } else if (brandProfile.generationCount >= 2) {
+        // Still in window and used both tries
+        const daysLeft = Math.ceil((sevenDays - diff) / (24 * 60 * 60 * 1000));
+        throw new Error(`PLAN_LOCKED: You've used your weekly regeneration limit. You can generate a fresh strategy in ${daysLeft} days.`);
+      }
+    }
+
     const accessToken = brandProfile.instagramAccessToken;
     const igId = brandProfile.instagramBusinessAccountId;
     let historical_posts = [];
@@ -60,7 +78,15 @@ export async function generateContentMix(userId) {
     
     const agentRes = await axios.post(`${agentUrl}/predict-mix`, payload);
     const data = agentRes.data;
-    return data;
+
+    // UPDATE TIMESTAMP & COUNTER
+    if (brandProfile.generationCount === 0) {
+      brandProfile.lastPlanGeneratedAt = new Date();
+    }
+    brandProfile.generationCount = (brandProfile.generationCount || 0) + 1;
+    await brandProfile.save();
+
+    return { ...data, lastPlanGeneratedAt: brandProfile.lastPlanGeneratedAt, generationCount: brandProfile.generationCount };
   } catch (error) {
     console.error(`❌ Error in predicted mix:`, error.message);
     throw error;

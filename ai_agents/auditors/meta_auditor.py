@@ -48,9 +48,11 @@ class MetaAuditor:
         {json.dumps(data.current_mix, indent=2)}
         
         TASK (ACTOR-CRITIC LOOP):
-        1. ACTOR: Propose a new % mix (Reels, Static, Carousel) that totals 100%.
-        2. CRITIC: If the user's top-performing format (highest reach) is under-represented in their CURRENT MIX, force a pivot towards it.
-        3. EXPLAIN: Write a 1-sentence sharp, aggressive recommendation (e.g., 'Reels are outperforming Static 4x. Agent has shifted your content mix to 80% Reels going forward.')
+        1. GLOBAL MANDATE: Discovery (REELS) is non-negotiable for growth. Even if Static reach is higher locally, prioritize Reels to exit the local maximum and reach non-followers.
+        2. GROWTH BIAS: If local data is sparse (e.g. < 5 posts analyzed), DO NOT play it safe. Force a pivot to high-velocity formats (70%+ Reels/Carousels).
+        3. ACTOR: Propose a new % mix (Reels, Static, Carousel) that totals 100%.
+        4. CRITIC: If the user's top-performing format (highest reach) is under-represented in their CURRENT MIX, force a pivot towards it—UNLESS that format is Static, in which case maintain a healthy Reel/Carousel ratio for discovery.
+        5. NEURAL LEARNING: Identify 3 distinct "Learnings" about this brand's audience. Be specific (e.g. "Posts before 12pm perform 30% better").
         
         OUTPUT FORMAT: RETURN ONLY VALID JSON.
         {{
@@ -58,8 +60,14 @@ class MetaAuditor:
           "recommendation": "...",
           "efficiency_score": 0.85,
           "top_performer_type": "{top_type}",
-          "g_score": 9.2
+          "g_score": 9.2,
+          "learnings": [
+            {{ "category": "visual", "insight": "...", "confidence": 0.95 }},
+            {{ "category": "timing", "insight": "...", "confidence": 0.88 }},
+            {{ "category": "engagement", "insight": "...", "confidence": 0.92 }}
+          ]
         }}
+        CATEGORIES: visual, timing, audience, strategy, engagement.
         """
 
         try:

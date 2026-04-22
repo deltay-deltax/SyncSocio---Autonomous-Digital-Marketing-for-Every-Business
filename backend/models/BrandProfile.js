@@ -46,6 +46,9 @@ const brandProfileSchema = new mongoose.Schema({
   agentRecommendation: { type: String, default: "" },
   lastStrategicAudit: { type: Date },
   lastPlanGeneratedAt: { type: Date },
+  generationCount: { type: Number, default: 0 },
+  lastAdsAnalysisAt: { type: Date },
+  cachedAdsRecommendations: { type: Array, default: [] },
    primaryCTA: String,
    primaryColor: { type: String, default: '#2563EB' },
    secondaryColor: { type: String, default: '#60A5FA' },
@@ -77,7 +80,18 @@ const brandProfileSchema = new mongoose.Schema({
     date: String, // Format: 'MMM D' e.g. 'Apr 19'
     count: Number,
     timestamp: { type: Date, default: Date.now }
-  }]
+  }],
+  agentLearnings: [{
+    category: { type: String, enum: ['visual', 'timing', 'audience', 'strategy', 'engagement'] },
+    insight: String,
+    confidence: Number,
+    createdAt: { type: Date, default: Date.now },
+    isNew: { type: Boolean, default: true }
+  }],
+  neuralState: {
+    type: String,
+    default: 'Idle'
+  }
 }, { timestamps: true });
 
 export default mongoose.model('BrandProfile', brandProfileSchema);

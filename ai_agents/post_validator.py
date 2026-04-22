@@ -20,7 +20,7 @@ load_dotenv()
 # ── State ───────────────────────────────────────────────────────────────────
 class PostState(TypedDict):
     user_id: str
-    media_path: str
+    media_paths: List[str]
     content_type: str        # reel | static | carousel
     description: str
     brand_profile: Dict[str, Any]
@@ -202,9 +202,11 @@ def fetch_insights_node(state: PostState) -> PostState:
 # ── Node 2: Vision Actor (Analyse the uploaded media) ─────────────────────
 def vision_actor_node(state: PostState) -> PostState:
     """Uses Gemini Vision to read the uploaded image/video description."""
-    media_path = state["media_path"]
-    if not media_path or not os.path.exists(media_path):
+    media_paths = state["media_paths"]
+    if not media_paths or not os.path.exists(media_paths[0]):
         return {**state, "media_analysis": "No media file provided."}
+
+    media_path = media_paths[0] # Analyze first asset for context
 
     ext = os.path.splitext(media_path)[1].lower()
     is_image = ext in [".jpg", ".jpeg", ".png", ".webp"]
@@ -541,7 +543,7 @@ def publisher_node(state: PostState) -> PostState:
     access_token = brand.get("instagramAccessToken") or os.getenv("META_TEST_ACCESS_TOKEN", "")
     ig_id = brand.get("instagramBusinessAccountId") or os.getenv("META_IG_USER_ID", "")
 
-    media_path = state.get("media_path")
+    media_paths = state.get("media_paths", [])
     content_type = state.get("content_type")
     description = state.get("description")
     critique = state.get("critique", {})
@@ -551,76 +553,137 @@ def publisher_node(state: PostState) -> PostState:
     hashtags = " ".join(critique.get("hashtags", []))
     caption = f"{improved_hook}\n\n{hashtags}"
 
+    # Handle Scheduling Time
+    from datetime import datetime, timezone
+    import time
+    scheduled_time_unix = None
+    best_time_iso = state.get("best_posting_time")
+    
+    if best_time_iso:
+        try:
+            # best_time_iso is like "2026-04-22T09:00:00+05:30"
+            scheduled_dt = datetime.fromisoformat(best_time_iso)
+            now = datetime.now(scheduled_dt.tzinfo)
+            
+            # Instagram requires schedule time to be between 20 mins and 75 days in the future
+            diff_mins = (scheduled_dt - now).total_seconds() / 60
+            if 20 < diff_mins < (75 * 24 * 60):
+                scheduled_time_unix = int(scheduled_dt.timestamp())
+                print(f"[PUBLISHER] Scheduling post for: {scheduled_dt} (Unix: {scheduled_time_unix})")
+            else:
+                print(f"[PUBLISHER] Target time {scheduled_dt} is too close or in past ({diff_mins:.1f} mins). Posting immediately.")
+        except Exception as te:
+            print(f"[PUBLISHER] Scheduling error: {str(te)}. Defaulting to immediate.")
+
     if not access_token or not ig_id:
         print("Meta credentials not configured. Skipping auto-publish.")
         return {**state, "error": "Meta credentials not set. Post saved locally only."}
 
     try:
-        # 1. Upload to Cloudinary
+        # 1. Cloudinary Config
         cloudinary.config(
             cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
             api_key=os.getenv("CLOUDINARY_API_KEY"),
             api_secret=os.getenv("CLOUDINARY_API_SECRET")
         )
-        resource_type = "video" if content_type == "reel" else "image"
-        upload_result = cloudinary.uploader.upload(
-            media_path,
-            resource_type=resource_type,
-            folder="velocity_posts"
-        )
-        public_url = upload_result["secure_url"]
-        print(f"Cloudinary upload success: {public_url}")
 
-        # 2. Create Media Container on Instagram
+        # 2. Upload all assets and get URLs
+        asset_urls = []
+        public_ids = []
+        for path in media_paths:
+            resource_type = "video" if content_type == "reel" else "image"
+            upload_result = cloudinary.uploader.upload(
+                path,
+                resource_type=resource_type,
+                folder="velocity_posts"
+            )
+            asset_urls.append(upload_result["secure_url"])
+            public_ids.append((upload_result["public_id"], resource_type))
+            print(f"Cloudinary upload success: {upload_result['secure_url']}")
+
+        # 3. Create Media Containers
         container_url = f"https://graph.facebook.com/v25.0/{ig_id}/media"
-        if content_type == "reel":
+        
+        if content_type == "carousel":
+            # Create individual items
+            item_ids = []
+            for url in asset_urls:
+                res = requests.post(container_url, data={
+                    "image_url": url,
+                    "is_carousel_item": "true",
+                    "access_token": access_token
+                }, timeout=30).json()
+                if not res.get("id"):
+                    raise ValueError(f"Carousel item failed: {res}")
+                item_ids.append(res["id"])
+            
+            # Create Carousel Container
+            carousel_data = {
+                "media_type": "CAROUSEL",
+                "children": ",".join(item_ids),
+                "caption": caption,
+                "access_token": access_token
+            }
+            if scheduled_time_unix:
+                carousel_data["scheduled_publish_time"] = scheduled_time_unix
+                
+            carousel_res = requests.post(container_url, data=carousel_data, timeout=30).json()
+            creation_id = carousel_res.get("id")
+        elif content_type == "reel":
             container_params = {
                 "media_type": "REELS",
-                "video_url": public_url,
+                "video_url": asset_urls[0],
                 "caption": caption,
                 "access_token": access_token
             }
-        else:
+            if scheduled_time_unix:
+                container_params["scheduled_publish_time"] = scheduled_time_unix
+                
+            res = requests.post(container_url, data=container_params, timeout=30).json()
+            creation_id = res.get("id")
+        else: # static
             container_params = {
-                "image_url": public_url,
+                "image_url": asset_urls[0],
                 "caption": caption,
                 "access_token": access_token
             }
-
-        container_res = requests.post(container_url, data=container_params, timeout=30).json()
-        creation_id = container_res.get("id")
+            if scheduled_time_unix:
+                container_params["scheduled_publish_time"] = scheduled_time_unix
+                
+            res = requests.post(container_url, data=container_params, timeout=30).json()
+            creation_id = res.get("id")
 
         if not creation_id:
-            raise ValueError(f"Failed to create container: {container_res}")
+            raise ValueError("Failed to create main container")
 
         print(f"Media container created: {creation_id}")
 
-        # 3. For Reels, wait for processing
+        # 4. Wait for processing if Reel
         if content_type == "reel":
             import time
-            for _ in range(10):
+            for _ in range(12): # Wait up to 60s
                 time.sleep(5)
-                status_url = f"https://graph.facebook.com/v25.0/{creation_id}"
-                status_res = requests.get(status_url, params={
+                status_res = requests.get(f"https://graph.facebook.com/v25.0/{creation_id}", params={
                     "fields": "status_code",
                     "access_token": access_token
                 }, timeout=10).json()
                 if status_res.get("status_code") == "FINISHED":
                     break
-                print(f"Processing... {status_res.get('status_code')}")
+                print(f"Processing Reel... {status_res.get('status_code')}")
 
-        # 4. Publish
-        publish_url = f"https://graph.facebook.com/v25.0/{ig_id}/media_publish"
-        publish_res = requests.post(publish_url, data={
+        # 5. Publish
+        publish_res = requests.post(f"https://graph.facebook.com/v25.0/{ig_id}/media_publish", data={
             "creation_id": creation_id,
             "access_token": access_token
         }, timeout=30).json()
 
         if publish_res.get("id"):
-            print(f"Published successfully! Post ID: {publish_res['id']}")
-            # Clean up Cloudinary (optional - remove temp asset)
-            cloudinary.uploader.destroy(upload_result["public_id"], resource_type=resource_type)
-            return {**state}
+            print(f"🚀 Published successfully! Post ID: {publish_res['id']}")
+            # Cleanup (Disabled so user can see media in History)
+            # for pid, rtype in public_ids:
+            #     try: cloudinary.uploader.destroy(pid, resource_type=rtype)
+            #     except: pass
+            return {**state, "ig_media_id": publish_res["id"], "permanent_url": asset_urls[0]}
         else:
             raise ValueError(f"Publish failed: {publish_res}")
 
@@ -707,7 +770,7 @@ def optimize_post(post_data: Dict[str, Any]) -> Dict[str, Any]:
     
     initial_state = {
         "user_id": post_data.get("userId", ""),
-        "media_path": post_data.get("mediaPath", ""),
+        "media_paths": post_data.get("mediaPaths", []),
         "content_type": post_data.get("contentType", "static"),
         "description": post_data.get("description", ""),
         "brand_profile": post_data.get("brandProfile", {}),

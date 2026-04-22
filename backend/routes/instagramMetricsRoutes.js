@@ -424,6 +424,8 @@ router.get('/metrics', protect, async (req, res) => {
                        return dailyNetChange.reduce((sum, d) => sum + (d.value || 0), 0);
                    } catch (e) { return 0; }
                 })(),
+                agentLearnings: brandProfile.agentLearnings || [],
+                neuralState: brandProfile.neuralState || 'Idle'
             }
         });
 

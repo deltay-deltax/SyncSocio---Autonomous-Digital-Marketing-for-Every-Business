@@ -1,5 +1,6 @@
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
+import { createNotification } from './notificationHelper.js';
 
 /**
  * Executes a neural audit for a specific user/brand.
@@ -84,7 +85,7 @@ export async function performStrategicAudit(userId, brandProfile) {
     const agentRes = await axios.post(`${agentUrl}/audit-performance`, auditPayload);
     
     if (agentRes.data) {
-      const { predicted_mix, recommendation } = agentRes.data;
+      const { predicted_mix, recommendation, learnings } = agentRes.data;
       
       // 4. Update Database
       await BrandProfile.findOneAndUpdate(
@@ -92,9 +93,19 @@ export async function performStrategicAudit(userId, brandProfile) {
         { 
           predictedMix: predicted_mix,
           agentRecommendation: recommendation,
+          agentLearnings: learnings || [],
+          neuralState: 'Optimized',
           lastStrategicAudit: new Date()
         }
       );
+      // 5. Notify User
+      await createNotification(
+        userId,
+        'agent',
+        'Strategic Optimization Complete',
+        `Agent updated your content strategy. Recommendation: ${recommendation.slice(0, 100)}...`
+      );
+
       console.log(`[AUDIT] ✅ Success! Verdict stored for ${brandProfile.brandName}.`);
     }
 

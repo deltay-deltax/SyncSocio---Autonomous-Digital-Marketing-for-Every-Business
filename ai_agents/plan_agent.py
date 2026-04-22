@@ -125,6 +125,7 @@ DATES TO SCHEDULE:
 
 TASK:
 For EACH of the 7 days, create ONE post entry. Use exactly the types requested in the mix.
+CRITICAL: Do NOT repeat any concepts or titles listed in the RECENT TOPICS section. Ensure 100% topic diversity to keep the audience engaged.
 Timing: Ensure every post is scheduled at the exact time required to reach the maximum audience in India and Nepal (IST/NPT).
 
 Each entry MUST have these exact keys:
@@ -271,11 +272,7 @@ def generate_weekly_plan(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
     brand_data = payload.get("brand_info", payload)
     initial_state = {
-        "brand_info": {
-            "brandName": brand_data.get("brandName", "Unknown"),
-            "businessCategory": brand_data.get("businessCategory", "General"),
-            "brandTone": brand_data.get("brandTone", "Professional"),
-        },
+        "brand_info": brand_data,
         "mix": payload.get("mix", {}),
         "hourly_data": payload.get("hourly_data", []),
         "timing_insights": "",

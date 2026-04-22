@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import {
   Video,
   Image as ImageIcon,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import axios from "axios";
 import { cn } from "@/lib/utils";
 import { type ContentType } from "@/lib/content-plan";
 import { mediaCache } from "@/lib/media-cache";
@@ -62,8 +63,8 @@ interface PlanItem {
   prompt: string;
   why?: string;
   selected: boolean;
-  file?: File;
-  previewUrl?: string;
+  files?: File[];
+  previewUrls?: string[];
   publishing?: boolean;
   published?: boolean;
 }
@@ -78,23 +79,39 @@ const ContentPlan: React.FC = () => {
   const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const navigate = useNavigate();
+  const { profile } = useOutletContext<{ profile: any }>();
 
   // Fetch real plan from AI agent on mount — restores from sessionStorage if already generated
   useEffect(() => {
     const fetchPlan = async () => {
       setGenerating(true);
-      // Restore cached plan to avoid re-fetching on nav
       const cached = sessionStorage.getItem('content_plan');
+
+      // Check if user is locked (moved check outside to prevent bypass)
+      const now = new Date();
+      const last = profile?.lastPlanGeneratedAt ? new Date(profile.lastPlanGeneratedAt) : null;
+      const diff = last ? now.getTime() - last.getTime() : Infinity;
+      const isLocked = diff < 7 * 24 * 60 * 60 * 1000 && (profile?.generationCount || 0) >= 2;
+
+      // If locked and no cache, redirect back
+      if (isLocked && !cached) {
+        console.log("Strategic lock active, blocking auto-generation.");
+        setGenerating(false);
+        navigate("/dashboard/content", { replace: true });
+        return;
+      }
+
+      // Restore cached plan to avoid re-fetching on nav
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
           const rawItems = parsed.items || [];
-          
+
           // restore files from global module cache (since sessionStorage strips them)
           const itemsWithFiles = rawItems.map((item: any) => {
             const cachedMedia = mediaCache.get(item.id);
             if (cachedMedia) {
-              return { ...item, file: cachedMedia.file, previewUrl: cachedMedia.previewUrl };
+              return { ...item, files: cachedMedia.files, previewUrls: cachedMedia.previewUrls };
             }
             return item;
           });
@@ -103,7 +120,7 @@ const ContentPlan: React.FC = () => {
           setCaptions(parsed.captions || {});
           setGenerating(false);
           return;
-        } catch {}
+        } catch { }
       }
       try {
         const token = localStorage.getItem('token') || '';
@@ -186,41 +203,18 @@ const ContentPlan: React.FC = () => {
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
-      items.forEach((it) => it.previewUrl && URL.revokeObjectURL(it.previewUrl));
+      items.forEach((it) => (it.previewUrls || []).forEach(url => URL.revokeObjectURL(url)));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const regenerate = async () => {
-    setGenerating(true);
-    setOpenId(null);
-    // Clear cached plan so fresh AI data is fetched
+  const regenerate = () => {
+    // Clear session so user can generate a fresh mix on the Mix page
     sessionStorage.removeItem('content_plan');
     sessionStorage.removeItem('content_mix');
     mediaCache.clear();
-    items.forEach((it) => it.previewUrl && URL.revokeObjectURL(it.previewUrl));
-    try {
-      const token = localStorage.getItem('token') || '';
-      const res = await fetch(`${API_BASE}/ai/plan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error('Regenerate failed');
-      }
-      const data = await res.json();
-      const week = (data.plan || []).map((d: any, i: number) => ({ ...d, id: `${d.day}-${i}-${Date.now()}`, selected: false }));
-      setItems(week);
-      fetchCaptions(week, token);
-    } catch (err: any) {
-      console.error('Regeneration failed:', err);
-      if (!err.message.includes("PLAN_LOCKED")) {
-        alert(err.message);
-      }
-    } finally {
-      setGenerating(false);
-    }
+    items.forEach((it) => (it.previewUrls || []).forEach(url => URL.revokeObjectURL(url)));
+    navigate("/dashboard/content");
   };
 
   const handleBack = () => {
@@ -242,63 +236,83 @@ const ContentPlan: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleFile = (id: string, file: File) => {
-    const previewUrl = URL.createObjectURL(file);
+  const handleFile = (id: string, incoming: FileList | null) => {
+    if (!incoming) return;
+    const newFiles = Array.from(incoming);
+    const newPreviews = newFiles.map(f => URL.createObjectURL(f));
+
     setItems((prev) => {
       const newItems = prev.map((it) => {
         if (it.id !== id) return it;
-        if (it.previewUrl) URL.revokeObjectURL(it.previewUrl);
-        return { ...it, file, previewUrl };
+
+        const isCarousel = it.type === 'carousel';
+        const updatedFiles = isCarousel ? [...(it.files || []), ...newFiles] : [newFiles[0]];
+        const updatedPreviews = isCarousel ? [...(it.previewUrls || []), ...newPreviews] : [newPreviews[0]];
+
+        return { ...it, files: updatedFiles, previewUrls: updatedPreviews };
       });
-      // Persist to sessionStorage (strips File but keeps state)
       sessionStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
+
+      // Update global cache
+      const updatedItem = newItems.find(it => it.id === id);
+      if (updatedItem?.files && updatedItem.previewUrls) {
+        mediaCache.set(id, updatedItem.files, updatedItem.previewUrls);
+      }
+
       return newItems;
     });
-    // Persist to global cache
-    mediaCache.set(id, file, previewUrl);
   };
 
   const removeFile = (id: string) => {
     setItems((prev) => {
       const newItems = prev.map((it) => {
         if (it.id !== id) return it;
-        if (it.previewUrl) URL.revokeObjectURL(it.previewUrl);
-        return { ...it, file: undefined, previewUrl: undefined };
+        (it.previewUrls || []).forEach(url => URL.revokeObjectURL(url));
+        return { ...it, files: undefined, previewUrls: undefined };
       });
-      // Persist to sessionStorage
       sessionStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
       return newItems;
     });
     mediaCache.remove(id);
   };
 
-  const handlePublish = async (id: string) => {
+  const handlePublish = async (id: string, index: number) => {
     const item = items.find(it => it.id === id);
-    if (!item?.file) return;
+    if (!item?.files || item.files.length === 0) return;
     setItems(prev => prev.map(it => it.id === id ? { ...it, publishing: true } : it));
     try {
       const token = localStorage.getItem('token') || '';
+      const captionData = captions[index];
+      const fullCaption = captionData ? `${captionData.caption}\n\n${captionData.hashtags}` : item.prompt;
+
       const formData = new FormData();
-      formData.append('file', item.file);
+      item.files.forEach(f => formData.append('files', f));
       formData.append('contentType', item.type);
-      formData.append('description', item.prompt);
-      // Schedule for the optimal time on the post's date
-      const scheduledAt = item.iso_date
-        ? `${item.iso_date}T${convertTimeTo24h(item.optimalTime)}:00`
-        : new Date().toISOString();
-      formData.append('scheduledAt', scheduledAt);
-      await fetch(`${API_BASE}/posts/validate`, {
+      formData.append('description', fullCaption);
+
+      const res = await fetch(`${API_BASE}/posts/validate`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
+
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+
+      // Auto-trigger the publish endpoint
+      await axios.post(`${API_BASE}/posts/schedule/${data.analysisId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert('🚀 Published successfully to Instagram!');
     } catch (e) {
       console.error('Publish error', e);
+      alert('Publishing failed. Check Instagram connection.');
     }
     setTimeout(() => {
       setItems(prev => {
         const target = prev.find(it => it.id === id);
-        if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+        (target?.previewUrls || []).forEach(url => URL.revokeObjectURL(url));
         return prev.filter(it => it.id !== id);
       });
       setOpenId(cur => cur === id ? null : cur);
@@ -319,23 +333,25 @@ const ContentPlan: React.FC = () => {
 
   return (
     <div className="min-h-[80vh] animate-in fade-in duration-500">
-      <div className="max-w-5xl mx-auto py-8">
+      <div className="max-w-5xl mx-auto py-2">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={handleBack}
-            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
-          >
-            <ArrowLeft size={14} /> Regenerate Content Mix
-          </button>
+        <div className="flex items-center justify-between mb-2">
+          <div /> {/* Spacer for flex-between */}
           <Button
             onClick={regenerate}
-            disabled={generating}
+            disabled={generating || (profile?.lastPlanGeneratedAt && (new Date().getTime() - new Date(profile.lastPlanGeneratedAt).getTime()) < 7 * 24 * 60 * 60 * 1000 && profile?.generationCount >= 2)}
             variant="outline"
-            className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-border bg-white hover:bg-muted gap-2"
+            className={cn(
+              "h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-border gap-2",
+              (profile?.lastPlanGeneratedAt && (new Date().getTime() - new Date(profile.lastPlanGeneratedAt).getTime()) < 7 * 24 * 60 * 60 * 1000 && profile?.generationCount >= 2)
+                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60"
+                : "bg-white hover:bg-muted"
+            )}
           >
             <Wand2 size={13} />
-            Regenerate
+            {(profile?.lastPlanGeneratedAt && (new Date().getTime() - new Date(profile.lastPlanGeneratedAt).getTime()) < 7 * 24 * 60 * 60 * 1000 && profile?.generationCount >= 2)
+              ? "Locked (7 Days)"
+              : "Regenerate"}
           </Button>
         </div>
 
@@ -343,14 +359,14 @@ const ContentPlan: React.FC = () => {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-left mb-10"
+          className="text-left mb-4"
         >
           <div className="flex items-center gap-2 text-primary mb-2">
             <Zap size={14} fill="currentColor" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Live Production Pipeline</span>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground leading-tight">
-            Your <span className="text-primary">7-Day</span> Plan
+          <h1 className="text-4xl font-bold tracking-tight text-foreground leading-tight font-display">
+            Your <span className="text-primary italic">7-Day</span> Plan
           </h1>
           <p className="mt-3 text-muted-foreground text-sm font-medium">
             Select a card, upload your media, and publish — one tap at a time.
@@ -413,7 +429,7 @@ const ContentPlan: React.FC = () => {
                   const meta = TYPE_META[item.type];
                   const Icon = meta.icon;
                   const isOpen = openId === item.id;
-                  const isVideo = item.file?.type.startsWith("video/");
+                  const isVideo = item.files?.[0]?.type.startsWith("video/");
                   return (
                     <motion.div
                       key={item.id}
@@ -487,9 +503,9 @@ const ContentPlan: React.FC = () => {
                             <span className="hidden sm:flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
                               <Calendar size={11} className="text-primary" /> {item.date}
                             </span>
-                            {item.file && (
+                            {item.files && item.files.length > 0 && (
                               <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-emerald-600">
-                                <CheckCircle2 size={11} /> Media ready
+                                <CheckCircle2 size={11} /> {item.files.length} {item.files.length > 1 ? 'files' : 'file'} ready
                               </span>
                             )}
                           </div>
@@ -524,7 +540,6 @@ const ContentPlan: React.FC = () => {
                           >
                             <div className="px-4 md:px-7 pb-6 pt-1">
                               <div className="rounded-2xl bg-slate-50 border border-primary/15 p-5 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
-                                {/* Upload / preview */}
                                 <input
                                   ref={(el) => {
                                     fileInputs.current[item.id] = el;
@@ -532,31 +547,27 @@ const ContentPlan: React.FC = () => {
                                   type="file"
                                   accept={meta.accept}
                                   className="hidden"
+                                  multiple={item.type === 'carousel'}
                                   onChange={(e) => {
-                                    const f = e.target.files?.[0];
-                                    if (f) handleFile(item.id, f);
+                                    handleFile(item.id, e.target.files);
                                   }}
                                 />
-                                {item.previewUrl ? (
-                                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border-2 border-border/80 shrink-0 relative shadow-sm">
-                                      {isVideo ? (
-                                        <video
-                                          src={item.previewUrl}
-                                          className="w-full h-full object-cover"
-                                          muted
-                                        />
-                                      ) : (
-                                        <img
-                                          src={item.previewUrl}
-                                          alt="Upload preview"
-                                          className="w-full h-full object-cover"
-                                        />
-                                      )}
+                                {item.previewUrls && item.previewUrls.length > 0 ? (
+                                  <div className="flex items-center gap-4 flex-1 min-w-0 overflow-x-auto no-scrollbar">
+                                    <div className="flex gap-2">
+                                      {item.previewUrls.map((url, idx) => (
+                                        <div key={idx} className="w-16 h-16 rounded-xl overflow-hidden bg-white border-2 border-border/80 shrink-0 relative shadow-sm">
+                                          {item.files?.[idx]?.type.startsWith("video/") ? (
+                                            <video src={url} className="w-full h-full object-cover" muted />
+                                          ) : (
+                                            <img src={url} alt="preview" className="w-full h-full object-cover" />
+                                          )}
+                                        </div>
+                                      ))}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-[12px] font-black text-foreground truncate uppercase tracking-tight">
-                                        {item.file?.name}
+                                        {item.files?.length} assets uploaded
                                       </p>
                                       <button
                                         onClick={() => removeFile(item.id)}
@@ -585,9 +596,10 @@ const ContentPlan: React.FC = () => {
                                 )}
 
                                 {/* Publish */}
+                                { /* ... */}
                                 <Button
-                                  onClick={() => handlePublish(item.id)}
-                                  disabled={!item.file || item.publishing}
+                                  onClick={() => handlePublish(item.id, items.indexOf(item))}
+                                  disabled={!item.files || item.files.length === 0 || item.publishing}
                                   className="h-14 sm:w-auto rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[11px] px-6 shadow-xl shadow-primary/20 border-0 gap-2.5 disabled:opacity-40"
                                 >
                                   {item.publishing ? (

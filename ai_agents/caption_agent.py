@@ -181,11 +181,7 @@ def generate_captions_and_hashtags(payload: Dict[str, Any]) -> List[Dict]:
     payload: { brandName, businessCategory, brandTone, posts: [...7 plan items] }
     """
     initial_state = {
-        "brand_info": {
-            "brandName": payload.get("brandName", "Unknown"),
-            "businessCategory": payload.get("businessCategory", "General"),
-            "brandTone": payload.get("brandTone", "Professional"),
-        },
+        "brand_info": payload,
         "posts": payload.get("posts", []),
         "raw_captions": [],
         "final_captions": [],

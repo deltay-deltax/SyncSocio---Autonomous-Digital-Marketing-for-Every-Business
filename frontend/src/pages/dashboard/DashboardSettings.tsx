@@ -45,9 +45,62 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: any; label: string; valu
 
 const DashboardSettings = () => {
   const [activeTab, setActiveTab] = useState('Brand Profile');
-  const { profile } = useOutletContext<{ profile: any }>();
+  const { profile, setProfile } = useOutletContext<{ profile: any, setProfile: (p: any) => void }>();
+  const [updating, setUpdating] = useState(false);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    brandName: profile?.brandName || '',
+    businessCategory: profile?.businessCategory || '',
+    website: profile?.website || '',
+    city: profile?.location?.city || '',
+    country: profile?.location?.country || '',
+    brandTone: profile?.brandTone || '',
+    usp: profile?.usp || '',
+    mainGoal: profile?.mainGoal || '',
+    competitors: profile?.competitors?.join(', ') || '',
+    targetAudiences: Array.isArray(profile?.targetAudiences) ? profile.targetAudiences.join(', ') : profile?.targetAudiences || '',
+    painPoint: profile?.painPoint || ''
+  });
 
   if (!profile) return null;
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    try {
+      const token = localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      
+      const payload = {
+        ...formData,
+        location: { city: formData.city, country: formData.country },
+        competitors: formData.competitors.split(',').map(s => s.trim()).filter(Boolean),
+        targetAudiences: formData.targetAudiences.split(',').map(s => s.trim()).filter(Boolean)
+      };
+
+      const res = await fetch(`${apiBase}/profile`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Update failed');
+      const updatedProfile = await res.json();
+      setProfile(updatedProfile);
+      alert('✅ Brand Identity updated successfully! The AI Agent has been notified.');
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="space-y-5">
@@ -84,15 +137,27 @@ const DashboardSettings = () => {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Name</Label>
-                      <Input defaultValue={profile.brandName || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                      <Input 
+                        value={formData.brandName} 
+                        onChange={e => updateField('brandName', e.target.value)}
+                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Industry</Label>
-                      <Input defaultValue={profile.businessCategory === "Other" ? profile.otherCategory : profile.businessCategory} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                      <Input 
+                        value={formData.businessCategory} 
+                        onChange={e => updateField('businessCategory', e.target.value)}
+                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Website URL</Label>
-                      <Input defaultValue={profile.website || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                      <Input 
+                        value={formData.website} 
+                        onChange={e => updateField('website', e.target.value)}
+                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                      />
                     </div>
                   </div>
 
@@ -101,41 +166,76 @@ const DashboardSettings = () => {
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Location</Label>
                       <div className="flex gap-2">
-                        <Input defaultValue={profile.location?.city || ''} placeholder="City" className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
-                        <Input defaultValue={profile.location?.country || ''} placeholder="Country" className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                        <Input 
+                          value={formData.city} 
+                          onChange={e => updateField('city', e.target.value)}
+                          placeholder="City" 
+                          className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                        />
+                        <Input 
+                          value={formData.country} 
+                          onChange={e => updateField('country', e.target.value)}
+                          placeholder="Country" 
+                          className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Voice / Tone</Label>
-                      <Input defaultValue={profile.brandTone || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                      <Input 
+                        value={formData.brandTone} 
+                        onChange={e => updateField('brandTone', e.target.value)}
+                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Unique Selling Point (USP)</Label>
-                  <Input defaultValue={profile.usp || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                  <Input 
+                    value={formData.usp} 
+                    onChange={e => updateField('usp', e.target.value)}
+                    className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                  />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Main Growth Goal</Label>
-                    <Input defaultValue={profile.mainGoal || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                    <Input 
+                      value={formData.mainGoal} 
+                      onChange={e => updateField('mainGoal', e.target.value)}
+                      className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Competitor Handles</Label>
-                    <Input defaultValue={profile.competitors?.join(', ') || ''} placeholder="@rival1, @rival2" className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                    <Input 
+                      value={formData.competitors} 
+                      onChange={e => updateField('competitors', e.target.value)}
+                      placeholder="@rival1, @rival2" 
+                      className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                    />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Target Audience</Label>
-                    <Input defaultValue={Array.isArray(profile.targetAudiences) ? profile.targetAudiences.join(', ') : profile.targetAudience || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                    <Input 
+                      value={formData.targetAudiences} 
+                      onChange={e => updateField('targetAudiences', e.target.value)}
+                      className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Addressing Pain Point</Label>
-                    <Input defaultValue={profile.painPoint || ''} className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" />
+                    <Input 
+                      value={formData.painPoint} 
+                      onChange={e => updateField('painPoint', e.target.value)}
+                      className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                    />
                   </div>
                 </div>
 
@@ -155,7 +255,13 @@ const DashboardSettings = () => {
                 </div>
 
                 <div className="pt-4 border-t border-border/30">
-                  <Button className="gradient-bg text-primary-foreground border-0 text-[10px] font-black uppercase tracking-widest h-12 px-10 rounded-xl shadow-lg shadow-primary/20">Update Brand Identity</Button>
+                  <Button 
+                    onClick={handleUpdate}
+                    disabled={updating}
+                    className="gradient-bg text-primary-foreground border-0 text-[10px] font-black uppercase tracking-widest h-12 px-10 rounded-xl shadow-lg shadow-primary/20"
+                  >
+                    {updating ? 'Updating...' : 'Update Brand Identity'}
+                  </Button>
                   <p className="text-[10px] text-muted-foreground font-medium italic mt-3">Changes here will trigger a retraining cycle for your AI Posting Agent.</p>
                 </div>
               </CardContent>

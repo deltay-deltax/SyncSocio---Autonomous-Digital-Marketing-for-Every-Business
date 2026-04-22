@@ -5,15 +5,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const notifications = [
-  { id: 1, type: 'success', icon: CheckCircle2, title: 'Post published successfully', desc: 'Your Reel "5 baking secrets" is now live on Instagram', time: '10 min ago', unread: true },
-  { id: 2, type: 'insight', icon: TrendingUp, title: 'Engagement milestone reached', desc: 'Your account crossed 6% avg engagement rate this week 🎉', time: '1 hr ago', unread: true },
-  { id: 3, type: 'agent', icon: Zap, title: 'Agent updated content strategy', desc: 'Shifted mix to 70% Reels based on last week\'s performance', time: '2 hrs ago', unread: true },
-  { id: 4, type: 'comment', icon: MessageSquare, title: 'New comments on your post', desc: '12 new comments on "Morning bake routine" — 3 need replies', time: '3 hrs ago', unread: false },
-  { id: 5, type: 'scheduled', icon: Clock, title: 'Post scheduled for tonight', desc: 'Carousel post "Flour to focaccia" will go live at 8PM', time: '5 hrs ago', unread: false },
-  { id: 6, type: 'success', icon: CheckCircle2, title: 'Boost approved & running', desc: 'Your boosted Reel is reaching 2.4K people so far', time: '1 day ago', unread: false },
-];
+import { useNotifications, Notification } from '@/hooks/useNotifications';
+import { formatDistanceToNow } from 'date-fns';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/dashboard' },
@@ -24,6 +17,8 @@ const navItems = [
   { label: 'Content Mix', icon: Zap, path: '/dashboard/content' },
   { label: 'Post Optimizer', icon: Upload, path: '/dashboard/post-optimizer' },
   { label: 'DMs', icon: MessageCircle, path: '/dashboard/dms' },
+  { label: 'History', icon: Clock, path: '/dashboard/history' },
+  { label: 'Activity', icon: Bell, path: '/dashboard/activity' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
   { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
 ];
@@ -34,6 +29,30 @@ const DashboardLayout = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'success': return CheckCircle2;
+      case 'insight': return TrendingUp;
+      case 'agent': return Zap;
+      case 'comment': return MessageSquare;
+      case 'scheduled': return Clock;
+      case 'alert': return Sparkles;
+      case 'billing': return Target;
+      default: return Zap;
+    }
+  };
+
+  const getColorClass = (type: string) => {
+    switch (type) {
+      case 'success': return "bg-emerald-500/10 text-emerald-600";
+      case 'insight': return "bg-amber-500/10 text-amber-600";
+      case 'alert': return "bg-rose-500/10 text-rose-600";
+      case 'billing': return "bg-blue-500/10 text-blue-600";
+      default: return "bg-primary/10 text-primary";
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -206,7 +225,9 @@ const DashboardLayout = () => {
               className="p-2.5 hover:bg-muted rounded-xl transition-colors text-muted-foreground relative"
             >
               <Bell size={18} />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
+              {unreadCount > 0 && (
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white animate-pulse" />
+              )}
             </button>
 
             <div className="h-8 w-px bg-border/50 mx-2" />
@@ -226,7 +247,7 @@ const DashboardLayout = () => {
         {/* PAGE CONTENT */}
         <section className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide">
           <div className="max-w-6xl mx-auto">
-            <Outlet context={{ profile }} />
+            <Outlet context={{ profile, setProfile }} />
           </div>
         </section>
       </main>
@@ -278,31 +299,72 @@ const DashboardLayout = () => {
                   <h2 className="text-xl font-black tracking-tight">Activity Log</h2>
                   <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Real-time Agent Operations</p>
                 </div>
-                <button onClick={() => setShowNotifications(false)} className="p-2 hover:bg-muted rounded-xl transition-colors">
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={markAllAsRead}
+                      className="text-[10px] font-bold text-primary uppercase tracking-wider hover:underline mr-2"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                  <button onClick={() => setShowNotifications(false)} className="p-2 hover:bg-muted rounded-xl transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {notifications.map((n) => (
-                  <div key={n.id} className={cn(
-                    "p-5 rounded-[2rem] border transition-all cursor-default",
-                    n.unread ? "bg-primary/[0.03] border-primary/10 shadow-sm" : "bg-card border-border/40"
-                  )}>
-                    <div className="flex gap-4">
-                      <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0", n.type === 'success' ? "bg-emerald-500/10 text-emerald-600" : n.type === 'insight' ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary")}>
-                        <n.icon size={20} strokeWidth={2.5} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-sm font-black truncate">{n.title}</h4>
-                          {n.unread && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed font-medium mb-2">{n.desc}</p>
-                        <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">{n.time}</p>
-                      </div>
+                {notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-center p-8">
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                      <Bell size={24} className="text-muted-foreground/40" />
                     </div>
+                    <h3 className="text-sm font-black text-foreground">Quiet for now</h3>
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">When the agent takes action, you'll see it here.</p>
                   </div>
-                ))}
+                ) : (
+                  notifications.map((n) => {
+                    const Icon = getIcon(n.type);
+                    return (
+                      <div 
+                        key={n._id} 
+                        onClick={() => !n.isRead && markAsRead(n._id)}
+                        className={cn(
+                          "p-5 rounded-[2rem] border transition-all cursor-pointer group hover:border-primary/20",
+                          !n.isRead ? "bg-primary/[0.03] border-primary/10 shadow-sm" : "bg-card border-border/40 opacity-70"
+                        )}
+                      >
+                        <div className="flex gap-4">
+                          <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0", getColorClass(n.type))}>
+                            <Icon size={20} strokeWidth={2.5} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="text-sm font-black truncate group-hover:text-primary transition-colors">{n.title}</h4>
+                              {!n.isRead && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium mb-2">{n.description}</p>
+                            <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">
+                              {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <div className="p-6 border-t border-border/50">
+                <Button 
+                  variant="outline" 
+                  className="w-full rounded-2xl font-black text-[10px] uppercase tracking-widest h-12"
+                  onClick={() => {
+                    setShowNotifications(false);
+                    window.location.href = '/dashboard/activity';
+                  }}
+                >
+                  View All Activity
+                </Button>
               </div>
             </motion.div>
           </>

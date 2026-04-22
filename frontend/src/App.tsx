@@ -26,6 +26,8 @@ import DashboardDMs from './pages/dashboard/DashboardDMs';
 import ContentMix from './pages/dashboard/ContentMix';
 import ContentPlan from './pages/dashboard/ContentPlan';
 import DashboardFAQ from './pages/dashboard/DashboardFAQ';
+import History from './pages/dashboard/History';
+import ActivityLog from './pages/dashboard/ActivityLog';
 
 function App() {
   return (
@@ -56,6 +58,8 @@ function App() {
             <Route path="post-optimizer" element={<PostOptimizer />} />
             <Route path="dms" element={<DashboardDMs />} />
             <Route path="settings" element={<DashboardSettings />} />
+            <Route path="history" element={<History />} />
+            <Route path="activity" element={<ActivityLog />} />
             <Route path="faq" element={<DashboardFAQ />} />
           </Route>
         </Route>

@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -12,6 +12,7 @@ load_dotenv()
 
 from bson import ObjectId
 from agents import generate_strategy, analyze_brand_mix
+from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from models import BrandInfo, StrategyResponse
 from post_validator import validate_post, optimize_post, publisher_node
@@ -67,7 +68,9 @@ async def api_analyze_mix(userId: str):
             "brandName": brand_doc.get("brandName", "Unknown"),
             "businessCategory": brand_doc.get("businessCategory", "General"),
             "brandTone": brand_doc.get("brandTone", "Professional"),
-            "targetAudience": ", ".join(brand_doc.get("targetAudiences", [])) if brand_doc.get("targetAudiences") else "General",
+            "targetAudiences": brand_doc.get("targetAudiences", []),
+            "usp": brand_doc.get("usp", "Not specified"),
+            "painPoint": brand_doc.get("painPoint", "Not specified"),
             "mainGoal": brand_doc.get("mainGoal", "Growth")
         }
         
@@ -107,7 +110,9 @@ async def api_generate_strategy(brand_info: BrandInfo):
             "brandName": brand_doc.get("brandName"),
             "businessCategory": brand_doc.get("businessCategory"),
             "brandTone": brand_doc.get("brandTone"),
-            "targetAudience": ", ".join(brand_doc.get("targetAudiences", [])),
+            "targetAudiences": brand_doc.get("targetAudiences", []),
+            "usp": brand_doc.get("usp"),
+            "painPoint": brand_doc.get("painPoint"),
             "mainGoal": brand_doc.get("mainGoal"),
             "primaryColor": brand_doc.get("primaryColor", "#2563EB"),
             "secondaryColor": brand_doc.get("secondaryColor", "#60A5FA")
@@ -186,22 +191,24 @@ async def api_generate_captions(payload: Dict[str, Any]):
 
 @app.post("/validate-post")
 async def api_validate_post(
-    file: Optional[UploadFile] = File(None),
+    files: List[UploadFile] = File(...),
     userId: str = Form(...),
     contentType: str = Form(...),
     description: str = Form(...)
 ):
     try:
-        # 1. Save uploaded file locally
-        media_path = ""
-        if file and file.filename:
-            upload_dir = "uploaded_posts"
-            os.makedirs(upload_dir, exist_ok=True)
+        # 1. Save uploaded files locally
+        media_paths = []
+        upload_dir = "uploaded_posts"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        for file in files:
             ext = os.path.splitext(file.filename)[1]
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             media_path = f"{upload_dir}/{userId}_{timestamp}{ext}"
             with open(media_path, "wb") as buf:
                 shutil.copyfileobj(file.file, buf)
+            media_paths.append(media_path)
 
         # 2. Fetch brand profile (searching by both ID types)
         brand_doc = await db["brandprofiles"].find_one({
@@ -232,7 +239,7 @@ async def api_validate_post(
         # 4. Run Velocity Optimizer Flow
         result = optimize_post({
             "userId": userId,
-            "mediaPath": media_path,
+            "mediaPaths": media_paths,
             "contentType": contentType,
             "description": description,
             "brandProfile": brand_profile,
@@ -242,7 +249,7 @@ async def api_validate_post(
         # 5. Save to MongoDB and return
         analysis_entry = {
             "userId": userId,
-            "mediaUrl": media_path,
+            "mediaUrls": media_paths,
             "contentType": contentType,
             "description": description,
             "growthFactor": result.get("growth_factor", 0),
@@ -260,7 +267,7 @@ async def api_validate_post(
             "critique": result.get("critique", {}),
             "bestPostingTime": result.get("best_posting_time", ""),
             "suggestions": result.get("suggestions", []),
-            "mediaPath": media_path
+            "mediaPaths": media_paths
         }
     except Exception as e:
         print(f"Validate Post Error: {str(e)}")
@@ -287,7 +294,7 @@ async def api_schedule_post(analysis_id: str):
         # Build state for publisher
         post_state = {
             "user_id": doc["userId"],
-            "media_path": doc["mediaUrl"],
+            "media_paths": doc.get("mediaUrls", [doc.get("mediaUrl")]),
             "content_type": doc["contentType"],
             "description": doc["description"],
             "brand_profile": brand_profile,
@@ -305,9 +312,24 @@ async def api_schedule_post(analysis_id: str):
         result = publisher_node(post_state)
 
         status = "failed" if result.get("error") else "published"
+        update_fields = {
+            "status": status,
+            "isAgentAssisted": True
+        }
+        if result.get("ig_media_id"):
+            update_fields["instagramMediaId"] = result["ig_media_id"]
+        if result.get("permanent_url"):
+            update_fields["permanentUrl"] = result["permanent_url"]
+        
+        # Save the actual scheduled time for History grouping
+        if post_state.get("best_posting_time"):
+            update_fields["scheduledAt"] = post_state["best_posting_time"]
+        else:
+            update_fields["scheduledAt"] = datetime.now(timezone.utc).isoformat()
+
         await db["post_analyses"].update_one(
             {"_id": ObjectId(analysis_id)},
-            {"$set": {"status": status}}
+            {"$set": update_fields}
         )
 
         return {"status": status, "error": result.get("error", "")}
@@ -423,10 +445,11 @@ async def api_generate_visuals(request: VisualGenRequest):
                 Category: {brand_doc.get('businessCategory')}
                 Tone: {brand_doc.get('brandTone')}
                 Vibe: {brand_doc.get('visualVibe')}
+                USP: {brand_doc.get('usp')}
+                Pain Point: {brand_doc.get('painPoint')}
                 Target: {", ".join(brand_doc.get('targetAudiences', []))}
                 Primary Color: {brand_doc.get('primaryColor')}
                 Secondary Color: {brand_doc.get('secondaryColor')}
-                Tone: {brand_doc.get('brandTone')}
                 """
 
         # Step 1: Refine the prompt
@@ -556,6 +579,23 @@ async def api_audit_performance(input_data: AuditorInput):
         print(f"Audit Route Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/ads-recommendations")
+async def ads_recommendations(request: Request):
+    try:
+        data = await request.json()
+        brand_profile = data.get("brand_profile")
+        posts = data.get("posts", [])
+        
+        if not brand_profile:
+            return {"error": "Missing brand_profile"}
+        
+        print(f"DEBUG: Analyzing {len(posts)} posts for ad recommendations...")
+        recommendations = get_ads_recommendations(brand_profile, posts)
+        return {"recommendations": recommendations}
+    except Exception as e:
+        print(f"Ads Agent Route Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

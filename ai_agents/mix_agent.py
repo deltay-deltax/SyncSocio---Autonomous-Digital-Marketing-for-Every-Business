@@ -25,10 +25,10 @@ def analyst_node(state: MixState):
 
 TASK:
 Analyze the data above. Provide a high-level Strategic Growth Insight. 
-Identify which content formats are winning and which are losing. 
-Suggest a primary focus for the next 7 days based on this data.
+Balance the local brand performance with GLOBAL INSTAGRAM TRENDS (e.g., the current dominance of Reels for discovery and Carousels for retention).
+Identify where the brand is playing it too safe and where it can capitalize on viral formats.
 
-OUTPUT: Just 2-3 sentences of pure strategic insight.
+OUTPUT: Just 2-3 sentences of pure, trend-conscious strategic insight.
 """
     print("\n" + "="*50)
     print("🤖 AI AGENT: CONTENT ANALYST")
@@ -62,8 +62,14 @@ def strategist_node(state: MixState):
 ANALYST INSIGHTS: {insights}
 
 TASK:
-Based on the brand's identity and performance history, determine the optimal 7-day content mix.
-The total must be EXACTLY 7 posts.
+Based on the brand's identity, performance history, and CURRENT GLOBAL INSTAGRAM TRENDS, determine the optimal 7-day content mix.
+
+GLOBAL MANDATE:
+1. Discovery (REELS): Essential for reaching non-followers. Even if local data is sparse, prioritize Reels for growth.
+2. Retention (CAROUSELS): Best for community building and deep engagement.
+3. Aesthetic (IMAGES): Maintain brand presence and visual vibe.
+
+The total must be EXACTLY 7 posts. If local data is limited, default to a Growth-First mix (High Reels/Carousels).
 
 JSON FORMAT ONLY:
 {{
@@ -158,10 +164,7 @@ def predict_brand_mix(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
     brand_data = payload.get("brand_info", payload)
     initial_state = {
-        "brand_info": {
-            "brandName": brand_data.get("brandName", "Unknown"),
-            "businessCategory": brand_data.get("businessCategory", "General")
-        },
+        "brand_info": brand_data,
         "historical_posts": payload.get("historical_posts", []),
         "insights": "",
         "proposed_mix": {},

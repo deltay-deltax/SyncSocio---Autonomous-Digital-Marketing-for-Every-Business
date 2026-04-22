@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import {
   Sparkles,
   Video,
@@ -43,6 +43,17 @@ const ContentMix: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const navigate = useNavigate();
+  const { profile } = useOutletContext<{ profile: any }>();
+
+  const lastGen = profile?.lastPlanGeneratedAt ? new Date(profile.lastPlanGeneratedAt) : null;
+  const now = new Date();
+  const diff = lastGen ? now.getTime() - lastGen.getTime() : Infinity;
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  
+  // Hard lock only if both tries used within 7 days
+  const isHardLocked = diff < sevenDays && (profile?.generationCount || 0) >= 2;
+  const daysLeft = isHardLocked ? Math.ceil((sevenDays - diff) / (24 * 60 * 60 * 1000)) : 0;
+  const triesLeft = (profile?.generationCount || 0) >= 2 ? 0 : 2 - (profile?.generationCount || 0);
 
   // fulfill user requirement: if plan exists, skip this generate page and go to plan
   React.useEffect(() => {
@@ -54,6 +65,7 @@ const ContentMix: React.FC = () => {
   }, [navigate]);
 
   const handleGenerate = async () => {
+    if (isHardLocked) return;
     setLoading(true);
     setIsLocked(false);
     try {
@@ -70,7 +82,7 @@ const ContentMix: React.FC = () => {
         const msg = errData.message || errData.error || "Failed to fetch mix";
         if (msg.includes("PLAN_LOCKED")) {
           setIsLocked(true);
-          throw new Error("Weekly limit reached. Your next strategy can be generated in 7 days.");
+          throw new Error(msg);
         }
         throw new Error(msg);
       }
@@ -91,8 +103,8 @@ const ContentMix: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center animate-in fade-in duration-500">
-      <div className="max-w-3xl mx-auto px-6 py-10 md:py-16">
+    <div className="min-h-[80vh] flex flex-col items-center pt-4 animate-in fade-in duration-500">
+      <div className="max-w-3xl mx-auto px-6 py-4 md:py-8">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -105,31 +117,41 @@ const ContentMix: React.FC = () => {
               Weekly Strategy
             </span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground px-2">
-            Content <span className="text-primary">Mix</span>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground px-2 font-display">
+            Content <span className="text-primary italic">Mix</span>
           </h1>
-          <p className="mt-5 max-w-xl mx-auto text-muted-foreground text-sm md:text-base leading-relaxed">
+          <p className="mt-5 max-w-xl mx-auto text-muted-foreground text-sm md:text-base leading-relaxed font-medium">
             Plan a perfectly balanced 7-day content week with optimal posting times and ready-to-use prompts.
             Generate, select, upload your media, and publish in one elegant flow.
           </p>
 
           {!mixData ? (
-            <Button
-              onClick={handleGenerate}
-              disabled={loading}
-              className="mt-9 h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover-lift border-0 group"
-            >
-              <Wand2 size={16} className={cn("mr-2", loading && "animate-pulse")} />
-              {loading ? "Analyzing Profile..." : "Generate Content Mix"}
-              {!loading && <ArrowRight size={16} className="ml-2 group-hover:translate-x-0.5 transition-transform" />}
-            </Button>
+            <div className="flex flex-col items-center">
+              <Button
+                onClick={handleGenerate}
+                disabled={loading || isHardLocked}
+                className={cn(
+                  "mt-9 h-14 px-8 rounded-2xl text-white font-black uppercase tracking-widest text-[10px] border-0 group transition-all font-body shadow-xl shadow-primary/20",
+                  isHardLocked 
+                    ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" 
+                    : "bg-primary hover:bg-primary/90 hover-lift"
+                )}
+              >
+                <Wand2 size={16} className={cn("mr-2", loading && "animate-pulse")} />
+                {loading ? "Analyzing Engagement..." : isHardLocked ? `Locked (${hardLockDays} Days)` : "Generate Content Mix"}
+              </Button>
+              {!isHardLocked && !loading && diff < sevenDays && (
+                <p className="mt-4 text-[10px] font-black text-amber-600 uppercase tracking-widest animate-pulse">
+                  ⚠️ Final Regeneration: 1 Use Left
+                </p>
+              )}
+            </div>
           ) : (
             <Link to="/dashboard/content/plan">
               <Button
                 className="mt-9 h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover-lift border-0 group"
               >
                 Continue
-                <ArrowRight size={16} className="ml-2 group-hover:translate-x-0.5 transition-transform" />
               </Button>
             </Link>
           )}

@@ -19,7 +19,8 @@ import {
   Smartphone,
   Edit3,
   Copy,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -53,12 +54,13 @@ interface AnalysisResult {
 }
 
 const PostOptimizer: React.FC = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [contentType, setContentType] = useState<ContentType>('static');
   const [description, setDescription] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -69,10 +71,10 @@ const PostOptimizer: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGenerateAIVisual = async () => {
-    if (!result || !file) return;
+    if (!result || files.length === 0) return;
     setIsGeneratingVisual(true);
     try {
-      const base64 = await fileToBase64(file);
+      const base64 = await fileToBase64(files[0]);
       const AGENT_API_URL = 'http://localhost:8000'; // FastAPI
       const res = await fetch(`${AGENT_API_URL}/generate-visuals`, {
         method: 'POST',
@@ -104,11 +106,16 @@ const PostOptimizer: React.FC = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (selected) {
-      setFile(selected);
-      const url = URL.createObjectURL(selected);
-      setPreview(url);
+    const selected = Array.from(e.target.files || []);
+    if (selected.length > 0) {
+      if (contentType === 'carousel') {
+        setFiles(prev => [...prev, ...selected]);
+        const newUrls = selected.map(f => URL.createObjectURL(f));
+        setPreviews(prev => [...prev, ...newUrls]);
+      } else {
+        setFiles([selected[0]]);
+        setPreviews([URL.createObjectURL(selected[0])]);
+      }
       setResult(null);
       setError('');
     }
@@ -116,11 +123,16 @@ const PostOptimizer: React.FC = () => {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const dropped = e.dataTransfer.files?.[0];
-    if (dropped) {
-      setFile(dropped);
-      const url = URL.createObjectURL(dropped);
-      setPreview(url);
+    const dropped = Array.from(e.dataTransfer.files || []);
+    if (dropped.length > 0) {
+      if (contentType === 'carousel') {
+        setFiles(prev => [...prev, ...dropped]);
+        const newUrls = dropped.map(f => URL.createObjectURL(f));
+        setPreviews(prev => [...prev, ...newUrls]);
+      } else {
+        setFiles([dropped[0]]);
+        setPreviews([URL.createObjectURL(dropped[0])]);
+      }
       setResult(null);
       setError('');
     }
@@ -141,7 +153,7 @@ const PostOptimizer: React.FC = () => {
       const form = new FormData();
       form.append('contentType', contentType);
       form.append('description', description);
-      if (file) form.append('file', file);
+      files.forEach(f => form.append('files', f));
 
       const res = await axios.post(`${API_BASE}/posts/validate`, form, {
         headers: {
@@ -157,6 +169,27 @@ const PostOptimizer: React.FC = () => {
       setError(err?.response?.data?.message || 'Analysis failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handlePublishNow = async () => {
+    if (!result) return;
+    setIsPublishing(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE}/posts/schedule/${result.analysisId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('🚀 Published successfully to Instagram!');
+      setShowPreview(false);
+      setResult(null);
+      setFiles([]);
+      setPreviews([]);
+    } catch (err) {
+      console.error('Publish error', err);
+      alert('Publishing failed. Please check your Instagram connection.');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -218,11 +251,11 @@ const PostOptimizer: React.FC = () => {
               <Edit3 size={12} /> Setup
             </button>
             <button
-              onClick={() => preview && setShowPreview(true)}
+              onClick={() => previews.length > 0 && setShowPreview(true)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                 showPreview ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600",
-                !preview && "opacity-50 cursor-not-allowed"
+                previews.length === 0 && "opacity-50 cursor-not-allowed"
               )}
             >
               <Smartphone size={12} /> Preview
@@ -285,21 +318,41 @@ const PostOptimizer: React.FC = () => {
                         onClick={() => fileInputRef.current?.click()}
                         className={cn(
                           "relative group cursor-pointer transition-all duration-500 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center min-h-[260px] overflow-hidden",
-                          preview
-                            ? "border-primary/20 bg-slate-50"
-                            : "border-slate-200 hover:border-primary/40 hover:bg-primary/[0.02] bg-slate-50/50"
+                          previews.length > 0 
+                            ? "border-solid border-primary/20 bg-white shadow-xl shadow-primary/5" 
+                            : "border-slate-200 bg-slate-50/50 hover:bg-white hover:border-primary/30"
                         )}
                       >
-                        {preview ? (
-                          <div className="relative w-full h-full flex items-center justify-center p-4">
-                            {contentType === 'reel' ? (
-                              <video src={preview} className="max-h-[220px] rounded-3xl shadow-lg border border-white" />
+                        {previews.length > 0 ? (
+                          <div className="relative w-full h-full flex flex-col items-center justify-center p-4 gap-2">
+                            {contentType === 'carousel' ? (
+                              <div className="flex gap-2 overflow-x-auto p-2 no-scrollbar">
+                                {previews.map((p, i) => (
+                                  <div key={i} className="relative shrink-0">
+                                    <img src={p} className="h-[180px] rounded-2xl shadow-md border border-white object-cover aspect-[4/5]" />
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFiles(prev => prev.filter((_, idx) => idx !== i));
+                                        setPreviews(prev => prev.filter((_, idx) => idx !== i));
+                                      }}
+                                      className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-lg"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
                             ) : (
-                              <img src={preview} alt="Preview" className="max-h-[220px] rounded-3xl shadow-lg border border-white object-cover aspect-video" />
+                              contentType === 'reel' ? (
+                                <video src={previews[0]} className="max-h-[220px] rounded-3xl shadow-lg border border-white" />
+                              ) : (
+                                <img src={previews[0]} alt="Preview" className="max-h-[220px] rounded-3xl shadow-lg border border-white object-cover aspect-video" />
+                              )
                             )}
                             <div className="absolute inset-x-0 bottom-6 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
                               <div className="bg-slate-900/80 backdrop-blur-md text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-white/10">
-                                <Upload size={14} /> Replace Media
+                                <Upload size={14} /> Add {contentType === 'carousel' ? 'More' : 'Media'}
                               </div>
                             </div>
                           </div>
@@ -319,6 +372,7 @@ const PostOptimizer: React.FC = () => {
                           type="file"
                           accept="image/*,video/*"
                           className="hidden"
+                          multiple={contentType === 'carousel'}
                           onChange={handleFileChange}
                         />
                       </div>
@@ -401,11 +455,30 @@ const PostOptimizer: React.FC = () => {
                     <div className="flex-1 overflow-y-auto no-scrollbar" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                       <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
                       {/* Media */}
-                      <div className="aspect-[4/5] bg-slate-100 flex items-center justify-center">
-                        {preview ? (
-                          <img src={preview} className="w-full h-full object-cover" />
+                      <div className="aspect-[4/5] bg-slate-100 flex items-center justify-center relative">
+                        {previews.length > 0 ? (
+                          contentType === 'carousel' ? (
+                            <div className="flex w-full h-full snap-x snap-mandatory overflow-x-auto no-scrollbar">
+                              {previews.map((p, i) => (
+                                <img key={i} src={p} className="w-full h-full object-cover snap-center" />
+                              ))}
+                            </div>
+                          ) : (
+                             contentType === 'reel' ? (
+                               <video src={previews[0]} className="w-full h-full object-cover" autoPlay loop muted />
+                             ) : (
+                               <img src={previews[0]} className="w-full h-full object-cover" />
+                             )
+                          )
                         ) : (
                           <ImageIcon size={40} className="text-slate-200" />
+                        )}
+                        {contentType === 'carousel' && previews.length > 1 && (
+                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1">
+                             {previews.map((_, i) => (
+                               <div key={i} className="w-1 h-1 rounded-full bg-white shadow-sm" />
+                             ))}
+                          </div>
                         )}
                       </div>
 
@@ -706,10 +779,11 @@ const PostOptimizer: React.FC = () => {
                     </span>
                   </div>
                   <Button
-                    onClick={() => alert(`Scheduled for ${result.bestPostingTime}`)}
+                    onClick={handlePublishNow}
+                    disabled={isPublishing}
                     className="bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[11px] px-8 h-14 rounded-2xl shadow-xl shadow-primary/20 border-0 group"
                   >
-                    Confirm Schedule <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                    {isPublishing ? 'Publishing...' : 'Publish Now'} <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>
               </motion.div>

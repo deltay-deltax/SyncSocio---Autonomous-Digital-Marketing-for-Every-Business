@@ -109,18 +109,36 @@ const DashboardAnalytics = () => {
     ? data.postBreakdown 
     : [];
 
-  const insights = [
-    'Reels consistently outperform static posts by 4x in reach',
-    'Posting between 7-9 PM drives 62% of your weekly engagement',
-    'Carousel posts have the highest save rate at 3.2%',
-    'Your audience is most active on Wednesday and Saturday',
-    'Food process videos get 2.8x more shares than finished product shots',
-  ];
+  const agentLearnings = data?.agentLearnings || [];
+  const neuralState = data?.neuralState || 'Idle';
+
+  const getInsightIcon = (category: string) => {
+    switch (category) {
+      case 'visual': return Eye;
+      case 'timing': return Clock;
+      case 'audience': return Target;
+      case 'strategy': return Zap;
+      case 'engagement': return Activity;
+      default: return Brain;
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-lg font-bold text-foreground">Analytics</h2>
+        
+        <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-border/50 px-3 py-1.5 rounded-2xl shadow-sm">
+          <div className="relative">
+            <Brain size={14} className={cn("text-primary", neuralState !== 'Idle' && "animate-pulse")} />
+            {neuralState !== 'Idle' && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white animate-ping" />
+            )}
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+            Agent Status: <span className="text-primary">{neuralState}</span>
+          </span>
+        </div>
       </div>
 
       {/* Metrics Grid */}
@@ -363,14 +381,66 @@ const DashboardAnalytics = () => {
               </div>
             </CardHeader>
             <CardContent className="relative">
-              <ul className="space-y-3">
-                {insights.map((insight, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-xs text-foreground leading-relaxed">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                    <p className="flex-1">{insight}</p>
-                  </li>
-                ))}
+              <ul className="space-y-4">
+                {agentLearnings.length === 0 ? (
+                  <div className="py-6 flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center mb-3 animate-pulse">
+                      <Brain size={20} className="text-primary/40" />
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4">
+                      Initial Neural Mapping in progress... Complete 3 posts to see insights.
+                    </p>
+                  </div>
+                ) : (
+                  agentLearnings.map((l: any, i: number) => {
+                    const Icon = getInsightIcon(l.category);
+                    return (
+                      <motion.li 
+                        key={i} 
+                        initial={{ opacity: 0, x: -10 }} 
+                        animate={{ opacity: 1, x: 0 }} 
+                        transition={{ delay: 0.5 + (i * 0.1) }}
+                        className="group"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-white border border-primary/10 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                            <Icon size={14} className="text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">
+                                {l.category}
+                              </span>
+                              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600">
+                                {Math.round(l.confidence * 100)}% Confidence
+                              </span>
+                            </div>
+                            <p className="text-xs text-foreground leading-relaxed font-medium">
+                              {l.insight}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.li>
+                    );
+                  })
+                )}
               </ul>
+              {agentLearnings.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-primary/10">
+                  <div className="flex items-center gap-2">
+                    <div className="flex -space-x-1.5">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center overflow-hidden">
+                           <div className="w-full h-full gradient-bg opacity-40" />
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Evolving strategy from {agentLearnings.length} data signals
+                    </span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

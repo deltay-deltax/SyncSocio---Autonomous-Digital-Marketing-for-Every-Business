@@ -56,6 +56,14 @@ def get_brand_dna(payload: Dict[str, Any]) -> str:
     else:
         dna += "- No hourly activity data. Use global peak times (6PM-9PM).\n"
         
+    # 4. Recent History (Avoid Repetition)
+    recent = payload.get("recent_topics", [])
+    dna += f"\nRECENT TOPICS PLANNED (AVOID REPEATING THESE):\n"
+    if recent:
+        dna += "\n".join([f"- {t}" for t in recent])
+    else:
+        dna += "- No recent history found.\n"
+        
     return dna
 
 def get_universal_system_prompt(agent_role: str) -> str:
