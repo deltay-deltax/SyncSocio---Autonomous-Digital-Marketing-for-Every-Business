@@ -16,6 +16,7 @@ const buildFlowPayload = (body = {}) => {
     targetType: body.targetType,
     targetMediaId: toTrimmedString(body.targetMediaId),
     keyword: toTrimmedString(body.keyword),
+    commentReplyMessage: toTrimmedString(body.commentReplyMessage),
     messages: Array.isArray(body.messages) ? body.messages : undefined,
   };
 
