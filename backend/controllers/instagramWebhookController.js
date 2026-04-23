@@ -3,6 +3,13 @@ import BrandProfile from '../models/BrandProfile.js';
 import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import DMConversation from '../models/DMConversation.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
+import {
+  buildPublicCommentReplyText,
+  claimCommentReply,
+  markCommentReplyDmSent,
+  markCommentReplyPublicSent,
+  sendPublicCommentReply,
+} from '../services/instagramCommentReplyService.js';
 
 const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
@@ -463,8 +470,7 @@ const sendPrivateReply = async ({ pageToken, commentId, messagePayload, pageId }
 
 const processCommentEventForProfile = async (profile, event) => {
   console.log(`processCommentEventForProfile: Starting for id="${event.commentId}", text="${event.text}", actor="${event.actorUsername}"`);
-  
-  // Deduplication check
+
   if (safeTrim(event.commentId)) {
     const alreadyProcessed = await DMFlowFollowUp.findOne({ commentId: event.commentId }).lean();
     if (alreadyProcessed) {
@@ -491,6 +497,22 @@ const processCommentEventForProfile = async (profile, event) => {
   }
   console.log(`Found matching flow: ${flow._id} (matchScore=${matchResult.score})`);
 
+  const publicReplyText = buildPublicCommentReplyText(event.actorUsername);
+  const claim = await claimCommentReply({
+    user: profile.user,
+    commentId: event.commentId,
+    flow: flow._id,
+    mediaId: event.mediaId,
+    actorUsername: event.actorUsername,
+    commentText: event.text,
+    publicReplyText,
+  });
+
+  if (!claim) {
+    console.log(`Skipping: Comment ${event.commentId} already processed.`);
+    return false;
+  }
+
   await DMFlow.updateOne({ _id: flow._id }, { $inc: { 'stats.triggered': 1 } });
 
   const messagePayload = buildDmMessagePayload(flow, profile);
@@ -515,6 +537,34 @@ const processCommentEventForProfile = async (profile, event) => {
 
     if (!pageToken) throw new Error('Could not resolve Page Access Token required for messaging');
 
+    try {
+      const publicReplyResult = await sendPublicCommentReply({
+        pageToken,
+        commentId: event.commentId,
+        message: publicReplyText,
+      });
+
+      await markCommentReplyPublicSent({
+        user: profile.user,
+        commentId: event.commentId,
+        publicReplyText,
+      });
+
+      console.log('Instagram public comment reply sent', {
+        flowId: flow._id.toString(),
+        commentId: event.commentId,
+        actorUsername: event.actorUsername,
+        publicReplyResult,
+      });
+    } catch (publicReplyError) {
+      console.error('Instagram public comment reply failed', {
+        flowId: flow._id.toString(),
+        commentId: event.commentId,
+        actorUsername: event.actorUsername,
+        providerError: publicReplyError?.response?.data || publicReplyError?.message,
+      });
+    }
+
     const result = await sendPrivateReply({
       pageToken,
       commentId: event.commentId,
@@ -525,6 +575,12 @@ const processCommentEventForProfile = async (profile, event) => {
     await queueFollowUpMessage({
       profile,
       flow,
+      commentId: event.commentId,
+      recipientId: result?.recipient_id,
+    });
+
+    await markCommentReplyDmSent({
+      user: profile.user,
       commentId: event.commentId,
       recipientId: result?.recipient_id,
     });
@@ -1080,6 +1136,26 @@ export const testWebhook = async (req, res) => {
       if (pageData) pageToken = pageData.access_token;
     }
 
+    const publicReplyText = buildPublicCommentReplyText(profile.instagramUsername);
+
+    try {
+      const publicReplyResult = await sendPublicCommentReply({
+        pageToken,
+        commentId,
+        message: publicReplyText,
+      });
+
+      await markCommentReplyPublicSent({
+        user: profile.user,
+        commentId,
+        publicReplyText,
+      });
+
+      console.log('=== PUBLIC COMMENT REPLY SENT ===', publicReplyResult);
+    } catch (publicReplyError) {
+      console.error('=== PUBLIC COMMENT REPLY FAILED ===', publicReplyError?.response?.data || publicReplyError?.message);
+    }
+
     const result = await sendPrivateReply({
       pageToken,
       commentId,
@@ -1090,6 +1166,12 @@ export const testWebhook = async (req, res) => {
     await queueFollowUpMessage({
       profile,
       flow: matchResult.flow,
+      commentId,
+      recipientId: result?.recipient_id,
+    });
+
+    await markCommentReplyDmSent({
+      user: profile.user,
       commentId,
       recipientId: result?.recipient_id,
     });

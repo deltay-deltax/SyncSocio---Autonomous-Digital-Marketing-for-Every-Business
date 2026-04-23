@@ -11,6 +11,14 @@ import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
 import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
+import {
+  buildPublicCommentReplyText,
+  claimCommentReply,
+  hasCommentReplyLog,
+  markCommentReplyDmSent,
+  markCommentReplyPublicSent,
+  sendPublicCommentReply,
+} from './instagramCommentReplyService.js';
 
 const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
@@ -138,6 +146,8 @@ const buildDmMessagePayload = (flow, profile) => {
   };
 };
 
+const buildCommentReplyText = (actorUsername) => buildPublicCommentReplyText(actorUsername);
+
 const getPendingFollowUpMessageIndex = (flow) => {
   if (!Array.isArray(flow?.messages)) return -1;
 
@@ -236,6 +246,12 @@ const pollProfileComments = async (profile) => {
         // 1. Skip already-processed comments in-memory
         if (processedCommentIds.has(comment.id)) continue;
 
+        const existingReplyLog = await hasCommentReplyLog({ user: profile.user, commentId: comment.id });
+        if (existingReplyLog) {
+          processedCommentIds.add(comment.id);
+          continue;
+        }
+
         // 2. Double-check database to prevent double-replies across server restarts
         const alreadyProcessed = await DMFlowFollowUp.findOne({ commentId: comment.id }).lean();
         if (alreadyProcessed) {
@@ -269,6 +285,22 @@ const pollProfileComments = async (profile) => {
 
         console.log(`[POLLER] Matched flow: ${matchResult.flow.name} (score=${matchResult.score})`);
 
+        const publicReplyText = buildCommentReplyText(comment.username);
+        const claim = await claimCommentReply({
+          user: profile.user,
+          commentId: comment.id,
+          flow: matchResult.flow._id,
+          mediaId: media.id,
+          actorUsername: comment.username,
+          commentText: comment.text,
+          publicReplyText,
+        });
+
+        if (!claim) {
+          console.log(`[POLLER] Skipping comment ${comment.id} because it was already claimed.`);
+          continue;
+        }
+
         // 4. Build message
         const messagePayload = buildDmMessagePayload(matchResult.flow, profile);
         if (!messagePayload) {
@@ -287,6 +319,24 @@ const pollProfileComments = async (profile) => {
             continue;
           }
 
+          try {
+            const publicReplyResult = await sendPublicCommentReply({
+              pageToken,
+              commentId: comment.id,
+              message: publicReplyText,
+            });
+
+            await markCommentReplyPublicSent({
+              user: profile.user,
+              commentId: comment.id,
+              publicReplyText,
+            });
+
+            console.log('[POLLER] Public comment reply sent:', publicReplyResult);
+          } catch (publicReplyError) {
+            console.error('[POLLER] Public comment reply failed:', publicReplyError?.response?.data || publicReplyError?.message);
+          }
+
           // Humanize: wait 1.5s before replying
           await sleep(1500);
 
@@ -302,6 +352,12 @@ const pollProfileComments = async (profile) => {
           await queueFollowUpMessage({
             profile,
             flow: matchResult.flow,
+            commentId: comment.id,
+            recipientId: result?.recipient_id,
+          });
+
+          await markCommentReplyDmSent({
+            user: profile.user,
             commentId: comment.id,
             recipientId: result?.recipient_id,
           });
