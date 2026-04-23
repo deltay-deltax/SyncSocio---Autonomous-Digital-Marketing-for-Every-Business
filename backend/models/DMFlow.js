@@ -118,6 +118,12 @@ const dmFlowSchema = new mongoose.Schema(
       trim: true,
       maxlength: 120,
     },
+    commentReplyMessage: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 200,
+    },
     keywordNormalized: {
       type: String,
       required: true,

@@ -5,6 +5,7 @@ import DMConversation from '../models/DMConversation.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
 import {
   buildPublicCommentReplyText,
+  buildPublicCommentReplyTextFromTemplate,
   claimCommentReply,
   markCommentReplyDmSent,
   markCommentReplyPublicSent,
@@ -497,7 +498,10 @@ const processCommentEventForProfile = async (profile, event) => {
   }
   console.log(`Found matching flow: ${flow._id} (matchScore=${matchResult.score})`);
 
-  const publicReplyText = buildPublicCommentReplyText(event.actorUsername);
+  const publicReplyText = buildPublicCommentReplyTextFromTemplate(
+    event.actorUsername,
+    flow.commentReplyMessage || ''
+  );
   const claim = await claimCommentReply({
     user: profile.user,
     commentId: event.commentId,
@@ -1136,7 +1140,10 @@ export const testWebhook = async (req, res) => {
       if (pageData) pageToken = pageData.access_token;
     }
 
-    const publicReplyText = buildPublicCommentReplyText(profile.instagramUsername);
+    const publicReplyText = buildPublicCommentReplyTextFromTemplate(
+      profile.instagramUsername,
+      matchResult.flow.commentReplyMessage || ''
+    );
 
     try {
       const publicReplyResult = await sendPublicCommentReply({

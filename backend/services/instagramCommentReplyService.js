@@ -7,8 +7,30 @@ const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
 const safeTrim = (value) => (typeof value === 'string' ? value.trim() : '');
 
 export const buildPublicCommentReplyText = (actorUsername) => {
+  return buildPublicCommentReplyTextFromTemplate(actorUsername, '');
+};
+
+export const buildPublicCommentReplyTextFromTemplate = (actorUsername, template = '') => {
   const username = safeTrim(actorUsername).replace(/^@+/, '');
-  return username ? `@${username} Check your DM` : 'Check your DM';
+  const normalizedTemplate = safeTrim(template);
+
+  if (!normalizedTemplate) {
+    return username ? `@${username} Check your DM` : 'Check your DM';
+  }
+
+  const message = normalizedTemplate
+    .replace(/\{\{\s*username\s*\}\}/gi, username ? `@${username}` : '')
+    .replace(/\{\{\s*name\s*\}\}/gi, username ? `@${username}` : '');
+
+  if (message.includes('@username') && username) {
+    return message.replace(/@username/gi, `@${username}`);
+  }
+
+  if (message.includes('@') && !username) {
+    return message.replace(/@+/g, '').trim();
+  }
+
+  return message || (username ? `@${username} Check your DM` : 'Check your DM');
 };
 
 export const claimCommentReply = async ({

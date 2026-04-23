@@ -37,6 +37,7 @@ interface Flow {
   targetType: 'all' | 'specific';
   targetMediaId?: string;
   keyword: string;
+  commentReplyMessage: string;
   messages: FlowMessage[];
   active: boolean;
   createdAt: string;
@@ -50,6 +51,7 @@ interface ApiFlow {
   targetType: Flow['targetType'];
   targetMediaId?: string;
   keyword: string;
+  commentReplyMessage?: string;
   messages: FlowMessage[];
   active: boolean;
   createdAt: string;
@@ -70,6 +72,7 @@ const getAuthHeaders = (includeJson = false): HeadersInit => {
 
 const getInitialFlow = () => ({
   name: '🎁 Link Delivery Flow', trigger: 'comment' as const, targetType: 'all' as const, keyword: 'link',
+  commentReplyMessage: '@{{username}} Check your DM',
   messages: [
     {
       id: uid(),
@@ -144,6 +147,7 @@ const toUIFlow = (flow: ApiFlow): Flow => {
     targetType: flow.targetType,
     targetMediaId: flow.targetMediaId || undefined,
     keyword: flow.keyword,
+    commentReplyMessage: flow.commentReplyMessage || '',
     messages: safeMessages,
     active: flow.active,
     createdAt: formatRelativeTime(flow.createdAt),
@@ -260,6 +264,7 @@ const DashboardDMs = () => {
     targetType: Flow['targetType'];
     targetMediaId?: string;
     keyword: string;
+    commentReplyMessage: string;
     messages: FlowMessage[];
   }>(getInitialFlow());
 
@@ -338,6 +343,7 @@ const DashboardDMs = () => {
           targetType: newFlow.targetType,
           targetMediaId: newFlow.targetType === 'specific' ? newFlow.targetMediaId : undefined,
           keyword: newFlow.keyword,
+          commentReplyMessage: newFlow.commentReplyMessage,
           messages: preparedMessages,
           active: true,
         }),
@@ -641,6 +647,16 @@ const DashboardDMs = () => {
                         onChange={e => setNewFlow({ ...newFlow, keyword: e.target.value })}
                         className="rounded-xl bg-background/60 text-lg font-mono"
                         autoFocus
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-foreground block mb-1">What to reply to comment msg</label>
+                      <p className="text-[11px] text-muted-foreground mb-3">This public reply is sent on the comment before the DM. Use <span className="font-mono">{'{{username}}'}</span> to mention the commenter.</p>
+                      <Textarea
+                        placeholder="@{{username}} Check your DM"
+                        value={newFlow.commentReplyMessage}
+                        onChange={e => setNewFlow({ ...newFlow, commentReplyMessage: e.target.value })}
+                        className="min-h-[96px] rounded-xl bg-background/60 text-sm font-medium resize-none"
                       />
                     </div>
                     <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">

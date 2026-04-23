@@ -13,6 +13,7 @@ import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
 import {
   buildPublicCommentReplyText,
+  buildPublicCommentReplyTextFromTemplate,
   claimCommentReply,
   hasCommentReplyLog,
   markCommentReplyDmSent,
@@ -146,7 +147,7 @@ const buildDmMessagePayload = (flow, profile) => {
   };
 };
 
-const buildCommentReplyText = (actorUsername) => buildPublicCommentReplyText(actorUsername);
+const buildCommentReplyText = (actorUsername, template) => buildPublicCommentReplyTextFromTemplate(actorUsername, template);
 
 const getPendingFollowUpMessageIndex = (flow) => {
   if (!Array.isArray(flow?.messages)) return -1;
@@ -285,7 +286,7 @@ const pollProfileComments = async (profile) => {
 
         console.log(`[POLLER] Matched flow: ${matchResult.flow.name} (score=${matchResult.score})`);
 
-        const publicReplyText = buildCommentReplyText(comment.username);
+        const publicReplyText = buildCommentReplyText(comment.username, matchResult.flow.commentReplyMessage || '');
         const claim = await claimCommentReply({
           user: profile.user,
           commentId: comment.id,
