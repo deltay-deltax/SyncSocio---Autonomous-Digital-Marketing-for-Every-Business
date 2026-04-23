@@ -1,5 +1,12 @@
 import BrandProfile from '../models/BrandProfile.js';
 import User from '../models/User.js';
+import AgentActivity from '../models/AgentActivity.js';
+import ContentCalendar from '../models/ContentCalendar.js';
+import DMConversation from '../models/DMConversation.js';
+import DMFlow from '../models/DMFlow.js';
+import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
+import Notification from '../models/Notification.js';
+import PostAnalysis from '../models/PostAnalysis.js';
 import { sendSignupWelcomeEmail } from '../utils/sendWelcomeEmail.js';
 
 const inferAuthProvider = (user) => {
@@ -67,5 +74,31 @@ export const getProfile = async (req, res) => {
     res.status(200).json(profile);
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching profile' });
+  }
+};
+
+export const terminateAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    console.log(`[TERMINATE] ⚠️ Wiping all data for user ${userId}...`);
+
+    // Delete everything in parallel
+    await Promise.all([
+      BrandProfile.deleteOne({ user: userId }),
+      AgentActivity.deleteMany({ user: userId }),
+      ContentCalendar.deleteMany({ userId: userId }),
+      DMConversation.deleteMany({ user: userId }),
+      DMFlow.deleteMany({ user: userId }),
+      DMFlowFollowUp.deleteMany({ user: userId }),
+      Notification.deleteMany({ userId: userId }),
+      PostAnalysis.deleteMany({ userId: userId }),
+      User.findByIdAndDelete(userId)
+    ]);
+
+    console.log(`[TERMINATE] ✅ User ${userId} and all associated data erased.`);
+    res.status(200).json({ message: 'Account and all associated data erased successfully.' });
+  } catch (error) {
+    console.error('Termination Error:', error);
+    res.status(500).json({ message: 'Server error during account termination' });
   }
 };

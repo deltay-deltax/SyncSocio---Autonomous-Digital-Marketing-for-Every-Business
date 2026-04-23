@@ -47,14 +47,13 @@ export const getDashboardSummary = async (req, res) => {
           // 2. Fetch Weekly Reach
           const insightsUrl = `https://graph.facebook.com/v25.0/${igId}/insights`;
           const insightsRes = await axios.get(insightsUrl, {
-            params: { metric: 'reach', period: 'week', access_token: accessToken }
+            params: { metric: 'reach', period: 'days_28', access_token: accessToken }
           });
 
           let reachThisWeek = 0;
-          if (insightsRes.data.data && insightsRes.data.data.length > 0) {
+          if (insightsRes.data && insightsRes.data.data && insightsRes.data.data.length > 0) {
             const reachMetric = insightsRes.data.data.find(m => m.name === 'reach');
             if (reachMetric && reachMetric.values && reachMetric.values.length > 0) {
-               // period: week returns a 7-day total for cada day. We take the latest.
                reachThisWeek = reachMetric.values[reachMetric.values.length - 1].value || 0;
             }
           }
@@ -163,7 +162,12 @@ export const getDashboardSummary = async (req, res) => {
           };
 
         } catch (apiError) {
-          console.error("Dashboard API fetch error:", apiError.message);
+          const errorData = apiError.response?.data?.error || apiError.response?.data || {};
+          console.error("Dashboard API fetch error:", {
+            message: apiError.message,
+            metaError: errorData,
+            path: apiError.config?.url
+          });
           fallbackToMock = true;
         }
       }

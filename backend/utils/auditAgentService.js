@@ -92,13 +92,19 @@ export async function performStrategicAudit(userId, brandProfile) {
     if (agentRes.data) {
       const { predicted_mix, recommendation, learnings } = agentRes.data;
       
+      // Map isNew to isFresh for Mongoose compliance
+      const formattedLearnings = (learnings || []).map(l => ({
+          ...l,
+          isFresh: l.isNew !== undefined ? l.isNew : true
+      }));
+
       // 4. Update Database
       await BrandProfile.findOneAndUpdate(
         { user: userId },
         { 
           predictedMix: predicted_mix,
           agentRecommendation: recommendation,
-          agentLearnings: learnings || [],
+          agentLearnings: formattedLearnings,
           neuralState: 'Optimized',
           lastStrategicAudit: new Date()
         }
@@ -117,7 +123,7 @@ export async function performStrategicAudit(userId, brandProfile) {
       );
       */
 
-      console.log(`[AUDIT] ✅ Success! Verdict stored for ${brandProfile.brandName}.`);
+      console.log(`[AUDIT] ✅ Success! Verdict stored for ${brandProfile.brandName || brandProfile.instagramUsername || userId}.`);
     }
 
   } catch (error) {

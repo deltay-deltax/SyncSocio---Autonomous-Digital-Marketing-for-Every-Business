@@ -135,7 +135,8 @@ Each entry MUST have these exact keys:
 - "type": "reel", "image", or "carousel"
 - "topic": Compelling, benefit-driven title (max 10 words). Directly address the provided Pain Points and USP (Perfumes/Pricing).
 - "optimalTime": Time when the audience will see it the most in India/Nepal (e.g., "6:30 PM").
-- "prompt": A highly detailed, immersive 3-5 sentence production brief. For Reels, specify a scene-by-scene script breakdown. For Carousels, describe each slide's content and visual flow. Include specific instructions for lighting, typography overlays, and the energetic 'Foxeee' vibe.
+- "prompt": A highly detailed, immersive 3-5 sentence production brief. For Reels, specify a scene-by-scene script breakdown. For Carousels, describe each slide's content and visual flow. 
+  STRICT VISUAL REQUIREMENT: You MUST explicitly include instructions to use the Brand's Primary and Secondary colors (mention the actual hex codes or color names from Brand DNA) in the lighting, background elements, or typography overlays.
 - "why": Deep strategic reasoning (2-3 sentences) explaining how this specific content piece addresses the pain points to drive "Sell products / get orders" goal in the India/Nepal market.
 
 OUTPUT ONLY A VALID JSON ARRAY.

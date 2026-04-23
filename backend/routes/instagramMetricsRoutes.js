@@ -284,62 +284,83 @@ router.get('/metrics', protect, async (req, res) => {
                 hourlyActivity,
                 peakHourText,
                 postBreakdown,
-                // --- NEW: Weekly Reach Growth (Chart 2 Data) ---
                 weeklyGrowth: await (async () => {
-                   try {
-                       const fetchWindow = async (daysBack, duration) => {
-                           const until = Math.floor((Date.now() - (daysBack * 86400 * 1000)) / 1000);
-                           const since = until - (duration * 86400);
-                           const params = {
-                               metric: 'reach',
-                               period: 'day',
-                               since,
-                               until,
-                               access_token: accessToken
-                           };
-                           const res = await axios.get(insightsUrl, { params });
-                           return res.data.data.find(m => m.name === 'reach')?.values || [];
-                       };
+                    try {
+                        // Fetch posts from last 30 days to attribute reach
+                        const postsRes = await axios.get(mediaUrl, {
+                            params: { 
+                                fields: 'id,timestamp',
+                                limit: 30,
+                                access_token: accessToken 
+                            }
+                        });
+                        const posts = postsRes.data.data || [];
+                        const assistedPosts = await PostAnalysis.find({ userId: userId, isAgentAssisted: true, instagramMediaId: { $exists: true } });
+                        const assistedIds = new Set(assistedPosts.map(ap => ap.instagramMediaId));
 
-                       // Reverse so index 0 is the NEWEST data
-                       const dailyData = (await fetchWindow(0, 28)).reverse();
-                       
-                       console.log("📊 [RAW TELEMETRY] Last 28 Days Reach:", dailyData.map(d => d.value));
+                        // For each post, fetch its reach (this is slow but needed for accurate attribution)
+                        const postsWithReach = await Promise.all(posts.map(async (p) => {
+                            try {
+                                const insRes = await axios.get(`https://graph.facebook.com/v25.0/${p.id}/insights`, {
+                                    params: { metric: 'reach', access_token: accessToken }
+                                });
+                                const reachVal = insRes.data.data.find(x => x.name === 'reach')?.values[0]?.value || 0;
+                                return {
+                                    timestamp: new Date(p.timestamp),
+                                    reach: reachVal,
+                                    isAgent: assistedIds.has(p.id)
+                                };
+                            } catch (e) { return null; }
+                        }));
+                        const validPosts = postsWithReach.filter(p => p !== null);
 
-                       if (dailyData.length === 0) {
-                           console.log("⚠️ [ANALYTICS] Reach history is empty for this account.");
-                       }
-                       
-                       const assistedPosts = await PostAnalysis.find({ userId: userId, isAgentAssisted: true, instagramMediaId: { $exists: true } });
-                       const assistedIds = new Set(assistedPosts.map(ap => ap.instagramMediaId));
+                        const weeks = [];
+                        const now = new Date();
+                        for (let i = 0; i < 4; i++) {
+                            const weekEnd = new Date(now.getTime() - (i * 7 * 86400 * 1000));
+                            const weekStart = new Date(weekEnd.getTime() - (7 * 86400 * 1000));
+                            
+                            const weekPosts = validPosts.filter(p => p.timestamp >= weekStart && p.timestamp < weekEnd);
+                            
+                            const agentPostsInWeek = weekPosts.filter(p => p.isAgent);
+                            const selfPostsInWeek = weekPosts.filter(p => !p.isAgent);
 
-                       const weeks = [];
-                       for (let i = 0; i < 4; i++) {
-                           const start = i * 7;
-                           const weekSlice = dailyData.slice(start, start + 7);
-                           const totalReach = weekSlice.reduce((sum, d) => sum + (d.value || 0), 0);
-                           
-                           const hasAssistedData = assistedIds.size > 0;
-                           const agentReach = hasAssistedData 
-                               ? Math.floor(totalReach * (1.15 + (Math.random() * 0.1))) 
-                               : 0; 
-                           
-                           weeks.push({
-                               week: `W${4-i}`,
-                               totalReach: totalReach,
-                               agentReach: agentReach
-                           });
-                       }
-                       // Return as [W1, W2, W3, W4] for the Chart (left-to-right)
-                       return weeks.reverse();
+                            const agentReachSum = agentPostsInWeek.reduce((sum, p) => sum + p.reach, 0);
+                            const selfReachSum = selfPostsInWeek.reduce((sum, p) => sum + p.reach, 0);
+                            
+                            weeks.push({
+                                week: `W${4-i}`,
+                                // Use Average for better comparison on chart
+                                selfReach: selfPostsInWeek.length > 0 ? Math.round(selfReachSum / selfPostsInWeek.length) : 0,
+                                agentReach: agentPostsInWeek.length > 0 ? Math.round(agentReachSum / agentPostsInWeek.length) : 0,
+                                totalReach: weekPosts.length > 0 ? Math.round((agentReachSum + selfReachSum) / weekPosts.length) : 0
+                            });
+                        }
+
+                        // Also calculate global averages for summary
+                        const agentPosts = validPosts.filter(p => p.isAgent);
+                        const selfPosts = validPosts.filter(p => !p.isAgent);
+                        
+                        const avgAgentReach = agentPosts.length > 0 ? Math.round(agentPosts.reduce((sum, p) => sum + p.reach, 0) / agentPosts.length) : 0;
+                        const avgSelfReach = selfPosts.length > 0 ? Math.round(selfPosts.reduce((sum, p) => sum + p.reach, 0) / selfPosts.length) : 0;
+
+                        return {
+                            history: weeks.reverse(),
+                            avgAgentReach,
+                            avgSelfReach
+                        };
                    } catch (e) {
-                       console.error("❌ [ANALYTICS] Weekly Reach Growth Fetch Error:", e.response?.data || e.message);
-                       // Emergency UI Fallback to prevent 'Calibrating' hang
-                       return Array.from({ length: 4 }, (_, i) => ({
-                           week: `W${4-i}`,
-                           totalReach: 30 + (i * 10),
-                           agentReach: 0 // Keep 0 since no AI posts yet
-                       })).reverse();
+                       console.error("❌ [ANALYTICS] Weekly Reach Growth Fetch Error:", e.response?.data?.error || e.message);
+                       return {
+                           history: Array.from({ length: 4 }, (_, i) => ({
+                               week: `W${4-i}`,
+                               selfReach: 0,
+                               agentReach: 0,
+                               totalReach: 0
+                           })).reverse(),
+                           avgAgentReach: 0,
+                           avgSelfReach: 0
+                       };
                    }
                 })(),
                 // --- REAL DATA: 30-Day Follower Growth (Chart 3) ---
@@ -424,6 +445,60 @@ router.get('/metrics', protect, async (req, res) => {
                        return dailyNetChange.reduce((sum, d) => sum + (d.value || 0), 0);
                    } catch (e) { return 0; }
                 })(),
+                agentSmartness: await (async () => {
+                    console.log("[SMARTNESS] Starting neural trend analysis...");
+                    try {
+                        // Refined approach: fetch last 50 posts and filter agent ones
+                        const postsRes = await axios.get(mediaUrl, {
+                            params: { fields: 'id,timestamp,like_count,comments_count', limit: 50, access_token: accessToken }
+                        });
+                        const allPosts = postsRes.data.data || [];
+                        const assistedPosts = await PostAnalysis.find({ userId: userId, instagramMediaId: { $exists: true } });
+                        const assistedIds = new Set(assistedPosts.map(ap => ap.instagramMediaId));
+                        
+                        console.log(`[SMARTNESS] DB: ${assistedPosts.length} posts. Meta Feed: ${allPosts.length} posts.`);
+                        
+                        const agentOnlyPosts = allPosts.filter(p => assistedIds.has(p.id)).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+                        
+                        console.log(`[SMARTNESS] Successfully matched ${agentOnlyPosts.length} agent posts.`);
+
+                        const trend = await Promise.all(agentOnlyPosts.slice(-12).map(async (p, i) => {
+                            try {
+                                const insRes = await axios.get(`https://graph.facebook.com/v25.0/${p.id}/insights`, {
+                                    params: { metric: 'reach,saved', access_token: accessToken }
+                                });
+                                const reach = insRes.data.data.find(x => x.name === 'reach')?.values[0]?.value || 1;
+                                const saved = insRes.data.data.find(x => x.name === 'saved')?.values[0]?.value || 0;
+                                const engRate = (((p.like_count + p.comments_count + saved) / reach) * 100).toFixed(2);
+                                return {
+                                    postIndex: `Post ${i + 1}`,
+                                    engagement: parseFloat(engRate)
+                                };
+                            } catch (e) { 
+                                console.log(`[SMARTNESS] Failed to fetch insights for post ${p.id}:`, e.message);
+                                return null; 
+                            }
+                        }));
+
+                        const finalTrend = trend.filter(t => t !== null);
+                        let improvement = 0;
+                        if (finalTrend.length > 1) {
+                            const start = finalTrend[0].engagement;
+                            const end = finalTrend[finalTrend.length - 1].engagement;
+                            improvement = start > 0 ? Math.round(((end - start) / start) * 100) : 0;
+                        }
+
+                        console.log(`[SMARTNESS] Final trend points: ${finalTrend.length}`);
+
+                        return {
+                            trend: finalTrend,
+                            improvement: improvement
+                        };
+                    } catch (e) { 
+                        console.error("[SMARTNESS] Neural Analysis Critical Error:", e.message);
+                        return { trend: [], improvement: 0 }; 
+                    }
+                })(),
                 agentLearnings: brandProfile.agentLearnings || [],
                 neuralState: brandProfile.neuralState || 'Idle'
             }
@@ -469,6 +544,9 @@ router.get('/feed', protect, async (req, res) => {
         });
 
         const posts = mediaRes.data.data || [];
+        const assistedPosts = await PostAnalysis.find({ userId: userId, instagramMediaId: { $exists: true } });
+        const assistedIds = new Set(assistedPosts.map(ap => ap.instagramMediaId));
+
         const detailedPosts = await Promise.all(posts.map(async (p) => {
             let reach = 0;
             try {
@@ -488,7 +566,8 @@ router.get('/feed', protect, async (req, res) => {
                 likes: p.like_count,
                 comments: p.comments_count,
                 reach: reach,
-                permalink: p.permalink
+                permalink: p.permalink,
+                isAgentAssisted: assistedIds.has(p.id)
             };
         }));
 

@@ -476,23 +476,38 @@ const DashboardSettings = () => {
             <Card className="rounded-[2rem] border-destructive/20 overflow-hidden shadow-sm">
               <CardHeader className="p-8 pb-2"><CardTitle className="text-sm font-black uppercase tracking-widest text-destructive">Danger Zone</CardTitle></CardHeader>
               <CardContent className="p-8 space-y-4">
-                <div className="p-6 rounded-2xl border border-border space-y-3 group hover:border-destructive/20 transition-all">
-                   <div className="flex items-center gap-3">
-                    <Pause size={18} className="text-destructive/60" />
-                    <p className="text-sm font-black text-foreground">Pause Agent Operations</p>
-                   </div>
-                  <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Temporarily halt all agent posting activity and content synthesis. Your historical data and profile remain safe.</p>
-                  <Button variant="outline" size="sm" className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-destructive/20 text-destructive hover:bg-destructive/10">
-                    Confirm Pause
-                  </Button>
-                </div>
+
                 <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
                   <div className="flex items-center gap-3">
                     <Trash2 size={18} className="text-destructive" />
                     <p className="text-sm font-black text-foreground">Terminate Account</p>
                   </div>
                   <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently erase your digital entity, synthesis weights, and all associated analytics. This action cannot be reversed.</p>
-                  <Button variant="destructive" size="sm" className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20">
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
+                    onClick={async () => {
+                      if (confirm("⚠️ CRITICAL ACTION: This will permanently delete your account, your brand identity, and ALL metrics. This cannot be undone. Are you absolutely sure?")) {
+                        try {
+                          const token = localStorage.getItem('token');
+                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                          const res = await fetch(`${apiBase}/profile/terminate`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          });
+                          if (res.ok) {
+                            localStorage.clear();
+                            window.location.href = '/';
+                          } else {
+                            alert("Failed to terminate account. Please try again.");
+                          }
+                        } catch (err) {
+                          console.error("Termination failed:", err);
+                        }
+                      }
+                    }}
+                  >
                     Erase My Entity
                   </Button>
                 </div>

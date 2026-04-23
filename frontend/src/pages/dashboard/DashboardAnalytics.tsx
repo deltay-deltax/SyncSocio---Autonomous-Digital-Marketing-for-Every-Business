@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, ArrowDownRight, Brain, Zap, Target } from 'lucide-react';
+import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, ArrowDownRight, Brain, Zap, Target, Clock, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
@@ -177,13 +177,13 @@ const DashboardAnalytics = () => {
         <Card className="border-border/50">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-sm font-bold">Reach Growth Over Time</CardTitle>
-              <p className="text-[10px] text-muted-foreground">Comparative performance (Last 4 Weeks)</p>
+              <CardTitle className="text-sm font-bold">Average Reach per Post</CardTitle>
+              <p className="text-[10px] text-muted-foreground">Quality comparison: Agent vs. Self Posted</p>
             </div>
             <div className="flex gap-4">
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase">Total Reach</span>
+                <div className="w-2 h-2 rounded-full bg-blue-400" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Self Posted</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -192,10 +192,22 @@ const DashboardAnalytics = () => {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Averages Section */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+               <div className="p-3 rounded-2xl bg-blue-50 border border-blue-100">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-500/70 mb-1">Avg Self Reach (30D Avg)</p>
+                  <p className="text-lg font-bold text-blue-600">{data?.weeklyGrowth?.avgSelfReach || 0}</p>
+               </div>
+               <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-100">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-500/70 mb-1">Avg Agent Reach (30D Avg)</p>
+                  <p className="text-lg font-bold text-emerald-600">{data?.weeklyGrowth?.avgAgentReach || 0}</p>
+               </div>
+            </div>
+
             <div className="h-64">
-              {data?.weeklyGrowth && data.weeklyGrowth.length > 0 ? (
+              {data?.weeklyGrowth?.history && data.weeklyGrowth.history.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.weeklyGrowth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <LineChart data={data.weeklyGrowth.history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="week" tick={{ fontSize: 10 }} stroke="#94a3b8" axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" axisLine={false} tickLine={false} />
@@ -205,7 +217,8 @@ const DashboardAnalytics = () => {
                     />
                     <Line 
                       type="monotone" 
-                      dataKey="totalReach" 
+                      dataKey="selfReach" 
+                      name="Self Posted"
                       stroke="#3b82f6" 
                       strokeWidth={3} 
                       dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
@@ -224,7 +237,7 @@ const DashboardAnalytics = () => {
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-xs text-muted-foreground italic">
-                  Calibrating 8-week growth telemetry...
+                  Calibrating neural growth telemetry...
                 </div>
               )}
             </div>
@@ -317,6 +330,71 @@ const DashboardAnalytics = () => {
             </div>
             {hourlyData.length > 0 && (
               <p className="text-[11px] text-muted-foreground mt-2 font-medium">⚡ Peak follower activity: {data?.peakHourText || '8 PM'} — agent will schedule future posts slightly before this time</p>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Agent Smartness Chart */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+        <Card className="border-violet-500/20 bg-gradient-to-br from-violet-500/[0.03] to-transparent">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles size={16} className="text-violet-500" />
+                <CardTitle className="text-sm font-bold">Agent Getting Smarter Over Time</CardTitle>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Neural optimization progress per post</p>
+            </div>
+            {(data?.agentSmartness?.improvement || 0) > 0 && (
+              <div className="px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20">
+                <span className="text-[10px] font-black uppercase tracking-widest text-violet-600">
+                  +{data.agentSmartness.improvement}% Efficiency
+                </span>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {data?.agentSmartness?.trend && data.agentSmartness.trend.length > 1 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.agentSmartness.trend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="postIndex" tick={{ fontSize: 10 }} stroke="#94a3b8" axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" axisLine={false} tickLine={false} unit="%" />
+                    <Tooltip 
+                      contentStyle={{ fontSize: 12, borderRadius: 16, border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      labelStyle={{ fontWeight: 'bold' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="engagement" 
+                      name="Engagement Rate"
+                      stroke="#8b5cf6" 
+                      strokeWidth={4} 
+                      dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-3 bg-violet-500/[0.02] rounded-xl border border-dashed border-violet-500/10">
+                   <Zap className="w-8 h-8 text-violet-300 animate-pulse" />
+                   <p className="text-[11px] text-violet-500/70 font-medium italic max-w-[200px]">
+                      Agent is still mapping your audience's neural response. Publish more posts to see optimization trend.
+                   </p>
+                </div>
+              )}
+            </div>
+            {(data?.agentSmartness?.improvement || 0) > 0 && (
+               <div className="mt-4 p-3 rounded-xl bg-violet-500/5 border border-violet-500/10 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-violet-500 flex items-center justify-center shrink-0 shadow-lg shadow-violet-500/20">
+                    <TrendingUp size={16} className="text-white" />
+                  </div>
+                  <p className="text-[11px] font-medium text-slate-600">
+                    <span className="font-bold text-violet-600 italic underline decoration-violet-500/30 underline-offset-2">Optimization Insight:</span> Engagement improved <span className="text-violet-700 font-black">{data.agentSmartness.improvement}%</span> since the agent started managing your content strategy.
+                  </p>
+               </div>
             )}
           </CardContent>
         </Card>

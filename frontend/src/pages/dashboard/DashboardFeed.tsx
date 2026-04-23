@@ -58,7 +58,7 @@ const DashboardFeed = () => {
   };
 
   const isAgentPost = (post: any) => {
-    return post.caption?.includes('🤖') || post.caption?.toLowerCase().includes('velocity');
+    return !!post.isAgentAssisted;
   };
 
   const filtered = activeTab === 'All' ? posts

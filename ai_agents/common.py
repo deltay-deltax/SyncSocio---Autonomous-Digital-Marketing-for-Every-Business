@@ -15,6 +15,8 @@ def get_brand_dna(payload: Dict[str, Any]) -> str:
     dna += f"- Category: {brand.get('businessCategory', 'General Business')}\n"
     dna += f"- Tone: {brand.get('brandTone', 'Professional')}\n"
     dna += f"- Visual Vibe: {brand.get('visualVibe', 'Clean and Modern')}\n"
+    dna += f"- Primary Brand Color: {brand.get('primaryColor', '#2563EB')}\n"
+    dna += f"- Secondary Brand Color: {brand.get('secondaryColor', '#60A5FA')}\n"
     dna += f"- USP: {brand.get('usp', 'Not specified')}\n"
     
     # Handle Target Audience (Plural/Singular/Array)

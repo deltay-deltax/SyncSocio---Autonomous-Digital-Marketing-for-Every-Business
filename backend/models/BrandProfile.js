@@ -86,7 +86,7 @@ const brandProfileSchema = new mongoose.Schema({
     insight: String,
     confidence: Number,
     createdAt: { type: Date, default: Date.now },
-    isNew: { type: Boolean, default: true }
+    isFresh: { type: Boolean, default: true }
   }],
   neuralState: {
     type: String,
