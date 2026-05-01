@@ -89,7 +89,7 @@ const ContentStrategy = () => {
   const handleAnalyzeMix = async () => {
     setIsAnalyzingMix(true);
     try {
-      const AGENT_API_URL = 'http://localhost:8000';
+      const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
       const userId = profile?._id || profile?.id;
       if (!userId) throw new Error("User ID not found");
 
@@ -146,7 +146,7 @@ const ContentStrategy = () => {
     setIsGenerating(true);
     try {
       // Use the actual API endpoint
-      const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
       const res = await fetch(`${BASE_URL}/ai/generate`, {
         method: 'POST',
         headers: {
@@ -239,8 +239,8 @@ const ContentStrategy = () => {
         imageBase64 = await fileToBase64(brief.image);
       }
 
-      const AGENT_API_URL = 'http://localhost:8000'; // FastAPI URL
-      const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000'; // FastAPI URL
+      const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
       // Map industry category to Refiner Agent specific categories
       const mapCategoryForRefiner = (cat: string) => {

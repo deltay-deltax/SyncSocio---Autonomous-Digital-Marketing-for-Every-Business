@@ -99,7 +99,7 @@ const PostOptimizer: React.FC = () => {
     setIsGeneratingVisual(true);
     try {
       const base64 = await fileToBase64(files[0]);
-      const AGENT_API_URL = 'http://localhost:8000'; // FastAPI
+      const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000'; // FastAPI
       const res = await fetch(`${AGENT_API_URL}/generate-visuals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

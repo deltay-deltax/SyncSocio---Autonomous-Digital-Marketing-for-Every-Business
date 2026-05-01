@@ -466,7 +466,7 @@ export const forgotPassword = async (req, res) => {
         },
       });
 
-      const resetUrl = `http://localhost:5173/resetpassword/${resetToken}`;
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/resetpassword/${resetToken}`;
       const msg = {
         to: user.email,
         from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,

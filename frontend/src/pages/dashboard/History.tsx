@@ -42,7 +42,7 @@ const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className
   </svg>
 );
 
-const API_BASE = 'http://localhost:5050/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
 const TYPE_META: Record<
   string,
