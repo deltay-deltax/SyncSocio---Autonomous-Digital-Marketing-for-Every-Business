@@ -14,6 +14,7 @@ from bson import ObjectId
 from agents import generate_strategy, analyze_brand_mix
 from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
+from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_video_minimax, generate_fal_video_wan
 from models import BrandInfo, StrategyResponse
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
@@ -120,10 +121,19 @@ async def api_generate_strategy(brand_info: BrandInfo):
         }
         
         product_brief = brand_info.productBrief
+        # Add businessCategory from brand profile to product_brief
+        product_brief['category'] = full_brand_profile.get('businessCategory', 'General')
+        
         suggested_mix = brand_info.suggestedMix
+        custom_instruction = brand_info.customInstruction
         
         # 2. Run the LangGraph Agent
-        result = generate_strategy(full_brand_profile, product_brief, suggested_mix=suggested_mix)
+        result = generate_strategy(
+            full_brand_profile, 
+            product_brief, 
+            suggested_mix=suggested_mix,
+            custom_instruction=custom_instruction
+        )
         
         if result.get("error"):
             raise HTTPException(status_code=500, detail=result["error"])
@@ -461,6 +471,45 @@ class VisualGenRequest(BaseModel):
     headline: Optional[str] = "Viral Content"
     userId: Optional[str] = None
 
+def map_category_for_refiner(business_category: str) -> str:
+    """
+    Maps comprehensive business categories from Onboarding to Refiner Agent categories.
+    
+    Returns one of:
+    - "Lifestyle/Luxury" - for premium, aesthetic-focused brands
+    - "Startups/Tech" - for tech, SaaS, digital products
+    - "Advertising Poster/Sale" - for e-commerce, promotions
+    """
+    category_lower = business_category.lower()
+    
+    # Lifestyle/Luxury categories
+    luxury_keywords = [
+        'baby', 'kids', 'food', 'beverage', 'fashion', 'apparel', 
+        'beauty', 'personal care', 'home', 'living', 'travel', 'hospitality'
+    ]
+    
+    # Tech/Startups categories
+    tech_keywords = [
+        'mobile', 'apps', 'technical', 'tools', 'saas', 'digital', 
+        'online marketplace', 'it'
+    ]
+    
+    # E-Commerce/Sale categories
+    ecommerce_keywords = [
+        'e-commerce', 'ecommerce', 'gaming', 'entertainment', 'newsletter'
+    ]
+    
+    # Check for matches
+    if any(keyword in category_lower for keyword in luxury_keywords):
+        return "Lifestyle/Luxury"
+    elif any(keyword in category_lower for keyword in tech_keywords):
+        return "Startups/Tech"
+    elif any(keyword in category_lower for keyword in ecommerce_keywords):
+        return "Advertising Poster/Sale"
+    else:
+        # Default for services, education, real estate, etc.
+        return "Lifestyle/Luxury"
+
 async def refine_image_prompt(brand_dna: str, user_desc: str, headline: str, category: str, prev_slide_context: Optional[str] = None):
     """
     The 'Refiner Agent' System Instruction implementation.
@@ -541,8 +590,10 @@ Example of what TO DO: "A bright office. A person typing. The text 'UPGRADE NOW'
 @app.post("/generate-visuals")
 async def api_generate_visuals(request: VisualGenRequest):
     try:
-        # Step 0: Fetch Brand DNA if possible
+        # Step 0: Fetch Brand DNA and Industry Category from Brand Profile
         brand_dna = "A premium growth-focused brand."
+        industry_category = "Lifestyle/Luxury"  # Default fallback
+        
         if request.userId:
             brand_doc = await db["brandprofiles"].find_one({
                 "$or": [
@@ -563,10 +614,14 @@ async def api_generate_visuals(request: VisualGenRequest):
                 Primary Color: {brand_doc.get('primaryColor')}
                 Secondary Color: {brand_doc.get('secondaryColor')}
                 """
+                
+                # Map industry category from brand profile to Refiner Agent categories
+                business_category = brand_doc.get('businessCategory', '')
+                industry_category = map_category_for_refiner(business_category)
 
         # Step 1: Refine the prompt
         # Determine category for refiner (Carousel Slide vs others)
-        refiner_category = request.category
+        refiner_category = industry_category
         if request.format == "Carousel":
             refiner_category = "Carousel Slide"
             
@@ -583,20 +638,21 @@ async def api_generate_visuals(request: VisualGenRequest):
         result = None
         
         if request.format == "Static Image":
-            result = generate_google_image(refined_prompt, image=request.image)
+            # Use FAL.ai Flux Dev for static images
+            print("Using FAL.ai Flux Dev for Static Image generation...")
+            result = generate_fal_image_flux(refined_prompt, image=request.image, aspect_ratio="4:5")
             type_str = "image"
-            # Normalize result for the response handling below
-            result = {"image": result["image"]}
+            # Result already in correct format: {"image": base64_string}
         elif request.format == "Carousel":
-            # HARD CAP: Strictly limit to 2 slides to save credits, even if the request asks for more.
+            # Use FAL.ai Ideogram for carousel slides
+            print("Using FAL.ai Ideogram for Carousel generation...")
+            # HARD CAP: Strictly limit to 2 slides to save credits
             requested_count = request.slides if request.slides else 2
             count = min(requested_count, 2)
+            
             # For carousels, refine each slide with memory of the previous one
             slides_results = []
             current_context = ""
-            
-            # Start with the base prompt as context if needed
-            initial_desc = request.prompt
             
             prompts_to_refine = request.slide_prompts if request.slide_prompts else [f"Slide {i+1} for {request.prompt}" for i in range(count)]
             
@@ -612,12 +668,18 @@ async def api_generate_visuals(request: VisualGenRequest):
                 slides_results.append(refined_slide)
                 current_context = refined_slide # Memory: pass this slide's details to the next one
             
-            # For the main result, we use the first slide's refined prompt
-            refined_prompt = slides_results[0]
-            result = generate_carousel_images(refined_prompt, image=request.image, count=count, slide_prompts=slides_results)
+            # Generate carousel with Ideogram
+            result = generate_fal_carousel_ideogram(
+                base_prompt=refined_prompt, 
+                image=request.image, 
+                count=count, 
+                slide_prompts=slides_results
+            )
             type_str = "carousel"
         elif request.format == "Reel":
-            result = mock_video_gen(refined_prompt)
+            # Use FAL.ai Minimax Video (WAN quality)
+            print("Using FAL.ai Minimax Video for Reel generation...")
+            result = generate_fal_video_minimax(refined_prompt, duration="6s")
             type_str = "video"
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported format: {request.format}")

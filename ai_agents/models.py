@@ -15,6 +15,7 @@ class BrandInfo(BaseModel):
     secondaryColor: Optional[str] = "#60A5FA"
     productBrief: Optional[Dict[str, str]] = {"name": "", "description": "", "category": ""}
     suggestedMix: Optional[Dict[str, Any]] = None
+    customInstruction: Optional[str] = ""
 
 class CalendarItem(BaseModel):
     day: str

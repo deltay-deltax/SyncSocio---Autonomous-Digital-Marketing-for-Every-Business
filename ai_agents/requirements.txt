@@ -13,3 +13,4 @@ requests
 Pillow
 moviepy
 numpy
+fal-client

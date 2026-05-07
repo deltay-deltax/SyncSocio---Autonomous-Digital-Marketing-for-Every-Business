@@ -94,7 +94,8 @@ export const signup = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const otp = generateOtp();
+    // const otp = generateOtp();
+    const otp = '123456'; // TEMPORARY: Hardcoded OTP for Render free tier
     const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedOtp = hashOtp(otp);
 
@@ -119,7 +120,9 @@ export const signup = async (req, res) => {
     }
 
     try {
-      await sendOtpEmail(user.email, user.name, otp);
+      // TEMPORARY: Disabled for Render free tier
+      // await sendOtpEmail(user.email, user.name, otp);
+      console.log(`[DEV MODE] OTP for ${user.email} is ${otp}`);
     } catch (mailError) {
       console.error('OTP email send failed:', mailError);
       return res.status(500).json({ message: 'Unable to send verification OTP. Please try again.' });
@@ -418,13 +421,16 @@ export const resendOtp = async (req, res) => {
       return res.status(400).json({ message: 'User is already verified' });
     }
 
-    const otp = generateOtp();
+    // const otp = generateOtp();
+    const otp = '123456'; // TEMPORARY: Hardcoded OTP for Render free tier
     user.otpCode = hashOtp(otp);
     user.otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     await user.save();
 
     try {
-      await sendOtpEmail(user.email, user.name, otp);
+      // TEMPORARY: Disabled for Render free tier
+      // await sendOtpEmail(user.email, user.name, otp);
+      console.log(`[DEV MODE] Resent OTP for ${user.email} is ${otp}`);
     } catch (mailError) {
       console.error('OTP resend failed:', mailError);
       return res.status(500).json({ message: 'Unable to resend OTP. Please try again.' });

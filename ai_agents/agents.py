@@ -22,6 +22,7 @@ class GraphState(TypedDict):
     brand_info: Dict[str, Any]
     product_brief: Dict[str, str] # { name, description, category }
     suggested_mix: Dict[str, int] # { reels, static, carousel }
+    custom_instruction: str # User's custom post instruction
     reasoning: str
     content_calendar: List[Dict[str, Any]]
     strategy_critique: Dict[str, Any]
@@ -44,8 +45,26 @@ def analyze_brand_mix(brand_info: Dict[str, Any]):
 def planner_node(state: GraphState):
     brand = state['brand_info']
     brief = state['product_brief']
+    custom_instruction = state.get('custom_instruction', '')
     
     mix = state.get('suggested_mix', {"reels": 5, "static": 1, "carousel": 1})
+    
+    # Build custom instruction section
+    custom_section = ""
+    if custom_instruction and custom_instruction.strip():
+        custom_section = f"""
+    
+    🎯 CRITICAL USER INSTRUCTION:
+    The user has provided a SPECIFIC POST REQUEST that MUST be included in the 7-day calendar:
+    "{custom_instruction}"
+    
+    YOU MUST:
+    - Generate 6 posts autonomously based on the brand strategy
+    - Generate 1 post that DIRECTLY addresses the user's custom instruction above
+    - The custom post should naturally fit into the 7-day flow
+    - Determine the best format (Reel/Static/Carousel) for the custom instruction based on its content
+    - Ensure the custom post still follows the strategic mix constraints
+    """
     
     prompt = f"""
     You are the Lead Strategist for Velocity AI. Your goal is to create a high-impact 7-day content strategy for:
@@ -57,6 +76,7 @@ def planner_node(state: GraphState):
     TONE: {brand.get('brandTone', 'Luxury/Premium')}
     BRAND COLORS: Primary: {brand.get('primaryColor', '#2563EB')}, Secondary: {brand.get('secondaryColor', '#60A5FA')}
     (Use these colors as the primary visual palette)
+    {custom_section}
     
     STRATEGIC MIX (STRICT CONSTRAINT):
     You MUST include exactly:
@@ -73,6 +93,7 @@ def planner_node(state: GraphState):
     4. why: Brief strategic reason for this post
     5. carousel_slides: (Only if format is Carousel) ALWAYS set to 2 to preserve credits.
     6. optimal_time: The best time to post (e.g., "06:00 PM", "09:30 AM") based on the topic and general audience activity.
+    7. is_custom: (true/false) Mark as true ONLY for the post that addresses the user's custom instruction
     
     Output Format: RETURN ONLY A VALID JSON LIST OF 7 OBJECTS.
     """
@@ -367,11 +388,12 @@ workflow.add_edge("critic", END)
 
 app = workflow.compile()
 
-def generate_strategy(brand_info: Dict[str, Any], product_brief: Dict[str, str], suggested_mix: Dict[str, int] = None):
+def generate_strategy(brand_info: Dict[str, Any], product_brief: Dict[str, str], suggested_mix: Dict[str, int] = None, custom_instruction: str = ""):
     initial_state = {
         "brand_info": brand_info,
         "product_brief": product_brief,
         "suggested_mix": suggested_mix or {"reels": 3, "static": 2, "carousel": 2},
+        "custom_instruction": custom_instruction or "",
         "content_calendar": [],
         "strategy_critique": {},
         "error": ""

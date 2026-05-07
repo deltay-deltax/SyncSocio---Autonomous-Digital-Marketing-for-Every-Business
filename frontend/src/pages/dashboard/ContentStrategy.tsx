@@ -81,20 +81,29 @@ const ContentStrategy = () => {
   const [brief, setBrief] = useState({
     productName: '',
     description: '',
-    category: 'Fashion & Lifestyle',
     image: null as File | null,
-    imagePreview: null as string | null
+    imagePreview: null as string | null,
+    customInstruction: '' // New: User's custom post instruction
   });
 
   const handleAnalyzeMix = async () => {
     setIsAnalyzingMix(true);
     try {
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
-      const userId = profile?._id || profile?.id;
-      if (!userId) throw new Error("User ID not found");
+      const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
-      const res = await fetch(`${AGENT_API_URL}/analyze-mix?userId=${userId}`, {
-        method: 'POST'
+      const res = await fetch(`${AGENT_API_URL}/generate-visuals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: post.visualPrompt,
+          format: post.type === 'Static' ? 'Static Image' : post.type,
+          slides: post.carouselSlides,
+          image: imageBase64,
+          slide_prompts: post.slidesMetadata?.map(m => m.visual_prompt),
+          headline: post.title,
+          userId: profile?._id || profile?.id
+        })
       });
 
       if (!res.ok) throw new Error("Mix analysis failed");
@@ -127,15 +136,6 @@ const ContentStrategy = () => {
     }
   };
 
-  const categories = [
-    { id: 'Beauty & Cosmetics', label: 'Cosmetic' },
-    { id: 'Fine Jewellery', label: 'Jewellery' },
-    { id: 'Food & CPG', label: 'Food CPG' },
-    { id: 'Fashion & Lifestyle', label: 'Fashion' },
-    { id: 'Tech & SaaS', label: 'Startup' },
-    { id: 'Other', label: 'Other' }
-  ];
-
   const handleCopy = (postId: string, text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(postId);
@@ -157,10 +157,10 @@ const ContentStrategy = () => {
           userId: profile?._id || profile?.id, 
           productBrief: {
             name: brief.productName,
-            description: brief.description,
-            category: brief.category
+            description: brief.description
           },
-          suggestedMix: strategicMix
+          suggestedMix: strategicMix,
+          customInstruction: brief.customInstruction // Pass custom instruction
         })
       });
 
@@ -619,24 +619,16 @@ const ContentStrategy = () => {
                     />
                   </div>
 
-                  <div className="space-y-4 text-left">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Industry Category</label>
-                    <div className="flex flex-wrap gap-2">
-                      {categories.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() => setBrief({ ...brief, category: cat.id })}
-                          className={cn(
-                            "px-5 py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all",
-                            brief.category === cat.id
-                              ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105"
-                              : "bg-white border-slate-100 text-slate-400 hover:border-primary/30"
-                          )}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="space-y-3 text-left">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Custom Post Instruction (Optional)</label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g., A poster saying it is priced at ₹399 - Agent will create 1 post based on this"
+                      value={brief.customInstruction}
+                      onChange={(e) => setBrief({ ...brief, customInstruction: e.target.value })}
+                      className="w-full rounded-2xl bg-amber-50 border-2 border-amber-100 px-6 py-4 font-bold text-slate-900 focus:ring-2 ring-amber-300/20 transition-all outline-none resize-none placeholder:text-slate-400"
+                    />
+                    <p className="text-[9px] font-bold text-slate-400 px-2 italic">Agent will generate 6 posts autonomously + 1 post based on your instruction</p>
                   </div>
                 </div>
 

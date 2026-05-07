@@ -253,20 +253,32 @@ const Onboarding = () => {
                     
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Business Category</label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
                         {[
-                          { id: 'Food & Bakery', icon: Utensils },
-                          { id: 'Fitness & Wellness', icon: Dumbbell },
-                          { id: 'Fashion & Lifestyle', icon: Shirt },
-                          { id: 'Tech & SaaS', icon: Cpu },
-                          { id: 'Education', icon: GraduationCap },
-                          { id: 'Beauty & Skincare', icon: Sparkles },
-                          { id: 'Other', icon: Layers }
+                          { id: 'Baby & Kids', icon: Heart },
+                          { id: 'Food & Beverage', icon: Utensils },
+                          { id: 'Home & Living', icon: Building2 },
+                          { id: 'Education & Training', icon: GraduationCap },
+                          { id: 'Real Estate & Property', icon: Building2 },
+                          { id: 'Travel & Hospitality', icon: Globe },
+                          { id: 'Mobile Apps', icon: Cpu },
+                          { id: 'IT & Technical Tools', icon: Cpu },
+                          { id: 'Gaming & Entertainment', icon: Sparkles },
+                          { id: 'Fashion & Apparel', icon: Shirt },
+                          { id: 'Beauty & Personal Care', icon: Sparkles },
+                          { id: 'Health & Wellness', icon: Dumbbell },
+                          { id: 'Coaching & Consulting', icon: Users },
+                          { id: 'Architecture', icon: Building2 },
+                          { id: 'Financial Services', icon: DollarSign },
+                          { id: 'Newsletters', icon: FileText },
+                          { id: 'Online Marketplaces', icon: Globe },
+                          { id: 'Digital Products', icon: Box },
+                          { id: 'E-Commerce', icon: ShieldCheck },
+                          { id: 'Services', icon: Star },
+                          { id: 'SaaS & Digital', icon: Cpu }
                         ].map(cat => (
                           <div key={cat.id} onClick={() => setFormData({...formData, businessCategory: cat.id})}
                             className={`px-3 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center group hover:shadow-sm ${
-                              cat.id === 'Other' ? 'col-span-2' : ''
-                            } ${
                               formData.businessCategory === cat.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
                             }`}>
                             <cat.icon className={`mr-2 shrink-0 transition-colors ${formData.businessCategory === cat.id ? 'text-primary' : 'text-muted-foreground/50 group-hover:text-primary/40'}`} size={14} />
@@ -274,11 +286,6 @@ const Onboarding = () => {
                           </div>
                         ))}
                       </div>
-                      {formData.businessCategory === 'Other' && (
-                        <input type="text" placeholder="Type your category here..." value={formData.otherCategory}
-                          onChange={(e) => setFormData({...formData, otherCategory: e.target.value})}
-                          className="w-full mt-2 bg-card text-foreground text-sm font-bold rounded-xl px-5 py-3 outline-none border border-primary/20 animate-in slide-in-from-top-1" />
-                      )}
                     </div>
                   </div>
 
