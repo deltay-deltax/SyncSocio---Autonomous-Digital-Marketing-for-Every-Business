@@ -156,10 +156,11 @@ export const login = async (req, res) => {
 
     // Send login notification email
     try {
-      await sendLoginNotificationEmail({
-        to: user.email,
-        name: user.name,
-      });
+      // TEMPORARY: Disabled for Render free tier
+      // await sendLoginNotificationEmail({
+      //   to: user.email,
+      //   name: user.name,
+      // });
     } catch (mailError) {
       console.error('Login notification email failed:', mailError.message);
       // Don't fail login if email fails
@@ -231,10 +232,11 @@ export const googleLogin = async (req, res) => {
     } else {
       // Send login notification for returning users
       try {
-        await sendLoginNotificationEmail({
-          to: user.email,
-          name: user.name,
-        });
+        // TEMPORARY: Disabled for Render free tier
+        // await sendLoginNotificationEmail({
+        //   to: user.email,
+        //   name: user.name,
+        // });
       } catch (mailError) {
         console.error('Google login notification email failed:', mailError.message);
       }
@@ -313,10 +315,11 @@ export const appleLogin = async (req, res) => {
     } else {
       // Send login notification for returning users
       try {
-        await sendLoginNotificationEmail({
-          to: user.email,
-          name: user.name,
-        });
+        // TEMPORARY: Disabled for Render free tier
+        // await sendLoginNotificationEmail({
+        //   to: user.email,
+        //   name: user.name,
+        // });
       } catch (mailError) {
         console.error('Apple login notification email failed:', mailError.message);
       }
@@ -382,11 +385,12 @@ export const verifyOtp = async (req, res) => {
 
     // Send signup notification email
     try {
-      await sendSignupNotificationEmail({
-        to: user.email,
-        name: user.name,
-        provider: inferAuthProvider(user),
-      });
+      // TEMPORARY: Disabled for Render free tier
+      // await sendSignupNotificationEmail({
+      //   to: user.email,
+      //   name: user.name,
+      //   provider: inferAuthProvider(user),
+      // });
     } catch (mailError) {
       console.error('Signup notification email failed:', mailError.message);
       // Don't fail verification if email fails
