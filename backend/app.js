@@ -20,6 +20,7 @@ import {
 import { startPolling } from './services/commentPoller.js';
 
 import { startStrategicPoller } from './utils/strategicPoller.js';
+import { startKeepAlivePoller } from './utils/keepAlivePoller.js';
 
 dotenv.config();
 
@@ -66,6 +67,8 @@ if (process.env.MONGO_URI) {
         startPolling();
         // Start autonomous strategic audit agent
         startStrategicPoller();
+        // Start keep-alive pingers for Render free tier
+        startKeepAlivePoller();
       });
     })
     .catch((err) => {
