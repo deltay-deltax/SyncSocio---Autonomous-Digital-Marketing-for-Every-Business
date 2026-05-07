@@ -95,7 +95,7 @@ router.get('/recommendations', protect, async (req, res) => {
         }));
 
         // 3. Call AI Ads Agent
-        const aiUrl = process.env.AI_AGENT_URL || 'http://localhost:8000';
+        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
         const aiRes = await axios.post(`${aiUrl}/ads-recommendations`, {
             brand_profile: {
                 brandName: brandProfile.brandName,
