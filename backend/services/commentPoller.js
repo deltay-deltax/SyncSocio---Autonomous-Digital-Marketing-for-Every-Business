@@ -23,7 +23,7 @@ import {
 
 const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
-const POLL_INTERVAL_MS = 30_000; // 30 seconds
+const POLL_INTERVAL_MS = 300_000; // 5 minutes (reduced from 30s to prevent Rate Limits)
 const clickTrackingBaseUrl = (process.env.BACKEND_PUBLIC_URL || process.env.WEBHOOK_PUBLIC_URL || '').trim();
 
 const safeTrim = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -384,6 +384,11 @@ const pollProfileComments = async (profile) => {
       stopPolling();
       return;
     }
+    if (metaErr?.code === 80002 || metaErr?.code === 4 || metaErr?.code === 17 || metaErr?.code === 32) {
+      console.error('[POLLER] Rate limit hit. Sleeping for 15 minutes to recover.');
+      await sleep(15 * 60 * 1000); // Recursive setTimeout will wait for this to finish
+      return;
+    }
     console.error('[POLLER] Error during polling cycle:', metaErr);
   }
 };
@@ -415,7 +420,7 @@ export const startPolling = () => {
   console.log(`[POLLER] 🚀 Comment polling started (every ${POLL_INTERVAL_MS / 1000}s)`);
 
   // Run the first cycle after a short delay to let the server finish starting
-  setTimeout(async () => {
+  pollTimer = setTimeout(async () => {
     console.log('[POLLER] Seeding previously replied comments from DB...');
     try {
       const existingReplies = await DMFlowFollowUp.find({ commentId: { $exists: true } }).select('commentId').lean();
@@ -427,15 +432,20 @@ export const startPolling = () => {
       console.error('[POLLER] Database seeding failed:', e.message);
     }
 
-    // Now start the regular polling interval
-    pollTimer = setInterval(runPollCycle, POLL_INTERVAL_MS);
     console.log('[POLLER] ✅ Now actively watching for new comments...');
+    
+    // Now start the regular recursive polling to prevent overlaps
+    const loop = async () => {
+      await runPollCycle();
+      pollTimer = setTimeout(loop, POLL_INTERVAL_MS);
+    };
+    loop();
   }, 5000);
 };
 
 export const stopPolling = () => {
   if (pollTimer) {
-    clearInterval(pollTimer);
+    clearTimeout(pollTimer);
     pollTimer = null;
     console.log('[POLLER] Polling stopped');
   }
