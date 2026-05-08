@@ -1,18 +1,30 @@
-import { Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck, ArrowLeft } from 'lucide-react';
 
 const PrivacyPolicy = () => {
   const updatedOn = '20 April 2026';
 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const fromSettings = location.state?.from === 'settings';
+
+  const handleBack = () => {
+    if (fromSettings) {
+      navigate('/dashboard/settings');
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/10 text-foreground">
       <div className="mx-auto w-full max-w-4xl px-6 py-10 md:py-14">
-        <Link
-          to="/dashboard/settings"
+        <button
+          onClick={handleBack}
           className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft size={14} /> Back To Settings
-        </Link>
+          <ArrowLeft size={14} /> {fromSettings ? "Back To Settings" : "Back To Home"}
+        </button>
 
         <div className="mt-6 rounded-3xl border border-border/60 bg-card/90 p-7 shadow-sm md:p-10">
           <div className="flex items-start gap-3">

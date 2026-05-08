@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -420,10 +420,9 @@ const DashboardSettings = () => {
               </CardHeader>
               <CardContent className="p-8 space-y-5">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <a
-                    href="/terms"
-                    target="_blank"
-                    rel="noreferrer"
+                  <Link
+                    to="/terms"
+                    state={{ from: 'settings' }}
                     className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -438,12 +437,11 @@ const DashboardSettings = () => {
                       </div>
                       <ExternalLink size={16} className="text-muted-foreground" />
                     </div>
-                  </a>
+                  </Link>
 
-                  <a
-                    href="/privacy"
-                    target="_blank"
-                    rel="noreferrer"
+                  <Link
+                    to="/privacy"
+                    state={{ from: 'settings' }}
                     className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -458,7 +456,7 @@ const DashboardSettings = () => {
                       </div>
                       <ExternalLink size={16} className="text-muted-foreground" />
                     </div>
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="rounded-2xl border border-border/40 bg-muted/5 p-5">
