@@ -4,6 +4,7 @@ import HeroSection from "@/components/HeroSection";
 import WhatWeAre from "@/components/WhatWeAre";
 import Features from "@/components/Features";
 import HowItWorks from "@/components/HowItWorks";
+import DMAutomation from "@/components/DMAutomation";
 import Pricing from "@/components/Pricing";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
@@ -80,6 +81,7 @@ const Index = () => {
       <WhatWeAre />
       <Features />
       <HowItWorks />
+      <DMAutomation />
       <Pricing />
       <CTASection 
         onWaitlistClick={() => setIsWaitlistOpen(true)} 

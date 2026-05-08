@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 const Footer = () => {
   return (
     <footer className="py-12 border-t border-border">
@@ -9,8 +11,8 @@ const Footer = () => {
           © 2026 Velocity. Built with ❤️ in India.
         </p>
         <div className="flex gap-6">
-          <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</a>
-          <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</a>
+          <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
+          <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
           <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Twitter</a>
         </div>
       </div>

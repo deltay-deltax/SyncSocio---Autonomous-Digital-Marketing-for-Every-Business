@@ -417,8 +417,8 @@ const Signup = () => {
 
               <p className="text-xs text-muted-foreground text-center mt-6">
                 By signing up, you agree to our{" "}
-                <a href="#" className="text-primary hover:underline">Terms</a> and{" "}
-                <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
+                <Link to="/terms" className="text-primary hover:underline">Terms</Link> and{" "}
+                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
               </p>
 
               <div className="relative my-8">
