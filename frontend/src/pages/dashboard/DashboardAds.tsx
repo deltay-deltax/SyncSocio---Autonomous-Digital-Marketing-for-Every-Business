@@ -14,6 +14,7 @@ interface Recommendation {
   duration: string;
   reach: string;
   audience: string;
+  imageUrl?: string;
 }
 
 const DashboardAds = () => {
@@ -88,7 +89,7 @@ const DashboardAds = () => {
           <CardContent className="py-20 text-center">
             <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                <Target className="text-muted-foreground" size={28} />
-            </div>
+             </div>
             <p className="text-lg font-bold text-foreground">No boost candidates yet</p>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto mt-1">The Ads Agent only recommends posts with "Viral Momentum". Keep posting to find your next winner!</p>
           </CardContent>
@@ -101,8 +102,12 @@ const DashboardAds = () => {
                 <CardContent className="p-5 sm:p-6">
                   <div className="flex flex-col lg:flex-row gap-5">
                     {/* Post preview */}
-                    <div className="w-full lg:w-28 h-28 rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center text-4xl shrink-0 group-hover:scale-[1.02] transition-transform duration-300 border border-primary/5">
-                      {rec.emoji}
+                    <div className="w-full lg:w-28 h-28 rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center text-4xl shrink-0 group-hover:scale-[1.02] transition-transform duration-300 border border-primary/5 overflow-hidden">
+                      {rec.imageUrl ? (
+                        <img src={rec.imageUrl} alt="Post preview" className="w-full h-full object-cover" />
+                      ) : (
+                        rec.emoji
+                      )}
                     </div>
 
                     {/* Content */}

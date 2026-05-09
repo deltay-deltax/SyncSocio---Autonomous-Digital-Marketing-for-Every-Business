@@ -42,10 +42,11 @@ router.get('/recommendations', protect, async (req, res) => {
         const igId = brandProfile.instagramBusinessAccountId;
 
         // 1. Fetch media from last 7 days
-        const mediaUrl = `https://graph.facebook.com/v25.0/${igId}/media`;
+        const FB_API_VERSION = 'v19.0';
+        const mediaUrl = `https://graph.facebook.com/${FB_API_VERSION}/${igId}/media`;
         const mediaRes = await axios.get(mediaUrl, {
             params: { 
-                fields: 'id,caption,media_type,timestamp,like_count,comments_count',
+                fields: 'id,caption,media_type,timestamp,like_count,comments_count,media_url,thumbnail_url',
                 limit: 15, 
                 access_token: accessToken 
             }
@@ -63,7 +64,7 @@ router.get('/recommendations', protect, async (req, res) => {
             let reach = 0;
             let saved = 0;
             try {
-                const insRes = await axios.get(`https://graph.facebook.com/v25.0/${p.id}/insights`, {
+                const insRes = await axios.get(`https://graph.facebook.com/${FB_API_VERSION}/${p.id}/insights`, {
                     params: { metric: 'reach,saved', access_token: accessToken }
                 });
                 const getInsight = (name) => {
@@ -85,6 +86,8 @@ router.get('/recommendations', protect, async (req, res) => {
                 id: p.id,
                 caption: p.caption,
                 media_type: p.media_type,
+                media_url: p.media_url,
+                thumbnail_url: p.thumbnail_url,
                 reach,
                 likes,
                 comments,
@@ -107,7 +110,16 @@ router.get('/recommendations', protect, async (req, res) => {
             posts: detailedPosts
         });
 
-        const recommendations = aiRes.data.recommendations || [];
+        let recommendations = aiRes.data.recommendations || [];
+
+        // --- MAP MEDIA URLS TO RECOMMENDATIONS ---
+        recommendations = recommendations.map(rec => {
+            const originalPost = detailedPosts.find(p => p.id === rec.id);
+            return {
+                ...rec,
+                imageUrl: originalPost ? (originalPost.thumbnail_url || originalPost.media_url) : null
+            };
+        });
 
         // 4. Update Cache and Timestamp
         brandProfile.cachedAdsRecommendations = recommendations;
