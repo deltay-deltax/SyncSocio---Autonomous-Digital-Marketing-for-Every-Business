@@ -1,7 +1,7 @@
 import axios from 'axios';
 import InstagramCommentReplyLog from '../models/InstagramCommentReplyLog.js';
 
-const FB_API_VERSION = 'v25.0';
+const FB_API_VERSION = 'v19.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
 
 const safeTrim = (value) => (typeof value === 'string' ? value.trim() : '');
@@ -19,8 +19,8 @@ export const buildPublicCommentReplyTextFromTemplate = (actorUsername, template 
   }
 
   const message = normalizedTemplate
-    .replace(/\{\{\s*username\s*\}\}/gi, username ? `@${username}` : '')
-    .replace(/\{\{\s*name\s*\}\}/gi, username ? `@${username}` : '');
+    .replace(/\{\{\s*username\s*\}\}/gi, username || '')
+    .replace(/\{\{\s*name\s*\}\}/gi, username || '');
 
   if (message.includes('@username') && username) {
     return message.replace(/@username/gi, `@${username}`);

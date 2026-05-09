@@ -4,9 +4,8 @@ import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
-const FB_API_VERSION = 'v25.0';
+const FB_API_VERSION = 'v19.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
-const IG_WEBHOOK_FIELDS = 'comments,mentions,messages,message_reactions';
 const PAGE_WEBHOOK_FIELDS = 'feed,messages';
 
 const graphGet = async (path, params = {}) => {
@@ -73,32 +72,10 @@ const subscribeWebhookTargets = async ({ accessToken, igBusinessAccountId, igPag
     return result;
   }
 
-  if (igBusinessAccountId) {
-    result.instagram.attempted = true;
-    console.log('--- DEBUG: Subscribing Instagram account to webhook fields ---');
-    const igSubscribeData = await graphPostForm(`${igBusinessAccountId}/subscribed_apps`, {
-      subscribed_fields: IG_WEBHOOK_FIELDS,
-      access_token: accessToken,
-    });
-
-    if (igSubscribeData?.error) {
-      result.instagram.error = igSubscribeData.error;
-      console.error('Instagram subscribed_apps failed:', igSubscribeData.error);
-    } else {
-      result.instagram.ok = true;
-      console.log('Instagram subscribed_apps success:', igSubscribeData);
-    }
-
-    const igStatusData = await graphGet(`${igBusinessAccountId}/subscribed_apps`, {
-      access_token: accessToken,
-    });
-
-    if (igStatusData?.error) {
-      console.error('Instagram subscribed_apps status check failed:', igStatusData.error);
-    } else {
-      console.log('Instagram subscribed_apps status:', JSON.stringify(igStatusData));
-    }
-  }
+  // For Instagram Messaging, we only need to subscribe at the Page level.
+  // The Instagram Business Account level subscription is often restricted and unnecessary.
+  result.instagram.attempted = false;
+  result.instagram.ok = true;
 
   if (igPageId) {
     result.page.attempted = true;
@@ -164,8 +141,9 @@ export const getInstagramAuthUrl = (req, res) => {
     'pages_manage_metadata',
     'pages_read_user_content',
     'pages_manage_posts',
+    'pages_messaging',
+    'pages_messaging_subscriptions',
     'business_management',
-    'read_insights',
     'instagram_manage_insights',
     'public_profile'
   ].join(',');
@@ -198,6 +176,9 @@ export const instagramCallback = async (req, res) => {
     const clientId = process.env.INSTAGRAM_CLIENT_ID;
     const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
     const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
+
+    console.log(`📡 DEBUG: Using Client ID: ${clientId}`);
+    console.log(`📡 DEBUG: Using Redirect URI: ${redirectUri}`);
 
     // 1. Exchange code for short-lived access token
     console.log('📡 Exchanging code for short-lived token...');

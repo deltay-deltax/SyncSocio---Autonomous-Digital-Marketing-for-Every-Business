@@ -23,7 +23,7 @@ import {
 
 const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
-const POLL_INTERVAL_MS = 300_000; // 5 minutes (reduced from 30s to prevent Rate Limits)
+const POLL_INTERVAL_MS = 60_000; // 60 seconds (temporary for testing, restore to 300_000 for production)
 const clickTrackingBaseUrl = (process.env.BACKEND_PUBLIC_URL || process.env.WEBHOOK_PUBLIC_URL || '').trim();
 
 const safeTrim = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -191,11 +191,12 @@ const queueFollowUpMessage = async ({ profile, flow, commentId, recipientId }) =
 // ── Send Private Reply via Messaging API ──
 
 const sendPrivateReply = async ({ pageToken, commentId, messagePayload, pageId }) => {
-  const response = await axios.post(
-    `${FB_API_BASE}/${pageId}/messages`,
-    { recipient: { comment_id: commentId }, message: messagePayload },
-    {
-      params: { access_token: pageToken },
+    console.log(`[POLLER] 📡 POSTING to: ${FB_API_BASE}/${pageId}/messages`);
+    const response = await axios.post(
+      `${FB_API_BASE}/${pageId}/messages`,
+      { recipient: { comment_id: commentId }, message: messagePayload },
+      {
+        params: { access_token: pageToken },
       headers: { 'Content-Type': 'application/json' },
       timeout: 20_000,
     }
