@@ -181,7 +181,7 @@ const DMAutomation = () => {
 
                   <div className="flex justify-end items-center gap-1">
                     <Send size={10} className="text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">Sent by Velocity Agent</span>
+                    <span className="text-[10px] text-muted-foreground">Sent by VelocityDM Agent</span>
                   </div>
                 </div>
               </motion.div>

@@ -32,7 +32,7 @@ const TermsOfUse = () => {
               <FileText size={18} />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight md:text-3xl">Velocity Terms of Use</h1>
+              <h1 className="text-2xl font-black tracking-tight md:text-3xl">VelocityDM Terms of Use</h1>
               <p className="mt-1 text-sm text-muted-foreground">Last updated: {updatedOn}</p>
             </div>
           </div>
@@ -41,8 +41,8 @@ const TermsOfUse = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">1. Acceptance Of Terms</h2>
               <p className="mt-2">
-                These Terms govern your access to and use of Velocity, an AI-powered digital marketing automation
-                platform for social channels. By creating an account, connecting Instagram, or using Velocity services,
+                These Terms govern your access to and use of VelocityDM, an AI-powered digital marketing automation
+                platform for social channels. By creating an account, connecting Instagram, or using VelocityDM services,
                 you agree to these Terms.
               </p>
             </section>
@@ -50,7 +50,7 @@ const TermsOfUse = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">2. Service Scope</h2>
               <p className="mt-2">
-                Velocity provides workflows including brand onboarding, AI-assisted content generation, Instagram DM
+                VelocityDM provides workflows including brand onboarding, AI-assisted content generation, Instagram DM
                 automation, comment-triggered messaging, story mention replies, post analytics, and performance
                 insight recommendations.
               </p>
@@ -71,19 +71,19 @@ const TermsOfUse = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">4. Connected Platform Authorization</h2>
               <p className="mt-2">
-                By connecting Instagram or related Meta assets, you authorize Velocity to access approved scopes
+                By connecting Instagram or related Meta assets, you authorize VelocityDM to access approved scopes
                 (such as reading profile/media details, insights, messages, and webhooks) strictly for providing
                 configured automation and analytics features.
               </p>
               <p className="mt-2">
-                You represent that you own or are authorized to manage any social accounts connected to Velocity.
+                You represent that you own or are authorized to manage any social accounts connected to VelocityDM.
               </p>
             </section>
 
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">5. User Responsibilities And Acceptable Use</h2>
               <p className="mt-2">
-                You agree not to use Velocity for unlawful, deceptive, harassing, spam, or rights-infringing content
+                You agree not to use VelocityDM for unlawful, deceptive, harassing, spam, or rights-infringing content
                 and campaigns. You are responsible for the legality and accuracy of generated or published content,
                 including promotions, claims, links, and disclosures.
               </p>
@@ -96,7 +96,7 @@ const TermsOfUse = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">6. AI Outputs And Performance</h2>
               <p className="mt-2">
-                AI-generated suggestions and automation outcomes may vary. Velocity does not guarantee any specific
+                AI-generated suggestions and automation outcomes may vary. VelocityDM does not guarantee any specific
                 growth, reach, conversion, follower count, or revenue result.
               </p>
               <p className="mt-2">
@@ -108,16 +108,16 @@ const TermsOfUse = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">7. Intellectual Property</h2>
               <p className="mt-2">
-                You retain ownership of your brand assets and content you provide. Velocity and its software,
-                interfaces, workflow logic, and product branding remain proprietary to Velocity and its licensors.
+                You retain ownership of your brand assets and content you provide. VelocityDM and its software,
+                interfaces, workflow logic, and product branding remain proprietary to VelocityDM and its licensors.
               </p>
             </section>
 
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">8. Third-Party Services</h2>
               <p className="mt-2">
-                Velocity integrates with third-party providers including Meta platforms. Their separate terms,
-                policies, outages, and API changes may affect feature behavior. Velocity is not responsible for
+                VelocityDM integrates with third-party providers including Meta platforms. Their separate terms,
+                policies, outages, and API changes may affect feature behavior. VelocityDM is not responsible for
                 third-party downtime or policy enforcement actions.
               </p>
             </section>
@@ -133,8 +133,8 @@ const TermsOfUse = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">10. Disclaimer And Liability Limits</h2>
               <p className="mt-2">
-                Velocity is provided on an "as is" and "as available" basis. To the maximum extent permitted by law,
-                Velocity disclaims warranties and is not liable for indirect, incidental, special, consequential,
+                VelocityDM is provided on an "as is" and "as available" basis. To the maximum extent permitted by law,
+                VelocityDM disclaims warranties and is not liable for indirect, incidental, special, consequential,
                 reputational, or data-loss damages, or for lost profits arising from service use.
               </p>
             </section>
@@ -150,7 +150,7 @@ const TermsOfUse = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">12. Contact</h2>
               <p className="mt-2">
-                For legal requests, compliance issues, or account concerns, contact: support@velocityaas.com.
+                For legal requests, compliance issues, or account concerns, contact: supportvelocitydm@gmail.com.
               </p>
             </section>
           </div>

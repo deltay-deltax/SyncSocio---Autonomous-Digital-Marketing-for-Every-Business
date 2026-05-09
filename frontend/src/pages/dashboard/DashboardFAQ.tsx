@@ -4,8 +4,8 @@ import { Plus, HelpCircle, Mail, Phone, MapPin, MessageCircle } from "lucide-rea
 
 const FAQS = [
   {
-    q: "What is Velocity?",
-    a: "Velocity is an AI-powered content workspace that helps creators plan, optimize and publish high-performing posts across reels, images and carousels — all from one elegant dashboard.",
+    q: "What is VelocityDM?",
+    a: "VelocityDM is an AI-powered content workspace that helps creators plan, optimize and publish high-performing posts across reels, images and carousels — all from one elegant dashboard.",
   },
   {
     q: "How does the Content Mix work?",
@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: "How is the optimal posting time decided?",
-    a: "Velocity analyzes your specific audience behavior via the Instagram Graph API to identify the 'Peak Hour' when the highest number of your followers are online and active.",
+    a: "VelocityDM analyzes your specific audience behavior via the Instagram Graph API to identify the 'Peak Hour' when the highest number of your followers are online and active.",
   },
   {
     q: "What does 'Posts This Month' represent?",
@@ -82,7 +82,7 @@ function DashboardFAQ() {
             <span className="text-primary">questions.</span>
           </h1>
           <p className="mt-4 text-sm text-muted-foreground max-w-md mx-auto font-medium leading-relaxed">
-            Everything you need to know about creating, scheduling and shipping content with Velocity.
+            Everything you need to know about creating, scheduling and shipping content with VelocityDM.
           </p>
         </motion.div>
 
@@ -169,8 +169,8 @@ function DashboardFAQ() {
                 {
                   icon: Mail,
                   label: "Email us",
-                  value: "hello@velocity.app",
-                  href: "mailto:hello@velocity.app",
+                  value: "supportvelocitydm@gmail.com",
+                  href: "mailto:supportvelocitydm@gmail.com",
                 },
                 {
                   icon: Phone,

@@ -46,7 +46,7 @@ const ForgotPassword = () => {
         
         <h1 className="text-3xl font-bold mb-2">Reset Password</h1>
         <p className="text-muted-foreground mb-8">
-          We'll securely process a token to help you regain access to your Velocity intelligence agents.
+          We'll securely process a token to help you regain access to your VelocityDM intelligence agents.
         </p>
 
         {error && (

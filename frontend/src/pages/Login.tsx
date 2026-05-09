@@ -99,7 +99,7 @@ const Login = () => {
 
         <div className="relative z-10 max-w-md px-12">
           <Link to="/" className="font-display text-2xl font-bold tracking-tight mb-10 block">
-            <span className="gradient-text">Velocity</span>
+            <span className="gradient-text">VelocityDM</span>
           </Link>
 
           <h2 className="text-3xl font-extrabold leading-tight text-foreground mb-3">
@@ -173,7 +173,7 @@ const Login = () => {
           className="w-full max-w-md"
         >
           <Link to="/" className="lg:hidden font-display text-2xl font-bold tracking-tight mb-8 block">
-            <span className="gradient-text">Velocity</span>
+            <span className="gradient-text">VelocityDM</span>
           </Link>
 
           <h1 className="text-3xl font-bold mb-2">Sign in</h1>

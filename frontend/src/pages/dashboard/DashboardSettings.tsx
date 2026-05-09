@@ -326,7 +326,7 @@ const DashboardSettings = () => {
                   <div className="text-center p-12 border-2 border-dashed border-border rounded-[2.5rem] bg-muted/5">
                      <InstagramIcon size={40} className="mx-auto mb-4 text-muted-foreground/20" />
                      <p className="text-sm font-bold">No Social Account Linked</p>
-                     <p className="text-xs text-muted-foreground mb-6 max-w-xs mx-auto">Velocity needs an Instagram Business account connection to start posting autonomously.</p>
+                     <p className="text-xs text-muted-foreground mb-6 max-w-xs mx-auto">VelocityDM needs an Instagram Business account connection to start posting autonomously.</p>
                      <Button className="gradient-bg text-white text-xs font-black uppercase tracking-widest h-11 px-8 rounded-xl" onClick={() => window.location.href='/setup'}>Link Instagram Now</Button>
                   </div>
                 )}
@@ -376,7 +376,7 @@ const DashboardSettings = () => {
                     <Zap size={120} fill="currentColor" />
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-2 opacity-70">Active Strategy Plan</p>
-                  <h3 className="text-3xl font-black tracking-tighter mb-4">Velocity {profile.selectedPlan || 'Pro'}</h3>
+                  <h3 className="text-3xl font-black tracking-tighter mb-4">VelocityDM {profile.selectedPlan || 'Pro'}</h3>
                   <div className="flex gap-4">
                     <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md">
                       <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Status</p>

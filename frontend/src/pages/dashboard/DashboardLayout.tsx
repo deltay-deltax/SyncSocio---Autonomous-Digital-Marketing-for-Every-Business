@@ -166,7 +166,7 @@ const DashboardLayout = () => {
             <Zap size={18} fill="currentColor" className="text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="font-black text-lg tracking-tighter uppercase text-foreground leading-none">Velocity</span>
+            <span className="font-black text-lg tracking-tighter uppercase text-foreground leading-none">VelocityDM</span>
             <span className="text-[8px] font-bold text-primary tracking-[0.2em] leading-none uppercase mt-1">Agent as a Service</span>
           </div>
         </div>

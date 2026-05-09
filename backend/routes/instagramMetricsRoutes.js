@@ -45,7 +45,7 @@ router.get('/metrics', protect, async (req, res) => {
             }
         }
 
-        // Calculate historical follower change percentage (Velocity detection)
+        // Calculate historical follower change percentage (VelocityDM detection)
         let followersChange = 'Live';
         if (brandProfile.followerHistory && brandProfile.followerHistory.length > 1) {
             const history = brandProfile.followerHistory;

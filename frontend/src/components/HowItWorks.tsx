@@ -18,7 +18,7 @@ const steps = [
   {
     icon: Rocket,
     step: "03",
-    title: "Velocity Launch",
+    title: "VelocityDM Launch",
     description: "Your agent goes live. Platform-native posts go out automatically — right format, right caption, right time.",
   },
 ];

@@ -36,18 +36,18 @@ const plans: Plan[] = [
     ctaStyle: 'outline',
   },
   {
-    name: 'Velocity Starter',
+    name: 'VelocityDM Starter',
     price: '₹199',
     period: '/month',
     frequency: '3-4x a week',
     formats: 'Static + Carousels',
     postsPerMonth: '16 posts/month',
-    features: ['Deep DNA Synthesis', '3 Active Agents', 'Daily Velocity Sync', 'Cross-Platform Multi-Post', 'Priority Support'],
+    features: ['Deep DNA Synthesis', '3 Active Agents', 'Daily VelocityDM Sync', 'Cross-Platform Multi-Post', 'Priority Support'],
     cta: 'Get Started',
     ctaStyle: 'primary',
   },
   {
-    name: 'Velocity Pro',
+    name: 'VelocityDM Pro',
     price: '₹499',
     period: '/month',
     frequency: 'Daily',
@@ -193,11 +193,11 @@ const Setup = () => {
       if (freq === 'Once / wk' && !hasReels) {
         setRecommendedPlan('Bootstrapper');
       } else if (freq === '3-4x / wk' && !hasReels) {
-        setRecommendedPlan('Velocity Starter');
+        setRecommendedPlan('VelocityDM Starter');
       } else if (freq === 'Daily' || hasReels) {
-        setRecommendedPlan('Velocity Pro');
+        setRecommendedPlan('VelocityDM Pro');
       } else {
-        setRecommendedPlan('Velocity Pro');
+        setRecommendedPlan('VelocityDM Pro');
       }
     }
   }, []);
@@ -224,7 +224,7 @@ const Setup = () => {
         issues.push('Reels & Carousels will be disabled');
         sync.contentTypes = ['Static Posts'];
       }
-    } else if (plan.name === 'Velocity Starter') {
+    } else if (plan.name === 'VelocityDM Starter') {
       if (currentFreq === 'Daily') {
         issues.push('Frequency will be reduced to 3-4x/wk');
         sync.postingFrequency = '3-4x / wk';
@@ -251,7 +251,7 @@ const Setup = () => {
 
   const steps: StepItem[] = [
     { label: 'Brand Profile Created', description: 'Your brand DNA has been captured', status: 'done', icon: <Check size={16} /> },
-    { label: 'Connect Instagram', description: 'Allow Velocity to post on your behalf', status: igConnected ? 'done' : 'active', icon: <InstagramIcon size={16} /> },
+    { label: 'Connect Instagram', description: 'Allow VelocityDM to post on your behalf', status: igConnected ? 'done' : 'active', icon: <InstagramIcon size={16} /> },
     { label: 'Choose Your Plan', description: 'Pick how often your agent posts', status: planChosen ? 'done' : igConnected ? 'active' : 'locked', icon: <CreditCard size={16} /> },
     { label: 'Agent Goes Live 🚀', description: 'Your autonomous agent activates', status: planChosen ? 'active' : 'locked', icon: <Rocket size={16} /> },
   ];
@@ -422,7 +422,7 @@ const Setup = () => {
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Connect your Instagram</h1>
           <p className="text-sm text-muted-foreground mb-8">
-            Velocity needs permission to read and publish content on your behalf
+            VelocityDM needs permission to read and publish content on your behalf
           </p>
 
           {error && (

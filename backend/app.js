@@ -51,7 +51,7 @@ app.use('/api/notifications', notificationRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
-  res.send('Velocity AaaS Backend is running');
+  res.send('VelocityDM Backend is running');
 });
 
 const PORT = process.env.PORT || 5050;

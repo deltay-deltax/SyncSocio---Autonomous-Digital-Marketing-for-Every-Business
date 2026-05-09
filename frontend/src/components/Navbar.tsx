@@ -50,7 +50,7 @@ const Navbar = () => {
     >
       <div className="container mx-auto flex items-center justify-between px-6 py-4">
         <Link to="/" className="font-display text-xl font-bold tracking-tight">
-          <span className="gradient-text">Velocity</span>
+          <span className="gradient-text">VelocityDM</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

@@ -22,7 +22,7 @@ const plans = [
     cta: "Start Free",
   },
   {
-    name: "Velocity Starter",
+    name: "VelocityDM Starter",
     price: "XXX",
     period: "/month",
     description: "For creators ready to scale at speed.",
@@ -40,7 +40,7 @@ const plans = [
     cta: "Get Started",
   },
   {
-    name: "Velocity Pro",
+    name: "VelocityDM Pro",
     price: "XXX",
     period: "/month",
     description: "Maximum efficiency for power creators.",
@@ -66,7 +66,7 @@ const plans = [
       "Daily posting",
       "All content types",
       "30 posts/month",
-      "Everything in Velocity",
+      "Everything in VelocityDM",
       "Unlimited agents",
       "24/7 strategic support",
       "Full creative control",

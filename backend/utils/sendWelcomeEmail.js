@@ -12,12 +12,12 @@ const PLAN_DETAILS = {
     formats: 'Static only',
     postsPerMonth: '4 posts/month'
   },
-  'Velocity Starter': {
+  'VelocityDM Starter': {
     frequency: '3-4x a week',
     formats: 'Static + Carousels',
     postsPerMonth: '16 posts/month'
   },
-  'Velocity Pro': {
+  'VelocityDM Pro': {
     frequency: 'Daily',
     formats: 'Static + Carousels + Reels',
     postsPerMonth: '30 posts/month'
@@ -66,9 +66,9 @@ export const sendSignupWelcomeEmail = async ({ to, name, provider, plan }) => {
     : [];
 
   const textBody = [
-    `Welcome to Velocity, ${userName}!`,
+    `Welcome to VelocityDM, ${userName}!`,
     '',
-    'Thanks for joining Velocity. We are excited to help you grow your brand.',
+    'Thanks for joining VelocityDM. We are excited to help you grow your brand.',
     `Signup method: ${signupMethod}`,
     `Selected plan: ${selectedPlan}`,
     ...textPlanDetails,
@@ -88,18 +88,18 @@ export const sendSignupWelcomeEmail = async ({ to, name, provider, plan }) => {
 
   const msg = {
     to,
-    from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-    subject: `Welcome to Velocity, ${userName}!`,
+    from: `VelocityDM <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    subject: `Welcome to VelocityDM, ${userName}!`,
     text: textBody,
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 560px; margin: 0 auto; padding: 20px; background-color: #f3f6fb; border-radius: 12px;">
         <div style="text-align: center; margin-bottom: 18px;">
-          <h1 style="margin: 0; color: #1d4ed8; font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">Velocity</h1>
+          <h1 style="margin: 0; color: #1d4ed8; font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">VelocityDM</h1>
         </div>
         <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 30px; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);">
           <h2 style="color: #111827; font-size: 24px; margin: 0 0 12px;">Welcome aboard, ${userName}!</h2>
           <p style="color: #4b5563; font-size: 15px; line-height: 1.7; margin: 0 0 20px;">
-            Thanks for joining Velocity. We are excited to help you build and grow your brand with AI-powered strategy and execution.
+            Thanks for joining VelocityDM. We are excited to help you build and grow your brand with AI-powered strategy and execution.
           </p>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 22px;">
@@ -120,7 +120,7 @@ export const sendSignupWelcomeEmail = async ({ to, name, provider, plan }) => {
           </div>
         </div>
         <p style="margin: 14px 0 0; text-align: center; color: #9ca3af; font-size: 12px;">
-          &copy; ${new Date().getFullYear()} Velocity AaaS. All rights reserved.
+          &copy; ${new Date().getFullYear()} VelocityDM. All rights reserved.
         </p>
       </div>
     `,
@@ -150,9 +150,9 @@ export const sendSignupNotificationEmail = async ({ to, name, provider }) => {
   const onboardingUrl = `${frontendBaseUrl}/onboarding`;
 
   const textBody = [
-    `Welcome to Velocity, ${userName}!`,
+    `Welcome to VelocityDM, ${userName}!`,
     '',
-    'Thanks for joining Velocity. Your email has been verified successfully.',
+    'Thanks for joining VelocityDM. Your email has been verified successfully.',
     `Signup method: ${signupMethod}`,
     '',
     'You can now continue your onboarding and start building your content engine.',
@@ -161,18 +161,18 @@ export const sendSignupNotificationEmail = async ({ to, name, provider }) => {
 
   const msg = {
     to,
-    from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-    subject: `Welcome to Velocity, ${userName}!`,
+    from: `VelocityDM <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    subject: `Welcome to VelocityDM, ${userName}!`,
     text: textBody,
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 560px; margin: 0 auto; padding: 20px; background-color: #f3f6fb; border-radius: 12px;">
         <div style="text-align: center; margin-bottom: 18px;">
-          <h1 style="margin: 0; color: #1d4ed8; font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">Velocity</h1>
+          <h1 style="margin: 0; color: #1d4ed8; font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">VelocityDM</h1>
         </div>
         <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 30px; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);">
           <h2 style="color: #111827; font-size: 24px; margin: 0 0 12px;">Welcome aboard, ${userName}!</h2>
           <p style="color: #4b5563; font-size: 15px; line-height: 1.7; margin: 0 0 20px;">
-            Thanks for joining Velocity. Your email has been verified successfully. We are excited to help you build and grow your brand with AI-powered strategy and execution.
+            Thanks for joining VelocityDM. Your email has been verified successfully. We are excited to help you build and grow your brand with AI-powered strategy and execution.
           </p>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 22px;">
@@ -190,7 +190,7 @@ export const sendSignupNotificationEmail = async ({ to, name, provider }) => {
           </div>
         </div>
         <p style="margin: 14px 0 0; text-align: center; color: #9ca3af; font-size: 12px;">
-          &copy; ${new Date().getFullYear()} Velocity AaaS. All rights reserved.
+          &copy; ${new Date().getFullYear()} VelocityDM. All rights reserved.
         </p>
       </div>
     `,
@@ -219,35 +219,35 @@ export const sendLoginNotificationEmail = async ({ to, name }) => {
   const textBody = [
     `Hello ${userName},`,
     '',
-    'Thank you for logging in to Velocity. We hope you have a great experience building your brand.',
+    'Thank you for logging in to VelocityDM. We hope you have a great experience building your brand.',
     '',
     'If you have any questions, feel free to reach out.',
     '',
     'Best regards,',
-    'The Velocity Team'
+    'The VelocityDM Team'
   ].join('\n');
 
   const msg = {
     to,
-    from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-    subject: `Welcome back to Velocity, ${userName}!`,
+    from: `VelocityDM <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    subject: `Welcome back to VelocityDM, ${userName}!`,
     text: textBody,
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 560px; margin: 0 auto; padding: 20px; background-color: #f3f6fb; border-radius: 12px;">
         <div style="text-align: center; margin-bottom: 18px;">
-          <h1 style="margin: 0; color: #1d4ed8; font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">Velocity</h1>
+          <h1 style="margin: 0; color: #1d4ed8; font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">VelocityDM</h1>
         </div>
         <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 30px; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);">
           <h2 style="color: #111827; font-size: 24px; margin: 0 0 12px;">Welcome back, ${userName}!</h2>
           <p style="color: #4b5563; font-size: 15px; line-height: 1.7; margin: 0 0 20px;">
-            Thank you for logging in to Velocity. We hope you have a great experience building your brand.
+            Thank you for logging in to VelocityDM. We hope you have a great experience building your brand.
           </p>
           <p style="color: #4b5563; font-size: 15px; line-height: 1.7; margin: 0;">
             If you have any questions, feel free to reach out.
           </p>
         </div>
         <p style="margin: 14px 0 0; text-align: center; color: #9ca3af; font-size: 12px;">
-          &copy; ${new Date().getFullYear()} Velocity AaaS. All rights reserved.
+          &copy; ${new Date().getFullYear()} VelocityDM. All rights reserved.
         </p>
       </div>
     `,

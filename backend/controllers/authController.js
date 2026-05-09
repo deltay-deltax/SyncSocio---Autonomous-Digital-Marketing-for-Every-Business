@@ -49,17 +49,17 @@ const sendOtpEmail = async (email, name, otp) => {
 
   const msg = {
     to: email,
-    from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-    subject: 'Your Velocity verification code',
+    from: `VelocityDM <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    subject: 'Your VelocityDM verification code',
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 520px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #2563eb; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">Velocity</h1>
+          <h1 style="color: #2563eb; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">VelocityDM</h1>
         </div>
         <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #f3f4f6;">
           <h2 style="color: #111827; font-size: 22px; font-weight: 700; margin-top: 0; margin-bottom: 14px;">Verify Your Email</h2>
           <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 22px;">
-            Hi ${name || 'there'}, use the one-time code below to verify your Velocity account.
+            Hi ${name || 'there'}, use the one-time code below to verify your VelocityDM account.
           </p>
           <div style="text-align: center; margin: 20px 0 24px;">
             <div style="display: inline-block; font-size: 34px; letter-spacing: 8px; font-weight: 800; color: #111827; background: #f3f4f6; padding: 12px 18px; border-radius: 10px;">
@@ -479,17 +479,17 @@ export const forgotPassword = async (req, res) => {
       const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/resetpassword/${resetToken}`;
       const msg = {
         to: user.email,
-        from: `Velocity <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-        subject: '🔒 Reset Your Velocity Password',
+        from: `VelocityDM <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        subject: '🔒 Reset Your VelocityDM Password',
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
             <div style="text-align: center; margin-bottom: 20px;">
-              <h1 style="color: #2563eb; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">Velocity</h1>
+              <h1 style="color: #2563eb; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">VelocityDM</h1>
             </div>
             <div style="background-color: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #f3f4f6;">
               <h2 style="color: #111827; font-size: 22px; font-weight: 700; margin-top: 0; margin-bottom: 16px;">Reset Your Password</h2>
               <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                We received a request to securely reset the password for your Velocity account. 
+                We received a request to securely reset the password for your VelocityDM account. 
                 If you didn't make this request, you can safely ignore this email.
               </p>
               <div style="text-align: center; margin: 32px 0;">
@@ -505,7 +505,7 @@ export const forgotPassword = async (req, res) => {
             </div>
             <div style="text-align: center; margin-top: 24px;">
               <p style="color: #9ca3af; font-size: 12px;">
-                &copy; ${new Date().getFullYear()} Velocity AaaS. All rights reserved.
+                &copy; ${new Date().getFullYear()} VelocityDM. All rights reserved.
               </p>
             </div>
           </div>

@@ -230,7 +230,7 @@ const Signup = () => {
 
         <div className="relative z-10 max-w-md px-12">
           <Link to="/" className="font-display text-2xl font-bold tracking-tight mb-10 block">
-            <span className="gradient-text">Velocity</span>
+            <span className="gradient-text">VelocityDM</span>
           </Link>
 
           <h2 className="text-3xl font-extrabold leading-tight text-foreground mb-3">
@@ -270,7 +270,7 @@ const Signup = () => {
           </div>
 
           <div className="bg-card rounded-xl p-5 border border-border shadow-sm mb-8">
-            <p className="text-sm italic text-muted-foreground mb-3">"Velocity took us from 200 to 12K followers in just 60 days."</p>
+            <p className="text-sm italic text-muted-foreground mb-3">"VelocityDM took us from 200 to 12K followers in just 60 days."</p>
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
                 <Users size={13} className="text-primary" />
@@ -290,7 +290,7 @@ const Signup = () => {
           className="w-full max-w-md"
         >
           <Link to="/" className="lg:hidden font-display text-2xl font-bold tracking-tight mb-8 block">
-            <span className="gradient-text">Velocity</span>
+            <span className="gradient-text">VelocityDM</span>
           </Link>
 
           <h1 className="text-3xl font-bold mb-2">{isOtpStep ? "Verify your email" : "Create account"}</h1>

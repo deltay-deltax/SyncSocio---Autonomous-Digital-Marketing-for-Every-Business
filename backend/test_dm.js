@@ -23,7 +23,7 @@ try {
     `https://graph.facebook.com/v25.0/${igId}/messages`,
     {
       recipient: { comment_id: "17841405822304914" },
-      message: { text: "This is a test message from Velocity" }
+      message: { text: "This is a test message from VelocityDM" }
     },
     {
       params: { access_token: token },

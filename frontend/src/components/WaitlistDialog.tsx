@@ -78,7 +78,7 @@ const WaitlistDialog = ({ open, onOpenChange, onSuccess }: WaitlistDialogProps) 
                   We're Building Something Big
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
-                  Velocity is under construction. Hop on the waitlist — you don't wanna miss this.
+                  VelocityDM is under construction. Hop on the waitlist — you don't wanna miss this.
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -154,7 +154,7 @@ const WaitlistDialog = ({ open, onOpenChange, onSuccess }: WaitlistDialogProps) 
             </div>
             <h3 className="text-xl font-bold mb-2">You're in, fam! 🎉</h3>
             <p className="text-muted-foreground text-sm max-w-xs">
-              We'll ping you the moment Velocity is ready. Stay tuned — big things loading.
+              We'll ping you the moment VelocityDM is ready. Stay tuned — big things loading.
             </p>
             <Button
               variant="outline"
