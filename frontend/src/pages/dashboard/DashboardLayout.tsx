@@ -14,8 +14,6 @@ const navItems = [
   { label: 'Analytics', icon: BarChart3, path: '/dashboard/analytics' },
   { label: 'Ads', icon: Target, path: '/dashboard/ads' },
   { label: 'Strategy', icon: Sparkles, path: '/dashboard/strategy' },
-  { label: 'Content Mix', icon: Zap, path: '/dashboard/content' },
-  { label: 'Post Optimizer', icon: Upload, path: '/dashboard/post-optimizer' },
   { label: 'DMs', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'History', icon: Clock, path: '/dashboard/history' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
@@ -175,13 +173,10 @@ const DashboardLayout = () => {
       {/* Nav Items */}
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
         {navItems.map((item) => {
+          if (item.label === 'DMs' && !profile?.DM_Automation_Service) return null;
+
           let itemPath = item.path;
           
-          // Fulfill user requirement: point "Content Mix" directly to plan if it exists
-          if (item.label === 'Content Mix' && localStorage.getItem('content_plan')) {
-            itemPath = '/dashboard/content/plan';
-          }
-
           const isHome = item.path === '/dashboard';
           const isActive = isHome 
             ? location.pathname === '/dashboard' 
@@ -353,10 +348,9 @@ const DashboardLayout = () => {
       {/* MOBILE BOTTOM NAV */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-border/50 px-8 py-4 flex justify-between items-center z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
         {navItems.map((item) => {
+          if (item.label === 'DMs' && !profile?.DM_Automation_Service) return null;
+
           let itemPath = item.path;
-          if (item.label === 'Content Mix' && localStorage.getItem('content_plan')) {
-            itemPath = '/dashboard/content/plan';
-          }
           const isActive = itemPath === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(itemPath);
           return (
             <NavLink

@@ -31,77 +31,193 @@ class GraphState(TypedDict):
 def analyze_brand_mix(brand_info: Dict[str, Any]):
     """
     Agent that decides the content mix. 
-    ENFORCED CREDIT SAVING MODE: 1 Static, 1 Carousel, 5 Reels.
     """
-    return {
-      "reels": 5,
-      "static": 1,
-      "carousel": 1,
-      "carouselSlides": 2, 
-      "reasoning": "Credit-saving calibrated mix: 1 Static, 1 Carousel (2 Slides), 5 Reels."
-    }
+    plan = brand_info.get('selectedPlan', 'VelocityDM Starter')
+    duration_weeks = brand_info.get('durationWeeks', 1)
+    base_count = 3 if 'Starter' in plan else 7
+    post_count = base_count * duration_weeks
+
+    prompt = f"""
+    You are a Senior Social Media Strategist. Analyze the following brand profile and determine the optimal {post_count}-day content mix for Instagram growth.
+    
+    BRAND PROFILE:
+    - Name: {brand_info.get('brandName')}
+    - Category: {brand_info.get('businessCategory')}
+    - Tone: {brand_info.get('brandTone')}
+    - USP: {brand_info.get('usp')}
+    - Goal: {brand_info.get('mainGoal')}
+    
+    TASK:
+    1. Distribute {post_count} posts across (Reels, Static Images, Carousels).
+    2. Prioritize Reels for discovery and Carousels for engagement/education.
+    3. Provide a 1-2 sentence "reasoning" for this specific mix based on the brand's goal and category.
+    4. Set "carouselSlides" dynamically between 3-7 if carousels are recommended.
+    
+    OUTPUT FORMAT: RETURN ONLY VALID JSON.
+    {{
+      "reels": number,
+      "static": number,
+      "carousel": number,
+      "carouselSlides": number, 
+      "reasoning": "..."
+    }}
+    """
+    try:
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+        res = llm.invoke([
+            SystemMessage(content=f"You are a JSON-only response strategist. Total posts must equal {post_count}."),
+            HumanMessage(content=prompt)
+        ])
+        content = res.content
+        if isinstance(content, list):
+            content = "".join([part.get('text', '') if isinstance(part, dict) else str(part) for part in content])
+        
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
+            result = json.loads(json_match.group())
+        else:
+            result = json.loads(content)
+            
+        # Ensure total is correct
+        total = result.get('reels', 0) + result.get('static', 0) + result.get('carousel', 0)
+        if total != post_count:
+             result['reels'] = post_count - (result.get('static', 0) + result.get('carousel', 0))
+             if result['reels'] < 0: result['reels'] = 0
+             
+        return result
+    except Exception as e:
+        print(f"Error in analyze_brand_mix: {e}")
+        if post_count <= 3:
+            return {
+              "reels": 1,
+              "static": 1,
+              "carousel": 1,
+              "carouselSlides": 4, 
+              "reasoning": "Balanced Starter mix: 1 Reel, 1 Static, 1 Carousel."
+            }
+        return {
+          "reels": 4,
+          "static": 1,
+          "carousel": 2,
+          "carouselSlides": 4, 
+          "reasoning": "Standard high-growth mix: 4 Reels for discovery, 2 Carousels for education, and 1 Static for brand presence."
+        }
 
 # Node 1: Strategy Planner (The Strategist)
 def planner_node(state: GraphState):
     brand = state['brand_info']
     brief = state['product_brief']
     custom_instruction = state.get('custom_instruction', '')
+    rejected_items = state.get('rejected_items', [])
+    mix = state.get('suggested_mix', {"reels": 3, "static": 2, "carousel": 2})
     
-    mix = state.get('suggested_mix', {"reels": 5, "static": 1, "carousel": 1})
-    
-    # Build custom instruction section
-    custom_section = ""
-    if custom_instruction and custom_instruction.strip():
+    plan = brand.get('selectedPlan', 'VelocityDM Starter')
+    duration_weeks = state.get('duration_weeks', 1)
+    base_count = 3 if 'Starter' in plan else 7
+    post_count = base_count * duration_weeks
+    auto_posts = post_count - 1 if custom_instruction else post_count
+
+    is_regeneration = len(rejected_items) > 0
+
+    if is_regeneration:
+        post_count = len(rejected_items)
+        auto_posts = 0
+        
+        # Build strict prompts for the rejected items
+        regen_prompts = []
+        for i, item in enumerate(rejected_items):
+            pt = item.get('prompt', '').strip()
+            orig_title = item.get('originalTitle', 'Unknown Topic')
+            orig_type = item.get('originalType', 'Unknown Type')
+            
+            if pt:
+                regen_prompts.append(f"Post {i+1} REPLACEMENT: You are replacing an old post titled '{orig_title}' ({orig_type}). USER CHANGE REQUEST: {pt}")
+            else:
+                regen_prompts.append(f"Post {i+1} REPLACEMENT: You are replacing an old post titled '{orig_title}' ({orig_type}). Generate a completely new, higher-impact version of this.")
+                
         custom_section = f"""
-    
-    🎯 CRITICAL USER INSTRUCTION:
-    The user has provided a SPECIFIC POST REQUEST that MUST be included in the 7-day calendar:
-    "{custom_instruction}"
-    
-    YOU MUST:
-    - Generate 6 posts autonomously based on the brand strategy
-    - Generate 1 post that DIRECTLY addresses the user's custom instruction above
-    - The custom post should naturally fit into the 7-day flow
-    - Determine the best format (Reel/Static/Carousel) for the custom instruction based on its content
-    - Ensure the custom post still follows the strategic mix constraints
+    🎯 REGENERATION MODE ACTIVE:
+    You are replacing {post_count} rejected posts. 
+    Maintain the overall 7-day flow but upgrade these specific items based on the context:
+    {chr(10).join(regen_prompts)}
     """
-    
+    else:
+        # Build custom instruction section
+        custom_section = ""
+        if custom_instruction and custom_instruction.strip():
+            custom_section = f"""
+        
+        🎯 CRITICAL USER INSTRUCTION:
+        The user has provided a SPECIFIC POST REQUEST that MUST be included in the {post_count}-day calendar:
+        "{custom_instruction}"
+        
+        YOU MUST:
+        - Generate {auto_posts} posts autonomously based on the brand strategy
+        - Generate 1 post that DIRECTLY addresses the user's custom instruction above
+        - The custom post should naturally fit into the {post_count}-day flow
+        - Determine the best format (Reel/Static/Carousel) for the custom instruction based on its content
+        - Ensure the custom post still follows the strategic mix constraints
+        """
+
+    # Build rich brand context — no truncation
+    product_description = str(brief.get('description', ''))
+    target_audiences = ', '.join(brand.get('targetAudiences', [])) if brand.get('targetAudiences') else 'General audience'
+
     prompt = f"""
-    You are the Lead Strategist for Velocity AI. Your goal is to create a high-impact 7-day content strategy for:
-    
-    BRAND: {brand.get('brandName')} ({brand.get('businessCategory', '')})
-    PRODUCT: {brief.get('name')}
-    BRIEF: {str(brief.get('description', ''))[:200]}
-    INDUSTRY PILL: {brief.get('category')}
-    TONE: {brand.get('brandTone', 'Luxury/Premium')}
+    You are the Lead Strategist for Velocity AI. Your goal is to create a high-impact {post_count}-post content strategy.
+    Read the FULL brand dossier below and use EVERY detail to craft hyper-relevant, on-brand content.
+
+    ═══════════ BRAND DOSSIER ═══════════
+    BRAND NAME: {brand.get('brandName')}
+    INDUSTRY / CATEGORY: {brand.get('businessCategory', '')}
+    BRAND TONE: {brand.get('brandTone', 'Luxury/Premium')}
+    VISUAL VIBE: {brand.get('visualVibe', 'Modern')}
+    BRAND KEYWORDS: {brand.get('brandKeywords', '')}
+    MAIN GOAL: {brand.get('mainGoal', 'Growth')}
+    USP (Unique Selling Proposition): {brand.get('usp', 'Not specified')}
+    TARGET PAIN POINT: {brand.get('painPoint', 'Not specified')}
+    TARGET AUDIENCES: {target_audiences}
     BRAND COLORS: Primary: {brand.get('primaryColor', '#2563EB')}, Secondary: {brand.get('secondaryColor', '#60A5FA')}
     (Use these colors as the primary visual palette)
+
+    ═══════════ PRODUCT BRIEF ═══════════
+    PRODUCT NAME: {brief.get('name')}
+    FULL DESCRIPTION / HOOK: {product_description}
+    INDUSTRY PILL: {brief.get('category')}
     {custom_section}
     
-    STRATEGIC MIX (STRICT CONSTRAINT):
-    You MUST include exactly:
+    ═══════════ STRATEGIC CONSTRAINTS ═══════════
+    CONTENT MIX (STRICT — DO NOT DEVIATE):
     - {mix.get('reels')} REELS
     - {mix.get('static')} STATIC IMAGES
     - {mix.get('carousel')} CAROUSELS
+    Total: {post_count} Items.
+
+    ═══════════ STRATEGY GUIDELINES ═══════════
+    - Every post title and hook must reference the PRODUCT by name or clear implication.
+    - The hook must solve the TARGET PAIN POINT or speak to the USP.
+    - Vary emotional tone (curiosity → authority → FOMO → social proof → aspiration → education → urgency).
+    - Each hook must be scroll-stopping: use numbers, questions, bold claims, or hot takes.
+    - Consider the TARGET AUDIENCES when choosing topics — speak their language.
     
-    Total: 7 Items.
-    
-    For each day, provide:
-    1. topic: A short viral title
+    ═══════════ OUTPUT SPEC (per day) ═══════════
+    1. topic: A short viral title mentioning the product/brand
     2. format: (Reel / Static Image / Carousel)
-    3. content_hook: A high-engagement hook for the post
-    4. why: Brief strategic reason for this post
-    5. carousel_slides: (Only if format is Carousel) ALWAYS set to 2 to preserve credits.
+    3. content_hook: A HIGH-ENGAGEMENT scroll-stopping hook (2-3 sentences). This is the caption hook — make it irresistible.
+    4. why: Brief strategic reason for this post's placement
+    5. carousel_slides: (Only if format is Carousel) Set dynamically based on the story (e.g., 2-5 slides).
     6. optimal_time: The best time to post (e.g., "06:00 PM", "09:30 AM") based on the topic and general audience activity.
     7. is_custom: (true/false) Mark as true ONLY for the post that addresses the user's custom instruction
+    8. g_score: A number from 0-10 representing the "Viral Potential" of this post.
+    9. verdict: A short 1-word or 2-word strategic label (e.g., "High Impact", "Viral", "Educational", "Conversion Focus").
     
-    Output Format: RETURN ONLY A VALID JSON LIST OF 7 OBJECTS.
+    Output Format: RETURN ONLY A VALID JSON LIST OF {post_count} OBJECTS. NO commentary.
     """
     
     try:
         llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
         response = llm.invoke([
-            SystemMessage(content="You are a JSON-only response strategist. Output a list of 7 content items."),
+            SystemMessage(content=f"You are a JSON-only response strategist. Output exactly {post_count} content items."),
             HumanMessage(content=prompt)
         ])
         
@@ -255,7 +371,8 @@ def visual_illustrator_node(state: GraphState):
                 # Prepare slides data
                 item['slides_metadata'] = []
                 for s in visual_data.get('slides', []):
-                    v_prompt = f"{universal_base} {brand_dna} {strategic_context} Style: {style_modifier}. Scene: {s.get('slide_scene_variation', '') or scene_base}"
+                    scene = s.get('slide_scene_variation', '') or scene_base
+                    v_prompt = f"{scene}. {style_modifier}. Brand vibe: {brand_dna}. {universal_base}"
                     item['slides_metadata'].append({
                         "visual_prompt": v_prompt[:795],
                         "headline": s.get('headline', ''),
@@ -264,7 +381,7 @@ def visual_illustrator_node(state: GraphState):
                     })
                 
                 # Fallback / Legacy field
-                item['visual_prompt'] = item['slides_metadata'][0]['visual_prompt'] if item['slides_metadata'] else f"{universal_base} {brand_dna} {strategic_context}"[:795]
+                item['visual_prompt'] = item['slides_metadata'][0]['visual_prompt'] if item['slides_metadata'] else f"{scene_base}. {style_modifier}. Brand vibe: {brand_dna}. {universal_base}"[:795]
                 item['detailed_visual_description'] = scene_base
                 
                 # DETAILED CONSOLE LOGGING
@@ -388,15 +505,19 @@ workflow.add_edge("critic", END)
 
 app = workflow.compile()
 
-def generate_strategy(brand_info: Dict[str, Any], product_brief: Dict[str, str], suggested_mix: Dict[str, int] = None, custom_instruction: str = ""):
-    initial_state = {
+def generate_strategy(brand_info: Dict[str, Any], product_brief: Dict[str, str], suggested_mix: Dict[str, int] = None, custom_instruction: str = "", **kwargs):
+    # Prepare initial state
+    state = {
         "brand_info": brand_info,
         "product_brief": product_brief,
-        "suggested_mix": suggested_mix or {"reels": 3, "static": 2, "carousel": 2},
+        "suggested_mix": suggested_mix or {},
         "custom_instruction": custom_instruction or "",
+        "duration_weeks": kwargs.get("duration_weeks", 1),
+        "rejected_items": kwargs.get("rejected_items", []),
+        "reasoning": "",
         "content_calendar": [],
         "strategy_critique": {},
         "error": ""
     }
-    result = app.invoke(initial_state)
+    result = app.invoke(state)
     return result

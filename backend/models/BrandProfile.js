@@ -46,6 +46,7 @@ const brandProfileSchema = new mongoose.Schema({
   agentRecommendation: { type: String, default: "" },
   lastStrategicAudit: { type: Date },
   lastPlanGeneratedAt: { type: Date },
+  generationLockoutUntil: { type: Date },
   generationCount: { type: Number, default: 0 },
   lastAdsAnalysisAt: { type: Date },
   cachedAdsRecommendations: { type: Array, default: [] },
@@ -65,6 +66,14 @@ const brandProfileSchema = new mongoose.Schema({
   selectedPlan: {
     type: String,
     default: 'Free'
+  },
+  isPaid: {
+    type: Boolean,
+    default: false
+  },
+  DM_Automation_Service: {
+    type: Boolean,
+    default: false
   },
   automations: {
     storyMention: {

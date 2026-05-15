@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles } from 'lucide-react';
+import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -25,50 +25,28 @@ interface Plan {
 // ─── Plan Data ───────────────────────────────────────────────────────
 const plans: Plan[] = [
   {
-    name: 'Bootstrapper',
-    price: '₹0',
-    period: '/month',
-    frequency: 'Once a week',
-    formats: 'Static only',
-    postsPerMonth: '4 posts/month',
-    features: ['Basic Brand Mapping', '1 Active Agent', 'Weekly Reports', 'Community Support'],
-    cta: 'Start Free',
-    ctaStyle: 'outline',
-  },
-  {
     name: 'VelocityDM Starter',
-    price: '₹199',
+    price: '₹999',
     period: '/month',
-    frequency: '3-4x a week',
+    frequency: '3 times a week',
     formats: 'Static + Carousels',
-    postsPerMonth: '16 posts/month',
-    features: ['Deep DNA Synthesis', '3 Active Agents', 'Daily VelocityDM Sync', 'Cross-Platform Multi-Post', 'Priority Support'],
+    postsPerMonth: '12 posts/month',
+    features: ['Deep DNA brand synthesis', '3 active agents', 'Daily sync', 'Cross platform posting', 'Priority support'],
     cta: 'Get Started',
     ctaStyle: 'primary',
   },
   {
-    name: 'VelocityDM Pro',
-    price: '₹499',
+    name: 'VelocityDM PRO',
+    price: '₹1999',
     period: '/month',
     frequency: 'Daily',
-    formats: 'Static + Carousels + Reels',
+    formats: 'Static + Carousel + Reels',
     postsPerMonth: '30 posts/month',
-    features: ['Everything in Starter', 'Unlimited Agents', 'Custom Voice Models', '24/7 Strategic Support', 'Full Creative Control', 'Custom Integrations'],
+    features: ['Deep DNA brand synthesis', '3 active agents', 'Daily sync', 'Cross platform posting', 'Priority support'],
     popular: true,
-    cta: 'Get Started',
+    cta: 'Go Pro',
     ctaStyle: 'inverted',
-  },
-  {
-    name: 'Empire',
-    price: '₹999',
-    period: '/month',
-    frequency: 'Daily',
-    formats: 'All content types',
-    postsPerMonth: '30+ posts/month',
-    features: ['Everything in Pro', 'Dedicated Account Manager', 'White-label Reports', 'API Access', 'Team Collaboration', 'Advanced Analytics', 'Custom Integrations'],
-    cta: 'Contact Sales',
-    ctaStyle: 'outline',
-  },
+  }
 ];
 
 // ─── Checklist Steps ─────────────────────────────────────────────────
@@ -106,10 +84,51 @@ const InstagramGradientIcon = () => (
 );
 
 
+// ─── Shared wrapper ───────────────────────────────────────────────────
+const Wrapper = ({ children, maxW = 'max-w-xl', screenKey }: { children: React.ReactNode; maxW?: string; screenKey: string }) => (
+  <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+    {/* ambient blobs */}
+    <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+    <div className="absolute bottom-[-20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+    
+    {/* Sign Out Button */}
+    <div className="absolute top-6 right-6 z-[100]">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('velocity_profile');
+          localStorage.removeItem('velocity_setup_done');
+          window.location.href = '/login';
+        }}
+        className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+      >
+        Sign Out
+      </Button>
+    </div>
+
+    <motion.div
+      key={screenKey}
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
+      transition={{ duration: 0.45 }}
+      className={`relative z-10 w-full ${maxW}`}
+    >
+      {children}
+    </motion.div>
+  </div>
+);
+
 // ─── Main Component ──────────────────────────────────────────────────
 const Setup = () => {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>('checklist');
+  const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
+    'VelocityDM Starter': localStorage.getItem('velocity_dm_automation') === 'true',
+    'VelocityDM PRO': localStorage.getItem('velocity_dm_automation') === 'true',
+  });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null);
   const [warningPlan, setWarningPlan] = useState<string | null>(null);
@@ -239,9 +258,14 @@ const Setup = () => {
       setSyncData(sync);
       setWarningPlan(plan.name);
     } else {
+      localStorage.setItem('velocity_dm_automation', dmToggles[plan.name] ? 'true' : 'false');
       setSelectedPlan(plan.name);
       setScreen('activation');
     }
+  };
+
+  const handleToggle = (planName: string) => {
+    setDmToggles(prev => ({ ...prev, [planName]: !prev[planName] }));
   };
 
   const [syncData, setSyncData] = useState<any>(null);
@@ -273,8 +297,12 @@ const Setup = () => {
           const token = localStorage.getItem('token');
           const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
           
+          const isDmEnabled = localStorage.getItem('velocity_dm_automation') === 'true';
+
           const payload = { 
             selectedPlan,
+            DM_Automation_Service: isDmEnabled,
+            isPaid: true,
             ...(syncData || {})
           };
 
@@ -302,49 +330,12 @@ const Setup = () => {
     return () => clearInterval(timer);
   }, [screen, selectedPlan, navigate]);
 
-  // ── Shared wrapper ──
-  const Wrapper = ({ children, maxW = 'max-w-xl' }: { children: React.ReactNode; maxW?: string }) => (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* ambient blobs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
-      
-      {/* Sign Out Button */}
-      <div className="absolute top-6 right-6 z-[100]">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('velocity_profile');
-            localStorage.removeItem('velocity_setup_done');
-            window.location.href = '/login';
-          }}
-          className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-        >
-          Sign Out
-        </Button>
-      </div>
-
-      <motion.div
-        key={screen}
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -24 }}
-        transition={{ duration: 0.45 }}
-        className={`relative z-10 w-full ${maxW}`}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
-
   // ════════════════════════════════════════════════════════════════════
   // SCREEN 1 — CHECKLIST
   // ════════════════════════════════════════════════════════════════════
   if (screen === 'checklist') {
     return (
-      <Wrapper>
+      <Wrapper screenKey={screen}>
         <div className="glass-card rounded-3xl p-8 sm:p-10">
           {/* Header */}
           <div className="text-center mb-10">
@@ -415,7 +406,7 @@ const Setup = () => {
     ];
 
     return (
-      <Wrapper maxW="max-w-md">
+      <Wrapper maxW="max-w-md" screenKey={screen}>
         <div className="glass-card rounded-3xl p-8 sm:p-10 text-center">
           <div className="flex justify-center mb-6">
             <InstagramGradientIcon />
@@ -484,60 +475,96 @@ const Setup = () => {
   // ════════════════════════════════════════════════════════════════════
   if (screen === 'plan') {
     return (
-      <Wrapper maxW="max-w-7xl">
+      <Wrapper maxW="max-w-7xl" screenKey={screen}>
         <div className="text-center mb-10">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Choose how active your agent is</h1>
           <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
-          {plans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              className={cn(
-                "relative rounded-2xl p-6 flex flex-col transition-all duration-300",
-                plan.popular ? "bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]" : "glass-card hover:border-primary/30",
-                recommendedPlan === plan.name && !plan.popular ? "ring-2 ring-emerald-500/50 scale-[1.01] shadow-lg shadow-emerald-500/5" : ""
-              )}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-card text-primary shadow-md">
-                  Most Popular
-                </span>
-              )}
-              
-              {recommendedPlan === plan.name && (
-                <div className={cn(
-                  "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md border",
-                  plan.popular ? "bg-emerald-500 text-white border-emerald-400" : "bg-emerald-50 text-emerald-600 border-emerald-100"
-                )}>
-                  <Sparkles size={10} /> Recommended for you
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {plans.map((plan, i) => {
+            const isDmEnabled = dmToggles[plan.name];
+            const basePrice = parseInt(plan.price.replace('₹', ''));
+            const currentPrice = basePrice + (isDmEnabled ? 399 : 0);
+
+            return (
+              <motion.div
+                key={plan.name}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+                className={cn(
+                  "relative rounded-2xl p-6 flex flex-col transition-all duration-300",
+                  plan.popular ? "bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]" : "glass-card hover:border-primary/30",
+                  recommendedPlan === plan.name && !plan.popular ? "ring-2 ring-emerald-500/50 scale-[1.01] shadow-lg shadow-emerald-500/5" : ""
+                )}
+              >
+                {plan.popular && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-card text-primary shadow-md">
+                    Most Popular
+                  </span>
+                )}
+                
+                {recommendedPlan === plan.name && (
+                  <div className={cn(
+                    "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md border",
+                    plan.popular ? "bg-emerald-500 text-white border-emerald-400" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                  )}>
+                    <Sparkles size={10} /> Recommended for you
+                  </div>
+                )}
+
+                <h3 className="text-sm font-bold mb-1">{plan.name}</h3>
+                <div className="flex items-baseline gap-0.5 mb-1">
+                  <span className="text-3xl font-bold">₹{currentPrice}</span>
+                  <span className={`text-xs ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>
                 </div>
-              )}
+                <p className={`text-[11px] mb-1 ${plan.popular ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                  {plan.frequency} · {plan.formats}
+                </p>
+                <p className={`text-xs font-semibold mb-4 ${plan.popular ? 'text-primary-foreground' : 'text-foreground'}`}>
+                  {plan.postsPerMonth}
+                </p>
 
-              <h3 className="text-sm font-bold mb-1">{plan.name}</h3>
-              <div className="flex items-baseline gap-0.5 mb-1">
-                <span className="text-3xl font-bold">{plan.price}</span>
-                <span className={`text-xs ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>
-              </div>
-              <p className={`text-[11px] mb-1 ${plan.popular ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                {plan.frequency} · {plan.formats}
-              </p>
-              <p className={`text-xs font-semibold mb-4 ${plan.popular ? 'text-primary-foreground' : 'text-foreground'}`}>
-                {plan.postsPerMonth}
-              </p>
+                {/* DM Automation Toggle */}
+                <div className={`flex items-center justify-between p-4 rounded-xl mb-6 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
+                  <div className="flex items-center gap-3">
+                    <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
+                    <div className="text-left">
+                      <p className={`text-sm font-bold ${plan.popular ? "text-white" : "text-foreground"}`}>DM Automation</p>
+                      <p className={`text-xs ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>+₹399 / month</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleToggle(plan.name)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                      isDmEnabled 
+                        ? (plan.popular ? 'bg-white' : 'bg-primary') 
+                        : (plan.popular ? 'bg-primary-foreground/30' : 'bg-input')
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                        isDmEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
 
-              <ul className="space-y-2 mb-6 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-xs">
-                    <Check size={13} className={plan.popular ? 'text-primary-foreground' : 'text-primary'} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
+                <ul className="space-y-2 mb-6 flex-1 text-left">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-xs">
+                      <Check size={14} className={`shrink-0 mt-0.5 ${plan.popular ? 'text-primary-foreground' : 'text-primary'}`} />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                  {isDmEnabled && (
+                    <li className="flex items-start gap-2 text-xs font-bold">
+                      <Check size={14} className={`shrink-0 mt-0.5 ${plan.popular ? 'text-primary-foreground' : 'text-primary'}`} />
+                      <span>Automated DM Replies & Lead Capture</span>
+                    </li>
+                  )}
+                </ul>
 
               <Button
                 onClick={() => handleSelectPlan(plan)}
@@ -552,7 +579,8 @@ const Setup = () => {
                 {plan.cta}
               </Button>
             </motion.div>
-          ))}
+          );
+        })}
         </div>
 
         {/* Plan Drift Warning Overlay */}

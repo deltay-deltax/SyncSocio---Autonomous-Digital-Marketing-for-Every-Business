@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 
+class RejectedItem(BaseModel):
+    id: str
+    prompt: Optional[str] = ""
+
 class BrandInfo(BaseModel):
     userId: str
     brandName: Optional[str] = ""
@@ -16,6 +20,11 @@ class BrandInfo(BaseModel):
     productBrief: Optional[Dict[str, str]] = {"name": "", "description": "", "category": ""}
     suggestedMix: Optional[Dict[str, Any]] = None
     customInstruction: Optional[str] = ""
+    durationWeeks: Optional[int] = 1
+    rejectedItems: Optional[List[RejectedItem]] = []
+    usp: Optional[str] = ""
+    painPoint: Optional[str] = ""
+    selectedPlan: Optional[str] = ""
 
 class CalendarItem(BaseModel):
     day: str

@@ -61,6 +61,11 @@ const Signup = () => {
       localStorage.setItem(PLAN_STORAGE_KEY, resolvedPlan);
       setSelectedPlan(resolvedPlan);
     }
+
+    const queryDm = new URLSearchParams(window.location.search).get("dm");
+    if (queryDm !== null) {
+      localStorage.setItem("velocity_dm_automation", queryDm);
+    }
   }, []);
 
   useEffect(() => {

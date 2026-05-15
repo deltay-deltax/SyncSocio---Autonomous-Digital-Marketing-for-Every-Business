@@ -1,5 +1,5 @@
 import express from 'express';
-import { generateStrategy, getCalendar } from '../controllers/aiController.js';
+import { generateStrategy, getCalendar, regenerateStrategy, deployStrategy, toggleHeart } from '../controllers/aiController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { generateContentMix } from '../utils/contentMixAgentService.js';
 import { generateContentPlan } from '../utils/contentPlanService.js';
@@ -10,6 +10,9 @@ const router = express.Router();
 router.use(protect);
 
 router.post('/generate', generateStrategy);
+router.post('/regenerate', regenerateStrategy);
+router.post('/deploy', deployStrategy);
+router.post('/heart', toggleHeart);
 router.get('/calendar', getCalendar);
 
 router.post('/mix', async (req, res) => {

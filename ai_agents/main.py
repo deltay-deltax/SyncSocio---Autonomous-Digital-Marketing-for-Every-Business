@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -49,7 +49,10 @@ async def health_check():
     return {"status": "ok", "timestamp": datetime.now()}
 
 @app.post("/analyze-mix")
-async def api_analyze_mix(userId: str):
+async def api_analyze_mix(userId: str = Query(...), durationWeeks: int = Query(1)):
+    """
+    Returns an optimized content mix based on the brand's profile from MongoDB.
+    """
     try:
         print(f"DEBUG: Analyzing mix for user {userId}")
         # Fetch brand profile (searching by either profile ID or user ID for robustness)
@@ -73,7 +76,9 @@ async def api_analyze_mix(userId: str):
             "targetAudiences": brand_doc.get("targetAudiences", []),
             "usp": brand_doc.get("usp", "Not specified"),
             "painPoint": brand_doc.get("painPoint", "Not specified"),
-            "mainGoal": brand_doc.get("mainGoal", "Growth")
+            "mainGoal": brand_doc.get("mainGoal", "Growth"),
+            "selectedPlan": brand_doc.get("selectedPlan", "VelocityDM Starter"),
+            "durationWeeks": durationWeeks
         }
         
         print("DEBUG: Calling analyze_brand_mix agent...")
@@ -117,7 +122,10 @@ async def api_generate_strategy(brand_info: BrandInfo):
             "painPoint": brand_doc.get("painPoint"),
             "mainGoal": brand_doc.get("mainGoal"),
             "primaryColor": brand_doc.get("primaryColor", "#2563EB"),
-            "secondaryColor": brand_doc.get("secondaryColor", "#60A5FA")
+            "secondaryColor": brand_doc.get("secondaryColor", "#60A5FA"),
+            "visualVibe": brand_doc.get("visualVibe", "Modern"),
+            "brandKeywords": brand_doc.get("brandKeywords", ""),
+            "selectedPlan": brand_doc.get("selectedPlan", "VelocityDM Starter")
         }
         
         product_brief = brand_info.productBrief
@@ -126,24 +134,31 @@ async def api_generate_strategy(brand_info: BrandInfo):
         
         suggested_mix = brand_info.suggestedMix
         custom_instruction = brand_info.customInstruction
+        duration_weeks = brand_info.durationWeeks
         
         # 2. Run the LangGraph Agent
         result = generate_strategy(
             full_brand_profile, 
             product_brief, 
             suggested_mix=suggested_mix,
-            custom_instruction=custom_instruction
+            custom_instruction=custom_instruction,
+            duration_weeks=duration_weeks
         )
         
         if result.get("error"):
             raise HTTPException(status_code=500, detail=result["error"])
         
         calendar = result.get("content_calendar", [])
+        # Add stable IDs to posts
+        for idx, post in enumerate(calendar):
+            if "id" not in post:
+                post["id"] = str(idx + 1)
         
         # 3. Save to MongoDB
         calendar_entry = {
-            "userId": brand_info.userId,
+            "userId": ObjectId(brand_info.userId),
             "posts": calendar,
+            "durationWeeks": duration_weeks,
             "createdAt": datetime.now(),
             "status": "active"
         }
@@ -156,6 +171,57 @@ async def api_generate_strategy(brand_info: BrandInfo):
         }
     except Exception as e:
         print(f"Error in strategy generation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/regenerate-strategy")
+async def api_regenerate_strategy(brand_info: BrandInfo):
+    """
+    Regenerates ONLY the rejected posts while preserving the overall schedule format.
+    """
+    try:
+        print(f"DEBUG: Regenerating {len(brand_info.rejectedItems or [])} items for user {brand_info.userId}")
+        
+        full_brand_profile = {
+            "userId": brand_info.userId,
+            "brandName": brand_info.brandName,
+            "businessCategory": brand_info.businessCategory,
+            "mainGoal": brand_info.mainGoal,
+            "targetAudiences": brand_info.targetAudiences,
+            "brandTone": brand_info.brandTone,
+            "visualVibe": brand_info.visualVibe,
+            "socialPlatforms": brand_info.socialPlatforms,
+            "primaryColor": brand_info.primaryColor,
+            "secondaryColor": brand_info.secondaryColor,
+            "usp": brand_info.usp,
+            "painPoint": brand_info.painPoint,
+            "selectedPlan": brand_info.selectedPlan,
+            "durationWeeks": brand_info.durationWeeks,
+        }
+        
+        product_brief = brand_info.productBrief or {"name": "General Brand Content", "description": "General brand awareness"}
+        rejected_items = [{"id": r.id, "prompt": r.prompt} for r in (brand_info.rejectedItems or [])]
+        
+        result = generate_strategy(
+            full_brand_profile, 
+            product_brief, 
+            suggested_mix={},
+            custom_instruction="",
+            rejected_items=rejected_items,
+            duration_weeks=brand_info.durationWeeks
+        )
+        
+        if result.get("error"):
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        calendar = result.get("content_calendar", [])
+        # Add stable IDs to posts
+        for idx, post in enumerate(calendar):
+            if "id" not in post:
+                post["id"] = str(idx + 1)
+        return {"content_calendar": calendar}
+        
+    except Exception as e:
+        print(f"DEBUG: Exception in regenerate strategy: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict-mix")

@@ -18,6 +18,10 @@ const contentCalendarSchema = new mongoose.Schema({
     required: true
   },
   posts: [postSchema],
+  heartedPostIds: {
+    type: [String],
+    default: []
+  },
   captions: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
