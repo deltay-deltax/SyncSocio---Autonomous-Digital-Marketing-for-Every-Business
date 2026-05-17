@@ -18,6 +18,7 @@ const buildFlowPayload = (body = {}) => {
     keyword: toTrimmedString(body.keyword),
     commentReplyMessage: toTrimmedString(body.commentReplyMessage),
     messages: Array.isArray(body.messages) ? body.messages : undefined,
+    source: body.source,
   };
 
   if (typeof body.active === 'boolean') {
@@ -118,7 +119,7 @@ export const setDMFlowActiveState = async (req, res) => {
 
     const flow = await DMFlow.findOneAndUpdate(
       { _id: req.params.id },
-      { active: req.body.active },
+      { active: req.body.active, source: 'user' },
       { new: true }
     );
 

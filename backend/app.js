@@ -13,6 +13,7 @@ import instagramMetricsRoutes from './routes/instagramMetricsRoutes.js';
 import dmFlowRoutes from './routes/dmFlowRoutes.js';
 import adsRoutes from './routes/adsRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import assetRoutes from './routes/assetRoutes.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
@@ -48,6 +49,7 @@ app.use('/api/instagram', instagramMetricsRoutes);
 app.use('/api/dm-flows', dmFlowRoutes);
 app.use('/api/ads', adsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/assets', assetRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

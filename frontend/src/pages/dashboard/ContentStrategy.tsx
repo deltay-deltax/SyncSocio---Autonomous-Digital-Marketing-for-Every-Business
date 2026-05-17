@@ -5,7 +5,8 @@ import {
   Calendar, Sparkles, Zap, Clock, Trash2, CheckCircle2,
   Video, Layers, Image as ImageIcon, ArrowRight,
   TrendingUp, Settings2, RotateCcw, Send, Edit3,
-  ChevronLeft, ChevronRight, X, Copy, Check, Heart, RefreshCw
+  ChevronLeft, ChevronRight, X, Copy, Check, Heart, RefreshCw,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -92,6 +93,7 @@ const ContentStrategy = () => {
     customInstruction: '' // New: User's custom post instruction
   });
 
+  const [showProductBriefForm, setShowProductBriefForm] = useState(false);
   const [durationWeeks, setDurationWeeks] = useState(1);
   const [heartedPostIds, setHeartedPostIds] = useState<string[]>([]);
   const [rejectedPosts, setRejectedPosts] = useState<{ id: string; prompt: string }[]>([]);
@@ -117,22 +119,41 @@ const ContentStrategy = () => {
             const daysDiff = (now.getTime() - createdDate.getTime()) / (1000 * 3600 * 24);
             
             if (daysDiff <= 7) {
-              const cachedPosts = data.posts.map((post: any, idx: number) => ({
-                id: post.id || (idx + 1).toString(),
-                type: post.type || (post.format === 'video' || post.format === 'reel' ? 'Reel' : post.format === 'carousel' ? 'Carousel' : 'Static'),
-                title: post.title || post.topic,
-                scheduledAt: post.scheduledAt || new Date(Date.now() + 86400000).toISOString(),
-                visualPrompt: post.visualPrompt || post.visual_prompt,
-                detailedDescription: post.detailedDescription || post.detailed_visual_description,
-                contentHook: post.contentHook || post.content_hook,
-                carouselSlides: post.carouselSlides || post.carousel_slides,
-                slidesMetadata: post.slidesMetadata || post.slides_metadata,
-                generatedVisuals: post.generatedVisuals || null,
-                isGeneratingVisual: false,
-                currentSlide: 0,
-                gScore: post.gScore || post.g_score,
-                verdict: post.verdict
-              }));
+              const cachedPosts = data.posts.map((post: any, idx: number) => {
+                // Calculate proper per-day date (same logic as fresh generation)
+                let finalDate = new Date(getInitialDate(idx + 1));
+                if (post.scheduledAt) {
+                  finalDate = new Date(post.scheduledAt);
+                } else if (post.optimal_time || post.optimalTime) {
+                  try {
+                    const timeVal = post.optimal_time || post.optimalTime;
+                    const [timeStr, modifier] = timeVal.split(' ');
+                    let [hours, minutes] = timeStr.split(':').map(Number);
+                    if (modifier === 'PM' && hours < 12) hours += 12;
+                    if (modifier === 'AM' && hours === 12) hours = 0;
+                    finalDate = setHours(setMinutes(finalDate, minutes || 0), hours);
+                  } catch (e) {
+                    // Keep default 8PM from getInitialDate
+                  }
+                }
+
+                return {
+                  id: post.id || (idx + 1).toString(),
+                  type: post.type || (post.format === 'video' || post.format === 'reel' ? 'Reel' : post.format === 'carousel' ? 'Carousel' : 'Static'),
+                  title: post.title || post.topic,
+                  scheduledAt: finalDate.toISOString(),
+                  visualPrompt: post.visualPrompt || post.visual_prompt,
+                  detailedDescription: post.detailedDescription || post.detailed_visual_description,
+                  contentHook: post.contentHook || post.content_hook,
+                  carouselSlides: post.carouselSlides || post.carousel_slides,
+                  slidesMetadata: post.slidesMetadata || post.slides_metadata,
+                  generatedVisuals: post.generatedVisuals || null,
+                  isGeneratingVisual: false,
+                  currentSlide: 0,
+                  gScore: post.gScore || post.g_score,
+                  verdict: post.verdict
+                };
+              });
               
               setPosts(cachedPosts);
               setIsGenerated(true);
@@ -816,90 +837,129 @@ const ContentStrategy = () => {
             ) : (
               /* Strategy Blueprint Card / Form */
               <Card className="lg:col-span-8 border-none shadow-2xl shadow-slate-200/50 rounded-[3.5rem] bg-white overflow-hidden p-10 flex flex-col min-h-[500px]">
-                <div className="flex items-center gap-4 mb-10">
+                <div className="flex items-center gap-4 mb-8">
                   <div className="w-16 h-16 rounded-[2rem] bg-primary/10 flex items-center justify-center text-primary">
-                    <Edit3 size={32} />
+                    <Sparkles size={32} className="text-primary animate-pulse" />
                   </div>
                   <div className="text-left">
-                    <h3 className="text-2xl font-bold tracking-tight">Product <span className="text-primary">Brief</span></h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Provide context for the AI Agents</p>
+                    <h3 className="text-2xl font-bold tracking-tight">AI Content <span className="text-primary">Strategist</span></h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Autonomous planning for @{profile?.instagramUsername || 'profile'}</p>
                   </div>
                 </div>
 
-                <div className="space-y-8 flex-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-3 text-left">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Product Name</label>
-                      <Input
-                        placeholder="e.g. Ultra Hydrating Serum"
-                        value={brief.productName}
-                        onChange={(e) => setBrief({ ...brief, productName: e.target.value })}
-                        className="h-16 rounded-2xl bg-slate-50 border-slate-100 px-6 font-bold text-slate-900 focus:ring-2 ring-primary/20 transition-all border-2"
-                      />
-                    </div>
-                    <div className="space-y-3 text-left">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Hero Image (Optional)</label>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImageChange}
-                        className="hidden"
-                        accept="image/*"
-                      />
-                      <div
-                        onClick={() => fileInputRef.current?.click()}
-                        className={cn(
-                          "h-16 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-all overflow-hidden",
-                          brief.image ? "bg-primary/5 border-primary/30" : "bg-slate-50 border-slate-200 hover:bg-slate-100"
-                        )}
-                      >
-                        {brief.imagePreview ? (
-                          <div className="flex items-center gap-3 px-4 w-full">
-                            <img src={brief.imagePreview} className="w-10 h-10 rounded-lg object-cover shadow-sm" />
-                            <span className="text-[10px] font-black text-primary uppercase truncate">{brief.image?.name}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-slate-400">
-                            <ImageIcon size={18} />
-                            <span className="text-xs font-bold uppercase tracking-tighter">Upload Product Photo</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-left">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Product Description / Hook</label>
-                    <textarea
-                      rows={3}
-                      placeholder="Describe the product's main superpower or the problem it solves..."
-                      value={brief.description}
-                      onChange={(e) => setBrief({ ...brief, description: e.target.value })}
-                      className="w-full rounded-2xl bg-slate-50 border-2 border-slate-100 px-6 py-4 font-bold text-slate-900 focus:ring-2 ring-primary/20 transition-all outline-none resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-3 text-left">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Custom Post Instruction (Optional)</label>
-                    <textarea
-                      rows={2}
-                      placeholder="e.g., A poster saying it is priced at ₹399 - Agent will create 1 post based on this"
-                      value={brief.customInstruction}
-                      onChange={(e) => setBrief({ ...brief, customInstruction: e.target.value })}
-                      className="w-full rounded-2xl bg-amber-50 border-2 border-amber-100 px-6 py-4 font-bold text-slate-900 focus:ring-2 ring-amber-300/20 transition-all outline-none resize-none placeholder:text-slate-400"
-                    />
-                    <p className="text-[9px] font-bold text-slate-400 px-2 italic">
-                      {brief.customInstruction.trim() 
-                        ? `Agent will generate ${totalPosts - 1} posts autonomously + 1 post based on your instruction.`
-                        : `Agent will generate all ${totalPosts} posts autonomously.`}
+                <div className="space-y-6 flex-1 text-left">
+                  <div className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100 space-y-3">
+                    <p className="text-sm font-semibold text-slate-700">
+                      💡 Your strategy mix is optimized and ready!
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      By default, our agents will autonomously generate the perfect posts based on your brand's unique selling points (USP), audience pain points, tone, and visual aesthetics.
                     </p>
                   </div>
+
+                  {/* Sleek Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowProductBriefForm(!showProductBriefForm)}
+                    className={cn(
+                      "w-full flex items-center justify-between p-5 rounded-2xl border transition-all text-left font-bold text-xs uppercase tracking-wider",
+                      showProductBriefForm 
+                        ? "bg-primary/5 border-primary/20 text-primary shadow-sm"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Settings2 size={16} />
+                      Customize with Product Brief / Instructions (Optional)
+                    </span>
+                    {showProductBriefForm ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+
+                  <AnimatePresence>
+                    {showProductBriefForm && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden space-y-6 pt-4 border-t border-slate-100"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2 text-left">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Product Name (Optional)</label>
+                            <Input
+                              placeholder="e.g. Ultra Hydrating Serum"
+                              value={brief.productName}
+                              onChange={(e) => setBrief({ ...brief, productName: e.target.value })}
+                              className="h-14 rounded-2xl bg-slate-50 border-slate-100 px-5 font-bold text-slate-900 focus:ring-2 ring-primary/20 transition-all border-2"
+                            />
+                          </div>
+                          <div className="space-y-2 text-left">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Hero Image (Optional)</label>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleImageChange}
+                              className="hidden"
+                              accept="image/*"
+                            />
+                            <div
+                              onClick={() => fileInputRef.current?.click()}
+                              className={cn(
+                                "h-14 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-all overflow-hidden",
+                                brief.image ? "bg-primary/5 border-primary/30" : "bg-slate-50 border-slate-200 hover:bg-slate-100"
+                              )}
+                            >
+                              {brief.imagePreview ? (
+                                <div className="flex items-center gap-3 px-4 w-full">
+                                  <img src={brief.imagePreview} className="w-8 h-8 rounded-lg object-cover shadow-sm" />
+                                  <span className="text-[10px] font-black text-primary uppercase truncate">{brief.image?.name}</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 text-slate-400">
+                                  <ImageIcon size={16} />
+                                  <span className="text-xs font-bold uppercase tracking-tighter">Upload Product Photo</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 text-left">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Product Description / Hook (Optional)</label>
+                          <textarea
+                            rows={3}
+                            placeholder="Describe the product's main superpower or the problem it solves..."
+                            value={brief.description}
+                            onChange={(e) => setBrief({ ...brief, description: e.target.value })}
+                            className="w-full rounded-2xl bg-slate-50 border-2 border-slate-100 px-5 py-3.5 font-bold text-slate-900 focus:ring-2 ring-primary/20 transition-all outline-none resize-none"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-left">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Custom Post Instruction (Optional)</label>
+                          <textarea
+                            rows={2}
+                            placeholder="e.g., A poster saying it is priced at ₹399 - Agent will create 1 post based on this"
+                            value={brief.customInstruction}
+                            onChange={(e) => setBrief({ ...brief, customInstruction: e.target.value })}
+                            className="w-full rounded-2xl bg-amber-50 border-2 border-amber-100 px-5 py-3.5 font-bold text-slate-900 focus:ring-2 ring-amber-300/20 transition-all outline-none resize-none placeholder:text-slate-400"
+                          />
+                          <p className="text-[9px] font-bold text-slate-400 px-2 italic">
+                            {brief.customInstruction.trim() 
+                              ? `Agent will generate ${totalPosts - 1} posts autonomously + 1 post based on your instruction.`
+                              : `Agent will generate all ${totalPosts} posts autonomously.`}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                <div className="pt-10 mt-10 border-t border-slate-50">
+                <div className="pt-8 mt-8 border-t border-slate-50">
                   <Button
                     onClick={handleGenerate}
-                    disabled={isGenerating || !brief.productName}
+                    disabled={isGenerating}
                     className="w-full h-16 rounded-2xl bg-primary text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all group"
                   >
                     {isGenerating ? (

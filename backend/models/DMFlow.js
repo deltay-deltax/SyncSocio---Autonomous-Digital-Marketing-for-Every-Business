@@ -164,6 +164,16 @@ const dmFlowSchema = new mongoose.Schema(
         min: 0,
       },
     },
+    source: {
+      type: String,
+      enum: ['user', 'ai_suggested'],
+      default: 'user',
+    },
+    linkedPostTopic: {
+      type: String,
+      trim: true,
+      default: '',
+    },
   },
   {
     timestamps: true,

@@ -28,7 +28,7 @@ const contentCalendarSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'past', 'paused'],
+    enum: ['active', 'past', 'paused', 'deployed'],
     default: 'active'
   },
   createdAt: {

@@ -229,45 +229,31 @@ const DashboardHome = () => {
           </Card>
 
           {/* Top Post - Moved Down */}
-          <Card className="border-border/50 overflow-hidden">
-            <CardHeader className="p-6 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm">🔥</span>
-                <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Top Post This Week</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              {data.topPost ? (
-                <>
-                  <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-transparent aspect-video flex items-center justify-center mb-3 overflow-hidden shadow-inner relative">
-                    {data.topPost.image ? (
-                      <img src={data.topPost.image} alt="Top Post" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-4xl text-primary opacity-20">📸</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-foreground line-clamp-2 mb-2 font-medium">"{data.topPost.caption}"</p>
-                  <div className="flex gap-3 text-[11px] text-muted-foreground">
-                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.views} views</span>
-                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.likes} likes</span>
-                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.engagement}</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-transparent aspect-video flex items-center justify-center mb-3 overflow-hidden shadow-inner">
-                    <span className="text-4xl text-primary opacity-20">🎬</span>
-                  </div>
-                  <p className="text-xs text-foreground line-clamp-2 mb-2 font-medium">"5 baking secrets nobody tells you — save this reel! 🍞"</p>
-                  <div className="flex gap-3 text-[11px] text-muted-foreground">
-                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">2.1K views</span>
-                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">186 likes</span>
-                    <span className="px-2 py-0.5 rounded-full bg-muted font-medium">8.2%</span>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          {data.topPost && (
+            <Card className="border-border/50 overflow-hidden">
+              <CardHeader className="p-6 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🔥</span>
+                  <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Top Post This Week</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-transparent aspect-video flex items-center justify-center mb-3 overflow-hidden shadow-inner relative">
+                  {data.topPost.image ? (
+                    <img src={data.topPost.image} alt="Top Post" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-4xl text-primary opacity-20">📸</span>
+                  )}
+                </div>
+                <p className="text-xs text-foreground line-clamp-2 mb-2 font-medium">"{data.topPost.caption}"</p>
+                <div className="flex gap-3 text-[11px] text-muted-foreground">
+                  <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.views} views</span>
+                  <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.likes} likes</span>
+                  <span className="px-2 py-0.5 rounded-full bg-muted font-medium">{data.topPost.engagement}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
       </div>
     </div>

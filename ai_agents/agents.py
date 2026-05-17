@@ -160,8 +160,23 @@ def planner_node(state: GraphState):
         """
 
     # Build rich brand context — no truncation
-    product_description = str(brief.get('description', ''))
+    product_name = brief.get('name', '').strip()
+    product_description = brief.get('description', '').strip()
     target_audiences = ', '.join(brand.get('targetAudiences', [])) if brand.get('targetAudiences') else 'General audience'
+
+    product_brief_section = ""
+    if product_name or product_description:
+        product_brief_section = f"""
+    ═══════════ PRODUCT BRIEF ═══════════
+    PRODUCT NAME: {product_name if product_name else "Not specified"}
+    FULL DESCRIPTION / HOOK: {product_description if product_description else "Not specified"}
+    INDUSTRY PILL: {brief.get('category', 'Not specified')}
+        """
+    else:
+        product_brief_section = """
+    ═══════════ PRODUCT BRIEF ═══════════
+    (No specific product details provided. Autonomously generate premium, high-impact content focusing on the core Brand Dossier, USP, and Pain Points.)
+        """
 
     prompt = f"""
     You are the Lead Strategist for Velocity AI. Your goal is to create a high-impact {post_count}-post content strategy.
@@ -180,10 +195,7 @@ def planner_node(state: GraphState):
     BRAND COLORS: Primary: {brand.get('primaryColor', '#2563EB')}, Secondary: {brand.get('secondaryColor', '#60A5FA')}
     (Use these colors as the primary visual palette)
 
-    ═══════════ PRODUCT BRIEF ═══════════
-    PRODUCT NAME: {brief.get('name')}
-    FULL DESCRIPTION / HOOK: {product_description}
-    INDUSTRY PILL: {brief.get('category')}
+    {product_brief_section}
     {custom_section}
     
     ═══════════ STRATEGIC CONSTRAINTS ═══════════
@@ -206,7 +218,7 @@ def planner_node(state: GraphState):
     3. content_hook: A HIGH-ENGAGEMENT scroll-stopping hook (2-3 sentences). This is the caption hook — make it irresistible.
     4. why: Brief strategic reason for this post's placement
     5. carousel_slides: (Only if format is Carousel) Set dynamically based on the story (e.g., 2-5 slides).
-    6. optimal_time: The best time to post (e.g., "06:00 PM", "09:30 AM") based on the topic and general audience activity.
+    6. optimal_time: The best time to post (e.g., "06:00 PM", "09:30 AM"). IMPORTANT: Vary the time strategically across the 7 days — do NOT use the same time for every post. Mix morning, afternoon, and evening slots based on the content type (e.g., Reels peak in evenings, educational Carousels perform well mid-morning).
     7. is_custom: (true/false) Mark as true ONLY for the post that addresses the user's custom instruction
     8. g_score: A number from 0-10 representing the "Viral Potential" of this post.
     9. verdict: A short 1-word or 2-word strategic label (e.g., "High Impact", "Viral", "Educational", "Conversion Focus").
@@ -298,13 +310,23 @@ def visual_illustrator_node(state: GraphState):
         topic = item.get('topic', 'General Awareness')
         
         # Layer 3: Strategic Context (Topic + Product Info) - Fixed ~150 chars
-        p_name = brief.get('name', 'Product')
-        if not p_name or p_name.strip() == "": p_name = "[PRODUCT_NAME_MISSING]"
-        p_desc = str(brief.get('description', ''))[:200]
-        if not p_desc or p_desc.strip() == "": p_desc = "[PRODUCT_DESC_MISSING]"
+        p_name = brief.get('name', '').strip()
+        p_desc = brief.get('description', '').strip()
         
-        # Format: Topic: [Topic]. Product: [Name] ([Desc]).
-        strategic_context = f"Topic: {topic}. Product: {p_name} ({p_desc})."
+        if p_name and p_desc:
+            strategic_context = f"Topic: {topic}. Product: {p_name} ({p_desc})."
+        elif p_name:
+            strategic_context = f"Topic: {topic}. Product: {p_name}."
+        elif p_desc:
+            strategic_context = f"Topic: {topic}. Context: {p_desc}."
+        else:
+            # Fallback to USP and businessCategory if no product context is provided
+            brand_usp = brand.get('usp', '').strip()
+            if brand_usp:
+                strategic_context = f"Topic: {topic}. Brand USP: {brand_usp}."
+            else:
+                strategic_context = f"Topic: {topic}. Category: {brand.get('businessCategory', 'General')}."
+        
         strategic_context = strategic_context[:200]
 
         # Apply specific layering only to images and carousels
@@ -456,7 +478,7 @@ def strategy_critic_node(state: GraphState):
     You are the Velocity Algorithm Critic. Analyze this 7-day content strategy.
     
     BRAND: {brand.get('brandName')}
-    PRODUCT: {brief.get('name')}
+    PRODUCT: {brief.get('name') if brief.get('name') else 'Not specified (focus on core brand and category: ' + brand.get('businessCategory', '') + ')'}
     STRATEGY: {json.dumps(calendar, indent=2)}
     
     TASK:

@@ -4,7 +4,7 @@ import {
   Plus, MessageCircle, Zap, ArrowRight, ArrowLeft, Trash2, ToggleLeft, ToggleRight,
   Eye, PenLine, X, Search, MessageSquare, Hash, MousePointerClick,
   Send, Sparkles, Copy, Link2, UserPlus, ExternalLink, MoveDown,
-  Image as ImageIcon
+  Image as ImageIcon, Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,8 @@ interface Flow {
   active: boolean;
   createdAt: string;
   stats: { triggered: number; replied: number; clicked: number; conversions: number };
+  source?: 'user' | 'ai_suggested';
+  linkedPostTopic?: string;
 }
 
 interface ApiFlow {
@@ -56,11 +58,14 @@ interface ApiFlow {
   active: boolean;
   createdAt: string;
   stats?: Partial<Flow['stats']>;
+  source?: 'user' | 'ai_suggested';
+  linkedPostTopic?: string;
 }
 
 // ─── HELPERS ───
 const uid = () => Math.random().toString(36).slice(2, 9);
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+const AI_BASE = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
 
 const getAuthHeaders = (includeJson = false): HeadersInit => {
   const token = localStorage.getItem('token');
@@ -72,7 +77,7 @@ const getAuthHeaders = (includeJson = false): HeadersInit => {
 
 const getInitialFlow = () => ({
   name: '🎁 Link Delivery Flow', trigger: 'comment' as const, targetType: 'all' as const, keyword: 'link',
-  commentReplyMessage: '@{{username}} Check your DM',
+  commentReplyMessage: '{{username}} Check your DM',
   messages: [
     {
       id: uid(),
@@ -121,23 +126,23 @@ const formatRelativeTime = (value: string): string => {
 const toUIFlow = (flow: ApiFlow): Flow => {
   const safeMessages = Array.isArray(flow.messages)
     ? flow.messages
-        .filter((message) => typeof message?.text === 'string' && message.text.trim().length > 0)
-        .map((message) => ({
-          id: message.id || uid(),
-          text: message.text,
-          buttons: Array.isArray(message.buttons)
-            ? message.buttons.map((button) => ({
-                id: button.id || uid(),
-                label: button.label || '',
-                type: button.type,
-                url: button.url,
-              }))
-            : [],
-          conditional:
-            message.conditional === 'if_following' || message.conditional === 'if_not_following'
-              ? message.conditional
-              : null,
-        }))
+      .filter((message) => typeof message?.text === 'string' && message.text.trim().length > 0)
+      .map((message) => ({
+        id: message.id || uid(),
+        text: message.text,
+        buttons: Array.isArray(message.buttons)
+          ? message.buttons.map((button) => ({
+            id: button.id || uid(),
+            label: button.label || '',
+            type: button.type,
+            url: button.url,
+          }))
+          : [],
+        conditional:
+          message.conditional === 'if_following' || message.conditional === 'if_not_following'
+            ? message.conditional
+            : null,
+      }))
     : [];
 
   return {
@@ -157,6 +162,8 @@ const toUIFlow = (flow: ApiFlow): Flow => {
       clicked: flow.stats?.clicked ?? 0,
       conversions: flow.stats?.conversions ?? 0,
     },
+    source: flow.source || 'user',
+    linkedPostTopic: flow.linkedPostTopic || '',
   };
 };
 
@@ -178,7 +185,7 @@ const DashboardDMs = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
   const [wizardStep, setWizardStep] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'paused'>('all');
+  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'paused' | 'ai_suggested'>('all');
   const [previewFlow, setPreviewFlow] = useState<Flow | null>(null);
   const [media, setMedia] = useState<any[]>([]);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
@@ -196,6 +203,24 @@ const DashboardDMs = () => {
     type: 'storyMention' | 'defaultReply' | null;
     message: string;
   }>({ type: null, message: '' });
+
+  // Asset generation state
+  const [isGeneratingAsset, setIsGeneratingAsset] = useState(false);
+  const [generatedAsset, setGeneratedAsset] = useState<{
+    _id: string;
+    title: string;
+    description: string;
+    ctaText: string;
+    assetUrl: string;
+    sections: any[];
+    brandName: string;
+    mainContent?: string;
+    keyTakeaways?: string[];
+    needsVisuals?: boolean;
+    visualSuggestions?: string;
+    ctaDescription?: string;
+  } | null>(null);
+  const [showAssetPreview, setShowAssetPreview] = useState(false);
 
   // Fetch media + flow data on mount
   React.useEffect(() => {
@@ -259,6 +284,7 @@ const DashboardDMs = () => {
   }, []);
 
   const [newFlow, setNewFlow] = useState<{
+    id?: string;
     name: string;
     trigger: Flow['trigger'];
     targetType: Flow['targetType'];
@@ -334,8 +360,12 @@ const DashboardDMs = () => {
     setFlowError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/dm-flows`, {
-        method: 'POST',
+      const isEditing = !!newFlow.id;
+      const url = isEditing ? `${API_BASE}/dm-flows/${newFlow.id}` : `${API_BASE}/dm-flows`;
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: getAuthHeaders(true),
         body: JSON.stringify({
           name: newFlow.name,
@@ -345,16 +375,22 @@ const DashboardDMs = () => {
           keyword: newFlow.keyword,
           commentReplyMessage: newFlow.commentReplyMessage,
           messages: preparedMessages,
-          active: true,
+          active: true, // Auto-enable on save
+          source: 'user', // Transition flow from ai_suggested to user flow on save/activation
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.errors?.[0] || data?.message || 'Failed to create flow');
+        throw new Error(data?.errors?.[0] || data?.message || `Failed to ${isEditing ? 'update' : 'create'} flow`);
       }
 
-      setFlows((prev) => [toUIFlow(data as ApiFlow), ...prev]);
+      const updated = toUIFlow(data as ApiFlow);
+      if (isEditing) {
+        setFlows((prev) => prev.map((item) => (item.id === newFlow.id ? updated : item)));
+      } else {
+        setFlows((prev) => [updated, ...prev]);
+      }
       resetWizard();
     } catch (err) {
       console.error('Failed to create flow:', err);
@@ -362,6 +398,140 @@ const DashboardDMs = () => {
     } finally {
       setIsSavingFlow(false);
     }
+  };
+
+  const setupAndEditFlow = (flow: Flow) => {
+    setNewFlow({
+      id: flow.id,
+      name: flow.name,
+      trigger: flow.trigger,
+      targetType: flow.targetType,
+      targetMediaId: flow.targetMediaId,
+      keyword: flow.keyword,
+      commentReplyMessage: flow.commentReplyMessage,
+      messages: flow.messages.map(m => ({
+        id: m.id || uid(),
+        text: m.text,
+        conditional: m.conditional,
+        buttons: m.buttons ? m.buttons.map(b => ({
+          id: b.id || uid(),
+          label: b.label,
+          type: b.type,
+          url: b.url || ''
+        })) : []
+      }))
+    });
+    setWizardStep(3); // Sequence step
+    setView('create');
+  };
+
+  // ─── GENERATE AI ASSET ───
+  const handleGenerateAsset = async () => {
+    console.log('[AssetGen] 🟢 Button clicked! Starting asset generation...');
+    console.log('[AssetGen] AI_BASE =', AI_BASE);
+    setIsGeneratingAsset(true);
+    setFlowError(null);
+    try {
+      // Safely extract userId from JWT
+      let userId = '';
+      try {
+        const token = localStorage.getItem('token');
+        console.log('[AssetGen] Token exists:', !!token);
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          console.log('[AssetGen] JWT payload:', payload);
+          userId = payload?.id || payload?._id || payload?.userId || '';
+        }
+      } catch (jwtErr) {
+        console.error('[AssetGen] JWT decode failed:', jwtErr);
+      }
+      if (!userId) {
+        throw new Error('Not authenticated — could not extract userId from token');
+      }
+      console.log('[AssetGen] userId =', userId);
+
+      const requestBody = {
+        userId,
+        postTopic: newFlow.name || 'DM Automation Asset',
+        flowId: newFlow.id || undefined,
+        flowName: newFlow.name,
+        flowKeyword: newFlow.keyword,
+      };
+      console.log('[AssetGen] Request body:', requestBody);
+      console.log('[AssetGen] Calling:', `${AI_BASE}/generate-asset`);
+
+      const res = await fetch(`${AI_BASE}/generate-asset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+      console.log('[AssetGen] Response status:', res.status);
+      const data = await res.json();
+      console.log('[AssetGen] Response data:', data);
+
+      if (!res.ok) throw new Error(data?.detail || 'Failed to generate asset');
+
+      // Save the full asset payload so the preview can render all fields
+      setGeneratedAsset({
+        ...data.asset,
+        sections: data.asset.sections || [],
+        assetUrl: data.assetUrl,
+      });
+      console.log('[AssetGen] ✅ Asset generated! Showing preview modal...');
+      setShowAssetPreview(true);
+    } catch (err) {
+      console.error('[AssetGen] ❌ Asset generation failed:', err);
+      setFlowError(err instanceof Error ? err.message : 'Failed to generate asset');
+    } finally {
+      setIsGeneratingAsset(false);
+    }
+  };
+
+  const handleInsertAssetUrl = async () => {
+    if (!generatedAsset) return;
+    // Publish the asset
+    try {
+      await fetch(`${API_BASE}/assets/${generatedAsset._id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({ isPublished: true }),
+      });
+    } catch (e) {
+      console.error('Failed to publish asset:', e);
+    }
+
+    // Find the last message with a URL button and insert the asset URL
+    const updatedMessages = newFlow.messages.map(m => {
+      let text = m.text;
+      if (text) {
+        text = text.replace(/\{\{asset_url\}\}/gi, generatedAsset.assetUrl);
+        text = text.replace(/\{asset_url\}/gi, generatedAsset.assetUrl);
+      }
+      return { ...m, text };
+    });
+
+    let inserted = false;
+    for (let i = updatedMessages.length - 1; i >= 0; i--) {
+      const urlBtn = updatedMessages[i].buttons.find(b => b.type === 'url');
+      if (urlBtn) {
+        urlBtn.url = generatedAsset.assetUrl;
+        inserted = true;
+        break;
+      }
+    }
+    // If no URL button found, add one to the last message
+    if (!inserted && updatedMessages.length > 0) {
+      const lastMsg = updatedMessages[updatedMessages.length - 1];
+      lastMsg.buttons.push({
+        id: uid(),
+        label: generatedAsset.ctaText || 'Open Link',
+        type: 'url' as ButtonType,
+        url: generatedAsset.assetUrl,
+      });
+    }
+    setNewFlow(f => ({ ...f, messages: updatedMessages }));
+    setShowAssetPreview(false);
+    setGeneratedAsset(null);
   };
 
   const toggleFlow = async (id: string) => {
@@ -454,9 +624,14 @@ const DashboardDMs = () => {
 
   const filtered = flows.filter(f => {
     const matchSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase()) || f.keyword.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchFilter = filterActive === 'all' || (filterActive === 'active' && f.active) || (filterActive === 'paused' && !f.active);
+    const matchFilter = filterActive === 'all'
+      || (filterActive === 'active' && f.active)
+      || (filterActive === 'paused' && !f.active && f.source !== 'ai_suggested')
+      || (filterActive === 'ai_suggested' && f.source === 'ai_suggested');
     return matchSearch && matchFilter;
   });
+
+  const aiSuggestedCount = flows.filter(f => f.source === 'ai_suggested' && !f.active).length;
 
   const canProceed = () => {
     switch (wizardStep) {
@@ -477,7 +652,7 @@ const DashboardDMs = () => {
           <button onClick={resetWizard} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 group">
             <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" /> Back to flows
           </button>
-          <h1 className="text-2xl font-bold text-foreground">Create New Flow</h1>
+          <h1 className="text-2xl font-bold text-foreground">{newFlow.id ? 'Setup & Customize AI Flow' : 'Create New Flow'}</h1>
           <p className="text-sm text-muted-foreground mt-1">{wizardSteps[wizardStep].desc}</p>
         </motion.div>
 
@@ -495,8 +670,8 @@ const DashboardDMs = () => {
                   <div className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300',
                     i < wizardStep ? 'bg-primary text-primary-foreground' :
-                    i === wizardStep ? 'bg-primary/15 text-primary ring-2 ring-primary/30' :
-                    'bg-muted text-muted-foreground'
+                      i === wizardStep ? 'bg-primary/15 text-primary ring-2 ring-primary/30' :
+                        'bg-muted text-muted-foreground'
                   )}>
                     {i < wizardStep ? '✓' : i + 1}
                   </div>
@@ -558,51 +733,51 @@ const DashboardDMs = () => {
 
                     {newFlow.targetType === 'specific' && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-3">
-                         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Select Media from Feed</label>
-                         <div className="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto p-1 scrollbar-hide">
-                            {isLoadingMedia ? (
-                              Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="aspect-square rounded-xl bg-muted animate-pulse" />
-                              ))
-                            ) : media.length > 0 ? (
-                              media.map((post) => (
-                                <button 
-                                  key={post.id}
-                                  onClick={() => setNewFlow({ ...newFlow, targetMediaId: post.id })}
-                                  className={cn(
-                                    "aspect-square rounded-xl overflow-hidden border-2 transition-all relative group",
-                                    newFlow.targetMediaId === post.id ? "border-primary scale-[1.02] shadow-lg shadow-primary/20" : "border-transparent opacity-60 hover:opacity-100"
-                                  )}
-                                >
-                                  {post.type === 'VIDEO' ? (
-                                     <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-                                       <Zap size={20} className="text-white/40" />
-                                       <img src={post.media_url} className="absolute inset-0 w-full h-full object-cover opacity-50" />
-                                     </div>
-                                  ) : (
-                                    <img src={post.media_url} className="w-full h-full object-cover" />
-                                  )}
-                                  
-                                  {newFlow.targetMediaId === post.id && (
-                                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
-                                      <div className="bg-white rounded-full p-1 text-primary shadow-xl">
-                                        <Zap size={14} fill="currentColor" />
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Hover caption preview */}
-                                  <div className="absolute inset-x-0 bottom-0 p-1.5 translate-y-full group-hover:translate-y-0 transition-transform bg-black/60 backdrop-blur-sm">
-                                    <p className="text-[8px] text-white truncate text-center">{post.caption || 'Product Reel'}</p>
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Select Media from Feed</label>
+                        <div className="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto p-1 scrollbar-hide">
+                          {isLoadingMedia ? (
+                            Array.from({ length: 6 }).map((_, i) => (
+                              <div key={i} className="aspect-square rounded-xl bg-muted animate-pulse" />
+                            ))
+                          ) : media.length > 0 ? (
+                            media.map((post) => (
+                              <button
+                                key={post.id}
+                                onClick={() => setNewFlow({ ...newFlow, targetMediaId: post.id })}
+                                className={cn(
+                                  "aspect-square rounded-xl overflow-hidden border-2 transition-all relative group",
+                                  newFlow.targetMediaId === post.id ? "border-primary scale-[1.02] shadow-lg shadow-primary/20" : "border-transparent opacity-60 hover:opacity-100"
+                                )}
+                              >
+                                {post.type === 'VIDEO' ? (
+                                  <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                                    <Zap size={20} className="text-white/40" />
+                                    <img src={post.media_url} className="absolute inset-0 w-full h-full object-cover opacity-50" />
                                   </div>
-                                </button>
-                              ))
-                            ) : (
-                              <div className="col-span-3 py-10 text-center">
-                                <p className="text-xs text-muted-foreground">No media found or Instagram not connected.</p>
-                              </div>
-                            )}
-                         </div>
+                                ) : (
+                                  <img src={post.media_url} className="w-full h-full object-cover" />
+                                )}
+
+                                {newFlow.targetMediaId === post.id && (
+                                  <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
+                                    <div className="bg-white rounded-full p-1 text-primary shadow-xl">
+                                      <Zap size={14} fill="currentColor" />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Hover caption preview */}
+                                <div className="absolute inset-x-0 bottom-0 p-1.5 translate-y-full group-hover:translate-y-0 transition-transform bg-black/60 backdrop-blur-sm">
+                                  <p className="text-[8px] text-white truncate text-center">{post.caption || 'Product Reel'}</p>
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="col-span-3 py-10 text-center">
+                              <p className="text-xs text-muted-foreground">No media found or Instagram not connected.</p>
+                            </div>
+                          )}
+                        </div>
                       </motion.div>
                     )}
                   </div>
@@ -623,13 +798,13 @@ const DashboardDMs = () => {
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-3">Trigger Type</label>
                       <div className="p-5 rounded-2xl border border-primary bg-primary/10 shadow-sm shadow-primary/10 transition-all duration-200 text-center max-w-xs mx-auto sm:mx-0 sm:text-left sm:flex sm:items-center sm:gap-4">
-                         <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto sm:mx-0 shrink-0">
-                           <MessageSquare size={20} className="text-primary" />
-                         </div>
-                         <div>
-                           <p className="text-sm font-bold text-foreground mt-2 sm:mt-0">Comment-to-DM Campaign</p>
-                           <p className="text-[11px] text-muted-foreground mt-1 leading-snug">This flow automates a private DM whenever someone drops a specific keyword on your post.</p>
-                         </div>
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto sm:mx-0 shrink-0">
+                          <MessageSquare size={20} className="text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground mt-2 sm:mt-0">Comment-to-DM Campaign</p>
+                          <p className="text-[11px] text-muted-foreground mt-1 leading-snug">This flow automates a private DM whenever someone drops a specific keyword on your post.</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -653,7 +828,7 @@ const DashboardDMs = () => {
                       <label className="text-xs font-semibold text-foreground block mb-1">What to reply to comment msg</label>
                       <p className="text-[11px] text-muted-foreground mb-3">This public reply is sent on the comment before the DM. Use <span className="font-mono">{'{{username}}'}</span> to mention the commenter.</p>
                       <Textarea
-                        placeholder="@{{username}} Check your DM"
+                        placeholder="{{username}} Check your DM"
                         value={newFlow.commentReplyMessage}
                         onChange={e => setNewFlow({ ...newFlow, commentReplyMessage: e.target.value })}
                         className="min-h-[96px] rounded-xl bg-background/60 text-sm font-medium resize-none"
@@ -822,6 +997,34 @@ const DashboardDMs = () => {
                       <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
                       Add Another Message
                     </button>
+
+                    {/* Generate AI Asset */}
+                    <div className="relative">
+                      <div className="absolute inset-x-0 top-1/2 h-px bg-border/40" />
+                      <p className="relative mx-auto w-fit px-3 bg-background text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
+                        or generate a landing page
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => { console.log('[AssetGen] 🔥 Button onClick fired!'); handleGenerateAsset(); }}
+                      disabled={isGeneratingAsset}
+                      className="w-full p-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 transition-all flex items-center justify-center gap-2.5 text-sm font-bold text-amber-600 group disabled:opacity-50 disabled:cursor-wait"
+                    >
+                      {isGeneratingAsset ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                          Generating AI Asset...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
+                          🪄 Generate AI Landing Page
+                        </>
+                      )}
+                    </button>
+                    <p className="text-[10px] text-muted-foreground text-center italic -mt-1">
+                      AI will create a branded micro landing page and auto-insert the link into your DM flow
+                    </p>
                   </div>
                 )}
               </motion.div>
@@ -850,7 +1053,7 @@ const DashboardDMs = () => {
                   disabled={!canProceed() || isSavingFlow}
                   className="rounded-xl gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/20"
                 >
-                  <Zap size={16} /> {isSavingFlow ? 'Saving...' : 'Activate Flow'}
+                  <Zap size={16} /> {isSavingFlow ? 'Saving...' : newFlow.id ? 'Enable & Go Live 🚀' : 'Activate Flow'}
                 </Button>
               )}
             </div>
@@ -919,23 +1122,23 @@ const DashboardDMs = () => {
                             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                               <Sparkles size={12} className="text-white" />
                             </div>
-                            
+
                             <div className="bg-white rounded-2xl rounded-tl-md max-w-[85%] overflow-hidden border border-border/80 shadow-sm">
                               {msg.text && (
                                 <div className="px-3.5 py-2.5">
                                   <p className="text-[12px] text-foreground whitespace-pre-wrap leading-[1.4]">{msg.text}</p>
                                 </div>
                               )}
-                              
+
                               {msg.buttons.length > 0 && (
                                 <div className="flex flex-col border-t border-border/50 bg-muted/5">
                                   {msg.buttons.map((btn, bi) => (
-                                    <div 
-                                      key={btn.id} 
+                                    <div
+                                      key={btn.id}
                                       className={cn(
                                         "py-2.5 text-center text-[12px] font-bold border-b border-border/50 last:border-0 cursor-default transition-all",
-                                        btn.type === 'url' ? 'text-primary' : 
-                                        'text-foreground/80'
+                                        btn.type === 'url' ? 'text-primary' :
+                                          'text-foreground/80'
                                       )}
                                     >
                                       {btn.label || buttonTypeMeta[btn.type].label}
@@ -986,11 +1189,152 @@ const DashboardDMs = () => {
                 </motion.div>
               )}
             </div>
-          </div>
         </div>
       </div>
-    );
-  }
+
+      {/* Asset Preview Modal */}
+      <AnimatePresence>
+        {showAssetPreview && generatedAsset && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 md:inset-x-[15%] md:inset-y-[5%] z-50 bg-card border border-border/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between bg-muted/20">
+                <div>
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Sparkles size={16} className="text-amber-500" /> AI Generated Landing Page
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Review the content below, then confirm to publish & insert link</p>
+                </div>
+                <button onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }} className="p-2 rounded-xl hover:bg-muted transition-colors">
+                  <X size={16} className="text-muted-foreground" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="bg-slate-950 text-white rounded-2xl p-8 space-y-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-semibold text-white/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    Preview
+                  </div>
+                  
+                  {/* Title */}
+                  <h1 className="text-3xl md:text-4xl font-black leading-tight">{generatedAsset.title}</h1>
+                  
+                  {/* Description / Intro */}
+                  <p className="text-base text-slate-300 leading-relaxed whitespace-pre-line">{generatedAsset.description}</p>
+                  
+                  {/* Main Content (Rich) */}
+                  {generatedAsset.mainContent && (
+                    <div className="border-t border-white/10 pt-6">
+                      <div className="prose prose-invert max-w-none text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                        {generatedAsset.mainContent}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Sections / Structured Content */}
+                  {generatedAsset.sections && generatedAsset.sections.length > 0 && (
+                    <div className="border-t border-white/10 pt-6 space-y-4">
+                      {generatedAsset.sections.map((sec: any, i: number) => (
+                        <div key={i}>
+                          {sec.heading && <h3 className="text-lg font-bold mb-3 text-white/90">{sec.heading}</h3>}
+                          {sec.body && <p className="text-sm text-slate-400 mb-4">{sec.body}</p>}
+                          {sec.items && sec.items.length > 0 && (
+                            <div className="space-y-3">
+                              {sec.items.map((item: any, j: number) => (
+                                <div key={j} className="bg-white/5 rounded-xl p-4 border border-white/10 flex items-start gap-3">
+                                  <div className="text-2xl shrink-0">{item.icon || '✨'}</div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-bold text-white">{item.title}</p>
+                                    <p className="text-xs text-slate-300 mt-2 leading-relaxed">{item.description}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Key Takeaways */}
+                  {generatedAsset.keyTakeaways && generatedAsset.keyTakeaways.length > 0 && (
+                    <div className="border-t border-white/10 pt-6">
+                      <h3 className="text-lg font-bold mb-3 text-white/90">Key Takeaways</h3>
+                      <ul className="space-y-2">
+                        {generatedAsset.keyTakeaways.map((takeaway: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
+                            <span>{takeaway}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Visual Suggestions */}
+                  {generatedAsset.needsVisuals && generatedAsset.visualSuggestions && (
+                    <div className="border-t border-white/10 pt-6 bg-white/5 rounded-xl p-4 border border-white/10">
+                      <h4 className="text-sm font-bold text-white/80 mb-2 flex items-center gap-2">
+                        🎨 Recommended Visuals
+                      </h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">{generatedAsset.visualSuggestions}</p>
+                    </div>
+                  )}
+
+                  {/* CTA */}
+                  <div className="border-t border-white/10 pt-6 flex flex-col gap-2">
+                    <span className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-bold text-white w-full justify-center">
+                      {generatedAsset.ctaText}
+                    </span>
+                    {generatedAsset.ctaDescription && (
+                      <p className="text-xs text-slate-400 text-center">{generatedAsset.ctaDescription}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+                  <p className="text-[11px] text-muted-foreground font-medium mb-1">Asset URL (will be auto-inserted into your DM flow):</p>
+                  <p className="text-xs font-mono text-primary break-all">{generatedAsset.assetUrl}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }}
+                  className="flex-1 rounded-xl h-11 text-sm font-bold"
+                >
+                  Discard
+                </Button>
+                <Button
+                  onClick={handleInsertAssetUrl}
+                  className="flex-1 rounded-xl h-11 text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/20"
+                >
+                  <Zap size={14} /> Publish & Insert Link
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
   // ─── LIST VIEW ───
   return (
@@ -1026,72 +1370,72 @@ const DashboardDMs = () => {
               <Send size={20} className="text-amber-500" />
             </div>
             <div className="flex-1 min-w-0">
-               <div className="flex items-start justify-between gap-2">
-                  <div>
-                     <h3 className="font-bold text-foreground text-sm">📸 Story Mention Reply</h3>
-                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Instantly thank anyone who tags your account in their story.</p>
-                  </div>
-                  <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1 border border-border/50 shrink-0">
-                    <button 
-                      onClick={() => editAutomation('storyMention')}
-                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-background"
-                    >
-                      <PenLine size={13} />
-                    </button>
-                    <button 
-                      onClick={() => toggleAutomation('storyMention')}
-                      className={cn(
-                        "p-1 px-2 transition-colors flex items-center gap-1.5",
-                        automations.storyMention.active ? "text-emerald-500" : "text-muted-foreground/40"
-                      )}
-                    >
-                      {automations.storyMention.active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-                      <span className="text-[10px] font-bold">{automations.storyMention.active ? 'ON' : 'OFF'}</span>
-                    </button>
-                  </div>
-               </div>
-               <div className="mt-3 bg-muted/40 rounded-xl p-3 border border-border/40">
-                  <p className="text-[11px] text-muted-foreground italic line-clamp-1">
-                    {automations.storyMention.message ? `"${automations.storyMention.message.slice(0, 40)}..."` : "No message set"}
-                  </p>
-               </div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-foreground text-sm">📸 Story Mention Reply</h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Instantly thank anyone who tags your account in their story.</p>
+                </div>
+                <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1 border border-border/50 shrink-0">
+                  <button
+                    onClick={() => editAutomation('storyMention')}
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-background"
+                  >
+                    <PenLine size={13} />
+                  </button>
+                  <button
+                    onClick={() => toggleAutomation('storyMention')}
+                    className={cn(
+                      "p-1 px-2 transition-colors flex items-center gap-1.5",
+                      automations.storyMention.active ? "text-emerald-500" : "text-muted-foreground/40"
+                    )}
+                  >
+                    {automations.storyMention.active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                    <span className="text-[10px] font-bold">{automations.storyMention.active ? 'ON' : 'OFF'}</span>
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 bg-muted/40 rounded-xl p-3 border border-border/40">
+                <p className="text-[11px] text-muted-foreground italic line-clamp-1">
+                  {automations.storyMention.message ? `"${automations.storyMention.message.slice(0, 40)}..."` : "No message set"}
+                </p>
+              </div>
             </div>
           </div>
-          
+
           <div className="bg-card/60 backdrop-blur-sm border border-border/40 hover:border-emerald-500/30 rounded-2xl p-5 flex gap-4 transition-all group">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-emerald-500/20 transition-colors">
               <MessageSquare size={20} className="text-emerald-500" />
             </div>
             <div className="flex-1 min-w-0">
-               <div className="flex items-start justify-between gap-2">
-                  <div>
-                     <h3 className="font-bold text-foreground text-sm">👋 Default DM Auto-Reply</h3>
-                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Instantly greet anyone who sends you a fresh direct message.</p>
-                  </div>
-                  <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1 border border-border/50 shrink-0">
-                    <button 
-                      onClick={() => editAutomation('defaultReply')}
-                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-background"
-                    >
-                      <PenLine size={13} />
-                    </button>
-                    <button 
-                      onClick={() => toggleAutomation('defaultReply')}
-                      className={cn(
-                        "p-1 px-2 transition-colors flex items-center gap-1.5",
-                        automations.defaultReply.active ? "text-emerald-500" : "text-muted-foreground/40"
-                      )}
-                    >
-                      {automations.defaultReply.active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-                      <span className="text-[10px] font-bold">{automations.defaultReply.active ? 'ON' : 'OFF'}</span>
-                    </button>
-                  </div>
-               </div>
-               <div className="mt-3 bg-muted/40 rounded-xl p-3 border border-border/40">
-                  <p className="text-[11px] text-muted-foreground italic line-clamp-1">
-                    {automations.defaultReply.message ? `"${automations.defaultReply.message.slice(0, 40)}..."` : "No message set"}
-                  </p>
-               </div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-foreground text-sm">👋 Default DM Auto-Reply</h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Instantly greet anyone who sends you a fresh direct message.</p>
+                </div>
+                <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1 border border-border/50 shrink-0">
+                  <button
+                    onClick={() => editAutomation('defaultReply')}
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-background"
+                  >
+                    <PenLine size={13} />
+                  </button>
+                  <button
+                    onClick={() => toggleAutomation('defaultReply')}
+                    className={cn(
+                      "p-1 px-2 transition-colors flex items-center gap-1.5",
+                      automations.defaultReply.active ? "text-emerald-500" : "text-muted-foreground/40"
+                    )}
+                  >
+                    {automations.defaultReply.active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                    <span className="text-[10px] font-bold">{automations.defaultReply.active ? 'ON' : 'OFF'}</span>
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 bg-muted/40 rounded-xl p-3 border border-border/40">
+                <p className="text-[11px] text-muted-foreground italic line-clamp-1">
+                  {automations.defaultReply.message ? `"${automations.defaultReply.message.slice(0, 40)}..."` : "No message set"}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -1102,7 +1446,7 @@ const DashboardDMs = () => {
       <h2 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-3 px-1 flex items-center gap-2">
         <Zap size={14} className="text-primary" /> Multi-Step Campaigns
       </h2>
-      
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
@@ -1127,11 +1471,21 @@ const DashboardDMs = () => {
           <Input placeholder="Search flows by name or keyword..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 rounded-xl bg-card/60 border-border/40" />
         </div>
         <div className="flex gap-2">
-          {(['all', 'active', 'paused'] as const).map(f => (
+          {(['all', 'active', 'paused', 'ai_suggested'] as const).map(f => (
             <button key={f} onClick={() => setFilterActive(f)}
-              className={cn('px-4 py-2 rounded-xl text-xs font-semibold capitalize transition-all',
+              className={cn('px-4 py-2 rounded-xl text-xs font-semibold transition-all relative',
                 filterActive === f ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-card/60 text-muted-foreground border border-border/40 hover:bg-muted/60')}>
-              {f}
+              {f === 'ai_suggested' ? (
+                <span className="flex items-center gap-1.5">
+                  <Bot size={12} />
+                  AI Suggested
+                  {aiSuggestedCount > 0 && (
+                    <span className="ml-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">{aiSuggestedCount}</span>
+                  )}
+                </span>
+              ) : (
+                <span className="capitalize">{f}</span>
+              )}
             </button>
           ))}
         </div>
@@ -1153,15 +1507,42 @@ const DashboardDMs = () => {
               </motion.div>
             ) : filtered.map((flow, i) => (
               <motion.div key={flow.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ delay: i * 0.03 }}
-                className="group bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl p-4 sm:p-5 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+                className={cn(
+                  "group bg-card/60 backdrop-blur-sm border rounded-2xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300",
+                  flow.source === 'ai_suggested' && !flow.active
+                    ? 'border-primary/30 hover:border-primary/50 hover:shadow-primary/10 ring-1 ring-primary/10'
+                    : 'border-border/40 hover:border-primary/20 hover:shadow-primary/5'
+                )}>
+                {/* AI Suggested Banner */}
+                {flow.source === 'ai_suggested' && !flow.active && (
+                  <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
+                    <Bot size={14} className="text-primary shrink-0" />
+                    <p className="text-[11px] text-primary font-semibold">AI Suggested — Add your asset link and enable to go live</p>
+                    {flow.linkedPostTopic && (
+                      <span className="ml-auto text-[10px] text-muted-foreground font-mono truncate max-w-[200px]">for: "{flow.linkedPostTopic}"</span>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', flow.active ? 'bg-primary/10' : 'bg-muted')}>
-                        {React.createElement(triggerLabels[flow.trigger].icon, { size: 18, className: flow.active ? triggerLabels[flow.trigger].color : 'text-muted-foreground' })}
+                      <div className={cn(
+                        'w-10 h-10 rounded-xl flex items-center justify-center',
+                        flow.source === 'ai_suggested' && !flow.active ? 'bg-primary/15' : flow.active ? 'bg-primary/10' : 'bg-muted'
+                      )}>
+                        {flow.source === 'ai_suggested' && !flow.active
+                          ? <Bot size={18} className="text-primary" />
+                          : React.createElement(triggerLabels[flow.trigger].icon, { size: 18, className: flow.active ? triggerLabels[flow.trigger].color : 'text-muted-foreground' })
+                        }
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-foreground">{flow.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-foreground">{flow.name}</h3>
+                          {flow.source === 'ai_suggested' && (
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wider">AI</span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <span className={cn(
                             "text-[10px] font-semibold px-2 py-0.5 rounded-full",
@@ -1195,9 +1576,18 @@ const DashboardDMs = () => {
                   </div>
                   <div className="flex items-center gap-2 sm:ml-auto shrink-0">
                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setPreviewFlow(flow)}><Eye size={16} className="text-muted-foreground" /></Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => toggleFlow(flow.id)}>
-                      {flow.active ? <ToggleRight size={18} className="text-emerald-500" /> : <ToggleLeft size={18} className="text-muted-foreground" />}
-                    </Button>
+                    {flow.source === 'ai_suggested' && !flow.active ? (
+                      <Button
+                        onClick={() => setupAndEditFlow(flow)}
+                        className="h-9 rounded-xl gap-1.5 px-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30"
+                      >
+                        <Zap size={13} /> Setup & Enable
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => toggleFlow(flow.id)}>
+                        {flow.active ? <ToggleRight size={18} className="text-emerald-500" /> : <ToggleLeft size={18} className="text-muted-foreground" />}
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => deleteFlow(flow.id)}><Trash2 size={15} className="text-muted-foreground hover:text-destructive" /></Button>
                   </div>
                 </div>
@@ -1242,7 +1632,7 @@ const DashboardDMs = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="space-y-2">
                       {msg.conditional && (
                         <div className="flex justify-center">
@@ -1251,24 +1641,24 @@ const DashboardDMs = () => {
                           </span>
                         </div>
                       )}
-                      
+
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                           <Sparkles size={14} className="text-white" />
                         </div>
-                        
+
                         <div className="bg-white rounded-2xl rounded-tl-md max-w-[85%] overflow-hidden border border-border/80 shadow-md">
                           {msg.text && (
                             <div className="px-4 py-2.5">
                               <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">{msg.text}</p>
                             </div>
                           )}
-                          
+
                           {msg.buttons.length > 0 && (
                             <div className="flex flex-col border-t border-border/50 bg-muted/5">
                               {msg.buttons.map(btn => (
-                                <div 
-                                  key={btn.id} 
+                                <div
+                                  key={btn.id}
                                   className={cn(
                                     "py-3 text-center text-xs font-bold border-b border-border/50 last:border-0",
                                     btn.type === 'url' ? 'text-primary' : 'text-foreground/80'
@@ -1294,16 +1684,16 @@ const DashboardDMs = () => {
       <AnimatePresence>
         {editModal.type && (
           <>
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setEditModal({ type: null, message: '' })}
-              className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]" 
+              className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]"
             />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-lg bg-card border border-border/60 rounded-3xl shadow-2xl shadow-primary/10 overflow-hidden"
             >
@@ -1323,11 +1713,11 @@ const DashboardDMs = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="p-6 space-y-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground px-1 uppercase tracking-tight">Response Content</label>
-                  <Textarea 
+                  <Textarea
                     value={editModal.message}
                     onChange={(e) => setEditModal(prev => ({ ...prev, message: e.target.value }))}
                     placeholder="Type your automated response here..."
@@ -1343,18 +1733,159 @@ const DashboardDMs = () => {
               </div>
 
               <div className="p-4 bg-muted/30 flex gap-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setEditModal({ type: null, message: '' })}
                   className="flex-1 rounded-2xl h-11 text-sm font-bold border-border/60 hover:bg-background transition-all"
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={saveAutomation}
                   className="flex-1 rounded-2xl h-11 text-sm font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                 >
                   Save Changes
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Asset Preview Modal */}
+      <AnimatePresence>
+        {showAssetPreview && generatedAsset && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 md:inset-x-[15%] md:inset-y-[5%] z-50 bg-card border border-border/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between bg-muted/20">
+                <div>
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Sparkles size={16} className="text-amber-500" /> AI Generated Landing Page
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Review the content below, then confirm to publish & insert link</p>
+                </div>
+                <button onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }} className="p-2 rounded-xl hover:bg-muted transition-colors">
+                  <X size={16} className="text-muted-foreground" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="bg-slate-950 text-white rounded-2xl p-8 space-y-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-semibold text-white/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    Preview
+                  </div>
+                  
+                  {/* Title */}
+                  <h1 className="text-3xl md:text-4xl font-black leading-tight">{generatedAsset.title}</h1>
+                  
+                  {/* Description / Intro */}
+                  <p className="text-base text-slate-300 leading-relaxed whitespace-pre-line">{generatedAsset.description}</p>
+                  
+                  {/* Main Content (Rich) */}
+                  {generatedAsset.mainContent && (
+                    <div className="border-t border-white/10 pt-6">
+                      <div className="prose prose-invert max-w-none text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                        {generatedAsset.mainContent}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Sections / Structured Content */}
+                  {generatedAsset.sections && generatedAsset.sections.length > 0 && (
+                    <div className="border-t border-white/10 pt-6 space-y-4">
+                      {generatedAsset.sections.map((sec: any, i: number) => (
+                        <div key={i}>
+                          {sec.heading && <h3 className="text-lg font-bold mb-3 text-white/90">{sec.heading}</h3>}
+                          {sec.body && <p className="text-sm text-slate-400 mb-4">{sec.body}</p>}
+                          {sec.items && sec.items.length > 0 && (
+                            <div className="space-y-3">
+                              {sec.items.map((item: any, j: number) => (
+                                <div key={j} className="bg-white/5 rounded-xl p-4 border border-white/10 flex items-start gap-3">
+                                  <div className="text-2xl shrink-0">{item.icon || '✨'}</div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-bold text-white">{item.title}</p>
+                                    <p className="text-xs text-slate-300 mt-2 leading-relaxed">{item.description}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Key Takeaways */}
+                  {generatedAsset.keyTakeaways && generatedAsset.keyTakeaways.length > 0 && (
+                    <div className="border-t border-white/10 pt-6">
+                      <h3 className="text-lg font-bold mb-3 text-white/90">Key Takeaways</h3>
+                      <ul className="space-y-2">
+                        {generatedAsset.keyTakeaways.map((takeaway: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
+                            <span>{takeaway}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Visual Suggestions */}
+                  {generatedAsset.needsVisuals && generatedAsset.visualSuggestions && (
+                    <div className="border-t border-white/10 pt-6 bg-white/5 rounded-xl p-4 border border-white/10">
+                      <h4 className="text-sm font-bold text-white/80 mb-2 flex items-center gap-2">
+                        🎨 Recommended Visuals
+                      </h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">{generatedAsset.visualSuggestions}</p>
+                    </div>
+                  )}
+
+                  {/* CTA */}
+                  <div className="border-t border-white/10 pt-6 flex flex-col gap-2">
+                    <span className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-bold text-white w-full justify-center">
+                      {generatedAsset.ctaText}
+                    </span>
+                    {generatedAsset.ctaDescription && (
+                      <p className="text-xs text-slate-400 text-center">{generatedAsset.ctaDescription}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+                  <p className="text-[11px] text-muted-foreground font-medium mb-1">Asset URL (will be auto-inserted into your DM flow):</p>
+                  <p className="text-xs font-mono text-primary break-all">{generatedAsset.assetUrl}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }}
+                  className="flex-1 rounded-xl h-11 text-sm font-bold"
+                >
+                  Discard
+                </Button>
+                <Button
+                  onClick={handleInsertAssetUrl}
+                  className="flex-1 rounded-xl h-11 text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/20"
+                >
+                  <Zap size={14} /> Publish & Insert Link
                 </Button>
               </div>
             </motion.div>

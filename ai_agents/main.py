@@ -12,6 +12,8 @@ load_dotenv()
 
 from bson import ObjectId
 from agents import generate_strategy, analyze_brand_mix
+from dm_flow_agent import process_calendar_for_dm_flows
+from asset_agent import generate_asset_content
 from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_video_minimax, generate_fal_video_wan
@@ -43,6 +45,8 @@ client = AsyncIOMotorClient(MONGO_URI)
 db = client.get_database("test") # Explicitly use 'test' database
 calendar_collection = db["content_calendars"]
 brand_collection = db["brandprofiles"]
+dm_flows_collection = db["dm_flows"]
+assets_collection = db["assets"]
 
 @app.get("/health")
 async def health_check():
@@ -128,7 +132,9 @@ async def api_generate_strategy(brand_info: BrandInfo):
             "selectedPlan": brand_doc.get("selectedPlan", "VelocityDM Starter")
         }
         
-        product_brief = brand_info.productBrief
+        product_brief = brand_info.productBrief or {}
+        if not isinstance(product_brief, dict):
+            product_brief = {}
         # Add businessCategory from brand profile to product_brief
         product_brief['category'] = full_brand_profile.get('businessCategory', 'General')
         
@@ -154,7 +160,44 @@ async def api_generate_strategy(brand_info: BrandInfo):
             if "id" not in post:
                 post["id"] = str(idx + 1)
         
-        # 3. Save to MongoDB
+        # 3. DM Flow Intelligence Agent — analyse each post for DM automation
+        try:
+            calendar = process_calendar_for_dm_flows(calendar, full_brand_profile)
+        except Exception as dm_err:
+            print(f"[DM-AGENT] Non-critical error (strategy still valid): {dm_err}")
+
+        # 4. Save generated DM flows to MongoDB
+        dm_flows_created = []
+        for post in calendar:
+            dm_flow = post.get("dm_flow")
+            if dm_flow:
+                dm_flow_doc = {
+                    "user": ObjectId(brand_info.userId),
+                    "name": dm_flow.get("name", "AI Suggested Flow"),
+                    "trigger": dm_flow.get("trigger", "comment"),
+                    "targetType": dm_flow.get("targetType", "all"),
+                    "targetMediaId": dm_flow.get("targetMediaId", ""),
+                    "keyword": dm_flow.get("keyword", "LINK"),
+                    "keywordNormalized": dm_flow.get("keyword", "link").strip().lower(),
+                    "commentReplyMessage": dm_flow.get("commentReplyMessage", ""),
+                    "messages": dm_flow.get("messages", []),
+                    "active": False,
+                    "source": "ai_suggested",
+                    "linkedPostId": post.get("id"),
+                    "linkedPostTopic": post.get("topic", ""),
+                    "stats": {"triggered": 0, "replied": 0, "clicked": 0, "conversions": 0},
+                    "createdAt": datetime.now(),
+                    "updatedAt": datetime.now(),
+                }
+                try:
+                    insert_result = await dm_flows_collection.insert_one(dm_flow_doc)
+                    dm_flow["_id"] = str(insert_result.inserted_id)
+                    dm_flows_created.append(dm_flow)
+                    print(f"[DM-AGENT] 💾 Saved draft DM flow: {dm_flow.get('name')} (ID: {dm_flow['_id']})")
+                except Exception as save_err:
+                    print(f"[DM-AGENT] ⚠️ Failed to save DM flow: {save_err}")
+
+        # 5. Save calendar to MongoDB
         calendar_entry = {
             "userId": ObjectId(brand_info.userId),
             "posts": calendar,
@@ -165,9 +208,12 @@ async def api_generate_strategy(brand_info: BrandInfo):
         
         await calendar_collection.insert_one(calendar_entry)
         
+        print(f"[DM-AGENT] 🎉 Strategy complete: {len(calendar)} posts, {len(dm_flows_created)} DM flows")
+        
         return {
             "userId": brand_info.userId,
-            "calendar": calendar
+            "calendar": calendar,
+            "dmFlows": dm_flows_created
         }
     except Exception as e:
         print(f"Error in strategy generation: {str(e)}")
@@ -198,7 +244,13 @@ async def api_regenerate_strategy(brand_info: BrandInfo):
             "durationWeeks": brand_info.durationWeeks,
         }
         
-        product_brief = brand_info.productBrief or {"name": "General Brand Content", "description": "General brand awareness"}
+        product_brief = brand_info.productBrief or {}
+        if not isinstance(product_brief, dict):
+            product_brief = {}
+        if not product_brief.get("name"):
+            product_brief["name"] = ""
+        if not product_brief.get("description"):
+            product_brief["description"] = ""
         rejected_items = [{"id": r.id, "prompt": r.prompt} for r in (brand_info.rejectedItems or [])]
         
         result = generate_strategy(
@@ -835,6 +887,104 @@ async def ads_recommendations(request: Request):
         return {"recommendations": recommendations}
     except Exception as e:
         print(f"Ads Agent Route Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ─── ASSET GENERATION ENDPOINT ───
+class AssetGenerateRequest(BaseModel):
+    userId: str
+    postTopic: str = ""
+    flowId: Optional[str] = None
+    flowName: Optional[str] = None
+    flowKeyword: Optional[str] = None
+
+@app.post("/generate-asset")
+async def generate_asset(request: AssetGenerateRequest):
+    """Generate a landing page asset using AI and save it to the database."""
+    try:
+        # Fetch brand profile
+        brand_doc = await brand_collection.find_one({"user": ObjectId(request.userId)})
+        if not brand_doc:
+            raise HTTPException(status_code=404, detail="Brand profile not found")
+
+        brand_profile = {
+            "brandName": brand_doc.get("brandName", ""),
+            "businessCategory": brand_doc.get("businessCategory", "General"),
+            "usp": brand_doc.get("usp", ""),
+            "painPoint": brand_doc.get("painPoint", ""),
+            "brandTone": brand_doc.get("brandTone", "Professional"),
+            "primaryColor": brand_doc.get("primaryColor", "#2563EB"),
+            "secondaryColor": brand_doc.get("secondaryColor", "#60A5FA"),
+            "instagramUsername": brand_doc.get("instagramUsername", ""),
+            "socialHandle": brand_doc.get("socialHandle", ""),
+        }
+
+        flow_context = {
+            "name": request.flowName or "",
+            "keyword": request.flowKeyword or "",
+        }
+
+        # Generate content via AI
+        asset_content = generate_asset_content(brand_profile, request.postTopic, flow_context)
+
+        # Build slug
+        import hashlib, time
+        topic_slug = re.sub(r'[^a-z0-9]+', '-', (request.postTopic or 'asset').lower()).strip('-')[:30]
+        suffix = hashlib.md5(f"{time.time()}".encode()).hexdigest()[:6]
+        slug = f"{topic_slug}-{suffix}"
+
+        username = brand_profile.get("instagramUsername") or brand_profile.get("socialHandle") or str(request.userId)
+
+        # Save to MongoDB
+        asset_doc = {
+            "user": ObjectId(request.userId),
+            "username": username,
+            "slug": slug,
+            "title": asset_content.get("title", "Untitled"),
+            "description": asset_content.get("description", ""),
+            "heroImageUrl": "",
+            "ctaText": asset_content.get("ctaText", "Learn More"),
+            "ctaUrl": "",
+            # Preserve full generated fields so frontend can render complete preview
+            "mainContent": asset_content.get("mainContent", ""),
+            "keyTakeaways": asset_content.get("keyTakeaways", []),
+            "visualSuggestions": asset_content.get("visualSuggestions", ""),
+            "needsVisuals": asset_content.get("needsVisuals", False),
+            "ctaDescription": asset_content.get("ctaDescription", ""),
+            "contentType": asset_content.get("contentType", ""),
+            "ogTitle": asset_content.get("ogTitle", ""),
+            "ogDescription": asset_content.get("ogDescription", ""),
+            "ogImage": "",
+            "brandName": brand_profile.get("brandName", username),
+            "brandColor": brand_profile.get("primaryColor", "#2563EB"),
+            "brandSecondaryColor": brand_profile.get("secondaryColor", "#60A5FA"),
+            "linkedFlowId": ObjectId(request.flowId) if request.flowId else None,
+            "linkedPostTopic": request.postTopic,
+            "sections": asset_content.get("sections", []),
+            "isPublished": False,
+            "stats": {"views": 0, "ctaClicks": 0},
+            "createdAt": datetime.now(timezone.utc),
+            "updatedAt": datetime.now(timezone.utc),
+        }
+
+        result = await assets_collection.insert_one(asset_doc)
+        asset_doc["_id"] = str(result.inserted_id)
+        asset_doc["user"] = str(asset_doc["user"])
+        if asset_doc.get("linkedFlowId"):
+            asset_doc["linkedFlowId"] = str(asset_doc["linkedFlowId"])
+
+        frontend_url_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        asset_url = f"{frontend_url_base}/{username}/{slug}"
+
+        return {
+            "success": True,
+            "asset": asset_doc,
+            "assetUrl": asset_url,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[AssetGen] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ import InstagramInstructions from './pages/InstagramInstructions';
 import TermsOfUse from './pages/TermsOfUse';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import NotFound from './pages/NotFound';
+import AssetPage from './pages/AssetPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Dashboard imports
@@ -61,6 +62,9 @@ function App() {
             <Route path="faq" element={<DashboardFAQ />} />
           </Route>
         </Route>
+
+        {/* Public Asset Page - dynamic route (must be before catch-all) */}
+        <Route path="/:username/:slug" element={<AssetPage />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
