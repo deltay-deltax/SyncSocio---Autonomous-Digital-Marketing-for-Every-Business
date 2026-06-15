@@ -17,7 +17,7 @@ class BrandInfo(BaseModel):
     socialPlatforms: List[str] = []
     primaryColor: Optional[str] = "#2563EB"
     secondaryColor: Optional[str] = "#60A5FA"
-    productBrief: Optional[Dict[str, str]] = {"name": "", "description": "", "category": ""}
+    productBrief: Optional[Dict[str, Any]] = {"name": "", "description": "", "category": ""}
     suggestedMix: Optional[Dict[str, Any]] = None
     customInstruction: Optional[str] = ""
     durationWeeks: Optional[int] = 1
@@ -36,8 +36,19 @@ class CalendarItem(BaseModel):
     carousel_slides: Optional[int] = 3
     content_hook: Optional[str] = ""
     slides_metadata: Optional[List[Dict[str, Any]]] = []
+    product_image_index: Optional[int] = 0
 
 class StrategyResponse(BaseModel):
     userId: str
     calendar: List[CalendarItem]
     status: str = "success"
+
+class StrategyImageRequest(BaseModel):
+    userId: str
+    layout: str                          # "image" | "carousel" | "video"
+    count: int = 4                       # number of posts / carousels / videos
+    slideCount: int = 5                  # slides per carousel (carousel only)
+    aspectRatio: str = "1:1"            # "1:1" | "4:5" | "9:16" | "16:9" | "2:3"
+    idea: Optional[str] = ""                            # user's campaign description
+    refImages: Optional[List[str]] = [] # base64 data-URLs or http URLs
+    products: Optional[List[Dict[str, Any]]] = [] # List of product objects (name, desc, price, keyBenefit, imageBase64)

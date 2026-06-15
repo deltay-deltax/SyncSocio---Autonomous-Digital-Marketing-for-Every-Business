@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ const DashboardHome = () => {
   const [data, setData] = useState<any>(cachedSummaryData);
   const [loading, setLoading] = useState(!cachedSummaryData);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -238,9 +239,14 @@ const DashboardHome = () => {
                 </div>
               </CardHeader>
               <CardContent className="px-6 pb-6">
-                <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-transparent aspect-video flex items-center justify-center mb-3 overflow-hidden shadow-inner relative">
+                <div 
+                  onClick={() => {
+                    if (data.topPost.image) setPreviewUrl(data.topPost.image);
+                  }}
+                  className={cn("rounded-2xl bg-gradient-to-br from-primary/10 to-transparent aspect-video flex items-center justify-center mb-3 overflow-hidden shadow-inner relative group", data.topPost.image && "cursor-zoom-in")}
+                >
                   {data.topPost.image ? (
-                    <img src={data.topPost.image} alt="Top Post" className="w-full h-full object-cover" />
+                    <img src={data.topPost.image} alt="Top Post" className="w-full h-full object-cover transition duration-300 group-hover:scale-[1.03]" />
                   ) : (
                     <span className="text-4xl text-primary opacity-20">📸</span>
                   )}
@@ -256,6 +262,39 @@ const DashboardHome = () => {
           )}
         </motion.div>
       </div>
+
+      {/* Lightbox / Preview Modal */}
+      <AnimatePresence>
+        {previewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-zoom-out"
+            onClick={() => setPreviewUrl(null)}
+          >
+            <button
+              onClick={() => setPreviewUrl(null)}
+              className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition shadow-lg z-50"
+            >
+              <X size={20} />
+            </button>
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="max-w-[90vw] max-h-[85vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-card flex items-center justify-center cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={previewUrl}
+                alt="Top Post Preview"
+                className="w-full h-auto max-h-[80vh] object-contain max-w-full"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

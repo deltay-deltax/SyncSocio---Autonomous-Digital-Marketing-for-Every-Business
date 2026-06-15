@@ -164,3 +164,23 @@ export const deployStrategy = async (req, res) => {
     res.status(500).json({ message: 'Error deploying strategy' });
   }
 };
+
+export const updateCalendarPosts = async (req, res) => {
+  try {
+    const { posts } = req.body;
+    const latestCalendar = await ContentCalendar.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
+    
+    if (!latestCalendar) {
+      return res.status(404).json({ message: 'Calendar not found' });
+    }
+    
+    latestCalendar.posts = posts;
+    await latestCalendar.save();
+    
+    res.status(200).json({ message: 'Calendar updated successfully', posts: latestCalendar.posts });
+  } catch (error) {
+    console.error('Error updating calendar posts:', error);
+    res.status(500).json({ message: 'Error updating calendar posts' });
+  }
+};
+

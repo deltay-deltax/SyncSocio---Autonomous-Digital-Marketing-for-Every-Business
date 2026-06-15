@@ -92,6 +92,8 @@ const ContentPlan: React.FC = () => {
   const [generating, setGenerating] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<'image' | 'video'>('image');
   const [captions, setCaptions] = useState<Record<number, { caption: string; hashtags: string; hashtag_strategy: string }>>({});
   const [captionsLoading, setCaptionsLoading] = useState(false);
   const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
@@ -670,7 +672,14 @@ const ContentPlan: React.FC = () => {
                                   <div className="flex items-center gap-4 flex-1 min-w-0 overflow-x-auto no-scrollbar">
                                     <div className="flex gap-2">
                                       {item.previewUrls.map((url, idx) => (
-                                        <div key={idx} className="w-16 h-16 rounded-xl overflow-hidden bg-white border-2 border-border/80 shrink-0 relative shadow-sm">
+                                        <div 
+                                          key={idx}
+                                          onClick={() => {
+                                            setPreviewUrl(url);
+                                            setPreviewType(item.files?.[idx]?.type?.startsWith("video/") ? 'video' : 'image');
+                                          }}
+                                          className="w-16 h-16 rounded-xl overflow-hidden bg-white border-2 border-border/80 shrink-0 relative shadow-sm cursor-zoom-in hover:scale-105 transition-all"
+                                        >
                                           {item.files?.[idx]?.type?.startsWith("video/") ? (
                                             <video src={url} className="w-full h-full object-cover" muted />
                                           ) : (
@@ -710,7 +719,6 @@ const ContentPlan: React.FC = () => {
                                 )}
 
                                 {/* Publish */}
-                                { /* ... */}
                                 <Button
                                   onClick={() => handlePublish(item.id, items.indexOf(item))}
                                   disabled={!item.files || item.files.length === 0 || item.publishing}
@@ -848,6 +856,48 @@ const ContentPlan: React.FC = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Lightbox / Preview Modal */}
+      <AnimatePresence>
+        {previewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-zoom-out"
+            onClick={() => setPreviewUrl(null)}
+          >
+            <button
+              onClick={() => setPreviewUrl(null)}
+              className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition shadow-lg z-50"
+            >
+              <X size={20} />
+            </button>
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="max-w-[90vw] max-h-[85vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-card flex items-center justify-center cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {previewType === 'video' ? (
+                <video
+                  src={previewUrl}
+                  controls
+                  autoPlay
+                  className="w-full h-auto max-h-[80vh] object-contain max-w-full"
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt="Upload Preview"
+                  className="w-full h-auto max-h-[80vh] object-contain max-w-full"
+                />
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

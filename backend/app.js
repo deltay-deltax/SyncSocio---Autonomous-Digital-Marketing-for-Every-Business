@@ -14,6 +14,8 @@ import dmFlowRoutes from './routes/dmFlowRoutes.js';
 import adsRoutes from './routes/adsRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
+import strategyAssetRoutes from './routes/strategyAssetRoutes.js';
+import productRoutes from './routes/productRoutes.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
@@ -50,6 +52,8 @@ app.use('/api/dm-flows', dmFlowRoutes);
 app.use('/api/ads', adsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/assets', assetRoutes);
+app.use('/api/strategy-assets', strategyAssetRoutes);
+app.use('/api/products', productRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

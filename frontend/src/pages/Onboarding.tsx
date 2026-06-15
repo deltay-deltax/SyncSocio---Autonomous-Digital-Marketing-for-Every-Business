@@ -71,9 +71,107 @@ interface LeftPanelContent {
 }
 
 const Onboarding = () => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const totalSteps = 11;
   const [analyzingProgress, setAnalyzingProgress] = useState(0);
+  const [extractedProducts, setExtractedProducts] = useState<any[]>([]);
+  const [scanUrl, setScanUrl] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanStatus, setScanStatus] = useState('');
+  const [scanError, setScanError] = useState('');
+  const [scanSuccess, setScanSuccess] = useState(false);
+
+  const handleScanWebsite = async () => {
+    if (!scanUrl.trim()) {
+      setScanError('Please enter a website URL');
+      return;
+    }
+    
+    setScanLoading(true);
+    setScanError('');
+    setScanSuccess(false);
+    
+    const statuses = [
+      'Initializing scan...',
+      'Connecting to website host...',
+      'Visiting pages and downloading HTML structure...',
+      'Parsing metadata and layout structure...',
+      'Running GPT Brand Intelligence extraction...',
+      'Rephrasing brand core and messaging...',
+      'Cataloging product offerings...'
+    ];
+    
+    let statusIndex = 0;
+    setScanStatus(statuses[0]);
+    const statusInterval = setInterval(() => {
+      if (statusIndex < statuses.length - 1) {
+        statusIndex++;
+        setScanStatus(statuses[statusIndex]);
+      }
+    }, 2000);
+    
+    try {
+      const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: scanUrl })
+      });
+      
+      clearInterval(statusInterval);
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Failed to extract website details');
+      }
+      
+      const data = await response.json();
+      
+      let comps = data.competitors || [];
+      while (comps.length < 2) {
+        comps.push('');
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        brandName: data.brandName || prev.brandName,
+        website: data.website || scanUrl,
+        businessCategory: data.businessCategory || prev.businessCategory,
+        mainGoal: data.mainGoal || prev.mainGoal,
+        location: {
+          country: data.location?.country || prev.location.country,
+          city: data.location?.city || prev.location.city
+        },
+        usp: data.usp || prev.usp,
+        competitors: comps.slice(0, 2),
+        targetAudiences: data.targetAudiences || prev.targetAudiences,
+        ageRange: data.ageRange || prev.ageRange,
+        genderFocus: data.genderFocus || prev.genderFocus,
+        painPoint: data.painPoint || prev.painPoint,
+        brandTone: data.brandTone || prev.brandTone,
+        visualVibe: data.visualVibe || prev.visualVibe,
+        brandKeywords: data.brandKeywords || prev.brandKeywords,
+        primaryColor: data.primaryColor || prev.primaryColor,
+        secondaryColor: data.secondaryColor || prev.secondaryColor
+      }));
+      
+      if (data.products && Array.isArray(data.products)) {
+        setExtractedProducts(data.products);
+      }
+      
+      setScanSuccess(true);
+      setScanStatus('Scan complete! Brand DNA synthesized.');
+    } catch (err: any) {
+      clearInterval(statusInterval);
+      console.error(err);
+      setScanError(err.message || 'Scrape connection timed out. You can skip and setup manually.');
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
 
   const [formData, setFormData] = useState<FormData>({
     brandName: '',
@@ -104,7 +202,7 @@ const Onboarding = () => {
   });
 
   const handleNext = () => setStep(prev => Math.min(prev + 1, totalSteps));
-  const handleBack = () => setStep(prev => Math.max(prev - 1, 1));
+  const handleBack = () => setStep(prev => Math.max(prev - 1, 0));
 
   useEffect(() => {
     if (step === 11) {
@@ -124,6 +222,7 @@ const Onboarding = () => {
 
   const getLeftPanelContent = (): LeftPanelContent => {
     const contents: Record<number, LeftPanelContent> = {
+      0: { icon: <Globe size={80} strokeWidth={0.5} className="text-primary" />, title: "Website Scan", desc: "Instantly scan your website to auto-build your brand DNA." },
       1: { icon: <Rocket size={80} strokeWidth={0.5} className="text-primary" />, title: "Brand Core", desc: "Setting the foundation of your digital entity." },
       2: { icon: <Target size={80} strokeWidth={0.5} className="text-primary" />, title: "The Vision", desc: "Defining what success looks like for your brand." },
       3: { icon: <Globe size={80} strokeWidth={0.5} className="text-primary" />, title: "Local Presence", desc: "Pinpointing where your brand lives on the global map." },
@@ -205,7 +304,7 @@ const Onboarding = () => {
           )}
 
           <div className="flex justify-between items-center px-8 md:px-12 pt-8 md:pt-10 pb-0 z-10">
-            {step > 1 && step < 11 ? (
+            {step > 0 && step < 11 ? (
               <button onClick={handleBack} className="flex items-center text-[11px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-[0.2em] group hover:gap-1">
                 <ChevronLeft size={14} className="mr-1 group-hover:-translate-x-0.5 transition-transform" /> BACK
               </button>
@@ -217,8 +316,8 @@ const Onboarding = () => {
             
             {step < 11 && (
               <div className="flex items-center text-[11px] font-black text-primary px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
-                <Sparkles size={11} className="mr-1.5" /> Step {step}
-                <span className="text-muted-foreground/50 ml-1">/ {totalSteps - 1}</span>
+                <Sparkles size={11} className="mr-1.5" /> {step === 0 ? "Auto Scan" : `Step ${step}`}
+                {step > 0 && <span className="text-muted-foreground/50 ml-1">/ {totalSteps - 1}</span>}
               </div>
             )}
           </div>
@@ -226,6 +325,136 @@ const Onboarding = () => {
           <div className="flex-grow overflow-y-auto px-8 md:px-12 pb-16">
             <div className="max-w-[420px] mx-auto w-full flex flex-col mt-6">
               
+              {/* Step 0: Website Scan */}
+              {step === 0 && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                  <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Auto-Setup</h2>
+                  <p className="text-muted-foreground text-base mb-8 font-medium italic leading-relaxed">
+                    Instantly import your brand. Drop your link and our AI agent will extract your brand details, tone, and products.
+                  </p>
+                  
+                  {!scanLoading && !scanSuccess && (
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Website URL</label>
+                        <div className="relative">
+                          <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={16} />
+                          <input 
+                            type="text" 
+                            placeholder="e.g. www.yourbrand.com" 
+                            value={scanUrl}
+                            onChange={(e) => setScanUrl(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleScanWebsite()}
+                            className="w-full bg-background text-foreground text-sm font-semibold rounded-xl pl-12 pr-5 py-4 outline-none focus:ring-2 focus:ring-primary/15 transition-all border border-border/80 focus:border-primary/40 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" 
+                          />
+                        </div>
+                        {scanError && (
+                          <p className="text-destructive text-xs font-semibold mt-2.5 px-1">{scanError}</p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-3 pt-2">
+                        <button 
+                          onClick={handleScanWebsite}
+                          className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110"
+                        >
+                          Auto-Scan Website <Sparkles size={14} className="ml-1.5 animate-pulse" />
+                        </button>
+                        
+                        <button 
+                          onClick={() => setStep(1)}
+                          className="w-full bg-transparent hover:bg-muted/30 text-muted-foreground hover:text-foreground border border-border rounded-xl py-4 text-sm font-bold transition-all flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98]"
+                        >
+                          Skip & Manual Setup <ArrowRight size={14} className="ml-1.5 group-hover:translate-x-0.5 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {scanLoading && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in duration-300">
+                      <div className="relative mb-8">
+                        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center animate-pulse">
+                          <Globe size={28} className="text-primary animate-spin" style={{ animationDuration: '3s' }} />
+                        </div>
+                        <div className="absolute -inset-2 border border-dashed border-primary/30 rounded-3xl animate-spin" style={{ animationDuration: '10s' }}></div>
+                      </div>
+                      <h3 className="text-lg font-bold text-foreground mb-1">Scanning Brand Identity</h3>
+                      <p className="text-xs text-muted-foreground/80 font-semibold uppercase tracking-wider h-6 animate-pulse">
+                        {scanStatus}
+                      </p>
+                    </div>
+                  )}
+
+                  {scanSuccess && (
+                    <div className="space-y-6 animate-in zoom-in-95 duration-500">
+                      <div className="bg-primary/[0.03] border border-primary/15 rounded-2xl p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                            <Check size={18} strokeWidth={3} />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-bold text-foreground leading-tight">Extraction Successful!</h3>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">Found at {formData.website}</p>
+                          </div>
+                        </div>
+
+                        <div className="h-px bg-border/50" />
+
+                        <div className="space-y-2.5">
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Brand Name:</span>
+                            <span className="text-xs font-bold text-foreground">{formData.brandName || 'Not Found'}</span>
+                          </div>
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Category:</span>
+                            <span className="text-xs font-bold text-foreground">{formData.businessCategory || 'Not Found'}</span>
+                          </div>
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Brand Tone:</span>
+                            <span className="text-xs font-bold text-foreground">{formData.brandTone || 'Not Found'}</span>
+                          </div>
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Visual Vibe:</span>
+                            <span className="text-xs font-bold text-foreground">{formData.visualVibe || 'Not Found'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Brand Colors:</span>
+                            <div className="flex gap-1.5">
+                              <div className="w-4 h-4 rounded-full border border-border shadow-sm" style={{ backgroundColor: formData.primaryColor }} />
+                              <div className="w-4 h-4 rounded-full border border-border shadow-sm" style={{ backgroundColor: formData.secondaryColor }} />
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Products Cataloged:</span>
+                            <span className="text-xs font-bold text-foreground">{extractedProducts.length} items</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <button 
+                          onClick={() => setStep(1)}
+                          className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center uppercase tracking-widest active:scale-[0.98] hover:brightness-110"
+                        >
+                          Review Brand Identity <ChevronRight size={14} className="ml-1" />
+                        </button>
+                        
+                        <button 
+                          onClick={() => {
+                            setScanSuccess(false);
+                            setScanUrl('');
+                          }}
+                          className="w-full bg-transparent text-muted-foreground hover:text-foreground text-[10px] font-black uppercase tracking-widest py-2"
+                        >
+                          Re-Scan Website
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Step 1: Identity */}
               {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
@@ -857,6 +1086,32 @@ const Onboarding = () => {
                                     body: JSON.stringify(formData)
                                   });
                                   if (!res.ok) throw new Error('Failed to save profile');
+
+                                  // Sequentially register auto-extracted products from website scan if present
+                                  if (extractedProducts && extractedProducts.length > 0) {
+                                    for (const prod of extractedProducts) {
+                                      try {
+                                        await fetch(`${BASE_URL}/products`, {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`
+                                          },
+                                          body: JSON.stringify({
+                                            name: prod.name,
+                                            description: prod.description || '',
+                                            price: prod.price || '',
+                                            offerPrice: prod.offerPrice || '',
+                                            keyBenefit: prod.keyBenefit || '',
+                                            imageBase64: ''
+                                          })
+                                        });
+                                      } catch (prodErr) {
+                                        console.error('Failed to auto-save product during onboarding:', prodErr);
+                                      }
+                                    }
+                                  }
+
                                   localStorage.setItem('velocity_profile', JSON.stringify(formData));
                                   window.location.href = "/setup";
                                 } catch (err) {

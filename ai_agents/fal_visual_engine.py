@@ -2,30 +2,36 @@ import os
 import fal_client
 from typing import List, Optional, Dict, Any
 import base64
+from dotenv import load_dotenv
+from prompt_architect import build_flux_negative_prompt
 
-def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = "3:4"):
+load_dotenv()
+
+# LEGACY - replaced by gpt-image-2
+def generate_fal_image_flux_legacy(prompt: str, image: str = None, aspect_ratio: str = "3:4"):
     """
-    Generates images using Flux Dev via FAL.ai
-    Supports image-to-image generation for product anchoring.
-    
+    LEGACY: Static image generation using Flux Dev via FAL.ai.
+    Kept for reference. Active static generation is handled by generate_fal_image_gpt2().
+
     Args:
         prompt: Text description for image generation
         image: Optional base64 image for img2img
         aspect_ratio: Image aspect ratio (default: 3:4 for Instagram)
-    
+
     Returns:
         Dict with base64 encoded image
     """
-    api_key = os.getenv("FAL_API_KEY")
+    api_key = os.getenv("FAL_API_KEY") or os.getenv("FAL_KEY")
     if not api_key:
-        raise ValueError("FAL_API_KEY not found in environment")
-    
+        raise ValueError("FAL_API_KEY or FAL_KEY not found in environment")
+    os.environ["FAL_KEY"] = api_key
+
     try:
-        print(f"FAL ENGINE (Flux Dev): Generating image...")
-        
-        # Prepare arguments
+        print(f"FAL ENGINE LEGACY (Flux Dev): Generating image...")
+
         arguments = {
             "prompt": prompt,
+            "negative_prompt": build_flux_negative_prompt(),
             "image_size": {
                 "width": 1024,
                 "height": 1280  # 4:5 ratio for Instagram
@@ -35,29 +41,20 @@ def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = 
             "num_images": 1,
             "enable_safety_checker": False
         }
-        
-        # Add image for img2img if provided
+
+        model_endpoint = "fal-ai/flux/dev"
         if image:
-            # Clean base64 string
             if "base64," in image:
                 image = image.split("base64,")[1]
-            
-            # Convert to data URL format that FAL expects
             image_url = f"data:image/jpeg;base64,{image}"
             arguments["image_url"] = image_url
-            arguments["strength"] = 0.75  # How much to transform the input image
-        
-        # Call FAL.ai API
-        result = fal_client.subscribe(
-            "fal-ai/flux/dev",
-            arguments=arguments
-        )
-        
-        # Extract image URL and convert to base64
+            arguments["strength"] = 0.65
+            model_endpoint = "fal-ai/flux/dev/image-to-image"
+
+        result = fal_client.subscribe(model_endpoint, arguments=arguments)
+
         if result and "images" in result and len(result["images"]) > 0:
             image_url = result["images"][0]["url"]
-            
-            # Download and convert to base64
             import requests
             response = requests.get(image_url)
             if response.status_code == 200:
@@ -67,33 +64,143 @@ def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = 
                 raise Exception(f"Failed to download image from FAL: {response.status_code}")
         else:
             raise Exception("No image data in FAL response")
-            
+
     except Exception as e:
-        print(f"FAL FLUX ENGINE ERROR: {str(e)}")
+        print(f"FAL FLUX LEGACY ENGINE ERROR: {str(e)}")
         raise e
 
 
-def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: int = 2, slide_prompts: List[str] = None):
+def generate_fal_image_gpt2(prompt: str, image: str = None, image_size: str = "portrait_4_3"):
     """
-    Generates carousel images using Ideogram v2 Turbo via FAL.ai
-    Ideogram is excellent for text-in-image generation for carousels.
-    
-    Args:
-        base_prompt: Base description
-        image: Optional reference image
-        count: Number of slides (max 2 to save credits)
-        slide_prompts: List of prompts for each slide
-    
-    Returns:
-        List of dicts with base64 encoded images
+    Static image generation using GPT-Image-2 via FAL.ai.
+    When an image is provided, it uses the openai/gpt-image-2/edit endpoint
+    (with fallbacks) to perform high-fidelity image-to-image edits.
     """
-    api_key = os.getenv("FAL_API_KEY")
+    api_key = os.getenv("FAL_API_KEY") or os.getenv("FAL_KEY")
     if not api_key:
-        raise ValueError("FAL_API_KEY not found in environment")
+        raise ValueError("FAL_API_KEY or FAL_KEY not found in environment")
+    os.environ["FAL_KEY"] = api_key
+
+    try:
+        if image:
+            if "base64," in image:
+                image = image.split("base64,")[1]
+            data_url = f"data:image/jpeg;base64,{image}"
+            size_kb = len(image) * 3 // 4 // 1024
+            
+            # Image-to-image flow using GPT-Image-2 Edit endpoint
+            print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image...")
+            print(f"  has_ref    : YES ({size_kb} KB)")
+            print(f"\n--- PROMPT SENT TO FAL gpt-image-2/edit ---")
+            print(prompt)
+            print("--------------------------------------\n")
+
+            edit_arguments = {
+                "prompt": prompt,
+                "image_urls": [data_url],
+            }
+            try:
+                result = fal_client.subscribe(
+                    "openai/gpt-image-2/edit",
+                    arguments=edit_arguments,
+                )
+            except Exception as edit_err:
+                print(f"[FAL] openai/gpt-image-2/edit failed: {edit_err}. Trying fal-ai/gpt-image-2/edit...")
+                try:
+                    result = fal_client.subscribe(
+                        "fal-ai/gpt-image-2/edit",
+                        arguments=edit_arguments,
+                    )
+                except Exception as edit_err2:
+                    print(f"[FAL] gpt-image-2/edit failed: {edit_err2}. Falling back to Flux Image-to-Image...")
+                    flux_args = {
+                        "prompt": prompt,
+                        "image_url": data_url,
+                        "strength": 0.5,
+                        "image_size": {
+                            "width": 1024,
+                            "height": 1280 if "portrait" in image_size else 1024
+                        }
+                    }
+                    result = fal_client.subscribe(
+                        "fal-ai/flux/dev/image-to-image",
+                        arguments=flux_args,
+                    )
+        else:
+            # Standard Text-to-image flow
+            print(f"\nFAL ENGINE (gpt-image-2): Generating static image...")
+            print(f"  image_size : {image_size}")
+            print(f"  has_ref    : NO")
+            print(f"\n--- PROMPT SENT TO FAL gpt-image-2 ---")
+            print(prompt)
+            print("--------------------------------------\n")
+
+            arguments = {
+                "prompt": prompt,
+                "image_size": image_size,
+                "quality": "medium",
+            }
+            result = fal_client.subscribe(
+                "fal-ai/gpt-image-2",
+                arguments=arguments,
+            )
+
+        # Extract image URL and convert to base64 for consistent return shape
+        if result and "images" in result and len(result["images"]) > 0:
+            image_url = result["images"][0]["url"]
+            import requests
+            response = requests.get(image_url)
+            if response.status_code == 200:
+                b64_image = base64.b64encode(response.content).decode('utf-8')
+                return {"image": b64_image, "status": "success"}
+            else:
+                raise Exception(f"Failed to download image from FAL response: {response.status_code}")
+        else:
+            raise Exception("No image data in FAL response")
+
+    except Exception as e:
+        print(f"FAL GPT-IMAGE-2 ENGINE ERROR: {str(e)}")
+        raise e
+
+
+def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = "3:4"):
+    """
+    Public entry point for static image generation.
+    Delegates to generate_fal_image_gpt2() — signature unchanged so all
+    existing callers (main.py etc.) work without modification.
+
+    Args:
+        prompt:       Text prompt for generation.
+        image:        Optional base64 product image for edit/reference mode.
+        aspect_ratio: Kept for API compatibility; gpt-image-2 uses "1024x1536" internally.
+
+    Returns:
+        Dict with base64 encoded image: {"image": str, "status": "success"}
+    """
+    return generate_fal_image_gpt2(prompt=prompt, image=image)
+
+
+def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: int = 3, slide_prompts: List[str] = None):
+    """
+    Generates carousel images using GPT-Image-2 (Text-to-Image / Edit) via FAL.ai.
+    Uses openai/gpt-image-2/edit for image-to-image when a product reference image is present.
+    """
+    api_key = os.getenv("FAL_API_KEY") or os.getenv("FAL_KEY")
+    if not api_key:
+        raise ValueError("FAL_API_KEY or FAL_KEY not found in environment")
+    os.environ["FAL_KEY"] = api_key
     
     try:
         results = []
-        actual_count = min(count, 2)  # Hard cap at 2 slides
+        actual_count = min(count, 3)  # Hard cap at 3 slides
+        
+        # Clean base64 string once
+        cleaned_image = None
+        if image:
+            if "base64," in image:
+                cleaned_image = image.split("base64,")[1]
+            else:
+                cleaned_image = image
         
         for i in range(actual_count):
             if slide_prompts and i < len(slide_prompts):
@@ -101,28 +208,53 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
             else:
                 slide_prompt = f"{base_prompt}, slide {i+1} of {actual_count}"
             
-            print(f"FAL ENGINE (Ideogram): Generating Carousel Slide {i+1}/{actual_count}...")
+            print(f"FAL ENGINE (gpt-image-2): Generating Carousel Slide {i+1}/{actual_count}...")
             
-            arguments = {
-                "prompt": slide_prompt,
-                "aspect_ratio": "4:5",  # Instagram carousel ratio
-                "model": "V_2_TURBO",
-                "magic_prompt_option": "AUTO",  # Let Ideogram enhance the prompt
-                "style_type": "DESIGN"  # Good for marketing content
-            }
-            
-            # Add image reference if provided (only for first slide)
-            if image and i == 0:
-                if "base64," in image:
-                    image = image.split("base64,")[1]
-                image_url = f"data:image/jpeg;base64,{image}"
-                arguments["image_url"] = image_url
-                arguments["image_weight"] = 0.3  # Subtle influence
-            
-            result = fal_client.subscribe(
-                "fal-ai/ideogram/v2/turbo",
-                arguments=arguments
-            )
+            if cleaned_image:
+                # Use GPT-Image-2 edit (image-to-image)
+                data_url = f"data:image/jpeg;base64,{cleaned_image}"
+                arguments = {
+                    "prompt": slide_prompt,
+                    "image_urls": [data_url],
+                    "quality": "medium",
+                }
+                model_endpoint = "openai/gpt-image-2/edit"
+            else:
+                # Use GPT-Image-2 text-to-image
+                arguments = {
+                    "prompt": slide_prompt,
+                    "image_size": "portrait_4_3",
+                    "quality": "medium",
+                }
+                model_endpoint = "fal-ai/gpt-image-2"
+                
+            try:
+                result = fal_client.subscribe(
+                    model_endpoint,
+                    arguments=arguments
+                )
+            except Exception as e:
+                # Fallback path if edit fails
+                if cleaned_image:
+                    print(f"[FAL] openai/gpt-image-2/edit failed for slide {i+1}: {e}. Trying fal-ai/gpt-image-2/edit...")
+                    try:
+                        result = fal_client.subscribe(
+                            "fal-ai/gpt-image-2/edit",
+                            arguments=arguments
+                        )
+                    except Exception as e2:
+                        print(f"[FAL] fal-ai/gpt-image-2/edit failed for slide {i+1}: {e2}. Falling back to text-to-image...")
+                        arguments_t2i = {
+                            "prompt": slide_prompt,
+                            "image_size": "portrait_4_3",
+                            "quality": "medium",
+                        }
+                        result = fal_client.subscribe(
+                            "fal-ai/gpt-image-2",
+                            arguments=arguments_t2i
+                        )
+                else:
+                    raise e
             
             # Extract and convert to base64
             if result and "images" in result and len(result["images"]) > 0:
@@ -141,7 +273,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
         return results
         
     except Exception as e:
-        print(f"FAL IDEOGRAM ENGINE ERROR: {str(e)}")
+        print(f"FAL GPT-IMAGE-2 CAROUSEL ENGINE ERROR: {str(e)}")
         raise e
 
 
@@ -157,9 +289,10 @@ def generate_fal_video_minimax(prompt: str, duration: str = "6s"):
     Returns:
         Dict with video URL and thumbnail
     """
-    api_key = os.getenv("FAL_API_KEY")
+    api_key = os.getenv("FAL_API_KEY") or os.getenv("FAL_KEY")
     if not api_key:
-        raise ValueError("FAL_API_KEY not found in environment")
+        raise ValueError("FAL_API_KEY or FAL_KEY not found in environment")
+    os.environ["FAL_KEY"] = api_key
     
     try:
         print(f"FAL ENGINE (Minimax Video): Generating {duration} video...")
@@ -214,9 +347,10 @@ def generate_fal_video_wan(prompt: str, duration: str = "6s"):
     Returns:
         Dict with video URL
     """
-    api_key = os.getenv("FAL_API_KEY")
+    api_key = os.getenv("FAL_API_KEY") or os.getenv("FAL_KEY")
     if not api_key:
-        raise ValueError("FAL_API_KEY not found in environment")
+        raise ValueError("FAL_API_KEY or FAL_KEY not found in environment")
+    os.environ["FAL_KEY"] = api_key
     
     try:
         print(f"FAL ENGINE (Luma Dream Machine): Generating video...")

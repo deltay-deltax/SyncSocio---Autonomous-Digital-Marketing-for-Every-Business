@@ -25,7 +25,7 @@ export const createAsset = async (req, res) => {
       description,
       heroImageUrl,
       ctaText: ctaText || 'Learn More',
-      ctaUrl: ctaUrl || '',
+      ctaUrl: ctaUrl || brand.website || '',
       ogTitle: title,
       ogDescription: (description || '').slice(0, 160),
       ogImage: heroImageUrl || '',
@@ -134,8 +134,12 @@ export const trackAssetClick = async (req, res) => {
 
     await Asset.updateOne({ _id: id }, { $inc: { 'stats.ctaClicks': 1 } });
 
-    if (asset.ctaUrl) {
-      return res.redirect(302, asset.ctaUrl);
+    let targetUrl = asset.ctaUrl;
+    if (targetUrl) {
+      if (!/^https?:\/\//i.test(targetUrl)) {
+        targetUrl = `https://${targetUrl}`;
+      }
+      return res.redirect(302, targetUrl);
     }
     return res.status(200).json({ clicked: true });
   } catch (error) {

@@ -17,14 +17,17 @@ from asset_agent import generate_asset_content
 from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_video_minimax, generate_fal_video_wan
-from models import BrandInfo, StrategyResponse
+from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
+from models import BrandInfo, StrategyResponse, StrategyImageRequest
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
 from mix_agent import predict_brand_mix
 from plan_agent import generate_weekly_plan
 from caption_agent import generate_captions_and_hashtags
+from strategy_image_agent import generate_strategy_images
 import shutil
 from langchain_google_genai import ChatGoogleGenerativeAI
+from google import genai
 from auditors.meta_auditor import MetaAuditor
 from auditors.models import AuditorInput, AuditorResponse
 
@@ -51,6 +54,215 @@ assets_collection = db["assets"]
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "timestamp": datetime.now()}
+
+import requests
+from html.parser import HTMLParser
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+class HTMLMetadataExtractor(HTMLParser):
+    def __init__(self, base_url=""):
+        super().__init__()
+        self.base_url = base_url
+        self.title = ""
+        self.meta_desc = ""
+        self.current_tag = ""
+        self.body_text = []
+        self.ignore_tags = {"script", "style", "head", "link", "noscript"}
+        self.in_ignore = False
+        self.images = []
+
+    def handle_starttag(self, tag, attrs):
+        self.current_tag = tag
+        if tag in self.ignore_tags and tag != "head":
+            self.in_ignore = True
+        
+        if tag == "meta":
+            attrs_dict = dict(attrs)
+            if attrs_dict.get("name") == "description":
+                self.meta_desc = attrs_dict.get("content", "")
+            elif attrs_dict.get("property") == "og:description":
+                if not self.meta_desc:
+                    self.meta_desc = attrs_dict.get("content", "")
+                    
+        if tag == "img":
+            attrs_dict = dict(attrs)
+            src = attrs_dict.get("src", "")
+            alt = attrs_dict.get("alt", "")
+            if src:
+                from urllib.parse import urljoin
+                absolute_src = urljoin(self.base_url, src)
+                self.images.append({"src": absolute_src, "alt": alt})
+
+    def handle_endtag(self, tag):
+        if tag in self.ignore_tags:
+            self.in_ignore = False
+        self.current_tag = ""
+
+    def handle_data(self, data):
+        if self.current_tag == "title":
+            self.title += data.strip()
+        elif not self.in_ignore:
+            text = data.strip()
+            if text:
+                self.body_text.append(text)
+
+    def get_content(self):
+        formatted_images = []
+        seen = set()
+        for img in self.images:
+            src = img["src"]
+            if src not in seen and not src.endswith(".svg") and "logo" not in src.lower() and "icon" not in src.lower():
+                seen.add(src)
+                formatted_images.append(img)
+                if len(formatted_images) >= 40:
+                    break
+        return {
+            "title": self.title.strip(),
+            "meta_description": self.meta_desc.strip(),
+            "body_text": " ".join(self.body_text)[:12000],
+            "images": formatted_images
+        }
+
+def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = ""):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    payload = {
+        "model": "gpt-4o-mini",
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.2
+    }
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=30)
+    response.raise_for_status()
+    result = response.json()
+    return result["choices"][0]["message"]["content"]
+
+class ScrapeRequest(BaseModel):
+    url: str
+
+@app.post("/scrape-brand-profile")
+async def api_scrape_brand_profile(payload: ScrapeRequest):
+    url = payload.url
+    openai_key = os.getenv("OPENAI_API_KEY")
+    
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required")
+        
+    if not url.startswith("http://") and not url.startswith("https://"):
+        url = "https://" + url
+        
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        try:
+            response = requests.get(url, headers=headers, timeout=12, verify=False)
+        except Exception as e:
+            if url.startswith("https://"):
+                url_http = url.replace("https://", "http://")
+                response = requests.get(url_http, headers=headers, timeout=12, verify=False)
+            else:
+                raise e
+                
+        response.raise_for_status()
+        html_content = response.text
+        
+        parser = HTMLMetadataExtractor(base_url=url)
+        parser.feed(html_content)
+        extracted = parser.get_content()
+        
+        if not extracted["body_text"].strip():
+            raise Exception("No readable text content found on the webpage.")
+            
+        print("\n" + "="*80)
+        print(f"[WEBSITE SCANNER] 🌐 Initiating scan for URL: {url}")
+        print(f"[WEBSITE SCANNER] 📄 Extracted Title: {extracted['title']}")
+        print(f"[WEBSITE SCANNER] 📝 Extracted Meta Description: {extracted['meta_description']}")
+        print(f"[WEBSITE SCANNER] 🖼️ Extracted Unique Image URLs Count: {len(extracted['images'])}")
+        print(f"[WEBSITE SCANNER] 💬 Raw text character length: {len(extracted['body_text'])}")
+        print("="*80 + "\n")
+            
+    except Exception as scrape_err:
+        print(f"Scrape error for {url}: {scrape_err}")
+        raise HTTPException(status_code=422, detail=f"Failed to fetch or scrape website: {str(scrape_err)}")
+        
+    if not openai_key:
+        raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
+        
+    try:
+        system_prompt = """You are an expert brand researcher and product cataloging agent. 
+Analyze the website's title, meta description, lists of found image URLs, and body text content to extract the brand's profile information and standard products list.
+
+Your output must be a valid JSON object matching the following structure. If any field or product detail is not found, keep it as an empty string ("") or empty array ([])—DO NOT invent fake information, but infer sensible defaults when obvious (e.g. brand name from title, colors from context, or standard goals).
+
+IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep them concise. Product descriptions MUST be strictly 200 characters or less.
+
+For each product, select the most relevant image URL from the provided list of images by matching the product name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
+
+JSON Structure:
+{
+  "brandName": "Name of the brand (extracted from title/content or default: empty string)",
+  "businessCategory": "Choose ONE from: 'Baby & Kids', 'Food & Beverage', 'Home & Living', 'Education & Training', 'Real Estate & Property', 'Travel & Hospitality', 'Mobile Apps', 'IT & Technical Tools', 'Gaming & Entertainment', 'Fashion & Apparel', 'Beauty & Personal Care', 'Health & Wellness', 'Coaching & Consulting', 'Architecture', 'Financial Services', 'Newsletters', 'Online Marketplaces', 'Digital Products', 'E-Commerce', 'Services', 'SaaS & Digital' (default: empty string)",
+  "mainGoal": "Choose ONE from: 'Grow followers', 'Sell products / get orders', 'Build brand awareness', 'Get leads / enquiries' (default: 'Sell products / get orders')",
+  "website": "The original URL that was scanned",
+  "location": {
+    "country": "Target country if found, otherwise empty string",
+    "city": "Target city if found, otherwise empty string"
+  },
+  "usp": "A concise, punchy Unique Selling Point summarizing the brand's key differentiator (under 150 characters)",
+  "competitors": ["rival_handle_1", "rival_handle_2"],
+  "targetAudiences": ["Choose one or more from: 'Students & Young Adults', 'Working Professionals', 'Parents & Families', 'Business Owners'"],
+  "ageRange": "Choose ONE from: '18-24', '25-34', '35-44', '45+' (default: empty string)",
+  "genderFocus": "Choose ONE from: 'All', 'Male', 'Female' (default: 'All')",
+  "painPoint": "A clear customer pain point solved by this brand (under 150 characters)",
+  "brandTone": "Choose ONE from: 'Warm & Friendly', 'Professional & Clean', 'Fun & Energetic', 'Inspirational', 'Luxury & Premium' (default: 'Warm & Friendly')",
+  "visualVibe": "Choose ONE from: 'Minimalist', 'Vibrant', 'Luxury', 'Edgy' (default: 'Minimalist')",
+  "brandKeywords": "A comma-separated string of 3-5 keywords describing the brand vibe",
+  "primaryColor": "Hex code representing the brand's primary color, infer from the category/name if not obvious (default: '#2563EB')",
+  "secondaryColor": "Hex code representing the brand's secondary color (default: '#60A5FA')",
+  "products": [
+    {
+      "name": "Product Name",
+      "description": "Short product description (strictly 200 characters or less, rephrased for conciseness)",
+      "price": "Estimate/scraped price in local currency, as a clean numeric string (e.g. '599', '29', etc.)",
+      "offerPrice": "Optional scraped/estimate sale price if applicable (numeric string, e.g. '499')",
+      "keyBenefit": "One-liner key benefit or feature of this product",
+      "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
+    }
+  ]
+}
+"""
+        images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
+        user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
+        
+        print("\n" + "="*80)
+        print("[WEBSITE SCANNER] 📝 PROMPT BEING SENT TO GPT:")
+        print(f"System Prompt:\n{system_prompt}\n")
+        print(f"User Prompt:\n{user_prompt}")
+        print("="*80 + "\n")
+        
+        gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt)
+        
+        print("\n" + "="*80)
+        print("[WEBSITE SCANNER] 📥 GPT RESPONSE RECEIVED:")
+        print(gpt_response_text)
+        print("="*80 + "\n")
+        
+        import json
+        scraped_data = json.loads(gpt_response_text)
+        scraped_data["website"] = url
+        return scraped_data
+        
+    except Exception as gpt_err:
+        print(f"GPT extraction error for {url}: {gpt_err}")
+        raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
+
 
 @app.post("/analyze-mix")
 async def api_analyze_mix(userId: str = Query(...), durationWeeks: int = Query(1)):
@@ -666,7 +878,6 @@ Memory Rule: If 'Previous Slide Context' is provided, maintain 100% visual consi
 
 Global Rules (Apply to all):
 - ZERO LABEL POLICY: Strictly DO NOT include keywords like "HEADLINE:", "SUBTEXT:", or "TEXT:" in your output. Only provide the raw copy.
-- NO HEX CODES: You are provided with hex codes (e.g., #2563EB) only for your internal aesthetic understanding. STRICTLY DO NOT write or render these hex strings anywhere in the final image or prompt text. Instead, describe them as words (e.g., "Corporate Blue" or "Soft Light Blue").
 - NO BRACKETS: Strictly DO NOT use square brackets [ or ] in the text.
 - TEXT VISIBILITY: Ensure the text color provides maximum contrast against the background elements.
 - CONTENT SPECIFIC RULES:
@@ -690,15 +901,17 @@ Example of what NOT to do: "Headline: Hello".
 Example of what TO DO: "A bright office. A person typing. The text 'UPGRADE NOW' in bold white."
 """
     try:
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-        # Using gemini-2.0-flash as the "Refiner Agent" (Nano Banana 2)
-        model = genai.GenerativeModel('gemini-flash-latest')
-        response = model.generate_content(system_instruction)
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        # Using gemini-2.5-flash as the "Refiner Agent" (Nano Banana 2)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=system_instruction
+        )
         refined_prompt = response.text.strip()
         
-        # Enforce max character limit
-        if len(refined_prompt) > 1200:
-            refined_prompt = refined_prompt[:1197] + "..."
+        # Enforce max character limit (increased to 5000 to prevent text overlay description truncation)
+        if len(refined_prompt) > 5000:
+            refined_prompt = refined_prompt[:4997] + "..."
             
         return refined_prompt
     except Exception as e:
@@ -756,41 +969,175 @@ async def api_generate_visuals(request: VisualGenRequest):
         result = None
         
         if request.format == "Static Image":
-            # Use FAL.ai Flux Dev for static images
-            print("Using FAL.ai Flux Dev for Static Image generation...")
-            result = generate_fal_image_flux(refined_prompt, image=request.image, aspect_ratio="4:5")
+            # Use FAL.ai gpt-image-2 for static images.
+            # gpt-image-2 follows natural language directly — no camera rigs, no negative prompts.
+            print("Using FAL.ai gpt-image-2 for Static Image generation...")
+
+            # Resolve brand fields for the structured prompt
+            _bd = brand_doc if (request.userId and brand_doc) else {}
+            _brand_name       = _bd.get('brandName', '')
+            _business_cat     = _bd.get('businessCategory', '')
+            _brand_tone       = _bd.get('brandTone', '')
+            _visual_vibe      = _bd.get('visualVibe', '')
+            _primary_color    = _bd.get('primaryColor', '')
+            _secondary_color  = _bd.get('secondaryColor', '')
+            _usp              = _bd.get('usp', '')
+            _primary_words    = _hex_to_words(_primary_color)
+            _secondary_words  = _hex_to_words(_secondary_color)
+            _product_name     = request.prompt  # best available product descriptor
+            _headline         = request.headline or ''
+            _has_image        = bool(request.image)
+
+            # Inline scene description (creative_compositor.py not yet present)
+            _cat_lower = _business_cat.lower()
+            if any(k in _cat_lower for k in ['beauty', 'cosmetic', 'skincare', 'food', 'beverage', 'personal care']):
+                _scene_desc = (
+                    f"A premium studio product shot. Dark matte slate surface. "
+                    f"Three-point cinematic lighting. Shallow depth of field bokeh background. "
+                    f"Dominant color palette: {_primary_words} and {_secondary_words}."
+                )
+            elif any(k in _cat_lower for k in ['saas', 'app', 'tech', 'software']):
+                _scene_desc = (
+                    f"A clean bright workspace with natural daylight from the left. "
+                    f"Light oak desk, airy feel. Dominant palette: {_primary_words} accented by {_secondary_words}."
+                )
+            else:
+                _scene_desc = (
+                    f"A clean minimal background. Soft directional light. "
+                    f"Dominant palette: {_primary_words} and {_secondary_words}."
+                )
+
+            static_prompt = f"""
+You are generating a premium Indian D2C brand advertisement image.
+
+{"Keep the product exactly as it appears in the reference image. Do not alter the packaging, shape, label text, or colors of the product itself." if _has_image else ""}
+
+BACKGROUND SCENE:
+{_scene_desc}
+
+PRODUCT:
+Product: {_product_name}
+Place the product as the hero element — centered, large, grounded on the surface.
+Soft drop shadow beneath the product base.
+
+TEXT ON IMAGE:
+- Large bold headline at the bottom of the image: "{_headline}"
+- Brand name in small subtle text at the bottom-left corner: "{_brand_name}"
+
+STYLE:
+Brand tone: {_brand_tone}
+Visual vibe: {_visual_vibe}
+USP context: {_usp}
+Indian D2C brand aesthetic. Commercial advertising quality.
+Clean, premium, minimal. No random props. No clutter.
+Not a stock photo. Not AI-looking.
+""".strip()
+
+            print(f"\n--- GPT-IMAGE-2 STATIC PROMPT ---\n{static_prompt}\n---------------------------------\n")
+            result = generate_fal_image_flux(static_prompt, image=request.image)
             type_str = "image"
-            # Result already in correct format: {"image": base64_string}
         elif request.format == "Carousel":
-            # Use FAL.ai Ideogram for carousel slides
+            # Use FAL.ai Ideogram for carousel slides (image-to-image based on user product image)
             print("Using FAL.ai Ideogram for Carousel generation...")
-            # HARD CAP: Strictly limit to 2 slides to save credits
-            requested_count = request.slides if request.slides else 2
-            count = min(requested_count, 2)
+            # HARD CAP: Strictly limit to 3 slides to save credits
+            requested_count = request.slides if request.slides else 3
+            count = min(requested_count, 3)
             
             # For carousels, refine each slide with memory of the previous one
+            # Then inject headline + subtext into a structured Ideogram prompt via build_ideogram_slide_prompt()
             slides_results = []
             current_context = ""
-            
-            prompts_to_refine = request.slide_prompts if request.slide_prompts else [f"Slide {i+1} for {request.prompt}" for i in range(count)]
-            
-            for i, sp in enumerate(prompts_to_refine):
-                refined_slide = await refine_image_prompt(
-                    brand_dna=brand_dna,
-                    user_desc=sp,
-                    headline=request.headline,
-                    category="Carousel Slide",
-                    prev_slide_context=current_context if i > 0 else None
-                )
-                print(f"DEBUG: Carousel Slide {i+1} Refined Prompt:\n{refined_slide}\n")
-                slides_results.append(refined_slide)
-                current_context = refined_slide # Memory: pass this slide's details to the next one
-            
-            # Generate carousel with Ideogram
+
+            # slide_prompts are SlideMetadata dicts from the strategy phase.
+            # Each dict has: visual_prompt, headline, subtext, position.
+            # Fall back to plain strings if the client sent raw text prompts.
+            raw_slide_prompts = request.slide_prompts if request.slide_prompts else [
+                f"Slide {i+1} for {request.prompt}" for i in range(count)
+            ]
+
+            for i, sp in enumerate(raw_slide_prompts):
+                # Support both dict (SlideMetadata) and plain string slide prompts
+                if isinstance(sp, dict):
+                    slide_visual = sp.get("visual_prompt", str(sp))
+                    slide_headline = sp.get("headline", request.headline or "")
+                    slide_subtext = sp.get("subtext", "")
+                else:
+                    # Plain string — refine it and extract headline from request
+                    refined_slide = await refine_image_prompt(
+                        brand_dna=brand_dna,
+                        user_desc=sp,
+                        headline=request.headline,
+                        category="Carousel Slide",
+                        prev_slide_context=current_context if i > 0 else None
+                    )
+                    slide_visual = refined_slide
+                    slide_headline = request.headline or ""
+                    slide_subtext = ""
+
+                # Dynamically construct slide prompt following the new prompt structure
+                brand_name = brand_doc.get("brandName", "") if brand_doc else ""
+                main_goal = brand_doc.get("mainGoal", "") if brand_doc else ""
+                business_category = brand_doc.get("businessCategory", "") if brand_doc else ""
+                brand_tone = brand_doc.get("brandTone", "") if brand_doc else ""
+                visual_vibe = brand_doc.get("visualVibe", "") if brand_doc else ""
+                usp = brand_doc.get("usp", "") if brand_doc else ""
+                pain_point = brand_doc.get("painPoint", "") if brand_doc else ""
+                target_audiences = ", ".join(brand_doc.get("targetAudiences", [])) if (brand_doc and isinstance(brand_doc.get("targetAudiences"), list)) else str(brand_doc.get("targetAudiences", "")) if brand_doc else ""
+                primary_color = brand_doc.get("primaryColor", "") if brand_doc else ""
+                secondary_color = brand_doc.get("secondaryColor", "") if brand_doc else ""
+                website = brand_doc.get("website", "") if brand_doc else ""
+
+                brand_dna_total = f"""Brand DNA:
+- Brand Name: {brand_name}
+- Goal/Mission: {main_goal}
+- Business Category: {business_category}
+- Brand Tone: {brand_tone}
+- Visual Vibe: {visual_vibe}
+- USP: {usp}
+- Pain Point Addressed: {pain_point}
+- Target Audiences: {target_audiences}
+- Primary Color: {primary_color}
+- Secondary Color: {secondary_color}
+- Website: {website}"""
+
+                desc_text = f"Campaign description/theme: {request.prompt}" if request.prompt else "Theme: General brand promotion"
+
+                # Check if slide visual prompt has product details
+                product_related_all = f"Product/Scene: {slide_visual}"
+                if slide_headline:
+                    product_related_all += f"\n- Headline: {slide_headline}"
+                if slide_subtext:
+                    product_related_all += f"\n- Subtext: {slide_subtext}"
+
+                # Slide purpose: Hook, Insight, CTA
+                if i == 0:
+                    purpose = "Hook"
+                elif i == count - 1:
+                    purpose = "CTA"
+                else:
+                    purpose = f"Insight {i}"
+
+                ideogram_prompt = f"""{brand_dna_total}
+
+Description Text:
+{desc_text}
+
+Product Details:
+{product_related_all}
+
+Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
+                print("\n" + "="*80)
+                print(f"[CAROUSEL GENERATOR] Endpoint Slide {i+1} Prompt:")
+                print(ideogram_prompt)
+                print("="*80 + "\n")
+                slides_results.append(ideogram_prompt)
+                current_context = f"Primary: {primary_color}, Secondary: {secondary_color}, Tone: {brand_tone}"
+
+            # Generate carousel with Ideogram (image-to-image based on user product image)
             result = generate_fal_carousel_ideogram(
-                base_prompt=refined_prompt, 
-                image=request.image, 
-                count=count, 
+                base_prompt=refined_prompt,
+                image=request.image,
+                count=count,
                 slide_prompts=slides_results
             )
             type_str = "carousel"
@@ -802,57 +1149,60 @@ async def api_generate_visuals(request: VisualGenRequest):
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported format: {request.format}")
 
-        # Step 2: Dynamic Visual Critic (G-Factor)
-        # We audit the refined prompt's "G-Factor"
-        critic_prompt = f"""
-        Analyze this AI content prompt for its technical and strategic Viral Potential (G-Factor).
-        FORMAT: {request.format}
-        PROMPT: {refined_prompt}
-        
-        Score from 8.5 to 10.0 based on composition, lighting depth, and brand resonance.
-        Return ONLY a number (e.g. 9.6).
-        """
-        
-        print(f"\n--- FULL CRITIC PROMPT ---\n{critic_prompt}\n--------------------------\n")
-        print("CRITIC DEBUG: Starting Gemini Critic audit (Direct SDK)...")
-        
-        try:
-            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-            model = genai.GenerativeModel('gemini-flash-latest')
-            response = model.generate_content(critic_prompt)
-            
-            content = response.text.strip()
-            print(f"CRITIC DEBUG: Gemini Response: {content}")
-            
-            # Extract number using regex (e.g. 9.4)
-            match = re.search(r"(\d+\.\d+|\d+)", content)
-            if match:
-                g_score = float(match.group(1))
-            else:
-                print("CRITIC DEBUG: No score found in response, using fallback.")
-                g_score = 9.2
-        except Exception as critic_err:
-            print(f"CRITIC DEBUG: Critical Gemini Failure: {str(critic_err)}")
-            # Diagnostics: List available models to solve the 404 once and for all
-            try:
-                print("--- DIAGNOSTIC: Available Models ---")
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        print(f"MODEL: {m.name}")
-            except:
-                pass
-            g_score = 9.2 
-            
         return {
             "status": "success", 
             "type": type_str, 
-            "data": result,
-            "g_score": g_score,
-            "verdict": "Neural-Approved" if g_score > 9 else "Optimized"
+            "data": result
         }
             
     except Exception as e:
         print(f"Visual Generation Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ─── STRATEGY IMAGE GENERATION ENDPOINT ───
+@app.post("/generate-strategy-images")
+async def api_generate_strategy_images(request: StrategyImageRequest):
+    """
+    Generates AI images/carousels/videos for the Strategy content studio page.
+    Fetches the full brand DNA from MongoDB, builds structured prompts,
+    and calls FAL.ai (gpt-image-2 / Ideogram / Minimax) accordingly.
+    """
+    try:
+        print(f"\n[StrategyImages] 📥 Request: userId={request.userId} layout={request.layout} count={request.count}")
+
+        # 1. Fetch brand profile from MongoDB
+        brand_doc = await brand_collection.find_one({
+            "$or": [
+                {"_id": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId},
+                {"user": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId},
+            ]
+        })
+
+        if not brand_doc:
+            raise HTTPException(status_code=404, detail="Brand profile not found")
+
+        print(f"[StrategyImages] ✅ Brand found: {brand_doc.get('brandName')}")
+
+        # 2. Run the strategy image agent (sync — runs in executor automatically via FastAPI)
+        posts = generate_strategy_images(
+            brand_doc=brand_doc,
+            layout=request.layout,
+            count=request.count,
+            slide_count=request.slideCount,
+            aspect_ratio=request.aspectRatio,
+            idea=request.idea,
+            ref_images=request.refImages or [],
+            products=request.products,
+        )
+
+        return {"status": "success", "posts": posts, "count": len(posts)}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[StrategyImages] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -909,6 +1259,7 @@ async def generate_asset(request: AssetGenerateRequest):
         brand_profile = {
             "brandName": brand_doc.get("brandName", ""),
             "businessCategory": brand_doc.get("businessCategory", "General"),
+            "website": brand_doc.get("website", ""),
             "usp": brand_doc.get("usp", ""),
             "painPoint": brand_doc.get("painPoint", ""),
             "brandTone": brand_doc.get("brandTone", "Professional"),
@@ -943,7 +1294,7 @@ async def generate_asset(request: AssetGenerateRequest):
             "description": asset_content.get("description", ""),
             "heroImageUrl": "",
             "ctaText": asset_content.get("ctaText", "Learn More"),
-            "ctaUrl": "",
+            "ctaUrl": brand_profile.get("website", ""),
             # Preserve full generated fields so frontend can render complete preview
             "mainContent": asset_content.get("mainContent", ""),
             "keyTakeaways": asset_content.get("keyTakeaways", []),
@@ -989,4 +1340,5 @@ async def generate_asset(request: AssetGenerateRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

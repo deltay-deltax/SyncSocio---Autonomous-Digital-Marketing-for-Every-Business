@@ -15,7 +15,8 @@ import {
   FileText,
   AlertCircle,
   Zap,
-  ChevronRight
+  ChevronRight,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -245,6 +246,7 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
   const meta = TYPE_META[type as keyof typeof TYPE_META] || TYPE_META.image;
   const Icon = meta.icon;
   const isFailed = entry.status === 'failed';
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   return (
     <motion.div
@@ -253,8 +255,13 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
       className="bg-white rounded-[1.5rem] border border-slate-200/60 shadow-sm overflow-hidden hover:border-primary/30 transition-all group"
     >
       <div className="p-4 md:p-5 flex items-center gap-4 md:gap-6">
-        {/* Media Thumbnail */}
-        <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0 relative">
+        {/* Media Thumbnail - clickable for preview */}
+        <div 
+          onClick={() => {
+            if (entry.permanentUrl) setPreviewUrl(entry.permanentUrl);
+          }}
+          className={cn("w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0 relative", entry.permanentUrl && "cursor-zoom-in")}
+        >
           {entry.permanentUrl ? (
             type === 'reel' ? (
               <video src={entry.permanentUrl} className="w-full h-full object-cover" muted />
@@ -333,6 +340,48 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
            <ChevronRight size={20} className="text-slate-200 group-hover:text-primary transition-colors" />
         </div>
       </div>
+
+      {/* Lightbox / Preview Modal */}
+      <AnimatePresence>
+        {previewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-zoom-out"
+            onClick={() => setPreviewUrl(null)}
+          >
+            <button
+              onClick={() => setPreviewUrl(null)}
+              className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition shadow-lg z-50"
+            >
+              <X size={20} />
+            </button>
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="max-w-[90vw] max-h-[85vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-card flex items-center justify-center cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {type === 'reel' ? (
+                <video
+                  src={previewUrl}
+                  controls
+                  autoPlay
+                  className="w-full h-auto max-h-[80vh] object-contain max-w-full"
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt="Post Preview"
+                  className="w-full h-auto max-h-[80vh] object-contain max-w-full"
+                />
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

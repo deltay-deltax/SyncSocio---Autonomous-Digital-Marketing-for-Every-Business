@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
 import { useOutletContext, Link } from 'react-router-dom';
 
@@ -60,8 +60,30 @@ const DashboardSettings = () => {
     mainGoal: profile?.mainGoal || '',
     competitors: profile?.competitors?.join(', ') || '',
     targetAudiences: Array.isArray(profile?.targetAudiences) ? profile.targetAudiences.join(', ') : profile?.targetAudiences || '',
-    painPoint: profile?.painPoint || ''
+    painPoint: profile?.painPoint || '',
+    primaryColor: profile?.primaryColor || '#2563EB',
+    secondaryColor: profile?.secondaryColor || '#60A5FA'
   });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        brandName: profile.brandName || '',
+        businessCategory: profile.businessCategory || '',
+        website: profile.website || '',
+        city: profile.location?.city || '',
+        country: profile.location?.country || '',
+        brandTone: profile.brandTone || '',
+        usp: profile.usp || '',
+        mainGoal: profile.mainGoal || '',
+        competitors: profile.competitors?.join(', ') || '',
+        targetAudiences: Array.isArray(profile.targetAudiences) ? profile.targetAudiences.join(', ') : profile.targetAudiences || '',
+        painPoint: profile.painPoint || '',
+        primaryColor: profile.primaryColor || '#2563EB',
+        secondaryColor: profile.secondaryColor || '#60A5FA'
+      });
+    }
+  }, [profile]);
 
   if (!profile) return null;
 
@@ -90,6 +112,7 @@ const DashboardSettings = () => {
       if (!res.ok) throw new Error('Update failed');
       const updatedProfile = await res.json();
       setProfile(updatedProfile);
+      localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
       alert('✅ Brand Identity updated successfully! The AI Agent has been notified.');
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -187,6 +210,46 @@ const DashboardSettings = () => {
                         onChange={e => updateField('brandTone', e.target.value)}
                         className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
                       />
+                    </div>
+                    {/* Brand Colors */}
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Colors</Label>
+                      <div className="flex gap-4 items-center">
+                        <div className="flex items-center gap-2 border border-border/50 bg-muted/20 rounded-xl px-3 py-2 flex-1">
+                          <input 
+                            type="color" 
+                            value={formData.primaryColor} 
+                            onChange={e => updateField('primaryColor', e.target.value)}
+                            className="w-8 h-8 rounded-lg cursor-pointer border border-border bg-transparent shrink-0" 
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Primary</span>
+                            <input 
+                              type="text" 
+                              value={formData.primaryColor} 
+                              onChange={e => updateField('primaryColor', e.target.value)}
+                              className="text-xs font-bold bg-transparent outline-none w-20 text-foreground" 
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 border border-border/50 bg-muted/20 rounded-xl px-3 py-2 flex-1">
+                          <input 
+                            type="color" 
+                            value={formData.secondaryColor} 
+                            onChange={e => updateField('secondaryColor', e.target.value)}
+                            className="w-8 h-8 rounded-lg cursor-pointer border border-border bg-transparent shrink-0" 
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Secondary</span>
+                            <input 
+                              type="text" 
+                              value={formData.secondaryColor} 
+                              onChange={e => updateField('secondaryColor', e.target.value)}
+                              className="text-xs font-bold bg-transparent outline-none w-20 text-foreground" 
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

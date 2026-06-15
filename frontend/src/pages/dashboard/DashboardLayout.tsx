@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, Outlet } from 'react-router-dom';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,9 @@ const navItems = [
   { label: 'Feed', icon: Rss, path: '/dashboard/feed' },
   { label: 'Analytics', icon: BarChart3, path: '/dashboard/analytics' },
   { label: 'Ads', icon: Target, path: '/dashboard/ads' },
-  { label: 'Strategy', icon: Sparkles, path: '/dashboard/strategy' },
+  { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
+  { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
+  { label: 'Creatives', icon: Library, path: '/dashboard/assets' },
   { label: 'DMs', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'History', icon: Clock, path: '/dashboard/history' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },

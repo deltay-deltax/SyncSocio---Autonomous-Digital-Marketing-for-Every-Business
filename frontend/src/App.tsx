@@ -28,6 +28,8 @@ import ContentMix from './pages/dashboard/ContentMix';
 import ContentPlan from './pages/dashboard/ContentPlan';
 import DashboardFAQ from './pages/dashboard/DashboardFAQ';
 import History from './pages/dashboard/History';
+import AssetLibrary from './pages/dashboard/AssetLibrary';
+import Products from './pages/dashboard/Products';
 
 function App() {
   return (
@@ -59,6 +61,8 @@ function App() {
             <Route path="dms" element={<DashboardDMs />} />
             <Route path="settings" element={<DashboardSettings />} />
             <Route path="history" element={<History />} />
+            <Route path="assets" element={<AssetLibrary />} />
+            <Route path="products" element={<Products />} />
             <Route path="faq" element={<DashboardFAQ />} />
           </Route>
         </Route>

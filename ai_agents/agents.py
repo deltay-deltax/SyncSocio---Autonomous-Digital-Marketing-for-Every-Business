@@ -51,7 +51,7 @@ def analyze_brand_mix(brand_info: Dict[str, Any]):
     1. Distribute {post_count} posts across (Reels, Static Images, Carousels).
     2. Prioritize Reels for discovery and Carousels for engagement/education.
     3. Provide a 1-2 sentence "reasoning" for this specific mix based on the brand's goal and category.
-    4. Set "carouselSlides" dynamically between 3-7 if carousels are recommended.
+    4. Set "carouselSlides" to strictly 3 if carousels are recommended.
     
     OUTPUT FORMAT: RETURN ONLY VALID JSON.
     {{
@@ -92,14 +92,14 @@ def analyze_brand_mix(brand_info: Dict[str, Any]):
               "reels": 1,
               "static": 1,
               "carousel": 1,
-              "carouselSlides": 4, 
+              "carouselSlides": 3, 
               "reasoning": "Balanced Starter mix: 1 Reel, 1 Static, 1 Carousel."
             }
         return {
           "reels": 4,
           "static": 1,
           "carousel": 2,
-          "carouselSlides": 4, 
+          "carouselSlides": 3, 
           "reasoning": "Standard high-growth mix: 4 Reels for discovery, 2 Carousels for education, and 1 Static for brand presence."
         }
 
@@ -162,6 +162,9 @@ def planner_node(state: GraphState):
     # Build rich brand context — no truncation
     product_name = brief.get('name', '').strip()
     product_description = brief.get('description', '').strip()
+    images = brief.get('images', [])
+    images_count = len(images)
+    max_img_idx = max(0, images_count - 1)
     target_audiences = ', '.join(brand.get('targetAudiences', [])) if brand.get('targetAudiences') else 'General audience'
 
     product_brief_section = ""
@@ -171,12 +174,17 @@ def planner_node(state: GraphState):
     PRODUCT NAME: {product_name if product_name else "Not specified"}
     FULL DESCRIPTION / HOOK: {product_description if product_description else "Not specified"}
     INDUSTRY PILL: {brief.get('category', 'Not specified')}
+    PRODUCT IMAGES ATTACHED: {images_count}
         """
     else:
         product_brief_section = """
     ═══════════ PRODUCT BRIEF ═══════════
     (No specific product details provided. Autonomously generate premium, high-impact content focusing on the core Brand Dossier, USP, and Pain Points.)
         """
+
+    product_images_guideline = ""
+    if images_count > 0:
+        product_images_guideline = f"\n- Also, look at the {images_count} attached product images to understand the packaging, design details, texture, and colors, and refer to or describe them accurately in your hooks and strategy."
 
     prompt = f"""
     You are the Lead Strategist for Velocity AI. Your goal is to create a high-impact {post_count}-post content strategy.
@@ -206,7 +214,7 @@ def planner_node(state: GraphState):
     Total: {post_count} Items.
 
     ═══════════ STRATEGY GUIDELINES ═══════════
-    - Every post title and hook must reference the PRODUCT by name or clear implication.
+    - Every post title and hook must reference the PRODUCT by name or clear implication.{product_images_guideline}
     - The hook must solve the TARGET PAIN POINT or speak to the USP.
     - Vary emotional tone (curiosity → authority → FOMO → social proof → aspiration → education → urgency).
     - Each hook must be scroll-stopping: use numbers, questions, bold claims, or hot takes.
@@ -217,20 +225,32 @@ def planner_node(state: GraphState):
     2. format: (Reel / Static Image / Carousel)
     3. content_hook: A HIGH-ENGAGEMENT scroll-stopping hook (2-3 sentences). This is the caption hook — make it irresistible.
     4. why: Brief strategic reason for this post's placement
-    5. carousel_slides: (Only if format is Carousel) Set dynamically based on the story (e.g., 2-5 slides).
+    5. carousel_slides: (Only if format is Carousel) An integer representing the number of slides in the carousel. Set this to strictly 3. DO NOT return an array or list of strings.
     6. optimal_time: The best time to post (e.g., "06:00 PM", "09:30 AM"). IMPORTANT: Vary the time strategically across the 7 days — do NOT use the same time for every post. Mix morning, afternoon, and evening slots based on the content type (e.g., Reels peak in evenings, educational Carousels perform well mid-morning).
     7. is_custom: (true/false) Mark as true ONLY for the post that addresses the user's custom instruction
     8. g_score: A number from 0-10 representing the "Viral Potential" of this post.
     9. verdict: A short 1-word or 2-word strategic label (e.g., "High Impact", "Viral", "Educational", "Conversion Focus").
+    10. product_image_index: A number (0 to {max_img_idx}) representing the index of the uploaded product image that is most relevant for this post (e.g., use swatch/texture image for a post talking about consistency/feel, front bottle image for a reveal post, ingredients/back view for educational post). If no images are uploaded, default to 0.
     
     Output Format: RETURN ONLY A VALID JSON LIST OF {post_count} OBJECTS. NO commentary.
     """
     
     try:
+        # Prepare multimodal content if images are present
+        human_content = [{"type": "text", "text": prompt}]
+        if images:
+            for img_b64 in images:
+                if "base64," in img_b64:
+                    img_b64 = img_b64.split("base64,")[1]
+                human_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
+                })
+
         llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
         response = llm.invoke([
             SystemMessage(content=f"You are a JSON-only response strategist. Output exactly {post_count} content items."),
-            HumanMessage(content=prompt)
+            HumanMessage(content=human_content)
         ])
         
         # Extract and parse JSON
@@ -243,6 +263,21 @@ def planner_node(state: GraphState):
             calendar = json.loads(json_match.group())
         else:
             calendar = json.loads(content)
+
+        # Sanitize carousel_slides to prevent validation errors (e.g. if LLM returns a list of strings)
+        for item in calendar:
+            fmt = item.get('format', '').lower()
+            if 'carousel' in fmt:
+                c_slides = item.get('carousel_slides')
+                if isinstance(c_slides, list):
+                    item['carousel_slides'] = len(c_slides)
+                else:
+                    try:
+                        item['carousel_slides'] = int(c_slides)
+                    except:
+                        item['carousel_slides'] = 3
+            else:
+                item['carousel_slides'] = 0
             
         return {"content_calendar": calendar}
     except Exception as e:
@@ -297,10 +332,19 @@ def visual_illustrator_node(state: GraphState):
         # Organic, real-world look for services/startups
         universal_base = "Raw, authentic high-fidelity photography, candid shot, real-world environment, natural ambient lighting, organic textures, non-studio, shot on 35mm lens."
 
-    # Layer 2: Brand DNA (Synthesized by Agent, Fixed ~200 chars)
-    print(f"Brand Agent: Distilling holistic identity for {brand.get('brandName')}...")
-    brand_dna = generate_brand_visual_dna(brand)
-    brand_dna = brand_dna[:200]
+    # Layer 2: Brand DNA — structured directly from brand fields (no LLM compression, no char cap)
+    # The previous LLM-distillation step was discarding color, USP, audience, and pain point data.
+    print(f"Brand Agent: Assembling structured DNA for {brand.get('brandName')}...")
+    brand_dna = (
+        f"Brand: {brand.get('brandName')}. "
+        f"Category: {brand.get('businessCategory')}. "
+        f"Tone: {brand.get('brandTone')}. "
+        f"Primary Color: {brand.get('primaryColor')}. "
+        f"Secondary Color: {brand.get('secondaryColor')}. "
+        f"USP: {brand.get('usp')}. "
+        f"Pain Point: {brand.get('painPoint')}. "
+        f"Visual Vibe: {brand.get('visualVibe')}."
+    )
 
     print(f"Illustrator Agent: Designing high-fidelity visual payloads for {brand.get('brandName')}...")
     
@@ -327,7 +371,8 @@ def visual_illustrator_node(state: GraphState):
             else:
                 strategic_context = f"Topic: {topic}. Category: {brand.get('businessCategory', 'General')}."
         
-        strategic_context = strategic_context[:200]
+        # strategic_context: no hard char-cap — preserve full product context for image model
+        # (scene_base[:250] cap on the final LLM scene output is retained below)
 
         # Apply specific layering only to images and carousels
         if 'static' in fmt or 'image' in fmt or 'carousel' in fmt:
