@@ -54,6 +54,8 @@ const ProductForm: React.FC<{
   const [form, setForm] = useState<Product>(initial ?? emptyProduct());
   const [saving, setSaving] = useState(false);
   const [imgPreview, setImgPreview] = useState(initial?.imageBase64 || '');
+  const [link, setLink] = useState('');
+  const [scraping, setScraping] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = (k: keyof Product, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -62,6 +64,40 @@ const ProductForm: React.FC<{
     const b64 = await fileToBase64(file);
     setImgPreview(b64);
     set('imageBase64', b64);
+  };
+
+  const handleAutofill = async () => {
+    if (!link.trim()) return;
+    setScraping(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/ai/scrape-product`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url: link })
+      });
+      if (!res.ok) throw new Error('Scraping failed');
+      const data = await res.json();
+      
+      setForm(f => ({
+        ...f,
+        name: data.name || f.name,
+        description: data.description || f.description,
+        price: data.price || f.price,
+        offerPrice: data.offerPrice || f.offerPrice,
+        keyBenefit: data.keyBenefit || f.keyBenefit,
+        imageBase64: data.imageBase64 || f.imageBase64
+      }));
+      if (data.imageBase64) {
+        setImgPreview(data.imageBase64);
+      }
+      setLink('');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to scrape product from link.');
+    } finally {
+      setScraping(false);
+    }
   };
 
   const handleSave = async () => {
@@ -97,6 +133,30 @@ const ProductForm: React.FC<{
         </div>
 
         <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+          {/* Autofill from Link */}
+          {!initial?._id && (
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-1.5">
+                <Sparkles size={12}/> Auto-fill with AI
+              </p>
+              <div className="flex gap-2">
+                <input
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  placeholder="Paste product URL..."
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <Button 
+                  onClick={handleAutofill} 
+                  disabled={!link.trim() || scraping}
+                  className="rounded-xl px-4 bg-primary text-primary-foreground"
+                >
+                  {scraping ? <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin" /> : 'Scrape'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Image Upload */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Product Image</p>

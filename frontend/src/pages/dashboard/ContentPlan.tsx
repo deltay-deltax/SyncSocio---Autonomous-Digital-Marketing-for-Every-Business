@@ -106,58 +106,32 @@ const ContentPlan: React.FC = () => {
   useEffect(() => {
     const fetchPlan = async () => {
       setGenerating(true);
-      const cached = localStorage.getItem('content_plan');
-
-      // Check if user is locked (moved check outside to prevent bypass)
-      const now = new Date();
-      const last = profile?.lastPlanGeneratedAt ? new Date(profile.lastPlanGeneratedAt) : null;
-      const diff = last ? now.getTime() - last.getTime() : Infinity;
-      const isLocked = diff < 7 * 24 * 60 * 60 * 1000 && (profile?.generationCount || 0) >= 2;
-
-      // If locked and no cache, try to fetch the last known plan from the DB
-      if (isLocked && !cached) {
-        console.log("Strategic lock active, restoring plan from database...");
+      
+      const cachedStr = localStorage.getItem('content_plan');
+      let parsedCache = null;
+      let isExpired = false;
+      
+      if (cachedStr) {
         try {
-          const token = localStorage.getItem('token') || '';
-          const res = await fetch(`${API_BASE}/ai/calendar`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.posts && data.posts.length > 0) {
-              const week = data.posts.map((d: any, i: number) => ({
-                ...d,
-                id: `${d.day}-${i}`,
-                selected: false,
-                date: d.date || d.day || "Day",
-                type: (d.type || d.format || "image").toLowerCase().replace(/s$/, "") as ContentType,
-                optimalTime: d.optimalTime || (i % 2 === 0 ? "8:00 PM" : "11:00 AM"),
-                prompt: d.prompt || `A high-quality ${d.type || d.format || 'post'} about ${d.topic}`
-              }));
-              setItems(week);
-              
-              if (data.captions && Object.keys(data.captions).length > 0) {
-                setCaptions(data.captions);
-                localStorage.setItem('content_plan', JSON.stringify({ items: week, captions: data.captions }));
-              } else {
-                console.log("Captions missing in DB, triggering recovery...");
-                fetchCaptions(week, token);
-              }
-              
-              setGenerating(false);
-              return;
-            }
+          parsedCache = JSON.parse(cachedStr);
+          const cachedTime = parsedCache.timestamp || 0;
+          if (new Date().getTime() - cachedTime > 5 * 60 * 1000) {
+            isExpired = true;
           }
-        } catch (e) {
-          console.error('Failed to restore plan from DB:', e);
-        }
+        } catch (e) {}
+      }
+
+      // If expired, clear the cache to force fetch
+      if (isExpired) {
+        console.log("Cache expired (5 mins), forcing refresh...");
+        localStorage.removeItem('content_plan');
+        parsedCache = null;
       }
 
       // Restore cached plan to avoid re-fetching on nav
-      if (cached) {
+      if (parsedCache) {
         try {
-          const parsed = JSON.parse(cached);
-          const rawItems = parsed.items || [];
+          const rawItems = parsedCache.items || [];
 
           // restore files from global module cache (since localStorage strips them)
           const itemsWithFiles = rawItems.map((item: any) => {
@@ -169,7 +143,7 @@ const ContentPlan: React.FC = () => {
           });
 
           setItems(itemsWithFiles);
-          setCaptions(parsed.captions || {});
+          setCaptions(parsedCache.captions || {});
           setGenerating(false);
           return;
         } catch { }
@@ -206,7 +180,7 @@ const ContentPlan: React.FC = () => {
         }));
         setItems(week);
         // Persist initial skeleton immediately
-        localStorage.setItem('content_plan', JSON.stringify({ items: week, captions: {} }));
+        localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: week, captions: {} }));
         // Now fetch captions for all posts
         fetchCaptions(week, token);
       } catch (e) {
@@ -229,7 +203,7 @@ const ContentPlan: React.FC = () => {
       const res = await fetch(`${API_BASE}/ai/captions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
-        body: JSON.stringify({ posts: planItems.map(p => ({ type: p.type, topic: p.topic, prompt: p.prompt })) })
+        body: JSON.stringify({ ...profile, posts: planItems.map(p => ({ type: p.type, topic: p.topic, prompt: p.prompt })) })
       });
       if (!res.ok) throw new Error('Caption fetch failed');
       const data = await res.json();
@@ -246,7 +220,7 @@ const ContentPlan: React.FC = () => {
       (data.captions || []).forEach((c: any) => { captionMap[c.day_index] = c; });
       setCaptions(captionMap);
       // Persist everything to sessionStorage
-      localStorage.setItem('content_plan', JSON.stringify({ items: planItems, captions: captionMap }));
+      localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: planItems, captions: captionMap }));
     } catch (e) {
       console.error('Failed to load captions:', e);
     } finally {
@@ -305,7 +279,7 @@ const ContentPlan: React.FC = () => {
 
         return { ...it, files: updatedFiles, previewUrls: updatedPreviews };
       });
-      localStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
+      localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: newItems, captions }));
 
       // Update global cache
       const updatedItem = newItems.find(it => it.id === id);
@@ -324,7 +298,7 @@ const ContentPlan: React.FC = () => {
         (it.previewUrls || []).forEach(url => URL.revokeObjectURL(url));
         return { ...it, files: undefined, previewUrls: undefined };
       });
-      localStorage.setItem('content_plan', JSON.stringify({ items: newItems, captions }));
+      localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: newItems, captions }));
       return newItems;
     });
     mediaCache.remove(id);
@@ -379,7 +353,7 @@ const ContentPlan: React.FC = () => {
       // Remove the item from the local plan and update storage
       const updatedItems = items.filter(i => i.id !== item.id);
       setItems(updatedItems);
-      localStorage.setItem('content_plan', JSON.stringify(updatedItems));
+      localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: updatedItems, captions }));
 
       alert(`🚀 Published successfully to ${platforms.instagram ? 'Instagram' : ''}${platforms.instagram && platforms.facebook ? ' & ' : ''}${platforms.facebook ? 'Facebook' : ''}!`);
       navigate('/dashboard/history');
@@ -419,19 +393,12 @@ const ContentPlan: React.FC = () => {
           <div /> {/* Spacer for flex-between */}
           <Button
             onClick={regenerate}
-            disabled={generating || (profile?.lastPlanGeneratedAt && (new Date().getTime() - new Date(profile.lastPlanGeneratedAt).getTime()) < 7 * 24 * 60 * 60 * 1000 && profile?.generationCount >= 2)}
+            disabled={generating}
             variant="outline"
-            className={cn(
-              "h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-border gap-2",
-              (profile?.lastPlanGeneratedAt && (new Date().getTime() - new Date(profile.lastPlanGeneratedAt).getTime()) < 7 * 24 * 60 * 60 * 1000 && profile?.generationCount >= 2)
-                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60"
-                : "bg-white hover:bg-muted"
-            )}
+            className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-border gap-2 bg-white hover:bg-muted"
           >
             <Wand2 size={13} />
-            {(profile?.lastPlanGeneratedAt && (new Date().getTime() - new Date(profile.lastPlanGeneratedAt).getTime()) < 7 * 24 * 60 * 60 * 1000 && profile?.generationCount >= 2)
-              ? "Locked (7 Days)"
-              : "Regenerate"}
+            Regenerate
           </Button>
         </div>
 

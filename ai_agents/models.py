@@ -45,10 +45,17 @@ class StrategyResponse(BaseModel):
 
 class StrategyImageRequest(BaseModel):
     userId: str
-    layout: str                          # "image" | "carousel" | "video"
+    layout: str                          # "image" | "carousel" | "video" | "ecomm"
     count: int = 4                       # number of posts / carousels / videos
     slideCount: int = 5                  # slides per carousel (carousel only)
     aspectRatio: str = "1:1"            # "1:1" | "4:5" | "9:16" | "16:9" | "2:3"
-    idea: Optional[str] = ""                            # user's campaign description
+    idea: Optional[str] = ""            # user's campaign description
     refImages: Optional[List[str]] = [] # base64 data-URLs or http URLs
-    products: Optional[List[Dict[str, Any]]] = [] # List of product objects (name, desc, price, keyBenefit, imageBase64)
+    products: Optional[List[Dict[str, Any]]] = []  # product objects
+    # E-comm specific fields
+    platform: Optional[str] = ""       # "Amazon" | "Flipkart" | "Myntra" | "Nykaa" | "Shopify" | "Meesho"
+    ecommCaptions: Optional[List[str]] = []  # per-image captions from frontend (shot type labels)
+    # Image ad template: None = auto, 1-10 = specific template, -1 = all 8 variants
+    adTemplate: Optional[int] = None
+    language: Optional[str] = "english"
+    generateImage: Optional[bool] = True

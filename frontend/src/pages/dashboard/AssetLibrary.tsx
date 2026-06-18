@@ -241,16 +241,14 @@ const AssetLibrary = () => {
                       setPreviewAsset(asset);
                       setPreviewSlide(0);
                     }}
-                    className={cn('relative bg-muted overflow-hidden cursor-pointer', aspectClass[aspect])}
+                    className="relative bg-muted overflow-hidden cursor-pointer flex items-center justify-center min-h-[200px]"
                   >
                     {asset.type === 'video' && asset.videoUrl ? (
-                      <video src={asset.videoUrl} className="w-full h-full object-cover" muted />
+                      <video src={asset.videoUrl} className="w-full h-auto block" muted />
                     ) : thumbSrc ? (
-                      <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
+                      <img src={thumbSrc} alt="" className="w-full h-auto block" />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Icon size={24} className="text-muted-foreground/30" />
-                      </div>
+                      <Icon size={24} className="text-muted-foreground/30" />
                     )}
 
                     {/* Type badge */}

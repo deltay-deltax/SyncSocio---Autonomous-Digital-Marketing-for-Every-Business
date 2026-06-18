@@ -45,6 +45,8 @@ def caption_writer_node(state: CaptionState) -> Dict:
         for i, p in enumerate(posts)
     ])
 
+    language = state.get("brand_info", {}).get("language", "english")
+
     prompt = f"""
 {brand_dna}
 
@@ -52,7 +54,7 @@ TASK:
 Write an Instagram caption for EACH of these 7 posts:
 {posts_summary}
 
-For each post, write a compelling, high-conversion caption that matches the brand tone.
+For each post, write a compelling, high-conversion caption in {language} that matches the brand tone.
 Include a hook, value-driven body, and a clear call-to-action.
 
 OUTPUT ONLY A VALID JSON ARRAY of 7 objects:
@@ -107,16 +109,19 @@ def hashtag_refinement_node(state: CaptionState) -> Dict:
             "caption": caption_obj.get("caption", "")
         })
 
+    language = state.get("brand_info", {}).get("language", "english")
+
     prompt = f"""
 {brand_dna}
 
 TASK:
 For EACH of the following posts, generate the PERFECT hashtag set (mix of reach tiers) and optionally refine the caption.
+Ensure the refined caption is written in {language}.
 Posts: {json.dumps(combined, indent=2)}
 
 OUTPUT ONLY A VALID JSON ARRAY of 7 objects:
 - "day_index": (0-6)
-- "caption": Final refined caption
+- "caption": Final refined caption in {language}
 - "hashtags": String of 15-20 hashtags
 - "hashtag_strategy": One sentence explanation
 """

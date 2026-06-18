@@ -1,4 +1,8 @@
 import os
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -88,10 +92,35 @@ class HTMLMetadataExtractor(HTMLParser):
         if tag == "img":
             attrs_dict = dict(attrs)
             src = attrs_dict.get("src", "")
+            data_src = attrs_dict.get("data-src", "")
+            srcset = attrs_dict.get("srcset", "")
             alt = attrs_dict.get("alt", "")
-            if src:
+            
+            # Choose the best source URL for the image
+            target_src = ""
+            best_srcset_src = ""
+            if srcset:
+                try:
+                    # Parse srcset to find the highest-resolution or last candidate
+                    candidates = [c.strip().split() for c in srcset.split(",") if c.strip()]
+                    if candidates:
+                        best_candidate = candidates[-1][0]
+                        if best_candidate and not best_candidate.startswith("data:"):
+                            best_srcset_src = best_candidate
+                except Exception as parse_err:
+                    print(f"[WEBSITE SCANNER] [PARSER-WARN] Failed parsing srcset '{srcset}': {parse_err}")
+
+            if data_src and not data_src.startswith("data:"):
+                target_src = data_src
+            elif best_srcset_src:
+                target_src = best_srcset_src
+            elif src and not src.startswith("data:"):
+                target_src = src
+            
+            if target_src:
                 from urllib.parse import urljoin
-                absolute_src = urljoin(self.base_url, src)
+                absolute_src = urljoin(self.base_url, target_src)
+                # print(f"[WEBSITE SCANNER] [IMG-EXTRACT] Found image: {absolute_src} (alt: {alt})")
                 self.images.append({"src": absolute_src, "alt": alt})
 
     def handle_endtag(self, tag):
@@ -109,14 +138,23 @@ class HTMLMetadataExtractor(HTMLParser):
 
     def get_content(self):
         formatted_images = []
-        seen = set()
+        seen_normalized = set()
         for img in self.images:
             src = img["src"]
-            if src not in seen and not src.endswith(".svg") and "logo" not in src.lower() and "icon" not in src.lower():
-                seen.add(src)
+            src_lower = src.lower()
+            if src.startswith("data:") or src.endswith(".svg") or "logo" in src_lower or "icon" in src_lower:
+                continue
+            if not img["alt"].strip() and any(x in src_lower for x in ["dot", "star", "squiggle", "bg", "background", "hero_light", "hero_dark"]):
+                continue
+            
+            # Normalize url to prevent duplicates of different sizes/resolutions
+            normalized_src = src.split("?")[0]
+            if normalized_src not in seen_normalized:
+                seen_normalized.add(normalized_src)
                 formatted_images.append(img)
-                if len(formatted_images) >= 40:
+                if len(formatted_images) >= 50:
                     break
+        print(f"[WEBSITE SCANNER] [IMG-EXTRACT] Total unique high-quality images gathered for prompt: {len(formatted_images)}")
         return {
             "title": self.title.strip(),
             "meta_description": self.meta_desc.strip(),
@@ -138,10 +176,43 @@ def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = ""):
         ],
         "temperature": 0.2
     }
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=30)
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
     response.raise_for_status()
     result = response.json()
     return result["choices"][0]["message"]["content"]
+
+def download_image_as_base64(url: str) -> str:
+    if not url or not url.startswith("http"):
+        print(f"[WEBSITE SCANNER] [DOWNLOAD] ⚠️ Skipping invalid or non-http image URL: {url}")
+        return ""
+    try:
+        print(f"[WEBSITE SCANNER] [DOWNLOAD] 📥 Starting download of: {url}")
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": url
+        }
+        res = requests.get(url, headers=headers, timeout=10, verify=False)
+        print(f"[WEBSITE SCANNER] [DOWNLOAD] Response Status: {res.status_code}, Length: {len(res.content)} bytes")
+        if res.status_code == 200:
+            import base64
+            content_type = res.headers.get("Content-Type", "image/jpeg")
+            if not content_type or "image" not in content_type:
+                if url.endswith(".png"):
+                    content_type = "image/png"
+                elif url.endswith(".webp"):
+                    content_type = "image/webp"
+                else:
+                    content_type = "image/jpeg"
+            encoded = base64.b64encode(res.content).decode("utf-8")
+            print(f"[WEBSITE SCANNER] [DOWNLOAD] ✅ Successfully base64-encoded. Content type: {content_type}")
+            return f"data:{content_type};base64,{encoded}"
+        else:
+            print(f"[WEBSITE SCANNER] [DOWNLOAD] ❌ Failed, HTTP status code: {res.status_code}")
+    except Exception as e:
+        print(f"[WEBSITE SCANNER] [DOWNLOAD] ⚠️ Failed to download image {url}: {e}")
+    return ""
 
 class ScrapeRequest(BaseModel):
     url: str
@@ -181,11 +252,11 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
             raise Exception("No readable text content found on the webpage.")
             
         print("\n" + "="*80)
-        print(f"[WEBSITE SCANNER] 🌐 Initiating scan for URL: {url}")
-        print(f"[WEBSITE SCANNER] 📄 Extracted Title: {extracted['title']}")
-        print(f"[WEBSITE SCANNER] 📝 Extracted Meta Description: {extracted['meta_description']}")
-        print(f"[WEBSITE SCANNER] 🖼️ Extracted Unique Image URLs Count: {len(extracted['images'])}")
-        print(f"[WEBSITE SCANNER] 💬 Raw text character length: {len(extracted['body_text'])}")
+        print(f"[WEBSITE SCANNER] [START] Initiating scan for URL: {url}")
+        print(f"[WEBSITE SCANNER] [TITLE] Extracted Title: {extracted['title']}")
+        print(f"[WEBSITE SCANNER] [META] Extracted Meta Description: {extracted['meta_description']}")
+        print(f"[WEBSITE SCANNER] [IMAGES] Extracted Unique Image URLs Count: {len(extracted['images'])}")
+        print(f"[WEBSITE SCANNER] [TEXT] Raw text character length: {len(extracted['body_text'])}")
         print("="*80 + "\n")
             
     except Exception as scrape_err:
@@ -202,6 +273,7 @@ Analyze the website's title, meta description, lists of found image URLs, and bo
 Your output must be a valid JSON object matching the following structure. If any field or product detail is not found, keep it as an empty string ("") or empty array ([])—DO NOT invent fake information, but infer sensible defaults when obvious (e.g. brand name from title, colors from context, or standard goals).
 
 IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep them concise. Product descriptions MUST be strictly 200 characters or less.
+IMPORTANT: Do not extract more than 12 products. Set a strict product limit of 12.
 
 For each product, select the most relevant image URL from the provided list of images by matching the product name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
 
@@ -242,7 +314,7 @@ JSON Structure:
         user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
         
         print("\n" + "="*80)
-        print("[WEBSITE SCANNER] 📝 PROMPT BEING SENT TO GPT:")
+        print("[WEBSITE SCANNER] [PROMPT] PROMPT BEING SENT TO GPT:")
         print(f"System Prompt:\n{system_prompt}\n")
         print(f"User Prompt:\n{user_prompt}")
         print("="*80 + "\n")
@@ -250,17 +322,134 @@ JSON Structure:
         gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt)
         
         print("\n" + "="*80)
-        print("[WEBSITE SCANNER] 📥 GPT RESPONSE RECEIVED:")
+        print("[WEBSITE SCANNER] [IN] GPT RESPONSE RECEIVED:")
         print(gpt_response_text)
         print("="*80 + "\n")
         
         import json
         scraped_data = json.loads(gpt_response_text)
         scraped_data["website"] = url
+        
+        # Convert matched product image URLs to base64 strings
+        products = scraped_data.get("products", [])
+        if len(products) > 12:
+            print(f"[WEBSITE SCANNER] [PRODUCTS] Truncating products from {len(products)} to max 12 limit.")
+            products = products[:12]
+            scraped_data["products"] = products
+            
+        print(f"[WEBSITE SCANNER] [PRODUCTS] Starting base64 conversion for {len(products)} products...")
+        for prod in products:
+            prod_name = prod.get("name", "Unnamed Product")
+            img_url = prod.get("imageBase64", "")
+            print(f"[WEBSITE SCANNER] [PRODUCTS] Product: '{prod_name}' | Scraped Image URL: {img_url or 'None'}")
+            
+            if img_url:
+                if img_url.startswith("http"):
+                    b64_data = download_image_as_base64(img_url)
+                    if b64_data:
+                        prod["imageBase64"] = b64_data
+                        print(f"[WEBSITE SCANNER] [PRODUCTS] ✅ Saved image as base64 for '{prod_name}' ({len(b64_data)} characters)")
+                    else:
+                        prod["imageBase64"] = ""
+                        print(f"[WEBSITE SCANNER] [PRODUCTS] ❌ Failed download/conversion for '{prod_name}'. Image cleared.")
+                else:
+                    print(f"[WEBSITE SCANNER] [PRODUCTS] ⚠️ Invalid image url format for '{prod_name}'. Image cleared.")
+                    prod["imageBase64"] = ""
+            else:
+                print(f"[WEBSITE SCANNER] [PRODUCTS] ℹ️ No image found or assigned for '{prod_name}'.")
+                    
         return scraped_data
         
     except Exception as gpt_err:
         print(f"GPT extraction error for {url}: {gpt_err}")
+        raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
+
+
+@app.post("/scrape-single-product")
+async def api_scrape_single_product(payload: ScrapeRequest):
+    url = payload.url
+    openai_key = os.getenv("OPENAI_API_KEY")
+    
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required")
+        
+    if not url.startswith("http://") and not url.startswith("https://"):
+        url = "https://" + url
+        
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        try:
+            response = requests.get(url, headers=headers, timeout=12, verify=False)
+        except Exception as e:
+            if url.startswith("https://"):
+                url_http = url.replace("https://", "http://")
+                response = requests.get(url_http, headers=headers, timeout=12, verify=False)
+            else:
+                raise e
+                
+        response.raise_for_status()
+        html_content = response.text
+        
+        parser = HTMLMetadataExtractor(base_url=url)
+        parser.feed(html_content)
+        extracted = parser.get_content()
+        
+        if not extracted["body_text"].strip():
+            raise Exception("No readable text content found on the webpage.")
+            
+    except Exception as scrape_err:
+        print(f"Scrape error for {url}: {scrape_err}")
+        raise HTTPException(status_code=422, detail=f"Failed to fetch or scrape website: {str(scrape_err)}")
+        
+    if not openai_key:
+        raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
+        
+    try:
+        system_prompt = """You are an expert product cataloging agent. 
+Analyze the website's title, meta description, lists of found image URLs, and body text content to extract the details of the main product shown on this page.
+
+Your output must be a valid JSON object matching the following structure. Do NOT extract multiple products, just the primary one. If any detail is not found, keep it as an empty string ("")—DO NOT invent fake information.
+Product description MUST be strictly 200 characters or less.
+
+For the product, select the most relevant image URL from the provided list of images by matching the product name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
+
+JSON Structure:
+{
+  "name": "Product Name",
+  "description": "Short product description (strictly 200 characters or less, rephrased for conciseness)",
+  "price": "Estimate/scraped price in local currency, as a clean numeric string (e.g. '599', '29', etc.)",
+  "offerPrice": "Optional scraped/estimate sale price if applicable (numeric string, e.g. '499')",
+  "keyBenefit": "One-liner key benefit or feature of this product",
+  "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
+}
+"""
+        images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
+        user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
+        
+        gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt)
+        
+        import json
+        scraped_data = json.loads(gpt_response_text)
+        
+        # Convert matched product image URLs to base64 strings
+        prod_name = scraped_data.get("name", "Unnamed Product")
+        img_url = scraped_data.get("imageBase64", "")
+        
+        if img_url and img_url.startswith("http"):
+            b64_data = download_image_as_base64(img_url)
+            if b64_data:
+                scraped_data["imageBase64"] = b64_data
+            else:
+                scraped_data["imageBase64"] = ""
+        else:
+            scraped_data["imageBase64"] = ""
+            
+        return scraped_data
+        
+    except Exception as gpt_err:
+        print(f"GPT extraction error for single product {url}: {gpt_err}")
         raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
 
 
@@ -1183,7 +1372,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
         if not brand_doc:
             raise HTTPException(status_code=404, detail="Brand profile not found")
 
-        print(f"[StrategyImages] ✅ Brand found: {brand_doc.get('brandName')}")
+        print(f"[StrategyImages] ✅ Brand found: {brand_doc.get('brandName')} | platform={request.platform or 'N/A'}")
 
         # 2. Run the strategy image agent (sync — runs in executor automatically via FastAPI)
         posts = generate_strategy_images(
@@ -1195,6 +1384,10 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             idea=request.idea,
             ref_images=request.refImages or [],
             products=request.products,
+            platform=request.platform or "",
+            ad_template=request.adTemplate,
+            language=request.language,
+            generate_image=request.generateImage,
         )
 
         return {"status": "success", "posts": posts, "count": len(posts)}

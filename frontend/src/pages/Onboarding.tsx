@@ -1103,7 +1103,7 @@ const Onboarding = () => {
                                             price: prod.price || '',
                                             offerPrice: prod.offerPrice || '',
                                             keyBenefit: prod.keyBenefit || '',
-                                            imageBase64: ''
+                                            imageBase64: prod.imageBase64 || ''
                                           })
                                         });
                                       } catch (prodErr) {
