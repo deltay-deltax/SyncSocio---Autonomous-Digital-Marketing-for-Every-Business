@@ -3,6 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import Masonry from 'react-masonry-css';
+
+const breakpointColumnsObj = {
+  default: 4,
+  1280: 3,
+  1024: 2,
+  640: 1
+};
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const CACHE_KEY = 'velocity_strategy_assets';
@@ -216,8 +224,12 @@ const AssetLibrary = () => {
           </p>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 items-start">
-          <AnimatePresence>
+        <AnimatePresence>
+          <Masonry
+            breakpointCols={breakpointColumnsObj}
+            className="my-masonry-grid"
+            columnClassName="my-masonry-grid_column"
+          >
             {filtered.map((asset, i) => {
               const aspect = asset.aspectRatio || '1:1';
               const thumbSrc = asset.type === 'carousel'
@@ -308,8 +320,8 @@ const AssetLibrary = () => {
                 </motion.div>
               );
             })}
-          </AnimatePresence>
-        </div>
+          </Masonry>
+        </AnimatePresence>
       )}
 
       {filtered.length > 0 && (

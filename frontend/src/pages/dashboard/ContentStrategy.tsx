@@ -13,6 +13,13 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
+import Masonry from 'react-masonry-css';
+
+const breakpointColumnsObj = {
+  default: 3,
+  1024: 2,
+  640: 1
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -196,6 +203,7 @@ const DashboardStrategy = () => {
   const [computerImageSourceClass, setComputerImageSourceClass] = useState<'product' | 'creative' | null>(null);
   const [savedIndices, setSavedIndices] = useState<Set<number>>(new Set());
   const [showHeartPop, setShowHeartPop] = useState<Record<number, boolean>>({});
+  const clickTimeoutRef = useRef<Record<number, any>>({});
 
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -258,8 +266,9 @@ const DashboardStrategy = () => {
   };
 
   const pickRandom = () => {
+    const targetLimit = mode === 'ecomm' ? ecommImgCount : count;
     if (products.length > 0) {
-      const shuffled = [...products].sort(() => 0.5 - Math.random()).slice(0, Math.min(products.length, count));
+      const shuffled = [...products].sort(() => 0.5 - Math.random()).slice(0, Math.min(products.length, targetLimit));
       setSelectedProducts(shuffled);
       setUploads([]);
     } else {
@@ -332,10 +341,7 @@ const DashboardStrategy = () => {
   // ── Can generate guard
   const canGenerate = (() => {
     if (!mode) return false;
-    if (mode === 'ecomm')    return true;
-    if (mode === 'festival') return true;
-    if (mode === 'whatsapp' || mode === 'email') return idea.trim().length > 4;
-    return idea.trim().length > 4;
+    return true;
   })();
 
   const ecommTotal = ecommImgCount;
@@ -372,7 +378,7 @@ const DashboardStrategy = () => {
     setTimeout(() => setSendStatus('sent'), 1800);
   };
 
-  const generate = async (overrides?: { idea?: string; count?: number; products?: any[]; layout?: string; aspect?: string }) => {
+  const generate = async (overrides?: { idea?: string; count?: number; products?: any[]; layout?: string; aspect?: string; language?: string }) => {
     setStage('generating');
     setGenError(null);
 
@@ -414,7 +420,7 @@ const DashboardStrategy = () => {
         idea: currentMode === 'ecomm' ? '' : currentIdea,
         refImages,
         products: currentProducts.length > 0 ? currentProducts : undefined,
-        language,
+        language: overrides?.language !== undefined ? overrides.language : language,
         generateImage: (currentMode === 'whatsapp' || currentMode === 'email') ? false : generateImage,
         // E-comm specific — platform + image count for shot-type rotation
         ...(currentMode === 'ecomm' && {
@@ -580,6 +586,29 @@ const DashboardStrategy = () => {
     setGenerated((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleImageClick = (post: GeneratedPost, index: number, displaySrc: string) => {
+    if (clickTimeoutRef.current[index]) {
+      clearTimeout(clickTimeoutRef.current[index]);
+      delete clickTimeoutRef.current[index];
+      handleDoubleTap(post, index);
+    } else {
+      clickTimeoutRef.current[index] = setTimeout(() => {
+        delete clickTimeoutRef.current[index];
+        if (displaySrc) {
+          setPreviewUrl(displaySrc);
+        }
+      }, 250);
+    }
+  };
+
+  const handleExportAll = async () => {
+    for (let i = 0; i < generated.length; i++) {
+      const post = generated[i];
+      await new Promise((resolve) => setTimeout(resolve, i * 200));
+      await handleDownload(post, i);
+    }
+  };
+
   // ─────────────────────────────────────────────────────────────────────────────
   // GENERATING SCREEN
   // ─────────────────────────────────────────────────────────────────────────────
@@ -711,7 +740,7 @@ const DashboardStrategy = () => {
             <Button onClick={() => generate()} variant="outline" size="sm" className="rounded-xl gap-2 h-10">
               <RefreshCw size={14} /> Regenerate
             </Button>
-            <Button size="sm" className={cn('rounded-xl gap-2 h-10 bg-gradient-to-r text-white border-0 shadow-lg', accentGrad)}>
+            <Button onClick={handleExportAll} size="sm" className={cn('rounded-xl gap-2 h-10 bg-gradient-to-r text-white border-0 shadow-lg', accentGrad)}>
               <Download size={14} /> Export all
             </Button>
           </div>
@@ -733,7 +762,11 @@ const DashboardStrategy = () => {
         </AnimatePresence>
 
         {/* Masonry / zigzag bento gallery */}
-        <div className="columns-2 lg:columns-3 gap-4 space-y-4">
+        <Masonry
+          breakpointCols={breakpointColumnsObj}
+          className="my-masonry-grid"
+          columnClassName="my-masonry-grid_column"
+        >
           {generated.map((post, i) => {
             const isBig = i % 3 === 0;
             const displaySrc = (() => {
@@ -751,7 +784,7 @@ const DashboardStrategy = () => {
                 className="break-inside-avoid rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm group"
               >
                 <div 
-                  onDoubleClick={() => handleDoubleTap(post, i)}
+                  onClick={() => handleImageClick(post, i, displaySrc || '')}
                   className={cn('relative w-full overflow-hidden cursor-pointer select-none', isBig ? 'aspect-[3/4]' : 'aspect-square')}
                 >
                   {displaySrc ? (
@@ -866,23 +899,9 @@ const DashboardStrategy = () => {
               </motion.div>
             );
           })}
-        </div>
+        </Masonry>
 
-        {/* Footer CTA */}
-        <div className="relative mt-8 p-5 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={cn('w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-white', accentGrad)}>
-              <Sparkles size={16} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Ship the whole drop in one tap</p>
-              <p className="text-xs text-muted-foreground">Schedule across Instagram, Facebook & more — Velocity handles the rest.</p>
-            </div>
-          </div>
-          <Button className={cn('rounded-xl gap-2 bg-gradient-to-r text-white border-0 shadow-lg', accentGrad)}>
-            <Check size={14} /> Approve & Schedule All
-          </Button>
-        </div>
+
 
         {/* Lightbox */}
         <AnimatePresence>
@@ -1371,6 +1390,9 @@ const DashboardStrategy = () => {
             setIdea(data.prompt);
             setCount(data.imageCount);
             setTone(data.postType);
+            if (data.language) {
+              setLanguage(data.language);
+            }
             if (data.product) {
               setSelectedProducts([data.product]);
             } else {
@@ -1392,6 +1414,7 @@ const DashboardStrategy = () => {
               products: data.product ? [data.product] : [],
               layout: layoutOverride,
               aspect: aspectOverride,
+              language: data.language,
             });
           }}
         />

@@ -35,6 +35,7 @@ interface Props {
     product?: any;
     imageCount: number;
     customInstruction: string;
+    language?: 'english' | 'hinglish' | 'hindi';
   }) => void;
   products?: any[];
 }
@@ -805,6 +806,7 @@ ${actualPrompt}`;
                       product: chosenProduct,
                       imageCount,
                       customInstruction,
+                      language: lang,
                     });
                     setSelected(null);
                   }}

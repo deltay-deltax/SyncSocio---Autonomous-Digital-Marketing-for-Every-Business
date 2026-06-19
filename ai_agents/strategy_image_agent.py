@@ -537,6 +537,7 @@ def build_ecomm_image_prompt(
     total_count: int,
     ref_image: Optional[str] = None,
     language: str = "english",
+    idea: Optional[str] = None,
 ) -> tuple:
     """
     Dedicated E-comm listing prompt builder.
@@ -572,12 +573,10 @@ def build_ecomm_image_prompt(
         p_name    = product.get("name", "") or brand_name
         p_desc    = product.get("description", "")
         p_benefit = product.get("keyBenefit", "")
-        p_price   = product.get("offerPrice", "") or product.get("price", "")
         product_line = (
             f"PRODUCT: {p_name}"
             + (f' | "{p_desc}"' if p_desc else "")
             + (f" | Benefit: {p_benefit}" if p_benefit else "")
-            + (f" | Price: {p_price}" if p_price else "")
             + ". Keep product packaging exactly as in reference. Do not alter label, shape, or colors."
         )
         caption_product = p_name
@@ -605,8 +604,8 @@ def build_ecomm_image_prompt(
             platform_line = f"PLATFORM ({platform}): {platform_rule}"
         
         text_instruction = (
-            "Include professional, clean typographic text overlays highlighting key product benefits, "
-            "features, or price callout area as appropriate. "
+            "Include professional, clean typographic text overlays highlighting key product benefits "
+            "or features as appropriate. "
             "No generic watermarks or external logos."
         )
 
@@ -642,7 +641,8 @@ def build_ecomm_image_prompt(
         f"Any text overlays or words shown in the image must be in {language}."
     )
 
-    prompt = f"{brand_line}\n{product_line}\n{platform_line}\n{shot_line}{ref_line}\n{closing}"
+    idea_line = f"\nCAMPAIGN IDEA / OPTIONAL INSTRUCTIONS: {idea}" if idea and idea.strip() else ""
+    prompt = f"{brand_line}\n{product_line}\n{platform_line}\n{shot_line}{ref_line}{idea_line}\n{closing}"
 
     print("\n" + "=" * 80)
     print(f"[EcommAgent] 🛒 Shot {shot_index + 1}/{total_count} — {shot['label']} | Platform: {platform}")
@@ -770,6 +770,7 @@ def generate_strategy_images(
                 total_count=count,
                 ref_image=base_ref,
                 language=language,
+                idea=idea,
             )
             tasks.append((prompt, caption, base_ref, i))
 
