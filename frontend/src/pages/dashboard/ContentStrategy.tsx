@@ -194,6 +194,8 @@ const DashboardStrategy = () => {
   const [savedCount, setSavedCount] = useState(0);
   const [showAdTemplates, setShowAdTemplates] = useState(false);
   const [computerImageSourceClass, setComputerImageSourceClass] = useState<'product' | 'creative' | null>(null);
+  const [savedIndices, setSavedIndices] = useState<Set<number>>(new Set());
+  const [showHeartPop, setShowHeartPop] = useState<Record<number, boolean>>({});
 
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -445,6 +447,8 @@ const DashboardStrategy = () => {
         .then((data) => {
           const posts = data.posts || [];
           setGenerated(posts);
+          setSavedIndices(new Set());
+          setShowHeartPop({});
 
           if (mode === 'whatsapp' || mode === 'email') {
             const first = posts[0] || {};
@@ -472,10 +476,12 @@ const DashboardStrategy = () => {
     setGenerated([]);
     setGenError(null);
     setSendStatus('idle');
+    setSavedIndices(new Set());
+    setShowHeartPop({});
   };
 
   // ── Heart — save to DB + localStorage cache
-  const handleHeart = async (post: GeneratedPost) => {
+  const handleHeart = async (post: GeneratedPost, index: number) => {
     try {
       const token = localStorage.getItem('token');
       const thumbSrc = post.type === 'carousel' ? post.slides?.[0]?.image : post.image;
@@ -512,10 +518,62 @@ const DashboardStrategy = () => {
           }
         }
         setSavedCount((n) => n + 1);
+        setSavedIndices((prev) => {
+          const next = new Set(prev);
+          next.add(index);
+          return next;
+        });
       }
     } catch (err) {
       console.error('[Strategy] Heart error:', err);
     }
+  };
+
+  const handleDownload = async (post: GeneratedPost, index: number) => {
+    const displaySrc = post.type === 'carousel' ? post.slides?.[0]?.image : post.type === 'video' ? post.thumbnail : post.image;
+    if (!displaySrc) return;
+    
+    const srcUrl = imgSrc(displaySrc);
+    try {
+      if (srcUrl.startsWith('http')) {
+        const response = await fetch(srcUrl);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `${brandName || 'velocity'}_creative_${index + 1}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        const link = document.createElement('a');
+        link.href = srcUrl;
+        link.download = `${brandName || 'velocity'}_creative_${index + 1}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error('Failed to download image:', err);
+      const link = document.createElement('a');
+      link.href = srcUrl;
+      link.target = '_blank';
+      link.download = `${brandName || 'velocity'}_creative_${index + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleDoubleTap = (post: GeneratedPost, index: number) => {
+    if (!savedIndices.has(index)) {
+      handleHeart(post, index);
+    }
+    setShowHeartPop((prev) => ({ ...prev, [index]: true }));
+    setTimeout(() => {
+      setShowHeartPop((prev) => ({ ...prev, [index]: false }));
+    }, 800);
   };
 
   const handleReject = (index: number) => {
@@ -581,7 +639,7 @@ const DashboardStrategy = () => {
         sendStatus={sendStatus}
         sendCampaign={sendCampaign}
         back={resetToBuilder}
-        regenerate={generate}
+        regenerate={() => generate()}
       />
     );
   }
@@ -692,7 +750,10 @@ const DashboardStrategy = () => {
                 transition={{ delay: i * 0.06 }}
                 className="break-inside-avoid rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm group"
               >
-                <div className={cn('relative w-full overflow-hidden', isBig ? 'aspect-[3/4]' : 'aspect-square')}>
+                <div 
+                  onDoubleClick={() => handleDoubleTap(post, i)}
+                  className={cn('relative w-full overflow-hidden cursor-pointer select-none', isBig ? 'aspect-[3/4]' : 'aspect-square')}
+                >
                   {displaySrc ? (
                     <img
                       src={displaySrc}
@@ -708,6 +769,21 @@ const DashboardStrategy = () => {
                       )}
                     </div>
                   )}
+
+                  {/* Heart pop-up animation */}
+                  <AnimatePresence>
+                    {showHeartPop[i] && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.3 }}
+                        animate={{ opacity: 1, scale: 1.2 }}
+                        exit={{ opacity: 0, scale: 1.5 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 flex items-center justify-center bg-black/20 z-10 pointer-events-none"
+                      >
+                        <Heart className="w-16 h-16 text-rose-500 fill-rose-500 filter drop-shadow-md" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -765,22 +841,25 @@ const DashboardStrategy = () => {
                 <div className="p-3">
                   <p className="text-xs font-medium text-foreground line-clamp-2 mb-2">{post.caption}</p>
                   <div className="flex gap-1.5">
-                    <button className="flex-1 h-7 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground text-[10px] font-semibold flex items-center justify-center gap-1 transition">
-                      <RefreshCw size={10} /> Remix
-                    </button>
                     <button
-                      onClick={() => handleHeart(post)}
-                      className="flex-1 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-[10px] font-semibold flex items-center justify-center gap-1 transition"
+                      onClick={() => handleDownload(post, i)}
+                      className="flex-1 h-7 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground text-[10px] font-semibold flex items-center justify-center gap-1 transition"
                     >
-                      <Heart size={10} /> Save
+                      <Download size={10} /> Download
                     </button>
                     <button
                       onClick={() => {
-                        if (displaySrc) setPreviewUrl(displaySrc);
+                        if (!savedIndices.has(i)) handleHeart(post, i);
                       }}
-                      className={cn('flex-1 h-7 rounded-lg bg-gradient-to-r text-white text-[10px] font-semibold flex items-center justify-center gap-1', accentGrad)}
+                      className={cn(
+                        "flex-1 h-7 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition",
+                        savedIndices.has(i)
+                          ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                          : "bg-rose-500/10 hover:bg-rose-500/20 text-rose-500"
+                      )}
                     >
-                      <Check size={10} /> Use
+                      <Heart size={10} className={cn(savedIndices.has(i) && "fill-rose-500 text-rose-500")} />
+                      {savedIndices.has(i) ? 'Saved' : 'Save'}
                     </button>
                   </div>
                 </div>
@@ -1120,9 +1199,6 @@ const DashboardStrategy = () => {
                 Reference images <span className="font-normal text-muted-foreground/60 normal-case">(optional)</span>
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setShowProductModal(true)} className="text-[11px] font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5">
-                  <ShoppingBag size={12} /> From Products
-                </button>
                 <button onClick={pickRandom} className="text-[11px] font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5">
                   <Shuffle size={12} /> Pick Random
                 </button>
@@ -1131,15 +1207,14 @@ const DashboardStrategy = () => {
 
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
               <button
-                onClick={() => fileInput.current?.click()}
+                onClick={() => setShowProductModal(true)}
                 className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-1 group"
               >
                 <div className="w-8 h-8 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary flex items-center justify-center transition">
                   <Plus size={16} />
                 </div>
-                <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground">Upload</span>
+                <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground">Add Product</span>
               </button>
-              <input ref={fileInput} type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
 
               {/* Selected products */}
               {selectedProducts.map((p, i) => (
@@ -1243,9 +1318,6 @@ const DashboardStrategy = () => {
                 Product images <span className="font-normal text-muted-foreground/60 normal-case">(optional)</span>
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setShowProductModal(true)} className="text-[11px] font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5">
-                  <ShoppingBag size={12} /> From Products
-                </button>
                 <button onClick={pickRandom} className="text-[11px] font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5">
                   <Shuffle size={12} /> Pick Random
                 </button>
@@ -1253,15 +1325,14 @@ const DashboardStrategy = () => {
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
               <button
-                onClick={() => fileInput.current?.click()}
+                onClick={() => setShowProductModal(true)}
                 className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-1 group"
               >
                 <div className="w-8 h-8 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary flex items-center justify-center transition">
                   <Plus size={16} />
                 </div>
-                <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground">Upload</span>
+                <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground">Add Product</span>
               </button>
-              <input ref={fileInput} type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
               {selectedProducts.map((p, i) => (
                 <motion.div key={`prod-${p._id || i}`} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} className="relative aspect-square rounded-xl overflow-hidden group bg-card border border-primary/40">
                   {p.imageBase64 ? <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-cover p-1 rounded-xl" /> : <div className="w-full h-full flex flex-col items-center justify-center bg-muted/50 p-2 text-center"><Package size={16} className="text-muted-foreground mb-1" /><span className="text-[9px] font-medium leading-tight text-foreground line-clamp-2">{p.name}</span></div>}
@@ -1581,23 +1652,7 @@ const DashboardStrategy = () => {
 
               <div className="p-5 overflow-y-auto flex-1">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {/* First option: Upload from Computer */}
-                  {!(mode === 'whatsapp' || mode === 'email' || mode === 'ecomm') && (
-                    <button
-                      onClick={() => {
-                        setComputerImageSourceClass('product');
-                        campaignFileInput.current?.click();
-                        setShowProductModal(false);
-                      }}
-                      className="text-center flex flex-col items-center justify-center p-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition group min-h-[150px]"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-                        <Upload size={16} />
-                      </div>
-                      <p className="text-xs font-bold text-primary">Upload Image</p>
-                      <p className="text-[9px] text-muted-foreground mt-0.5">From computer</p>
-                    </button>
-                  )}
+
 
                   {products.map((p) => {
                     const selected = !!selectedProducts.find((x) => x._id === p._id);
@@ -1684,23 +1739,7 @@ const DashboardStrategy = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {/* First option: Upload from Computer */}
-                    {!(mode === 'whatsapp' || mode === 'email') && (
-                      <button
-                        onClick={() => {
-                          setComputerImageSourceClass('creative');
-                          campaignFileInput.current?.click();
-                          setShowCreativeModal(false);
-                        }}
-                        className="text-center flex flex-col items-center justify-center p-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition group min-h-[150px]"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-                          <Upload size={16} />
-                        </div>
-                        <p className="text-xs font-bold text-primary">Upload Image</p>
-                        <p className="text-[9px] text-muted-foreground mt-0.5">From computer</p>
-                      </button>
-                    )}
+
 
                     {creativeLibrary.map((c) => {
                       const src = c.thumbnailBase64 || c.slides?.[0]?.image || '';
@@ -1751,7 +1790,7 @@ const DashboardStrategy = () => {
       {mode !== 'festival' && (
         <div className="sticky bottom-4 lg:bottom-0 lg:static pt-2">
           <Button
-            onClick={generate}
+            onClick={() => generate()}
             disabled={!canGenerate}
             size="lg"
             className={cn(

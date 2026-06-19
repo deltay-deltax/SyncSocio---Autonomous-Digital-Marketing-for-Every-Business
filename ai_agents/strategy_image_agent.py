@@ -586,15 +586,36 @@ def build_ecomm_image_prompt(
         caption_product = brand_name
 
     # ── 3. Platform rule ────────────────────────────────────────────
-    platform_rule = PLATFORM_RULES.get(platform, "Clean, premium, commercial product photography.")
-    platform_line = f"PLATFORM ({platform}): {platform_rule}"
+    if platform == "Amazon" and shot_index == 0:
+        # Amazon Main Image: Strict isolation rules, white background, no text
+        platform_line = (
+            "PLATFORM (Amazon Main Image): White or very light grey background required. "
+            "Product fully isolated. No lifestyle elements. Clean edges. Meets Amazon main image policy."
+        )
+        text_instruction = "No text overlays, no logos added, no watermarks (Amazon main image compliance)."
+    else:
+        # Amazon Secondary Images & All Other Platforms: Info-graphics, overlays, styled backgrounds allowed
+        if platform == "Amazon":
+            platform_line = (
+                "PLATFORM (Amazon Secondary Image): Infographic, lifestyle, or styled composition allowed. "
+                "Visually rich backgrounds and context allowed for secondary listings."
+            )
+        else:
+            platform_rule = PLATFORM_RULES.get(platform, "Clean, premium, commercial product photography.")
+            platform_line = f"PLATFORM ({platform}): {platform_rule}"
+        
+        text_instruction = (
+            "Include professional, clean typographic text overlays highlighting key product benefits, "
+            "features, or price callout area as appropriate. "
+            "No generic watermarks or external logos."
+        )
 
     # ── 4. Shot-type directive (rotation) ──────────────────────────
     n_base = len(ECOMM_SHOT_TYPES)  # 8
     shot   = ECOMM_SHOT_TYPES[shot_index % n_base]
     
     directive = shot["directive"]
-    if shot["id"] == "flat_lay" and platform != "Amazon":
+    if shot["id"] == "flat_lay" and (platform != "Amazon" or shot_index > 0):
         directive = (
             f"Overhead 90° flat-lay. Clean modern surface styled with subtle matching props. "
             f"Background is a soft pastel surface/gradient matching the brand's aesthetic (primary: {primary_color}, secondary: {secondary_color}). "
@@ -617,7 +638,7 @@ def build_ecomm_image_prompt(
     closing = (
         "Premium marketplace product listing image. "
         "Photorealistic, commercial photography quality. "
-        "No text overlays, no logos added, no watermarks. "
+        f"{text_instruction} "
         f"Any text overlays or words shown in the image must be in {language}."
     )
 

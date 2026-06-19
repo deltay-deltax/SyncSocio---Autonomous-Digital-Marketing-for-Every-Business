@@ -98,6 +98,7 @@ def generate_fal_image_gpt2(prompt: str, image: str = None, image_size: str = "p
             edit_arguments = {
                 "prompt": prompt,
                 "image_urls": [data_url],
+                "quality": "low",
             }
             try:
                 result = fal_client.subscribe(
@@ -138,7 +139,7 @@ def generate_fal_image_gpt2(prompt: str, image: str = None, image_size: str = "p
             arguments = {
                 "prompt": prompt,
                 "image_size": image_size,
-                "quality": "medium",
+                "quality": "low",
             }
             result = fal_client.subscribe(
                 "fal-ai/gpt-image-2",
@@ -216,7 +217,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
                 arguments = {
                     "prompt": slide_prompt,
                     "image_urls": [data_url],
-                    "quality": "medium",
+                    "quality": "low",
                 }
                 model_endpoint = "openai/gpt-image-2/edit"
             else:
@@ -224,7 +225,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
                 arguments = {
                     "prompt": slide_prompt,
                     "image_size": "portrait_4_3",
-                    "quality": "medium",
+                    "quality": "low",
                 }
                 model_endpoint = "fal-ai/gpt-image-2"
                 
@@ -247,7 +248,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
                         arguments_t2i = {
                             "prompt": slide_prompt,
                             "image_size": "portrait_4_3",
-                            "quality": "medium",
+                            "quality": "low",
                         }
                         result = fal_client.subscribe(
                             "fal-ai/gpt-image-2",
