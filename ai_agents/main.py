@@ -72,25 +72,42 @@ class HTMLMetadataExtractor(HTMLParser):
         self.meta_desc = ""
         self.current_tag = ""
         self.body_text = []
-        self.ignore_tags = {"script", "style", "head", "link", "noscript"}
+        self.ignore_tags = {"script", "style", "head", "noscript"} # Removed 'link' to allow parsing favicon links
         self.in_ignore = False
         self.images = []
+        self.logo_candidates = []
 
     def handle_starttag(self, tag, attrs):
         self.current_tag = tag
         if tag in self.ignore_tags and tag != "head":
             self.in_ignore = True
         
-        if tag == "meta":
-            attrs_dict = dict(attrs)
-            if attrs_dict.get("name") == "description":
+        attrs_dict = dict(attrs)
+        if tag == "link":
+            rel = attrs_dict.get("rel", "").lower()
+            if any(x in rel for x in ["icon", "shortcut icon", "apple-touch-icon"]):
+                href = attrs_dict.get("href", "")
+                if href:
+                    from urllib.parse import urljoin
+                    abs_href = urljoin(self.base_url, href)
+                    self.logo_candidates.append({"src": abs_href, "source": f"link-{rel}"})
+
+        elif tag == "meta":
+            property_val = attrs_dict.get("property", "").lower()
+            name_val = attrs_dict.get("name", "").lower()
+            if property_val == "description" or name_val == "description":
                 self.meta_desc = attrs_dict.get("content", "")
-            elif attrs_dict.get("property") == "og:description":
+            elif property_val == "og:description" or name_val == "og:description":
                 if not self.meta_desc:
                     self.meta_desc = attrs_dict.get("content", "")
+            elif property_val in ["og:image", "twitter:image"] or name_val in ["og:image", "twitter:image"]:
+                content = attrs_dict.get("content", "")
+                if content:
+                    from urllib.parse import urljoin
+                    abs_content = urljoin(self.base_url, content)
+                    self.logo_candidates.append({"src": abs_content, "source": f"meta-{property_val or name_val}"})
                     
-        if tag == "img":
-            attrs_dict = dict(attrs)
+        elif tag == "img":
             src = attrs_dict.get("src", "")
             data_src = attrs_dict.get("data-src", "")
             srcset = attrs_dict.get("srcset", "")
@@ -120,8 +137,19 @@ class HTMLMetadataExtractor(HTMLParser):
             if target_src:
                 from urllib.parse import urljoin
                 absolute_src = urljoin(self.base_url, target_src)
-                # print(f"[WEBSITE SCANNER] [IMG-EXTRACT] Found image: {absolute_src} (alt: {alt})")
                 self.images.append({"src": absolute_src, "alt": alt})
+
+                # Check if this image looks like a brand logo
+                src_lower = target_src.lower()
+                is_logo = False
+                for attr_name, attr_val in attrs:
+                    if attr_name in ["src", "alt", "class", "id", "title"]:
+                        val_lower = attr_val.lower()
+                        if "logo" in val_lower or "brand" in val_lower or "header" in val_lower:
+                            is_logo = True
+                            break
+                if is_logo or "logo" in src_lower or "icon" in src_lower:
+                    self.logo_candidates.append({"src": absolute_src, "source": "img-logo-attr", "alt": alt})
 
     def handle_endtag(self, tag):
         if tag in self.ignore_tags:
@@ -154,12 +182,24 @@ class HTMLMetadataExtractor(HTMLParser):
                 formatted_images.append(img)
                 if len(formatted_images) >= 50:
                     break
+
+        # Deduplicate logo candidates
+        seen_logo = set()
+        unique_logos = []
+        for l in self.logo_candidates:
+            src = l["src"]
+            if src not in seen_logo and not src.startswith("data:"):
+                seen_logo.add(src)
+                unique_logos.append(l)
+
         print(f"[WEBSITE SCANNER] [IMG-EXTRACT] Total unique high-quality images gathered for prompt: {len(formatted_images)}")
+        print(f"[WEBSITE SCANNER] [LOGO-EXTRACT] Total unique logo candidates gathered: {len(unique_logos)}")
         return {
             "title": self.title.strip(),
             "meta_description": self.meta_desc.strip(),
             "body_text": " ".join(self.body_text)[:12000],
-            "images": formatted_images
+            "images": formatted_images,
+            "logo_candidates": unique_logos
         }
 
 def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = ""):
@@ -227,10 +267,13 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
         
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
-        
+    
+    is_fallback = False
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
         }
         try:
             response = requests.get(url, headers=headers, timeout=12, verify=False)
@@ -241,7 +284,9 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
             else:
                 raise e
                 
-        response.raise_for_status()
+        if response.status_code != 200:
+            raise Exception(f"HTTP status {response.status_code}")
+            
         html_content = response.text
         
         parser = HTMLMetadataExtractor(base_url=url)
@@ -251,24 +296,64 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
         if not extracted["body_text"].strip():
             raise Exception("No readable text content found on the webpage.")
             
+        # Extract typography candidates using regex
+        import re
+        google_font_urls = re.findall(r'https://fonts\.googleapis\.com/css[2]?\?[^"\'\s>]+', html_content)
+        google_fonts = []
+        for f_url in google_font_urls:
+            decoded_url = f_url.replace("&amp;", "&")
+            families = re.findall(r'(?:family=)([^&\'"\s]+)', decoded_url)
+            for fam in families:
+                clean_fam = fam.split(":")[0].replace("+", " ").strip()
+                if clean_fam and clean_fam not in google_fonts:
+                    google_fonts.append(clean_fam)
+                    
+        font_family_matches = re.findall(r'font-family\s*:\s*([^;\'"}]+)', html_content)
+        css_fonts = []
+        generics = {"sans-serif", "serif", "monospace", "system-ui", "-apple-system", "blinkmacsystemfont", 
+                    "segoe ui", "helvetica neue", "helvetica", "arial", "geneva", "tahoma", "verdana", 
+                    "trebuchet ms", "times new roman", "georgia", "courier new", "inherit", "initial", "unset"}
+        for match in font_family_matches:
+            fonts = [f.strip().strip("'\"") for f in match.split(",")]
+            for f in fonts:
+                if f:
+                    f_lower = f.lower()
+                    if f_lower not in generics and f not in css_fonts:
+                        css_fonts.append(f)
+                        
+        typography_candidates = list(dict.fromkeys(google_fonts + css_fonts))[:10]
+
         print("\n" + "="*80)
         print(f"[WEBSITE SCANNER] [START] Initiating scan for URL: {url}")
         print(f"[WEBSITE SCANNER] [TITLE] Extracted Title: {extracted['title']}")
         print(f"[WEBSITE SCANNER] [META] Extracted Meta Description: {extracted['meta_description']}")
+        print(f"[WEBSITE SCANNER] [LOGOS] Extracted Unique Logo Candidates: {len(extracted['logo_candidates'])}")
+        print(f"[WEBSITE SCANNER] [FONTS] Extracted Typography Candidates: {typography_candidates}")
         print(f"[WEBSITE SCANNER] [IMAGES] Extracted Unique Image URLs Count: {len(extracted['images'])}")
         print(f"[WEBSITE SCANNER] [TEXT] Raw text character length: {len(extracted['body_text'])}")
         print("="*80 + "\n")
             
     except Exception as scrape_err:
-        print(f"Scrape error for {url}: {scrape_err}")
-        raise HTTPException(status_code=422, detail=f"Failed to fetch or scrape website: {str(scrape_err)}")
+        print(f"[WEBSITE SCANNER] [WARNING] Scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis...")
+        is_fallback = True
+        
+        # Build inferred title from domain
+        domain_part = url.split("//")[-1].replace("www.", "").split("/")[0].split(".")[0].capitalize()
+        extracted = {
+            "title": domain_part,
+            "meta_description": f"Official website of {domain_part}",
+            "body_text": f"Scraping was blocked by firewall. Inferring brand details based on brand name: {domain_part}.",
+            "images": [],
+            "logo_candidates": []
+        }
+        typography_candidates = []
         
     if not openai_key:
         raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
         
     try:
         system_prompt = """You are an expert brand researcher and product cataloging agent. 
-Analyze the website's title, meta description, lists of found image URLs, and body text content to extract the brand's profile information and standard products list.
+Analyze the website's title, meta description, lists of logo candidates, typography candidates, page images, and body text content to extract the brand's profile information and standard products list.
 
 Your output must be a valid JSON object matching the following structure. If any field or product detail is not found, keep it as an empty string ("") or empty array ([])—DO NOT invent fake information, but infer sensible defaults when obvious (e.g. brand name from title, colors from context, or standard goals).
 
@@ -276,6 +361,8 @@ IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep t
 IMPORTANT: Do not extract more than 12 products. Set a strict product limit of 12.
 
 For each product, select the most relevant image URL from the provided list of images by matching the product name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
+
+For the brand logo, select the best URL matching the brand logo from the provided logo candidates. If no candidates exist or look valid, select an appropriate image from the general images list. If none are found, set "logo" to an empty string.
 
 JSON Structure:
 {
@@ -287,6 +374,8 @@ JSON Structure:
     "country": "Target country if found, otherwise empty string",
     "city": "Target city if found, otherwise empty string"
   },
+  "logo": "URL of the brand's logo image selected from candidates or empty string",
+  "typography": "The primary font family selected from typography candidates (e.g., 'Outfit', 'Inter', etc.) or a sensible modern default matching the brand tone (default: 'Inter')",
   "usp": "A concise, punchy Unique Selling Point summarizing the brand's key differentiator (under 150 characters)",
   "competitors": ["rival_handle_1", "rival_handle_2"],
   "targetAudiences": ["Choose one or more from: 'Students & Young Adults', 'Working Professionals', 'Parents & Families', 'Business Owners'"],
@@ -310,8 +399,13 @@ JSON Structure:
   ]
 }
 """
-        images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
-        user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
+        if is_fallback:
+            user_prompt = f"Scrape URL: {url} (SCRAPER BLOCKED/FAILED - PLEASE USE OFFLINE TRAINING KNOWLEDGE TO INFER DETAILS)\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\nNone (scraper failed)\n\nDetected typography candidates:\nNone (scraper failed)\n\nList of page images:\nNone (scraper failed)\n\nWebpage visible text:\n{extracted['body_text']}"
+        else:
+            logo_info_str = "\n".join([f"- URL: {l['src']} | Source: {l['source']}" for l in extracted["logo_candidates"]])
+            typo_info_str = ", ".join(typography_candidates) if typography_candidates else "None detected"
+            images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
+            user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\n{logo_info_str}\n\nDetected typography candidates:\n{typo_info_str}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
         
         print("\n" + "="*80)
         print("[WEBSITE SCANNER] [PROMPT] PROMPT BEING SENT TO GPT:")
@@ -330,6 +424,24 @@ JSON Structure:
         scraped_data = json.loads(gpt_response_text)
         scraped_data["website"] = url
         
+        # Convert matched logo image URL to base64 string
+        logo_url = scraped_data.get("logo", "")
+        print(f"[WEBSITE SCANNER] [LOGO] Scraped Logo URL: {logo_url or 'None'}")
+        if logo_url:
+            if logo_url.startswith("http"):
+                logo_b64 = download_image_as_base64(logo_url)
+                if logo_b64:
+                    scraped_data["logo"] = logo_b64
+                    print(f"[WEBSITE SCANNER] [LOGO] ✅ Saved logo as base64 ({len(logo_b64)} characters)")
+                else:
+                    scraped_data["logo"] = ""
+                    print("[WEBSITE SCANNER] [LOGO] ❌ Failed to download logo. Cleared logo field.")
+            else:
+                print(f"[WEBSITE SCANNER] [LOGO] ⚠️ Logo URL is not absolute: {logo_url}")
+                scraped_data["logo"] = ""
+        else:
+            scraped_data["logo"] = ""
+
         # Convert matched product image URLs to base64 strings
         products = scraped_data.get("products", [])
         if len(products) > 12:
@@ -1363,9 +1475,13 @@ Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
             )
             type_str = "carousel"
         elif request.format == "Reel":
-            # Use FAL.ai Minimax Video (WAN quality)
-            print("Using FAL.ai Minimax Video for Reel generation...")
-            result = generate_fal_video_minimax(refined_prompt, duration="6s")
+            # Use FAL.ai Wan Video for lowest budget
+            print("Using FAL.ai Wan Video for Reel generation...")
+            result = generate_fal_video_wan(
+                prompt=refined_prompt,
+                image=request.image,
+                aspect_ratio="9:16"
+            )
             type_str = "video"
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported format: {request.format}")

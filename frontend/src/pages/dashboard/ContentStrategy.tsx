@@ -78,6 +78,15 @@ const videoKinds = [
   { id: 'img2video', label: 'Image to Video', desc: 'Animate your reference images' },
 ];
 
+const MOTION_PRESETS = [
+  { id: 'zoom', label: 'Dynamic Zoom', desc: 'Gradually zoom into the product with a cinematic slow-motion focus.', promptModifier: 'cinematic slow-motion dynamic zoom on the product, clean focal pull' },
+  { id: 'spin', label: 'Product Orbit', desc: 'Smoothly rotate around the product to display it from multiple angles.', promptModifier: '360-degree smooth orbit rotation around the product showcasing its design details' },
+  { id: 'fluid', label: 'Fluid Reveal', desc: 'Make the product rise into view with a smooth liquid splash or mist.', promptModifier: 'the product rises dynamically with a smooth fluid splash transition and soft atmospheric mist' },
+  { id: 'pan', label: 'Cinematic Pan', desc: 'Slowly glide the camera horizontally across the product.', promptModifier: 'slow horizontal camera pan across the product, cinematic side-lighting' },
+  { id: 'pop', label: 'Bounce & Pop', desc: 'A lively, playful bounce that makes the product pop into view.', promptModifier: 'playful bounce and pop reveal, energetic motion, clean studio backdrop' },
+  { id: 'melt', label: 'Melt In', desc: 'A liquid melting effect that transitions the backdrop organically.', promptModifier: 'organic liquid melt reveal, product stays sharp, smooth physics transition' },
+];
+
 const languages = [
   { id: 'english', label: 'English', flag: '🇬🇧' },
   { id: 'hinglish', label: 'Hinglish', flag: '🅷' },
@@ -165,6 +174,7 @@ const DashboardStrategy = () => {
   const [uploads, setUploads] = useState<string[]>([]);
   const [language, setLanguage] = useState<string>('english');
   const [videoKind, setVideoKind] = useState<string>('ai-ugc');
+  const [selectedMotionPreset, setSelectedMotionPreset] = useState<string | null>(null);
 
   // ── E-comm
   const [productName, setProductName] = useState('');
@@ -229,6 +239,13 @@ const DashboardStrategy = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
+
+  React.useEffect(() => {
+    const maxProducts = mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count);
+    if (selectedProducts.length > maxProducts) {
+      setSelectedProducts(selectedProducts.slice(0, maxProducts));
+    }
+  }, [mode, videoKind, count, ecommImgCount, selectedProducts.length]);
 
   // ── Generated results
   const [generated, setGenerated] = useState<GeneratedPost[]>([]);
@@ -331,7 +348,7 @@ const DashboardStrategy = () => {
       } else {
         const exists = prev.find((x) => x._id === p._id);
         if (exists) return prev.filter((x) => x._id !== p._id);
-        const limit = mode === 'ecomm' ? ecommImgCount : count;
+        const limit = mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count);
         if (prev.length >= limit) return prev;
         return [...prev, p];
       }
@@ -591,8 +608,24 @@ const DashboardStrategy = () => {
       const currentMode = overrides?.layout || (mode === 'festival' ? 'image' : mode);
       const currentProducts = overrides?.products !== undefined ? overrides.products : selectedProducts;
       const currentIdea = overrides?.idea !== undefined ? overrides.idea : idea;
-      const currentCount = overrides?.count !== undefined ? overrides.count : count;
-      const currentAspect = overrides?.aspect !== undefined ? overrides.aspect : (mode === 'festival' && tone === 'Story' ? '9:16' : aspect);
+      
+      let currentCount = overrides?.count !== undefined ? overrides.count : count;
+      let currentAspect = overrides?.aspect !== undefined ? overrides.aspect : (mode === 'festival' && tone === 'Story' ? '9:16' : aspect);
+      let currentLanguage = overrides?.language !== undefined ? overrides.language : language;
+
+      let finalIdea = currentIdea;
+      if (currentMode === 'video' && videoKind === 'img2video') {
+        currentCount = 1;
+        currentAspect = '9:16';
+        currentLanguage = 'english';
+        
+        if (selectedMotionPreset) {
+          const preset = MOTION_PRESETS.find((p) => p.id === selectedMotionPreset);
+          if (preset) {
+            finalIdea = `${currentIdea ? currentIdea.trim() + '. ' : ''}${preset.promptModifier}`;
+          }
+        }
+      }
 
       if (currentMode === 'whatsapp' || currentMode === 'email') {
         if (activeCampaignImageSource === 'product' && currentProducts[0]?.imageBase64) {
@@ -620,10 +653,10 @@ const DashboardStrategy = () => {
         count: currentMode === 'ecomm' ? ecommTotal : currentCount,
         slideCount,
         aspectRatio: currentAspect,
-        idea: currentMode === 'ecomm' ? '' : currentIdea,
+        idea: currentMode === 'ecomm' ? '' : finalIdea,
         refImages,
         products: currentProducts.length > 0 ? currentProducts : undefined,
-        language: overrides?.language !== undefined ? overrides.language : language,
+        language: currentLanguage,
         generateImage: (currentMode === 'whatsapp' || currentMode === 'email') ? false : generateImage,
         // E-comm specific — platform + image count for shot-type rotation
         ...(currentMode === 'ecomm' && {
@@ -998,7 +1031,15 @@ const DashboardStrategy = () => {
                   onClick={() => handleImageClick(post, i, displaySrc || '')}
                   className={cn('relative w-full overflow-hidden cursor-pointer select-none', isBig ? 'aspect-[3/4]' : 'aspect-square')}
                 >
-                  {displaySrc ? (
+                  {(mode === 'video' || post.type === 'video') && post.url ? (
+                    <video
+                      src={`${post.url}#t=0.5`}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : displaySrc ? (
                     <img
                       src={displaySrc}
                       alt=""
@@ -1356,78 +1397,82 @@ const DashboardStrategy = () => {
           )}
 
           {/* Count + Aspect */}
-          <section className="mb-6">
-            <div className="p-5 rounded-2xl border border-border/60 bg-gradient-to-br from-card to-muted/30 space-y-5">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
-                  {mode === 'image' ? 'Post count' : mode === 'carousel' ? 'Carousels' : 'Videos'}
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  {standardCounts.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setCount(c)}
-                      className={cn(
-                        'flex-1 sm:flex-none sm:w-20 py-2.5 rounded-xl text-sm font-semibold transition',
-                        count === c
-                          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                          : 'bg-card border border-border text-foreground hover:border-primary/40'
-                      )}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {mode === 'carousel' && (
+          {!(mode === 'video' && videoKind === 'img2video') && (
+            <section className="mb-6">
+              <div className="p-5 rounded-2xl border border-border/60 bg-gradient-to-br from-card to-muted/30 space-y-5">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Slides per carousel</p>
-                  <div className="flex gap-2">
-                    {carouselSlides.map((s) => (
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
+                    {mode === 'image' ? 'Post count' : mode === 'carousel' ? 'Carousels' : 'Videos'}
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    {standardCounts.map((c) => (
                       <button
-                        key={s}
-                        onClick={() => setSlideCount(s)}
+                        key={c}
+                        onClick={() => setCount(c)}
                         className={cn(
                           'flex-1 sm:flex-none sm:w-20 py-2.5 rounded-xl text-sm font-semibold transition',
-                          slideCount === s
+                          count === c
                             ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
                             : 'bg-card border border-border text-foreground hover:border-primary/40'
                         )}
                       >
-                        {s}
+                        {c}
                       </button>
                     ))}
                   </div>
                 </div>
-              )}
 
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Aspect ratio</p>
-                <div className="flex flex-wrap gap-2">
-                  {aspects.map((a) => (
-                    <button
-                      key={a.id}
-                      onClick={() => setAspect(a.id)}
-                      className={cn(
-                        'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2',
-                        aspect === a.id
-                          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                          : 'bg-card border border-border text-foreground hover:border-primary/40'
-                      )}
-                    >
-                      <span>{a.label}</span>
-                      <span className={cn('text-[10px]', aspect === a.id ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-                        {a.ratio}
-                      </span>
-                    </button>
-                  ))}
+                {mode === 'carousel' && (
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Slides per carousel</p>
+                    <div className="flex gap-2">
+                      {carouselSlides.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setSlideCount(s)}
+                          className={cn(
+                            'flex-1 sm:flex-none sm:w-20 py-2.5 rounded-xl text-sm font-semibold transition',
+                            slideCount === s
+                              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                              : 'bg-card border border-border text-foreground hover:border-primary/40'
+                          )}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Aspect ratio</p>
+                  <div className="flex flex-wrap gap-2">
+                    {aspects.map((a) => (
+                      <button
+                        key={a.id}
+                        onClick={() => setAspect(a.id)}
+                        className={cn(
+                          'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2',
+                          aspect === a.id
+                            ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                            : 'bg-card border border-border text-foreground hover:border-primary/40'
+                        )}
+                      >
+                        <span>{a.label}</span>
+                        <span className={cn('text-[10px]', aspect === a.id ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+                          {a.ratio}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
-          <LanguagePicker language={language} setLanguage={setLanguage} />
+          {!(mode === 'video' && videoKind === 'img2video') && (
+            <LanguagePicker language={language} setLanguage={setLanguage} />
+          )}
 
           {/* ─── Ad Template Picker (image mode only) ─── */}
           {mode === 'image' && (
@@ -1524,13 +1569,16 @@ const DashboardStrategy = () => {
           <section className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Reference images <span className="font-normal text-muted-foreground/60 normal-case">(optional)</span>
+                {mode === 'video' && videoKind === 'img2video' ? 'Product image' : 'Reference images'}{' '}
+                <span className="font-normal text-muted-foreground/60 normal-case">(optional)</span>
               </p>
-              <div className="flex gap-3">
-                <button onClick={pickRandom} className="text-[11px] font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5">
-                  <Shuffle size={12} /> Pick Random
-                </button>
-              </div>
+              {!(mode === 'video' && videoKind === 'img2video') && (
+                <div className="flex gap-3">
+                  <button onClick={pickRandom} className="text-[11px] font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5">
+                    <Shuffle size={12} /> Pick Random
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
@@ -1571,7 +1619,7 @@ const DashboardStrategy = () => {
               ))}
 
               {/* Uploads */}
-              {uploads.map((url, i) => (
+              {!(mode === 'video' && videoKind === 'img2video') && uploads.map((url, i) => (
                 <motion.div
                   key={`up-${i}`}
                   initial={{ opacity: 0, scale: 0.85 }}
@@ -1590,7 +1638,46 @@ const DashboardStrategy = () => {
             </div>
           </section>
 
-          <IdeaBox idea={idea} setIdea={setIdea} />
+          {mode === 'video' && videoKind === 'img2video' && (
+            <section className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Or choose a motion effect
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {MOTION_PRESETS.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedMotionPreset(selectedMotionPreset === p.id ? null : p.id)}
+                    className={cn(
+                      'p-4 rounded-2xl border text-left transition relative',
+                      selectedMotionPreset === p.id
+                        ? 'border-primary bg-primary/5 shadow-md shadow-primary/10 ring-1 ring-primary/30'
+                        : 'border-border/60 bg-card hover:border-primary/40'
+                    )}
+                  >
+                    <p className="text-sm font-semibold text-foreground">{p.label}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{p.desc}</p>
+                    {selectedMotionPreset === p.id && (
+                      <div className="absolute top-3.5 right-4 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check size={9} className="text-primary-foreground" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <IdeaBox
+            idea={idea}
+            setIdea={setIdea}
+            placeholder={
+              mode === 'video' && videoKind === 'img2video'
+                ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
+                : undefined
+            }
+            label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
+          />
         </>
       )}
 
@@ -1974,7 +2061,7 @@ const DashboardStrategy = () => {
                     <ShoppingBag size={18} className="text-primary" /> Select Products
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Pick up to {mode === 'ecomm' ? ecommImgCount : count} products. Velocity will anchor generations to these.
+                    Pick up to {mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)} product{(mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)) > 1 ? 's' : ''}. Velocity will anchor generations to these.
                   </p>
                 </div>
                 <button onClick={() => setShowProductModal(false)} className="p-2 rounded-xl hover:bg-muted transition">
@@ -1988,7 +2075,7 @@ const DashboardStrategy = () => {
 
                   {products.map((p) => {
                     const selected = !!selectedProducts.find((x) => x._id === p._id);
-                    const disabled = !selected && selectedProducts.length >= (mode === 'ecomm' ? ecommImgCount : count);
+                    const disabled = !selected && selectedProducts.length >= (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
                     return (
                       <button
                         key={p._id}
@@ -2022,9 +2109,9 @@ const DashboardStrategy = () => {
 
               <div className="p-5 border-t border-border/50 shrink-0 flex items-center justify-between">
                 <p className="text-xs font-semibold text-muted-foreground">
-                  <span className={cn(selectedProducts.length === (mode === 'ecomm' ? ecommImgCount : count) ? 'text-primary' : 'text-foreground')}>
+                  <span className={cn(selectedProducts.length === (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)) ? 'text-primary' : 'text-foreground')}>
                     {selectedProducts.length}
-                  </span> / {mode === 'ecomm' ? ecommImgCount : count} selected
+                  </span> / {mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)} selected
                 </p>
                 <Button onClick={() => setShowProductModal(false)} className="rounded-xl px-6">Done</Button>
               </div>
@@ -2188,9 +2275,10 @@ const DashboardStrategy = () => {
             <Sparkles size={18} />
             {mode === 'whatsapp' ? 'Generate WhatsApp message' :
               mode === 'email' ? 'Generate email campaign' :
-                `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'video' ? (videoKind === 'ai-ugc' ? 'UGC videos' : 'videos') :
-                  mode === 'carousel' ? 'carousels' :
-                    mode === 'ecomm' ? 'assets' : 'posts'}`}
+                (mode === 'video' && videoKind === 'img2video') ? 'Generate 1 video' :
+                  `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'video' ? (videoKind === 'ai-ugc' ? 'UGC videos' : 'videos') :
+                    mode === 'carousel' ? 'carousels' :
+                      mode === 'ecomm' ? 'assets' : 'posts'}`}
           </Button>
           {!canGenerate && mode !== 'ecomm' && (
             <p className="text-[11px] text-muted-foreground text-center mt-2">
@@ -2208,15 +2296,16 @@ const DashboardStrategy = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const IdeaBox = ({
-  idea, setIdea, placeholder,
+  idea, setIdea, placeholder, label,
 }: {
   idea: string;
   setIdea: (v: string) => void;
   placeholder?: string;
+  label?: string;
 }) => (
   <section className="mb-6">
     <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
-      Explain your idea <span className="font-normal text-muted-foreground/60 normal-case">(optional)</span>
+      {label || 'Explain your idea'} <span className="font-normal text-muted-foreground/60 normal-case">(optional)</span>
     </p>
     <div className="relative">
       <Textarea

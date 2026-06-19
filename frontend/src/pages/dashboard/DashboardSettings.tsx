@@ -120,7 +120,9 @@ const DashboardSettings = () => {
     targetAudiences: Array.isArray(profile?.targetAudiences) ? profile.targetAudiences.join(', ') : profile?.targetAudiences || '',
     painPoint: profile?.painPoint || '',
     primaryColor: profile?.primaryColor || '#2563EB',
-    secondaryColor: profile?.secondaryColor || '#60A5FA'
+    secondaryColor: profile?.secondaryColor || '#60A5FA',
+    logo: profile?.logo || '',
+    typography: profile?.typography || ''
   });
 
   useEffect(() => {
@@ -138,10 +140,29 @@ const DashboardSettings = () => {
         targetAudiences: Array.isArray(profile.targetAudiences) ? profile.targetAudiences.join(', ') : profile.targetAudiences || '',
         painPoint: profile.painPoint || '',
         primaryColor: profile.primaryColor || '#2563EB',
-        secondaryColor: profile.secondaryColor || '#60A5FA'
+        secondaryColor: profile.secondaryColor || '#60A5FA',
+        logo: profile.logo || '',
+        typography: profile.typography || ''
       });
     }
   }, [profile]);
+
+  // Load Google Fonts stylesheet dynamically for live typography rendering
+  useEffect(() => {
+    if (formData.typography) {
+      const primaryFont = formData.typography.split(',')[0].trim().replace(/['"]/g, '');
+      if (primaryFont) {
+        const linkId = `google-font-${primaryFont.toLowerCase().replace(/\s+/g, '-')}`;
+        if (!document.getElementById(linkId)) {
+          const link = document.createElement('link');
+          link.id = linkId;
+          link.rel = 'stylesheet';
+          link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(primaryFont)}:wght@400;700&display=swap`;
+          document.head.appendChild(link);
+        }
+      }
+    }
+  }, [formData.typography]);
 
   if (!profile) return null;
 
@@ -240,6 +261,27 @@ const DashboardSettings = () => {
                         className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
                       />
                     </div>
+                    {/* Brand Typography */}
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Typography</Label>
+                      <Input 
+                        value={formData.typography} 
+                        onChange={e => updateField('typography', e.target.value)}
+                        placeholder="e.g. Outfit, sans-serif"
+                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
+                      />
+                      {formData.typography && (
+                        <div className="mt-1 px-4 py-2 bg-muted/10 border border-border/30 rounded-xl">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">Live Font Preview</span>
+                          <p 
+                            className="text-base font-bold transition-all truncate" 
+                            style={{ fontFamily: formData.typography }}
+                          >
+                            The quick brown fox jumps over the lazy dog.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Additional Identity */}
@@ -308,6 +350,63 @@ const DashboardSettings = () => {
                           </div>
                         </div>
                       </div>
+                    </div>
+                    {/* Brand Logo */}
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Logo</Label>
+                      <div className="flex gap-4 items-center">
+                        {/* Preview Card */}
+                        <div className="w-16 h-16 rounded-2xl border border-border/50 bg-muted/10 flex items-center justify-center shrink-0 overflow-hidden relative group">
+                          {formData.logo ? (
+                            <img 
+                              src={formData.logo} 
+                              alt="Brand Logo" 
+                              className="w-full h-full object-contain p-2" 
+                            />
+                          ) : (
+                            <div className="text-[9px] font-black text-muted-foreground/60 text-center uppercase tracking-tighter p-1">No Logo</div>
+                          )}
+                        </div>
+                        
+                        {/* Upload Actions */}
+                        <div className="flex flex-row items-center gap-2 flex-1">
+                          <Label 
+                            htmlFor="logo-upload" 
+                            className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-border/50 bg-muted/25 text-xs font-bold text-foreground cursor-pointer hover:bg-muted/40 transition-colors"
+                          >
+                            Upload Image
+                          </Label>
+                          <input 
+                            id="logo-upload" 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  if (event.target?.result) {
+                                    updateField('logo', event.target.result as string);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                          {formData.logo && (
+                            <button 
+                              type="button" 
+                              onClick={() => updateField('logo', '')}
+                              className="p-2.5 rounded-xl border border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                              title="Remove logo"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-muted-foreground mt-1">Supports PNG, SVG, JPG, WebP.</p>
                     </div>
                   </div>
                 </div>

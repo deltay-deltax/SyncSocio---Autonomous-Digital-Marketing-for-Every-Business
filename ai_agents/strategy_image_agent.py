@@ -27,7 +27,7 @@ import json
 from fal_visual_engine import (
     generate_fal_image_gpt2,
     generate_fal_carousel_ideogram,
-    generate_fal_video_minimax,
+    generate_fal_video_wan,
 )
 
 # ──────────────────────────────────────────────
@@ -1077,7 +1077,9 @@ def generate_strategy_images(
             print(f"\n[StrategyAgent] 🎬 Video {index+1}/{count}...")
             if prod: print(f"                   Product: {prod.get('name')}")
             try:
-                result = generate_fal_video_minimax(prompt, duration="6s")
+                # Extract product image or reference image if available
+                ref = prod.get("imageBase64") if prod else (assigned_refs[index] if index < len(assigned_refs) else None)
+                result = generate_fal_video_wan(prompt, image=ref, aspect_ratio=aspect_ratio)
                 return {
                     "url":       result.get("url"),
                     "thumbnail": result.get("thumbnail"),

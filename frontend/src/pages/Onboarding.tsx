@@ -62,6 +62,8 @@ interface FormData {
   primaryCTA: string;
   primaryColor: string;
   secondaryColor: string;
+  logo: string;
+  typography: string;
 }
 
 interface LeftPanelContent {
@@ -154,7 +156,9 @@ const Onboarding = () => {
         visualVibe: data.visualVibe || prev.visualVibe,
         brandKeywords: data.brandKeywords || prev.brandKeywords,
         primaryColor: data.primaryColor || prev.primaryColor,
-        secondaryColor: data.secondaryColor || prev.secondaryColor
+        secondaryColor: data.secondaryColor || prev.secondaryColor,
+        logo: data.logo || prev.logo,
+        typography: data.typography || prev.typography
       }));
       
       if (data.products && Array.isArray(data.products)) {
@@ -198,7 +202,9 @@ const Onboarding = () => {
     contentMix: { education: 80, promotion: 20 },
     primaryCTA: '',
     primaryColor: '#2563EB',
-    secondaryColor: '#60A5FA'
+    secondaryColor: '#60A5FA',
+    logo: '',
+    typography: ''
   });
 
   const handleNext = () => setStep(prev => Math.min(prev + 1, totalSteps));

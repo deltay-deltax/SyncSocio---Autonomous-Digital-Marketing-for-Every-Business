@@ -495,7 +495,13 @@ const AssetLibrary = () => {
                   {/* Thumbnail wrapper */}
                   <div className="relative bg-muted overflow-hidden flex items-center justify-center min-h-[200px]">
                     {asset.type === 'video' && asset.videoUrl ? (
-                      <video src={asset.videoUrl} className="w-full h-auto block" muted />
+                      <video
+                        src={`${asset.videoUrl}#t=0.5`}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="w-full h-auto block"
+                      />
                     ) : thumbSrc ? (
                       <img src={thumbSrc} alt="" className="w-full h-auto block" loading="lazy" />
                     ) : (
