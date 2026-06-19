@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -197,7 +197,9 @@ const DashboardStrategy = () => {
   // ── Generated results
   const [generated, setGenerated] = useState<GeneratedPost[]>([]);
   const [genError, setGenError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPost, setPreviewPost] = useState<GeneratedPost | null>(null);
+  const [previewSlide, setPreviewSlide] = useState<number>(0);
+  const [copiedText, setCopiedText] = useState<boolean>(false);
   const [savedCount, setSavedCount] = useState(0);
   const [showAdTemplates, setShowAdTemplates] = useState(false);
   const [computerImageSourceClass, setComputerImageSourceClass] = useState<'product' | 'creative' | null>(null);
@@ -594,9 +596,8 @@ const DashboardStrategy = () => {
     } else {
       clickTimeoutRef.current[index] = setTimeout(() => {
         delete clickTimeoutRef.current[index];
-        if (displaySrc) {
-          setPreviewUrl(displaySrc);
-        }
+        setPreviewPost(post);
+        setPreviewSlide(0);
       }, 250);
     }
   };
@@ -905,16 +906,16 @@ const DashboardStrategy = () => {
 
         {/* Lightbox */}
         <AnimatePresence>
-          {previewUrl && (
+          {previewPost && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-zoom-out"
-              onClick={() => setPreviewUrl(null)}
+              onClick={() => { setPreviewPost(null); setCopiedText(false); }}
             >
               <button
-                onClick={() => setPreviewUrl(null)}
+                onClick={() => { setPreviewPost(null); setCopiedText(false); }}
                 className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-50"
               >
                 <X size={20} />
@@ -923,10 +924,108 @@ const DashboardStrategy = () => {
                 initial={{ scale: 0.95, y: 10 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 10 }}
-                className="max-w-[90vw] max-h-[85vh] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-card flex items-center justify-center cursor-default"
+                className="w-full max-w-4xl max-h-[85vh] md:h-[70vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-card flex flex-col md:flex-row cursor-default animate-in fade-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
               >
-                <img src={previewUrl} alt="Preview" className="w-full h-auto max-h-[80vh] object-contain max-w-full" />
+                {/* Left panel: Media */}
+                <div className="flex-1 bg-black/95 flex items-center justify-center p-4 relative min-h-[40vh] md:min-h-0">
+                  {previewPost.type === 'video' && previewPost.url ? (
+                    <video
+                      src={previewPost.url}
+                      controls
+                      autoPlay
+                      className="w-full h-auto max-h-[60vh] md:max-h-[65vh] object-contain max-w-full"
+                    />
+                  ) : previewPost.type === 'carousel' && previewPost.slides && previewPost.slides.length > 0 ? (
+                    <div className="relative flex flex-col items-center justify-center w-full">
+                      <img
+                        src={imgSrc(previewPost.slides[previewSlide]?.image)}
+                        alt={`Slide ${previewSlide + 1}`}
+                        className="w-full h-auto max-h-[55vh] md:max-h-[60vh] object-contain max-w-full"
+                      />
+                      {/* Navigation dots */}
+                      {previewPost.slides.length > 1 && (
+                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10">
+                          {previewPost.slides.map((_: any, idx: number) => (
+                            <button
+                              key={idx}
+                              onClick={() => setPreviewSlide(idx)}
+                              className={cn(
+                                'w-2 h-2 rounded-full transition-all',
+                                idx === previewSlide ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/60'
+                              )}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {/* Left/Right arrows for carousel */}
+                      {previewPost.slides.length > 1 && (
+                        <>
+                          <button
+                            onClick={() => setPreviewSlide(prev => (prev > 0 ? prev - 1 : (previewPost.slides?.length || 1) - 1))}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition text-xl"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            onClick={() => setPreviewSlide(prev => (prev < (previewPost.slides?.length || 1) - 1 ? prev + 1 : 0))}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition text-xl"
+                          >
+                            ›
+                          </button>
+                        </>
+                      )}
+                      {/* Counter badge */}
+                      <div className="absolute top-4 right-4 bg-black/50 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+                        {previewSlide + 1} / {previewPost.slides.length}
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={imgSrc(previewPost.image || previewPost.thumbnail)}
+                      alt="Preview"
+                      className="w-full h-auto max-h-[60vh] md:max-h-[65vh] object-contain max-w-full"
+                    />
+                  )}
+                </div>
+
+                {/* Right panel: Caption & Hashtags */}
+                <div className="w-full md:w-[360px] shrink-0 border-t md:border-t-0 md:border-l border-border/60 flex flex-col bg-card overflow-hidden">
+                  <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Instagram Post Caption</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(previewPost.caption || '');
+                        setCopiedText(true);
+                        setTimeout(() => setCopiedText(false), 2000);
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold border transition",
+                        copiedText
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
+                      )}
+                    >
+                      {copiedText ? (
+                        <>
+                          <Check size={11} />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={11} />
+                          Copy Text
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto p-5 select-text custom-scrollbar">
+                    <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                      {previewPost.caption || "No caption generated."}
+                    </p>
+                  </div>
+                </div>
               </motion.div>
             </motion.div>
           )}

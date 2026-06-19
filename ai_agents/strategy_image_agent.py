@@ -496,6 +496,62 @@ Description: {product.get('description', '')}
         
     return sys_msg, user_msg
 
+def generate_instagram_caption_and_hashtags(
+    brand_doc: Dict[str, Any],
+    product: Optional[Dict[str, Any]],
+    layout: str,
+    idea: Optional[str],
+    language: str = "english",
+    template_label: Optional[str] = None,
+    index: int = 0,
+) -> str:
+    """Uses Gemini Flash to generate an engaging Instagram caption with relevant hashtags."""
+    try:
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.8)
+        brand_name = brand_doc.get("brandName", "Brand")
+        brand_block = _brand_block(brand_doc)
+        
+        product_info = ""
+        if product:
+            product_info = f"Featured Product: {product.get('name', '')}\nKey Benefit: {product.get('keyBenefit', '')}\nDescription: {product.get('description', '')}\n"
+            
+        idea_info = f"Campaign Topic/Idea: {idea}\n" if idea and idea.strip() else ""
+        context_info = f"Visual Style/Layout: {template_label}\n" if template_label else ""
+        
+        sys_msg = (
+            "You are a brilliant, trendy Instagram social media manager and D2C copywriter. "
+            f"Write a highly engaging Instagram caption in {language} for a post. "
+            "The caption must: \n"
+            "1. Start with an attention-grabbing hook (use emojis naturally).\n"
+            "2. Focus on the brand value, product benefits, or the campaign idea.\n"
+            "3. Include a clear Call to Action (CTA) like 'Click the link in bio to shop' or 'Tell us in the comments'.\n"
+            "4. End with 5-10 highly relevant, trending Instagram hashtags (including the brand name as a hashtag).\n"
+            "Keep the tone consistent with the brand tone. Output ONLY the caption with hashtags. Do not include markdown formatting or quotes."
+        )
+        
+        user_msg = (
+            f"Brand Details:\n{brand_block}\n"
+            f"{product_info}"
+            f"{idea_info}"
+            f"{context_info}"
+            f"Post Index: {index + 1}\n\n"
+            "Generate the caption now."
+        )
+        
+        response = llm.invoke([SystemMessage(content=sys_msg), HumanMessage(content=user_msg)])
+        content = response.content
+        if isinstance(content, list):
+            content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+        return content.strip()
+    except Exception as e:
+        print(f"[CaptionAgent] ❌ Failed to generate caption via Gemini: {e}")
+        default_captions = [
+            "Your next obsession is here ✨ #glowup #d2c",
+            "POV: your daily routine gets an upgrade 🚀 #aesthetic #selfcare",
+            "This is your sign to treat yourself 💌 #wellness #treatyourself",
+        ]
+        return default_captions[index % len(default_captions)]
+
 def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], layout: str, idea: Optional[str], language: str = "english") -> Dict[str, str]:
     """Uses Gemini Flash to write tailored email or whatsapp copy."""
     llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
@@ -881,8 +937,18 @@ def generate_strategy_images(
                 if not template_label:
                     template_label = c_dir.replace("Use a ", "").replace("Use an ", "").replace("Use ", "").strip(".")
 
-            caption = f"{pick_caption(index)}{f' — {template_label}' if template_label else ''}"
             print(f"\n[StrategyAgent] 🖼  Image {index+1}/{count} | ref_image={'YES ✓' if ref else 'NONE'} | template={template_label or 'None'}")
+            
+            # Generate custom Instagram caption + hashtags using Gemini
+            caption = generate_instagram_caption_and_hashtags(
+                brand_doc=brand_doc,
+                product=prod,
+                layout="image",
+                idea=idea,
+                language=language,
+                template_label=template_label,
+                index=index,
+            )
             
             try:
                 result = generate_fal_image_gpt2(
@@ -957,6 +1023,18 @@ def generate_strategy_images(
 
             print(f"\n[StrategyAgent] 🎠 Carousel {index+1}/{count} | ref_image={'YES ✓' if ref else 'NONE'}")
             if prod: print(f"                   Product: {prod.get('name')}")
+
+            # Generate custom Instagram caption + hashtags using Gemini
+            caption = generate_instagram_caption_and_hashtags(
+                brand_doc=brand_doc,
+                product=prod,
+                layout="carousel",
+                idea=idea,
+                language=language,
+                template_label="Carousel Post",
+                index=index,
+            )
+
             try:
                 slides = generate_fal_carousel_ideogram(
                     base_prompt=f"{brand_doc.get('brandName', 'Brand')} — {idea}" if idea and idea.strip() else brand_doc.get('brandName', 'Brand'),
@@ -966,7 +1044,7 @@ def generate_strategy_images(
                 )
                 return {
                     "slides":  slides,          # list of {image: base64}
-                    "caption": pick_caption(index),
+                    "caption": caption,
                     "type":    "carousel",
                     "index":   index
                 }
@@ -974,7 +1052,7 @@ def generate_strategy_images(
                 print(f"[StrategyAgent] ❌ Carousel {index+1} failed: {e}")
                 return {
                     "slides":  [],
-                    "caption": pick_caption(index),
+                    "caption": caption,
                     "type":    "carousel",
                     "error":   str(e),
                     "index":   index

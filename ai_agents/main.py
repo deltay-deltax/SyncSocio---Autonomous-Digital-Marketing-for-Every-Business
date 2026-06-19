@@ -805,6 +805,19 @@ async def api_validate_post(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/smart-schedule")
+async def api_smart_schedule(request: Request):
+    """Generates intelligent scheduling recommendations for selected posts."""
+    try:
+        from scheduler_agent import optimize_schedule
+        payload = await request.json()
+        result = optimize_schedule(payload)
+        return {"schedule": result}
+    except Exception as e:
+        print(f"Smart Schedule Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/schedule-post/{analysis_id}")
 async def api_schedule_post(analysis_id: str, request: Request):
     """Triggers auto-publish for a previously analyzed post."""
@@ -849,7 +862,26 @@ async def api_schedule_post(analysis_id: str, request: Request):
 
         result = publisher_node(post_state)
 
-        status = "failed" if result.get("error") else "published"
+        # Check if scheduled for future
+        is_future_scheduled = False
+        best_time_iso = post_state.get("best_posting_time")
+        if best_time_iso:
+            try:
+                scheduled_dt = datetime.fromisoformat(best_time_iso)
+                now_dt = datetime.now(scheduled_dt.tzinfo) if scheduled_dt.tzinfo else datetime.now()
+                diff_mins = (scheduled_dt - now_dt).total_seconds() / 60
+                if 20 < diff_mins < (75 * 24 * 60):
+                    is_future_scheduled = True
+            except Exception as pe:
+                print(f"[PUBLISHER DEBUG] Error comparing datetime: {pe}")
+
+        if result.get("error"):
+            status = "failed"
+        elif is_future_scheduled:
+            status = "scheduled"
+        else:
+            status = "published"
+
         update_fields = {
             "status": status,
             "isAgentAssisted": True
