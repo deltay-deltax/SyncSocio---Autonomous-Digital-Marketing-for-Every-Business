@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,15 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
+import Masonry from 'react-masonry-css';
+import * as XLSX from 'xlsx';
+import { useToast } from '@/hooks/use-toast';
+
+const breakpointColumnsObj = {
+  default: 3,
+  1024: 2,
+  640: 1
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
