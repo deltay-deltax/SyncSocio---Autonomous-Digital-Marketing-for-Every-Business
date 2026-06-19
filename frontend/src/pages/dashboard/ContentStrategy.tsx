@@ -5,21 +5,14 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
-import Masonry from 'react-masonry-css';
-
-const breakpointColumnsObj = {
-  default: 3,
-  1024: 2,
-  640: 1
-};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,69 +34,69 @@ interface GeneratedPost {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const AI_BASE  = 'http://localhost:8000';
+const AI_BASE = 'http://localhost:8000';
 const NODE_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const ASSET_CACHE_KEY = 'velocity_strategy_assets';
 
 const modes: { id: Mode; label: string; icon: any; desc: string; accent: string }[] = [
-  { id: 'image',    label: 'Image',              icon: ImageIcon,    desc: 'Single static post',         accent: 'from-sky-500/20 to-blue-500/10' },
-  { id: 'carousel', label: 'Carousel',           icon: Layers,       desc: 'Multi-slide swipe',          accent: 'from-fuchsia-500/20 to-rose-500/10' },
-  { id: 'video',    label: 'Video',              icon: Video,        desc: 'Reel / motion post',         accent: 'from-amber-500/20 to-orange-500/10' },
-  { id: 'ecomm',    label: 'E-Comm Listing',     icon: ShoppingBag,  desc: 'Marketplace-ready creative', accent: 'from-emerald-500/20 to-teal-500/10' },
-  { id: 'festival', label: 'Festival',           icon: PartyPopper,  desc: 'Calendar-led campaigns',     accent: 'from-violet-500/20 to-indigo-500/10' },
-  { id: 'whatsapp', label: 'WhatsApp Campaign',  icon: MessageSquare,desc: 'Broadcast to your list',     accent: 'from-green-500/20 to-emerald-500/10' },
-  { id: 'email',    label: 'Email Campaign',     icon: Mail,         desc: 'Newsletter & promo blast',   accent: 'from-blue-500/20 to-indigo-500/10' },
+  { id: 'image', label: 'Image', icon: ImageIcon, desc: 'Single static post', accent: 'from-sky-500/20 to-blue-500/10' },
+  { id: 'carousel', label: 'Carousel', icon: Layers, desc: 'Multi-slide swipe', accent: 'from-fuchsia-500/20 to-rose-500/10' },
+  { id: 'video', label: 'Video', icon: Video, desc: 'Reel / motion post', accent: 'from-amber-500/20 to-orange-500/10' },
+  { id: 'ecomm', label: 'E-Comm Listing', icon: ShoppingBag, desc: 'Marketplace-ready creative', accent: 'from-emerald-500/20 to-teal-500/10' },
+  { id: 'festival', label: 'Festival', icon: PartyPopper, desc: 'Calendar-led campaigns', accent: 'from-violet-500/20 to-indigo-500/10' },
+  { id: 'whatsapp', label: 'WhatsApp Campaign', icon: MessageSquare, desc: 'Broadcast to your list', accent: 'from-green-500/20 to-emerald-500/10' },
+  { id: 'email', label: 'Email Campaign', icon: Mail, desc: 'Newsletter & promo blast', accent: 'from-blue-500/20 to-indigo-500/10' },
 ];
 
 const aspects: { id: AspectRatio; label: string; ratio: string }[] = [
-  { id: '1:1',  label: '1:1',  ratio: 'Square' },
-  { id: '4:5',  label: '4:5',  ratio: 'Portrait' },
+  { id: '1:1', label: '1:1', ratio: 'Square' },
+  { id: '4:5', label: '4:5', ratio: 'Portrait' },
   { id: '9:16', label: '9:16', ratio: 'Story / Reel' },
   { id: '16:9', label: '16:9', ratio: 'Landscape' },
-  { id: '2:3',  label: '2:3',  ratio: 'Classic' },
+  { id: '2:3', label: '2:3', ratio: 'Classic' },
 ];
 
-const imageCounts    = [1, 2, 4, 6, 8];
+const imageCounts = [1, 2, 4, 6, 8];
 const carouselCounts = [1, 2, 3];
 const carouselSlides = [3, 5, 7];
-const videoCounts    = [1, 2, 3, 4];
+const videoCounts = [1, 2, 3, 4];
 
-const platforms       = ['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Shopify', 'Nykaa'];
+const platforms = ['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Shopify', 'Nykaa'];
 const ecommImageCounts = [1, 2, 4, 6, 8];
 
 const videoKinds = [
-  { id: 'ai-ugc',    label: 'AI UGC',        desc: 'Talking-head creator-style video' },
+  { id: 'ai-ugc', label: 'AI UGC', desc: 'Talking-head creator-style video' },
   { id: 'img2video', label: 'Image to Video', desc: 'Animate your reference images' },
 ];
 
 const languages = [
-  { id: 'english',  label: 'English',  flag: '🇬🇧' },
+  { id: 'english', label: 'English', flag: '🇬🇧' },
   { id: 'hinglish', label: 'Hinglish', flag: '🅷' },
-  { id: 'hindi',    label: 'Hindi',    flag: '🇮🇳' },
-  { id: 'tamil',    label: 'Tamil',    flag: '🪔' },
-  { id: 'kannada',  label: 'Kannada',  flag: '🌺' },
+  { id: 'hindi', label: 'Hindi', flag: '🇮🇳' },
+  { id: 'tamil', label: 'Tamil', flag: '🪔' },
+  { id: 'kannada', label: 'Kannada', flag: '🌺' },
 ];
 
 // ── Ad composition templates ─────────────────────────────────────────────────
 const AD_TEMPLATES: { id: number; label: string; icon: string; desc: string }[] = [
-  { id: 1,  label: 'Product Hero + Bottom Bar',   icon: '🏷️',  desc: 'Product big, text bar at bottom' },
-  { id: 2,  label: 'Bold Headline + Center',      icon: '✍️',  desc: 'Headline top, product center' },
-  { id: 3,  label: 'Split: Product | Text',       icon: '⬛',  desc: 'Product left, copy right' },
-  { id: 4,  label: 'Full Bleed + Overlay',        icon: '🎨',  desc: 'Product fills frame, text overlay' },
-  { id: 5,  label: 'Minimal White + Caption',     icon: '⬜',  desc: 'Clean white, product centered, text below' },
-  { id: 6,  label: 'Dark BG + Vibrant CTA',       icon: '🌑',  desc: 'Dark backdrop, bold neon CTA' },
-  { id: 7,  label: 'Before / After Split',        icon: '🔀',  desc: 'Left = before, right = after' },
-  { id: 8,  label: 'Social Proof',                icon: '⭐',  desc: 'Stars, quote, product in one frame' },
-  { id: 9,  label: 'Feature List + Product',      icon: '📋',  desc: 'Bullet benefits beside product' },
-  { id: 10, label: 'Urgency / Offer',             icon: '🔥',  desc: 'Big discount badge, product, deadline' },
+  { id: 1, label: 'Product Hero + Bottom Bar', icon: '🏷️', desc: 'Product big, text bar at bottom' },
+  { id: 2, label: 'Bold Headline + Center', icon: '✍️', desc: 'Headline top, product center' },
+  { id: 3, label: 'Split: Product | Text', icon: '⬛', desc: 'Product left, copy right' },
+  { id: 4, label: 'Full Bleed + Overlay', icon: '🎨', desc: 'Product fills frame, text overlay' },
+  { id: 5, label: 'Minimal White + Caption', icon: '⬜', desc: 'Clean white, product centered, text below' },
+  { id: 6, label: 'Dark BG + Vibrant CTA', icon: '🌑', desc: 'Dark backdrop, bold neon CTA' },
+  { id: 7, label: 'Before / After Split', icon: '🔀', desc: 'Left = before, right = after' },
+  { id: 8, label: 'Social Proof', icon: '⭐', desc: 'Stars, quote, product in one frame' },
+  { id: 9, label: 'Feature List + Product', icon: '📋', desc: 'Bullet benefits beside product' },
+  { id: 10, label: 'Urgency / Offer', icon: '🔥', desc: 'Big discount badge, product, deadline' },
 ];
 
 const aspectClass: Record<AspectRatio, string> = {
-  '1:1':  'aspect-square',
-  '4:5':  'aspect-[4/5]',
+  '1:1': 'aspect-square',
+  '4:5': 'aspect-[4/5]',
   '9:16': 'aspect-[9/16]',
   '16:9': 'aspect-[16/9]',
-  '2:3':  'aspect-[2/3]',
+  '2:3': 'aspect-[2/3]',
 };
 
 const stockImages = [
@@ -143,10 +136,17 @@ function imgSrc(src: string | null | undefined): string {
 
 const DashboardStrategy = () => {
   const navigate = useNavigate();
+  const { setShowNotifications } = useOutletContext<{ setShowNotifications?: (show: boolean) => void }>() || {};
+  const { toast } = useToast();
 
   // ── Stage / Mode
   const [stage, setStage] = useState<'pick' | 'builder' | 'generating' | 'results'>('pick');
   const [mode, setMode] = useState<Mode | null>(null);
+
+  // ── Custom Import List Modal
+  const [showListNameModal, setShowListNameModal] = useState(false);
+  const [pendingEmails, setPendingEmails] = useState<string[]>([]);
+  const [listNameInput, setListNameInput] = useState('');
 
   // ── Shared
   const [count, setCount] = useState<number>(4);
@@ -180,6 +180,33 @@ const DashboardStrategy = () => {
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const recipientsFileRef = useRef<HTMLInputElement>(null);
 
+  interface EmailListObj {
+    _id: string;
+    name: string;
+    emails: string[];
+  }
+  const [savedLists, setSavedLists] = useState<EmailListObj[]>([]);
+  const [selectedListId, setSelectedListId] = useState<string>('');
+
+  React.useEffect(() => {
+    const fetchSavedLists = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${NODE_BASE}/campaigns/lists`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSavedLists(data);
+        }
+      } catch (err) {
+        console.error("Error fetching email lists:", err);
+      }
+    };
+
+    fetchSavedLists();
+  }, []);
+
   // ── WhatsApp / Email 3-Box Upload states
   const [showCreativeModal, setShowCreativeModal] = useState(false);
   const [creativeLibrary, setCreativeLibrary] = useState<any[]>([]);
@@ -210,8 +237,8 @@ const DashboardStrategy = () => {
   const fileInput = useRef<HTMLInputElement>(null);
 
   // ── Profile
-  const profile   = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
-  const userId    = profile._id || profile.userId || profile.id || '';
+  const profile = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
+  const userId = profile._id || profile.userId || profile.id || '';
   const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
 
   // ── Fetch products
@@ -306,10 +333,10 @@ const DashboardStrategy = () => {
   const openMode = (m: Mode) => {
     setMode(m);
     setStage('builder');
-    if (m === 'image')   setCount(4);
+    if (m === 'image') setCount(4);
     if (m === 'carousel') setCount(2);
-    if (m === 'video')   setCount(2);
-    if (m === 'ecomm')   setCount(5);
+    if (m === 'video') setCount(2);
+    if (m === 'ecomm') setCount(5);
     if (m === 'festival') setCount(4);
     if (m === 'whatsapp' || m === 'email') {
       setCount(1);
@@ -353,18 +380,153 @@ const DashboardStrategy = () => {
     setProductPick(products_[Math.floor(Math.random() * products_.length)]);
   };
 
+  const handleImportedEmails = (emails: string[], filename: string) => {
+    if (!emails.length) {
+      toast({
+        title: "Import Error",
+        description: "No recipients found in the uploaded file.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const defaultListName = filename.split('.')[0] || 'Imported List';
+    setListNameInput(defaultListName);
+    setPendingEmails(emails);
+    setShowListNameModal(true);
+  };
+
+  const handleSaveImportedList = async () => {
+    const finalListName = listNameInput.trim() || 'Imported List';
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${NODE_BASE}/campaigns/lists`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: finalListName,
+          emails: pendingEmails
+        })
+      });
+
+      if (res.ok) {
+        const savedList = await res.json();
+        setSavedLists(prev => {
+          const index = prev.findIndex(x => x._id === savedList._id || x.name === savedList.name);
+          if (index >= 0) {
+            const updated = [...prev];
+            updated[index] = savedList;
+            return updated;
+          }
+          return [savedList, ...prev];
+        });
+        setSelectedListId(savedList._id);
+        setRecipients(savedList.emails);
+
+        toast({
+          title: "List Saved",
+          description: `Saved list "${finalListName}" with ${savedList.emails.length} recipients!`,
+        });
+      } else {
+        toast({
+          title: "Database Sync Failed",
+          description: "Failed to save recipient list on backend, but imported locally.",
+          variant: "destructive"
+        });
+        setRecipients(pendingEmails);
+      }
+    } catch (err) {
+      console.error("Failed to save list:", err);
+      setRecipients(pendingEmails);
+    } finally {
+      setShowListNameModal(false);
+      setPendingEmails([]);
+    }
+  };
+
+  const parseRecipients = (textOrRows: any, isExcel: boolean): string[] => {
+    const emailPattern = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+    const phonePattern = /\+?\d[\d\s\-()]{7,15}\d/g;
+    const results: string[] = [];
+
+    if (isExcel && Array.isArray(textOrRows)) {
+      for (const row of textOrRows) {
+        if (Array.isArray(row)) {
+          for (const cell of row) {
+            if (cell !== null && cell !== undefined) {
+              const cellStr = String(cell).trim();
+              if (mode === 'email') {
+                const matches = cellStr.match(emailPattern);
+                if (matches) {
+                  results.push(...matches);
+                }
+              } else {
+                const matches = cellStr.match(phonePattern);
+                if (matches) {
+                  const cleaned = matches.map(m => m.replace(/[\s\-()]/g, ''));
+                  results.push(...cleaned);
+                }
+              }
+            }
+          }
+        }
+      }
+    } else if (typeof textOrRows === 'string') {
+      if (mode === 'email') {
+        const matches = textOrRows.match(emailPattern);
+        if (matches) {
+          results.push(...matches);
+        }
+      } else {
+        const matches = textOrRows.match(phonePattern);
+        if (matches) {
+          const cleaned = matches.map(m => m.replace(/[\s\-()]/g, ''));
+          results.push(...cleaned);
+        }
+      }
+    }
+
+    return Array.from(new Set(results));
+  };
+
   const handleRecipientsFile = (files: FileList | null) => {
     if (!files || !files[0]) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = (e.target?.result as string) || '';
-      const pattern = mode === 'email'
-        ? /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
-        : /(\+?\d[\d\s\-()]{7,}\d)/g;
-      const matches = Array.from(new Set(text.match(pattern) || [])).map((x: string) => x.replace(/[\s\-()]/g, ''));
-      setRecipients((r) => Array.from(new Set([...r, ...matches])));
-    };
-    reader.readAsText(files[0]);
+    const file = files[0];
+    const extension = file.name.split('.').pop()?.toLowerCase();
+
+    if (extension === 'xlsx' || extension === 'xls') {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+
+          const matches = parseRecipients(rows, true);
+          handleImportedEmails(matches, file.name);
+        } catch (err) {
+          console.error("Excel Parse Error:", err);
+          toast({
+            title: "Parse Error",
+            description: "Failed to parse Excel file.",
+            variant: "destructive"
+          });
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = (e.target?.result as string) || '';
+        const matches = parseRecipients(text, false);
+        handleImportedEmails(matches, file.name);
+      };
+      reader.readAsText(file);
+    }
   };
 
   const addRecipient = () => {
@@ -374,10 +536,40 @@ const DashboardStrategy = () => {
     setNewRecipient('');
   };
 
-  const sendCampaign = () => {
+  const sendCampaign = async () => {
     if (!recipients.length) return;
     setSendStatus('sending');
-    setTimeout(() => setSendStatus('sent'), 1800);
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${NODE_BASE}/campaigns/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          recipients: recipients,
+          subject: campaignSubject || 'Email Campaign',
+          body: campaignBody,
+          image: campaignImage
+        })
+      });
+
+      if (res.ok) {
+        setSendStatus('sent');
+      } else {
+        throw new Error('Failed to send campaign');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Campaign Error",
+        description: 'Failed to send campaign: ' + err.message,
+        variant: "destructive"
+      });
+      setSendStatus('idle');
+    }
   };
 
   const generate = async (overrides?: { idea?: string; count?: number; products?: any[]; layout?: string; aspect?: string; language?: string }) => {
@@ -540,7 +732,7 @@ const DashboardStrategy = () => {
   const handleDownload = async (post: GeneratedPost, index: number) => {
     const displaySrc = post.type === 'carousel' ? post.slides?.[0]?.image : post.type === 'video' ? post.thumbnail : post.image;
     if (!displaySrc) return;
-    
+
     const srcUrl = imgSrc(displaySrc);
     try {
       if (srcUrl.startsWith('http')) {
@@ -670,6 +862,15 @@ const DashboardStrategy = () => {
         sendCampaign={sendCampaign}
         back={resetToBuilder}
         regenerate={() => generate()}
+        savedLists={savedLists}
+        setSavedLists={setSavedLists}
+        selectedListId={selectedListId}
+        setSelectedListId={setSelectedListId}
+        showListNameModal={showListNameModal}
+        setShowListNameModal={setShowListNameModal}
+        listNameInput={listNameInput}
+        setListNameInput={setListNameInput}
+        handleSaveImportedList={handleSaveImportedList}
       />
     );
   }
@@ -679,17 +880,17 @@ const DashboardStrategy = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   if (stage === 'results') {
     const selectedFest = FESTIVALS_2026.find((f) => f.id === festival);
-    const modeLabel = mode === 'ecomm'    ? `Listing · ${platform}`
+    const modeLabel = mode === 'ecomm' ? `Listing · ${platform}`
       : mode === 'festival' && selectedFest ? `Campaign · ${selectedFest.name} ${selectedFest.emoji}`
-      : mode === 'festival' ? `Campaign · ${festival}`
-      : mode === 'video'    ? 'Reel · Velocity AI'
-      : 'Post · Velocity AI';
+        : mode === 'festival' ? `Campaign · ${festival}`
+          : mode === 'video' ? 'Reel · Velocity AI'
+            : 'Post · Velocity AI';
 
     const accentGrad = mode === 'festival' ? 'from-violet-500 via-fuchsia-500 to-rose-500'
-      : mode === 'ecomm'   ? 'from-emerald-400 via-teal-400 to-cyan-500'
-      : mode === 'video'   ? 'from-amber-400 via-orange-500 to-rose-500'
-      : mode === 'carousel' ? 'from-fuchsia-500 via-rose-500 to-pink-400'
-      : 'from-sky-400 via-indigo-500 to-fuchsia-500';
+      : mode === 'ecomm' ? 'from-emerald-400 via-teal-400 to-cyan-500'
+        : mode === 'video' ? 'from-amber-400 via-orange-500 to-rose-500'
+          : mode === 'carousel' ? 'from-fuchsia-500 via-rose-500 to-pink-400'
+            : 'from-sky-400 via-indigo-500 to-fuchsia-500';
 
     return (
       <div className="relative max-w-6xl mx-auto">
@@ -772,7 +973,7 @@ const DashboardStrategy = () => {
             const isBig = i % 3 === 0;
             const displaySrc = (() => {
               if (mode === 'carousel' || post.type === 'carousel') return imgSrc(post.slides?.[0]?.image);
-              if (mode === 'video' || post.type === 'video')    return imgSrc(post.thumbnail);
+              if (mode === 'video' || post.type === 'video') return imgSrc(post.thumbnail);
               return imgSrc(post.image);
             })();
 
@@ -784,7 +985,7 @@ const DashboardStrategy = () => {
                 transition={{ delay: i * 0.06 }}
                 className="break-inside-avoid rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm group"
               >
-                <div 
+                <div
                   onClick={() => handleImageClick(post, i, displaySrc || '')}
                   className={cn('relative w-full overflow-hidden cursor-pointer select-none', isBig ? 'aspect-[3/4]' : 'aspect-square')}
                 >
@@ -1019,7 +1220,7 @@ const DashboardStrategy = () => {
                       )}
                     </button>
                   </div>
-                  
+
                   <div className="flex-1 overflow-y-auto p-5 select-text custom-scrollbar">
                     <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                       {previewPost.caption || "No caption generated."}
@@ -1360,29 +1561,29 @@ const DashboardStrategy = () => {
                 </motion.div>
               ))}
 
-          {/* Uploads */}
-          {uploads.map((url, i) => (
-            <motion.div
-              key={`up-${i}`}
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="relative aspect-square rounded-xl overflow-hidden group bg-muted"
-            >
-              <img src={url} alt="" className="w-full h-full object-cover" />
-              <button
-                onClick={() => setUploads((u) => u.filter((_, idx) => idx !== i))}
-                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-foreground/70 backdrop-blur text-background opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
-              >
-                <X size={11} />
-              </button>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-      
-      <IdeaBox idea={idea} setIdea={setIdea} />
-    </>
-  )}
+              {/* Uploads */}
+              {uploads.map((url, i) => (
+                <motion.div
+                  key={`up-${i}`}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative aspect-square rounded-xl overflow-hidden group bg-muted"
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setUploads((u) => u.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-foreground/70 backdrop-blur text-background opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                  >
+                    <X size={11} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
+          <IdeaBox idea={idea} setIdea={setIdea} />
+        </>
+      )}
 
       {/* ─── E-COMM ─── */}
       {mode === 'ecomm' && (
@@ -1527,7 +1728,7 @@ const DashboardStrategy = () => {
               Campaign Hero Visual Source
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-              
+
               {/* Box 1: From Product Catalog OR Uploaded from Product Picker */}
               <div
                 onClick={() => {
@@ -1589,13 +1790,13 @@ const DashboardStrategy = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    
+
                     {activeCampaignImageSource === 'product' && (
                       <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full shadow-sm">
                         Selected
                       </div>
                     )}
-                    
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1608,7 +1809,7 @@ const DashboardStrategy = () => {
                     >
                       <X size={10} />
                     </button>
-                    
+
                     <p className="absolute bottom-7 left-3 right-3 text-left text-[11px] font-bold text-white truncate">
                       {selectedProducts[0].name}
                     </p>
@@ -1626,7 +1827,7 @@ const DashboardStrategy = () => {
                   </div>
                 )}
               </div>
- 
+
               {/* Box 2: From Creatives / Asset Library OR Uploaded from Creative Picker */}
               <div
                 onClick={() => {
@@ -1683,13 +1884,13 @@ const DashboardStrategy = () => {
                       className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-90 transition duration-300"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    
+
                     {activeCampaignImageSource === 'creative' && (
                       <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full shadow-sm">
                         Selected
                       </div>
                     )}
-                    
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1702,7 +1903,7 @@ const DashboardStrategy = () => {
                     >
                       <X size={10} />
                     </button>
-                    
+
                     <p className="absolute bottom-7 left-3 right-3 text-left text-[11px] font-bold text-white truncate">
                       {selectedCampaignCreative.caption || 'Saved Creative'}
                     </p>
@@ -1720,7 +1921,7 @@ const DashboardStrategy = () => {
                   </div>
                 )}
               </div>
- 
+
               {/* Hidden file input for Campaign Local Upload */}
               <input
                 ref={campaignFileInput}
@@ -1788,7 +1989,7 @@ const DashboardStrategy = () => {
                           'text-left relative p-3 rounded-2xl border transition overflow-hidden bg-card hover:bg-muted/30',
                           selected ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
                             : disabled ? 'border-border/40 opacity-50 cursor-not-allowed'
-                            : 'border-border hover:border-primary/40 bg-card hover:bg-muted/30'
+                              : 'border-border hover:border-primary/40 bg-card hover:bg-muted/30'
                         )}
                       >
                         <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative">
@@ -1908,6 +2109,59 @@ const DashboardStrategy = () => {
         )}
       </AnimatePresence>
 
+      {/* ─── List Name Modal ─── */}
+      <AnimatePresence>
+        {showListNameModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && setShowListNameModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl flex flex-col p-6 space-y-4"
+            >
+              <div>
+                <h3 className="text-base font-black text-foreground">Name your imported recipient list</h3>
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Provide a recognizable name for this contact list so you can reuse it later.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  value={listNameInput}
+                  onChange={(e) => setListNameInput(e.target.value)}
+                  placeholder="e.g. my fav customer"
+                  className="rounded-xl border-border/80 bg-muted/20 h-11 text-sm font-semibold"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveImportedList()}
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowListNameModal(false)}
+                  className="rounded-xl px-5 h-10 text-xs font-bold border-border/70"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveImportedList}
+                  disabled={!listNameInput.trim()}
+                  className="rounded-xl px-6 h-10 text-xs font-bold"
+                >
+                  Save & Import
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ─── Generate button ─── */}
       {mode !== 'festival' && (
         <div className="sticky bottom-4 lg:bottom-0 lg:static pt-2">
@@ -1924,11 +2178,10 @@ const DashboardStrategy = () => {
           >
             <Sparkles size={18} />
             {mode === 'whatsapp' ? 'Generate WhatsApp message' :
-             mode === 'email'    ? 'Generate email campaign' :
-             `Generate ${mode === 'ecomm' ? ecommTotal : count} ${
-               mode === 'video'   ? (videoKind === 'ai-ugc' ? 'UGC videos' : 'videos') :
-               mode === 'carousel' ? 'carousels' :
-               mode === 'ecomm'   ? 'assets' : 'posts'}`}
+              mode === 'email' ? 'Generate email campaign' :
+                `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'video' ? (videoKind === 'ai-ugc' ? 'UGC videos' : 'videos') :
+                  mode === 'carousel' ? 'carousels' :
+                    mode === 'ecomm' ? 'assets' : 'posts'}`}
           </Button>
           {!canGenerate && mode !== 'ecomm' && (
             <p className="text-[11px] text-muted-foreground text-center mt-2">
@@ -2020,15 +2273,39 @@ interface CampaignResultsProps {
   back: () => void;
   regenerate: () => void;
   saveHeroImage?: () => void;
+  savedLists: any[];
+  setSavedLists: React.Dispatch<React.SetStateAction<any[]>>;
+  selectedListId: string;
+  setSelectedListId: (v: string) => void;
+  showListNameModal: boolean;
+  setShowListNameModal: (v: boolean) => void;
+  listNameInput: string;
+  setListNameInput: (v: string) => void;
+  handleSaveImportedList: () => Promise<void>;
 }
 
 const CampaignResults: React.FC<CampaignResultsProps> = ({
   mode, brandName, image, subject, setSubject, body, setBody,
   recipients, setRecipients, newRecipient, setNewRecipient, addRecipient,
   recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage,
+  savedLists, setSavedLists, selectedListId, setSelectedListId,
+  showListNameModal, setShowListNameModal, listNameInput, setListNameInput, handleSaveImportedList,
 }) => {
   const isWA = mode === 'whatsapp';
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsListDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -2164,16 +2441,106 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 onClick={() => recipientsFileRef.current?.click()}
                 className="text-[10px] font-semibold text-primary flex items-center gap-1 hover:text-primary/80"
               >
-                <FileSpreadsheet size={11} /> Import CSV/TXT
+                <FileSpreadsheet size={11} /> Import CSV/TXT/Excel
               </button>
               <input
                 ref={recipientsFileRef}
                 type="file"
-                accept=".csv,.txt"
+                accept=".csv,.txt,.xlsx,.xls"
                 className="hidden"
                 onChange={(e) => handleRecipientsFile(e.target.files)}
               />
             </div>
+
+            {/* Saved lists selection dropdown */}
+            {savedLists.length > 0 && (
+              <div ref={dropdownRef} className="relative mb-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <button
+                  type="button"
+                  onClick={() => setIsListDropdownOpen(!isListDropdownOpen)}
+                  className="flex items-center justify-between w-full h-10 px-3 rounded-xl border border-border/60 bg-card text-xs font-semibold hover:bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary transition-all text-left"
+                >
+                  <div className="flex items-center truncate">
+                    {(() => {
+                      const selectedList = savedLists.find(x => x._id === selectedListId);
+                      if (selectedList) {
+                        return (
+                          <>
+                            <Folder size={14} className="text-primary mr-2 shrink-0" />
+                            <span className="truncate text-foreground font-black">{selectedList.name}</span>
+                            <span className="text-[10px] text-muted-foreground ml-1.5 font-bold shrink-0">({selectedList.emails.length} contacts)</span>
+                          </>
+                        );
+                      }
+                      return <span className="text-muted-foreground">-- Choose from saved recipient lists --</span>;
+                    })()}
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      "text-muted-foreground transition-transform duration-200 shrink-0 ml-2",
+                      isListDropdownOpen && "transform rotate-180 text-foreground"
+                    )}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {isListDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute left-0 right-0 mt-1 z-30 max-h-60 overflow-y-auto rounded-2xl border border-border/60 bg-card/95 backdrop-blur-md shadow-2xl p-1.5 space-y-0.5"
+                    >
+                      <div
+                        onClick={() => {
+                          setSelectedListId('');
+                          setRecipients([]);
+                          setIsListDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                          selectedListId === ''
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                      >
+                        -- Clear selection --
+                      </div>
+
+                      {savedLists.map((list) => {
+                        const isSelected = list._id === selectedListId;
+                        return (
+                          <div
+                            key={list._id}
+                            onClick={() => {
+                              setSelectedListId(list._id);
+                              setRecipients(list.emails);
+                              setIsListDropdownOpen(false);
+                            }}
+                            className={cn(
+                              "flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer",
+                              isSelected
+                                ? "bg-primary/10 text-primary"
+                                : "text-foreground hover:bg-muted"
+                            )}
+                          >
+                            <div className="flex items-center min-w-0">
+                              <Folder size={14} className={cn("mr-2 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
+                              <span className="truncate">{list.name}</span>
+                            </div>
+                            <span className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ml-2", isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                              {list.emails.length} contacts
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
             <div className="flex gap-2 mb-2">
               <Input
                 value={newRecipient}
@@ -2208,8 +2575,8 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
               sendStatus === 'sent'
                 ? 'bg-emerald-500 hover:bg-emerald-500 text-white'
                 : isWA
-                ? 'bg-[#25D366] hover:bg-[#20bb5a] text-white'
-                : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+                  ? 'bg-[#25D366] hover:bg-[#20bb5a] text-white'
+                  : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
             )}
           >
             {sendStatus === 'sending' ? (
@@ -2222,6 +2589,59 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* ─── List Name Modal ─── */}
+      <AnimatePresence>
+        {showListNameModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && setShowListNameModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl flex flex-col p-6 space-y-4"
+            >
+              <div>
+                <h3 className="text-base font-black text-foreground">Name your imported recipient list</h3>
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Provide a recognizable name for this contact list so you can reuse it later.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  value={listNameInput}
+                  onChange={(e) => setListNameInput(e.target.value)}
+                  placeholder="e.g. my fav customer"
+                  className="rounded-xl border-border/80 bg-muted/20 h-11 text-sm font-semibold"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveImportedList()}
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowListNameModal(false)}
+                  className="rounded-xl px-5 h-10 text-xs font-bold border-border/70"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveImportedList}
+                  disabled={!listNameInput.trim()}
+                  className="rounded-xl px-6 h-10 text-xs font-bold"
+                >
+                  Save & Import
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
