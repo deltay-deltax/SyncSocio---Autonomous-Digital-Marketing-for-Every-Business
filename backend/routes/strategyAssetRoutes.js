@@ -33,7 +33,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const creatives = await StrategyCreative.find({
       user: req.user._id,
-      status: 'hearted',
+      status: { $in: ['hearted', 'scheduled', 'posted'] },
     }).sort({ createdAt: -1 });
 
     res.json({ success: true, creatives });

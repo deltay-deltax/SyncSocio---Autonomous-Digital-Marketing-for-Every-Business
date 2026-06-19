@@ -180,15 +180,14 @@ export const getPostHistory = async (req, res) => {
   }
 };
 
-// POST /api/posts/smart-schedule
-export const smartSchedulePosts = async (req, res) => {
+// POST /api/posts/recommend-schedule
+export const recommendSchedulePosts = async (req, res) => {
   try {
     const { postIds, startDate, endDate, platforms } = req.body;
     const userId = req.user._id;
 
     const BrandProfile = (await import('../models/BrandProfile.js')).default;
     const StrategyCreative = (await import('../models/StrategyCreative.js')).default;
-    const { writeCreativeToFiles } = await import('../utils/tempWriter.js');
 
     const brandProfile = await BrandProfile.findOne({ user: userId });
     if (!brandProfile) {
@@ -202,7 +201,7 @@ export const smartSchedulePosts = async (req, res) => {
     });
 
     if (creatives.length === 0) {
-      return res.status(400).json({ message: 'No valid creatives found to schedule.' });
+      return res.status(400).json({ message: 'No valid creatives found to recommend schedules for.' });
     }
 
     // Fetch online followers activity (ground reality metrics)
@@ -232,7 +231,7 @@ export const smartSchedulePosts = async (req, res) => {
           }
         }
       } catch (e) {
-        console.warn('Skipping hourly insights fetch in smart schedule:', e.message);
+        console.warn('Skipping hourly insights fetch in recommend schedule:', e.message);
       }
     }
 
@@ -249,6 +248,103 @@ export const smartSchedulePosts = async (req, res) => {
     console.log(`📡 Requesting schedule recommendations for ${creatives.length} posts...`);
     const agentRes = await axios.post(`${AI_SERVICE_URL}/smart-schedule`, payload, { timeout: 120000 });
     const recommendedSchedules = agentRes.data.schedule || [];
+
+    // Map creative thumbnails / fields so frontend has rich info
+    const recommendations = recommendedSchedules.map(rec => {
+      const creative = creatives.find(c => c._id.toString() === rec.id);
+      return {
+        ...rec,
+        type: creative?.type || 'image',
+        idea: creative?.idea || '',
+        caption: creative?.caption || '',
+        thumbnailBase64: creative?.thumbnailBase64 || '',
+        slides: creative?.slides || []
+      };
+    });
+
+    res.status(200).json({ success: true, recommendations });
+  } catch (error) {
+    console.error('Recommend Schedule Posts Error:', error?.response?.data || error.message);
+    res.status(500).json({
+      message: 'Error recommending schedules for posts',
+      detail: error?.response?.data?.detail || error.message
+    });
+  }
+};
+
+// POST /api/posts/smart-schedule
+export const smartSchedulePosts = async (req, res) => {
+  try {
+    const { postIds, startDate, endDate, platforms, schedules } = req.body;
+    const userId = req.user._id;
+
+    const BrandProfile = (await import('../models/BrandProfile.js')).default;
+    const StrategyCreative = (await import('../models/StrategyCreative.js')).default;
+    const { writeCreativeToFiles } = await import('../utils/tempWriter.js');
+
+    const brandProfile = await BrandProfile.findOne({ user: userId });
+    if (!brandProfile) {
+      return res.status(404).json({ message: 'Brand profile not found' });
+    }
+
+    const creatives = await StrategyCreative.find({
+      _id: { $in: postIds },
+      user: userId,
+      status: 'hearted'
+    });
+
+    if (creatives.length === 0) {
+      return res.status(400).json({ message: 'No valid creatives found to schedule.' });
+    }
+
+    let recommendedSchedules = schedules;
+
+    if (!recommendedSchedules || recommendedSchedules.length === 0) {
+      // Fetch online followers activity (ground reality metrics)
+      const accessToken = brandProfile.instagramAccessToken;
+      const igId = brandProfile.instagramBusinessAccountId;
+      let hourly_data = [];
+
+      if (accessToken && igId) {
+        try {
+          const API_BASE = 'https://graph.facebook.com/v25.0';
+          const insRes = await axios.get(`${API_BASE}/${igId}/insights`, {
+            params: {
+              metric: 'online_followers',
+              period: 'lifetime',
+              access_token: accessToken
+            }
+          });
+          const metrics = insRes.data?.data;
+          const onlineMetric = metrics?.find(m => m.name === 'online_followers');
+          if (onlineMetric && onlineMetric.values && onlineMetric.values.length > 0) {
+            const hours = onlineMetric.values[0].value;
+            for (let i = 0; i < 24; i++) {
+              hourly_data.push({
+                hour: i,
+                value: hours[i.toString()] || 0
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('Skipping hourly insights fetch in smart schedule:', e.message);
+        }
+      }
+
+      // Call python scheduler agent
+      const payload = {
+        brand_info: brandProfile,
+        posts: creatives,
+        startDate,
+        endDate,
+        platforms,
+        hourly_data
+      };
+
+      console.log(`📡 Requesting schedule recommendations for ${creatives.length} posts...`);
+      const agentRes = await axios.post(`${AI_SERVICE_URL}/smart-schedule`, payload, { timeout: 120000 });
+      recommendedSchedules = agentRes.data.schedule || [];
+    }
 
     const results = [];
 
@@ -296,17 +392,29 @@ export const smartSchedulePosts = async (req, res) => {
           results.push({ id: creative._id, status: 'failed', error: aiResponse.data.error });
         } else {
           // Meta scheduling accepted! Move creative status out of hearted list
-          creative.status = 'scheduled';
+          const isDirect = aiResponse.data.status === 'published';
+          if (isDirect) {
+            creative.status = 'posted';
+          } else {
+            creative.status = 'scheduled';
+            creative.scheduledAt = new Date(recommendation.scheduledAt);
+          }
           await creative.save();
           
           await createNotification(
             userId,
-            'scheduled',
-            'Post Scheduled! 📅',
-            `Your ${creative.type} is successfully scheduled for ${new Date(recommendation.scheduledAt).toLocaleString('en-IN')}.`
+            isDirect ? 'success' : 'scheduled',
+            isDirect ? 'Post Live! 🚀' : 'Post Scheduled! 📅',
+            isDirect 
+              ? `Your ${creative.type} was published directly to your platforms.`
+              : `Your ${creative.type} is successfully scheduled for ${new Date(recommendation.scheduledAt).toLocaleString('en-IN')}.`
           );
 
-          results.push({ id: creative._id, status: 'scheduled', scheduledAt: recommendation.scheduledAt });
+          results.push({ 
+            id: creative._id, 
+            status: isDirect ? 'published' : 'scheduled', 
+            scheduledAt: recommendation.scheduledAt 
+          });
         }
       } catch (err) {
         console.error(`Error scheduling post ${postAnalysis._id} via python agent:`, err.message);

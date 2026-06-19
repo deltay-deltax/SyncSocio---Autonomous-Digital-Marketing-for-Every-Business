@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar } from 'lucide-react';
+import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Masonry from 'react-masonry-css';
@@ -12,6 +12,23 @@ const breakpointColumnsObj = {
   1024: 2,
   640: 1
 };
+
+interface IconProps {
+  size?: number;
+  className?: string;
+}
+
+const FacebookIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const CACHE_KEY = 'velocity_strategy_assets';
@@ -30,42 +47,72 @@ function imgSrc(b64: string | null | undefined) {
   return `data:image/jpeg;base64,${b64}`;
 }
 
-function safeSetItem(key: string, value: any[]) {
-  let list = [...value];
-  while (list.length > 0) {
-    try {
-      localStorage.setItem(key, JSON.stringify(list));
-      return; // Success
-    } catch (e: any) {
-      if (e.name === 'QuotaExceededError' || e.code === 22) {
-        try {
-          // Clear all public asset caches first to free up space
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && k.startsWith('velocity_public_asset_')) {
-              localStorage.removeItem(k);
-            }
-          }
-        } catch {}
-        
-        // Exceeded quota: reduce list size by 1 and try again
-        list.pop();
-        console.warn(`[Storage] Quota exceeded, retrying cache with ${list.length} items...`);
-      } else {
-        console.error('[Storage] LocalStorage setItem failed:', e);
-        return;
+// Simple IndexedDB helper for caching large datasets
+const dbName = 'VelocityAssetCache';
+const storeName = 'assets';
+
+function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        db.createObjectStore(storeName);
       }
-    }
-  }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function setCache(key: string, val: any): Promise<void> {
   try {
-    localStorage.removeItem(key);
-  } catch {}
+    const db = await openDB();
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(val, key);
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    console.error('[Cache] IndexedDB set failed:', e);
+  }
+}
+
+async function getCache(key: string): Promise<any> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(storeName, 'readonly');
+    const request = tx.objectStore(storeName).get(key);
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.error('[Cache] IndexedDB get failed:', e);
+    return null;
+  }
+}
+
+async function removeCache(key: string): Promise<void> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(key);
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    console.error('[Cache] IndexedDB delete failed:', e);
+  }
 }
 
 const typeIcon: Record<string, any> = {
   image:    ImageIcon,
   carousel: Layers,
   video:    Video,
+  scheduled: Clock,
 };
 
 const AssetLibrary = () => {
@@ -77,6 +124,9 @@ const AssetLibrary = () => {
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState<boolean>(false);
+  const [modalStep, setModalStep] = useState<number>(0);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [fetchingRecommendations, setFetchingRecommendations] = useState<boolean>(false);
   const [startDate, setStartDate] = useState<string>(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -90,29 +140,26 @@ const AssetLibrary = () => {
   const [platforms, setPlatforms] = useState({ instagram: true, facebook: false });
   const [schedulingInProgress, setSchedulingInProgress] = useState<boolean>(false);
 
-  const [assets, setAssets] = useState<any[]>(() => {
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {
-        return [];
+  const [assets, setAssets] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const loadCached = async () => {
+      const cached = await getCache(cacheKey);
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        setAssets(cached);
+        setLoading(false);
       }
-    }
-    return [];
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    const cached = localStorage.getItem(cacheKey);
-    return !cached;
-  });
-  const [filter, setFilter] = useState<'all' | 'image' | 'carousel' | 'video'>('all');
+    };
+    loadCached();
+  }, [cacheKey]);
+  const [filter, setFilter] = useState<'all' | 'image' | 'carousel' | 'video' | 'scheduled'>('all');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [previewAsset, setPreviewAsset] = useState<any | null>(null);
   const [previewSlide, setPreviewSlide] = useState<number>(0);
   const [copiedAsset, setCopiedAsset] = useState<boolean>(false);
 
   const fetchAssets = useCallback(async () => {
-    const cached = localStorage.getItem(cacheKey);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/strategy-assets`, {
@@ -127,7 +174,7 @@ const AssetLibrary = () => {
             self.findIndex((t) => t._id === item._id) === index
         );
         setAssets(uniqueCreatives);
-        safeSetItem(cacheKey, uniqueCreatives);
+        await setCache(cacheKey, uniqueCreatives);
       }
     } catch (err) {
       console.error('[Assets] Fetch error:', err);
@@ -140,12 +187,12 @@ const AssetLibrary = () => {
 
   useEffect(() => { fetchAssets(); }, [fetchAssets]);
 
-  const handleSmartScheduleSubmit = async () => {
+  const handleFetchRecommendations = async () => {
     if (selectedAssetIds.length === 0) return;
-    setSchedulingInProgress(true);
+    setFetchingRecommendations(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/posts/smart-schedule`, {
+      const res = await fetch(`${API_BASE}/posts/recommend-schedule`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,22 +208,86 @@ const AssetLibrary = () => {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch schedule recommendations');
+      }
+
+      const data = await res.json();
+      const formatted = (data.recommendations || []).map((r: any) => {
+        let localDateTime = '';
+        if (r.scheduledAt) {
+          try {
+            const d = new Date(r.scheduledAt);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const date = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            localDateTime = `${year}-${month}-${date}T${hours}:${minutes}`;
+          } catch {
+            localDateTime = r.scheduledAt.substring(0, 16);
+          }
+        }
+        return { ...r, scheduledAtLocal: localDateTime };
+      });
+      setRecommendations(formatted);
+      setModalStep(1);
+    } catch (err: any) {
+      console.error('[Schedule] Fetch recommendations error:', err);
+      alert(err.message || 'Error planning schedule. Please try again.');
+    } finally {
+      setFetchingRecommendations(false);
+    }
+  };
+
+  const handleSmartScheduleSubmit = async (finalRecommendations: any[]) => {
+    if (selectedAssetIds.length === 0) return;
+    setSchedulingInProgress(true);
+    try {
+      const token = localStorage.getItem('token');
+      const schedules = finalRecommendations.map(r => {
+        let isoStr = r.scheduledAt;
+        if (r.scheduledAtLocal) {
+          try {
+            isoStr = new Date(r.scheduledAtLocal).toISOString();
+          } catch {}
+        }
+        return {
+          id: r.id,
+          scheduledAt: isoStr
+        };
+      });
+
+      const res = await fetch(`${API_BASE}/posts/smart-schedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          postIds: selectedAssetIds,
+          startDate,
+          endDate,
+          platforms,
+          schedules
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to smart schedule posts');
       }
 
       const data = await res.json();
       console.log('Smart schedule results:', data);
 
-      // Reset selection mode & refresh
       setSelectionMode(false);
       setSelectedAssetIds([]);
       setShowScheduleModal(false);
+      setModalStep(0);
+      setRecommendations([]);
       
-      // Clear localStorage cache to force fresh assets reload
-      localStorage.removeItem(cacheKey);
+      await removeCache(cacheKey);
       await fetchAssets();
-
-      // Navigate to post history
       navigate('/dashboard/history');
     } catch (err: any) {
       console.error('[Schedule] smart schedule error:', err);
@@ -196,7 +307,7 @@ const AssetLibrary = () => {
       });
       const updated = assets.filter((a) => a._id !== id);
       setAssets(updated);
-      safeSetItem(cacheKey, updated);
+      await setCache(cacheKey, updated);
     } catch (err) {
       console.error('[Assets] Delete error:', err);
     } finally {
@@ -215,7 +326,24 @@ const AssetLibrary = () => {
     a.click();
   };
 
-  const filtered = filter === 'all' ? assets : assets.filter((a) => a.type === filter);
+  const filtered = (
+    filter === 'all'
+      ? assets
+      : filter === 'scheduled'
+      ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
+      : assets.filter((a) => a.type === filter)
+  )
+    .slice()
+    .sort((a, b) => {
+      const aDone = a.status === 'scheduled' || a.status === 'posted' || a.status === 'published';
+      const bDone = b.status === 'scheduled' || b.status === 'posted' || b.status === 'published';
+      if (aDone && !bDone) return 1;
+      if (!aDone && bDone) return -1;
+      
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -231,8 +359,9 @@ const AssetLibrary = () => {
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2 mb-6">
-        {(['all', 'image', 'carousel', 'video'] as const).map((f) => {
+        {(['all', 'image', 'carousel', 'video', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
+          const label = f === 'scheduled' ? 'Scheduled & Posted' : f;
           return (
             <button
               key={f}
@@ -245,13 +374,15 @@ const AssetLibrary = () => {
               )}
             >
               <Icon size={12} />
-              {f}
+              {label}
               {f !== 'all' && (
                 <span className={cn(
                   'ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold',
                   filter === f ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
                 )}>
-                  {assets.filter((a) => a.type === f).length}
+                  {f === 'scheduled'
+                    ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published').length
+                    : assets.filter((a) => a.type === f).length}
                 </span>
               )}
             </button>
@@ -319,6 +450,9 @@ const AssetLibrary = () => {
               const Icon = typeIcon[asset.type] || ImageIcon;
 
               const isSelected = selectedAssetIds.includes(asset._id);
+              const isScheduled = asset.status === 'scheduled' && (!asset.scheduledAt || new Date(asset.scheduledAt) > new Date());
+              const isPosted = asset.status === 'posted' || asset.status === 'published' || (asset.status === 'scheduled' && asset.scheduledAt && new Date(asset.scheduledAt) <= new Date());
+              
               return (
                 <motion.div
                   key={asset._id}
@@ -329,10 +463,12 @@ const AssetLibrary = () => {
                   transition={{ delay: i * 0.04 }}
                   className={cn(
                     "group relative bg-card border rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer",
-                    isSelected ? "border-primary ring-2 ring-primary/20" : "border-border/60"
+                    isSelected ? "border-primary ring-2 ring-primary/20" : "border-border/60",
+                    (isScheduled || isPosted) && selectionMode && "opacity-50 cursor-not-allowed"
                   )}
                   onClick={() => {
                     if (selectionMode) {
+                      if (isScheduled || isPosted) return;
                       if (isSelected) {
                         setSelectedAssetIds(selectedAssetIds.filter(id => id !== asset._id));
                       } else {
@@ -345,7 +481,7 @@ const AssetLibrary = () => {
                   }}
                 >
                   {/* Selection Mode Checkbox Overlay */}
-                  {selectionMode && (
+                  {selectionMode && !(isScheduled || isPosted) && (
                     <div className={cn(
                       "absolute top-2.5 left-2.5 z-20 w-6 h-6 rounded-full flex items-center justify-center border transition-all duration-200",
                       isSelected
@@ -361,7 +497,7 @@ const AssetLibrary = () => {
                     {asset.type === 'video' && asset.videoUrl ? (
                       <video src={asset.videoUrl} className="w-full h-auto block" muted />
                     ) : thumbSrc ? (
-                      <img src={thumbSrc} alt="" className="w-full h-auto block" />
+                      <img src={thumbSrc} alt="" className="w-full h-auto block" loading="lazy" />
                     ) : (
                       <Icon size={24} className="text-muted-foreground/30" />
                     )}
@@ -371,6 +507,20 @@ const AssetLibrary = () => {
                       <Icon size={9} />
                       {asset.type}
                     </div>
+
+                    {/* Scheduled / Posted Badge */}
+                    {isScheduled && (
+                      <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow z-10">
+                        <Clock size={9} />
+                        Scheduled
+                      </div>
+                    )}
+                    {isPosted && (
+                      <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow z-10">
+                        <Check size={9} strokeWidth={3} />
+                        Posted
+                      </div>
+                    )}
 
                     {/* Hover overlay with actions - only visible if not in selection mode */}
                     {!selectionMode && (
@@ -465,6 +615,7 @@ const AssetLibrary = () => {
                       src={imgSrc(previewAsset.slides[previewSlide]?.image)}
                       alt={`Slide ${previewSlide + 1}`}
                       className="w-full h-auto max-h-[55vh] md:max-h-[60vh] object-contain max-w-full"
+                      loading="lazy"
                     />
                     {/* Navigation dots */}
                     {previewAsset.slides.length > 1 && (
@@ -508,6 +659,7 @@ const AssetLibrary = () => {
                     src={imgSrc(previewAsset.thumbnailBase64)}
                     alt="Preview"
                     className="w-full h-auto max-h-[60vh] md:max-h-[65vh] object-contain max-w-full"
+                    loading="lazy"
                   />
                 )}
               </div>
@@ -563,7 +715,7 @@ const AssetLibrary = () => {
             exit={{ opacity: 0, y: 50, x: "-50%" }}
             className="fixed bottom-6 left-1/2 z-50 bg-background/80 backdrop-blur-lg border border-border shadow-2xl rounded-2xl px-6 py-4 flex items-center gap-6"
           >
-            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-800">
               <span className="text-rose-500 font-bold text-sm mr-1">{selectedAssetIds.length}</span>
               creative{selectedAssetIds.length > 1 ? 's' : ''} selected
             </div>
@@ -605,101 +757,231 @@ const AssetLibrary = () => {
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
-              className="w-full max-w-md bg-card border border-border rounded-3xl p-6 shadow-2xl relative"
+              className={cn(
+                "w-full bg-card border border-border rounded-3xl p-6 shadow-2xl relative transition-all duration-300",
+                modalStep === 0 ? "max-w-md" : "max-w-xl"
+              )}
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                onClick={() => setShowScheduleModal(false)}
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  setModalStep(0);
+                  setRecommendations([]);
+                }}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted text-muted-foreground transition"
               >
                 <X size={18} />
               </button>
 
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
-                  <Sparkles size={18} />
-                </div>
-                <h3 className="text-lg font-bold text-foreground font-display">Smart Schedule Posts</h3>
-              </div>
-
-              <p className="text-xs text-muted-foreground mb-5">
-                Our scheduler agent will analyze follower activity peaks and distribute your {selectedAssetIds.length} posts optimally.
-              </p>
-
-              {/* Platforms */}
-              <div className="mb-5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">Publish To</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-border hover:border-rose-500/40 bg-muted/20 flex-1 select-none">
-                    <input
-                      type="checkbox"
-                      checked={platforms.instagram}
-                      onChange={(e) => setPlatforms({ ...platforms, instagram: e.target.checked })}
-                      className="rounded border-input text-rose-500 focus:ring-rose-500 h-4 w-4"
-                    />
-                    <span className="text-xs font-semibold text-foreground">Instagram</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-border hover:border-rose-500/40 bg-muted/20 flex-1 select-none">
-                    <input
-                      type="checkbox"
-                      checked={platforms.facebook}
-                      onChange={(e) => setPlatforms({ ...platforms, facebook: e.target.checked })}
-                      className="rounded border-input text-rose-500 focus:ring-rose-500 h-4 w-4"
-                    />
-                    <span className="text-xs font-semibold text-foreground">Facebook</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Date Range */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full text-xs bg-muted/30 border border-border rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:ring-1 focus:ring-rose-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">End Date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    min={startDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full text-xs bg-muted/30 border border-border rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:ring-1 focus:ring-rose-500"
-                  />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleSmartScheduleSubmit}
-                  disabled={schedulingInProgress || (!platforms.instagram && !platforms.facebook)}
-                  className="flex-1 bg-rose-500 hover:bg-rose-600 border-0 text-white font-black uppercase tracking-widest text-[10px] h-11 rounded-xl shadow-lg shadow-rose-500/20"
-                >
-                  {schedulingInProgress ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Scheduling...</span>
+              {modalStep === 0 ? (
+                <>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                      <Sparkles size={18} />
                     </div>
-                  ) : (
-                    <span>Optimize & Schedule</span>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowScheduleModal(false)}
-                  disabled={schedulingInProgress}
-                  className="px-4 h-11 text-xs font-semibold rounded-xl border-border bg-card"
-                >
-                  Cancel
-                </Button>
-              </div>
+                    <h3 className="text-lg font-bold text-foreground font-display">Smart Schedule Posts</h3>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground mb-5">
+                    Our scheduler agent will analyze follower activity peaks and distribute your {selectedAssetIds.length} posts optimally.
+                  </p>
+
+                  {/* Platforms */}
+                  <div className="mb-5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">Publish To</label>
+                    <div className="inline-flex gap-2 p-1.5 rounded-2xl bg-muted/20 border border-border w-full">
+                      {(["instagram", "facebook"] as const).map((p) => {
+                        const active = platforms[p];
+                        const Icon = p === "facebook" ? FacebookIcon : InstagramIcon;
+                        const label = p === "facebook" ? "Facebook" : "Instagram";
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() =>
+                              setPlatforms((prev) => {
+                                const next = { ...prev, [p]: !prev[p] };
+                                if (!next.facebook && !next.instagram) return prev;
+                                return next;
+                              })
+                            }
+                            aria-pressed={active}
+                            className={cn(
+                              "flex items-center justify-center gap-2 px-4 h-10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex-1",
+                              active
+                                ? p === "facebook"
+                                  ? "bg-[#1877F2] text-white shadow-lg shadow-blue-500/20 border-0"
+                                  : "bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white shadow-lg shadow-rose-500/20 border-0"
+                                : "bg-transparent text-muted-foreground hover:text-foreground border-0 hover:bg-muted/40",
+                            )}
+                          >
+                            <Icon size={14} />
+                            {label}
+                            {active && <Check size={12} strokeWidth={3} className="ml-1" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Date Range */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Start Date</label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full text-xs bg-muted/30 border border-border rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:ring-1 focus:ring-rose-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">End Date</label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        min={startDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full text-xs bg-muted/30 border border-border rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:ring-1 focus:ring-rose-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleFetchRecommendations}
+                      disabled={fetchingRecommendations || (!platforms.instagram && !platforms.facebook)}
+                      className="flex-1 bg-rose-500 hover:bg-rose-600 border-0 text-white font-black uppercase tracking-widest text-[10px] h-11 rounded-xl shadow-lg shadow-rose-500/20"
+                    >
+                      {fetchingRecommendations ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Planning...</span>
+                        </div>
+                      ) : (
+                        <span>Get AI Recommendations</span>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowScheduleModal(false)}
+                      disabled={fetchingRecommendations}
+                      className="px-4 h-11 text-xs font-semibold rounded-xl border-border bg-card"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                      <Sparkles size={18} />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground font-display">Review & Adjust Schedule</h3>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground mb-5">
+                    Review or edit the dates/times calculated by the scheduler agent before finalizing.
+                  </p>
+
+                  {/* Recommendations Scrollable List */}
+                  <div className="max-h-[50vh] overflow-y-auto space-y-4 mb-6 pr-2 custom-scrollbar">
+                    {recommendations.map((rec, index) => {
+                      const Icon = typeIcon[rec.type] || ImageIcon;
+                      return (
+                        <div 
+                          key={rec.id} 
+                          className="p-5 rounded-2xl border border-slate-200/80 space-y-4 transition-all duration-200 shadow-sm"
+                          style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+                        >
+                          <div className="flex gap-4 items-start">
+                            {/* Media thumbnail */}
+                            <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-slate-200 shrink-0 flex items-center justify-center shadow-sm">
+                              {rec.thumbnailBase64 ? (
+                                <img src={imgSrc(rec.thumbnailBase64)} alt="post preview" className="w-full h-full object-cover" loading="lazy" />
+                              ) : (
+                                <Icon size={20} className="text-slate-400" />
+                              )}
+                            </div>
+
+                            {/* Caption / description preview */}
+                            <div className="flex-1 min-w-0">
+                              <span 
+                                className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mb-1.5"
+                                style={{ backgroundColor: '#ffe4e6', color: '#e11d48' }}
+                              >
+                                {rec.type}
+                              </span>
+                              <p className="text-xs text-slate-800 font-semibold line-clamp-2 leading-relaxed">
+                                {rec.caption || rec.idea || 'Skincare Creative'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Editable scheduled date/time input */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center pt-3.5 border-t border-slate-200/80">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 sm:col-span-1">
+                              Post Time
+                            </label>
+                            <input
+                              type="datetime-local"
+                              value={rec.scheduledAtLocal || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setRecommendations(prev =>
+                                  prev.map((item, idx) =>
+                                    idx === index ? { ...item, scheduledAtLocal: val } : item
+                                  )
+                                );
+                              }}
+                              className="w-full sm:col-span-2 text-xs border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all font-semibold"
+                              style={{ backgroundColor: '#ffffff', color: '#0f172a', borderColor: '#cbd5e1' }}
+                            />
+                          </div>
+
+                          {/* Rationale reason */}
+                          {rec.reason && (
+                            <p className="text-[10px] text-slate-500 leading-relaxed border-t border-slate-200/80 pt-3 font-medium flex gap-2 items-start">
+                              <span className="shrink-0 text-amber-500 text-xs">💡</span>
+                              <span>{rec.reason}</span>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Step 1 Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleSmartScheduleSubmit(recommendations)}
+                      disabled={schedulingInProgress || recommendations.some(r => !r.scheduledAtLocal)}
+                      className="flex-1 bg-rose-500 hover:bg-rose-600 border-0 text-white font-black uppercase tracking-widest text-[10px] h-11 rounded-xl shadow-lg shadow-rose-500/20"
+                    >
+                      {schedulingInProgress ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Scheduling...</span>
+                        </div>
+                      ) : (
+                        <span>Confirm & Schedule</span>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setModalStep(0)}
+                      disabled={schedulingInProgress}
+                      className="px-4 h-11 text-xs font-semibold rounded-xl border-border bg-card"
+                    >
+                      Back
+                    </Button>
+                  </div>
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}

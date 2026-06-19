@@ -1,5 +1,5 @@
 import express from 'express';
-import { validatePost, schedulePost, getPostHistory, directPublish, smartSchedulePosts } from '../controllers/postController.js';
+import { validatePost, schedulePost, getPostHistory, directPublish, smartSchedulePosts, recommendSchedulePosts } from '../controllers/postController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { upload } from '../middleware/uploadMiddleware.js';
 
@@ -19,5 +19,8 @@ router.post('/schedule/:id', protect, schedulePost);
 
 // POST /api/posts/smart-schedule — Multi-post intelligent scheduler
 router.post('/smart-schedule', protect, smartSchedulePosts);
+
+// POST /api/posts/recommend-schedule — Pre-compute AI scheduling recommendations
+router.post('/recommend-schedule', protect, recommendSchedulePosts);
 
 export default router;

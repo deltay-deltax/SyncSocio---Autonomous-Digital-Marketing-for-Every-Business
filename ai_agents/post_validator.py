@@ -202,7 +202,17 @@ def fetch_insights_node(state: PostState) -> PostState:
 # ── Node 2: Vision Actor (Analyse the uploaded media) ─────────────────────
 def vision_actor_node(state: PostState) -> PostState:
     """Uses Gemini Vision to read the uploaded image/video description."""
-    media_paths = state["media_paths"]
+    media_paths = state.get("media_paths", [])
+    resolved_paths = []
+    for path in media_paths:
+        if path and not os.path.exists(path):
+            alt_path = os.path.join("..", "backend", path)
+            if os.path.exists(alt_path):
+                path = alt_path
+        resolved_paths.append(path)
+    state["media_paths"] = resolved_paths
+    media_paths = resolved_paths
+
     if not media_paths or not os.path.exists(media_paths[0]):
         return {**state, "media_analysis": "No media file provided."}
 
@@ -544,6 +554,16 @@ def publisher_node(state: PostState) -> PostState:
     ig_id = brand.get("instagramBusinessAccountId") or os.getenv("META_IG_USER_ID", "")
 
     media_paths = state.get("media_paths", [])
+    resolved_paths = []
+    for path in media_paths:
+        if path and not os.path.exists(path):
+            alt_path = os.path.join("..", "backend", path)
+            if os.path.exists(alt_path):
+                path = alt_path
+        resolved_paths.append(path)
+    media_paths = resolved_paths
+    state["media_paths"] = resolved_paths
+
     content_type = state.get("content_type")
     description = state.get("description")
     critique = state.get("critique", {})

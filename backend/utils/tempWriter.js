@@ -35,7 +35,7 @@ export function writeBase64ToFile(base64Data, fileName) {
     const buffer = Buffer.from(cleanBase64, 'base64');
     const filePath = path.join(uploadDir, `${fileName}${extension}`);
     fs.writeFileSync(filePath, buffer);
-    return filePath;
+    return path.resolve(filePath);
   } catch (err) {
     console.error('[tempWriter] Error writing file:', err);
     return null;
@@ -58,7 +58,7 @@ export function writeCreativeToFiles(creative) {
     });
   } else if (creative.type === 'video' && creative.videoUrl && !creative.videoUrl.startsWith('http') && fs.existsSync(creative.videoUrl)) {
     // If it's a local video file path, use it directly!
-    filePaths.push(creative.videoUrl);
+    filePaths.push(path.resolve(creative.videoUrl));
   } else {
     // For images, or video fallback (thumbnail)
     const filePath = writeBase64ToFile(creative.thumbnailBase64, `temp_image_${creativeId}`);
