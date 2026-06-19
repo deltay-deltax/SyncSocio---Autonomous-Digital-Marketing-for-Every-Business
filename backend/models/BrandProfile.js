@@ -63,6 +63,14 @@ const brandProfileSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  gmailEmail: {
+    type: String,
+    default: ""
+  },
+  gmailIsConnected: {
+    type: Boolean,
+    default: false
+  },
   selectedPlan: {
     type: String,
     default: 'Free'

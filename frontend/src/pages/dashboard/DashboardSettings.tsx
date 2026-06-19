@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
 import { useOutletContext, Link } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -18,6 +19,15 @@ const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className
     <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
     <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const GoogleIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
   </svg>
 );
 
@@ -45,8 +55,56 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: any; label: string; valu
 
 const DashboardSettings = () => {
   const [activeTab, setActiveTab] = useState('Brand Profile');
-  const { profile, setProfile } = useOutletContext<{ profile: any, setProfile: (p: any) => void }>();
+  const { profile, setProfile, setShowNotifications } = useOutletContext<{ 
+    profile: any; 
+    setProfile: (p: any) => void; 
+    setShowNotifications?: (show: boolean) => void;
+  }>();
   const [updating, setUpdating] = useState(false);
+
+  const handleConnectGmail = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      console.log('Google Auth Success:', tokenResponse);
+      try {
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch Google user info');
+        const userInfo = await res.json();
+        const email = userInfo.email;
+
+        // Save to backend using VITE_API_URL/profile
+        const token = localStorage.getItem('token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const profileRes = await fetch(`${apiBase}/profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            gmailEmail: email,
+            gmailIsConnected: true
+          })
+        });
+
+        if (!profileRes.ok) throw new Error('Failed to update brand profile with connected Gmail');
+        const updatedProfile = await profileRes.json();
+        setProfile(updatedProfile);
+        localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+        if (setShowNotifications) {
+          setShowNotifications(true);
+        }
+      } catch (err: any) {
+        console.error('Error connecting Gmail:', err);
+        alert('Error: ' + err.message);
+      }
+    },
+    onError: (error) => {
+      console.error('Google Auth Failed:', error);
+      alert('Google authentication failed.');
+    }
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -337,62 +395,122 @@ const DashboardSettings = () => {
                 <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Connected Accounts</CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">Manage external social media platform connections.</p>
               </CardHeader>
-              <CardContent className="p-8">
-                {profile.instagramIsConnected ? (
-                  <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden" 
-                         style={{ 
-                            background: profile.instagramProfilePicture ? 'none' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)' 
-                         }}>
-                      {profile.instagramProfilePicture ? (
-                        <img src={profile.instagramProfilePicture} className="w-full h-full object-cover" />
-                      ) : (
-                        <InstagramIcon size={28} className="text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-base font-black text-foreground">@{profile.instagramUsername}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
+              <CardContent className="p-8 space-y-5">
+                <div className="space-y-4">
+                  {/* Instagram Connection */}
+                  {profile.instagramIsConnected ? (
+                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden" 
+                           style={{ 
+                              background: profile.instagramProfilePicture ? 'none' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)' 
+                           }}>
+                        {profile.instagramProfilePicture ? (
+                          <img src={profile.instagramProfilePicture} className="w-full h-full object-cover" />
+                        ) : (
+                          <InstagramIcon size={28} className="text-white" />
+                        )}
                       </div>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
-                      onClick={async () => {
-                        console.log('🔄 Relink Instagram clicked. Fetching auth URL...');
-                        try {
-                          const token = localStorage.getItem('token');
-                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                          const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                          });
-                          const data = await res.json();
-                          console.log('🚀 Auth Response:', data);
-                          if (data.url) {
-                            console.log('➡️ Redirecting to:', data.url);
-                            window.location.href = data.url;
-                          } else {
-                            console.error('❌ No URL returned in auth response');
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-black text-foreground">@{profile.instagramUsername}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+                        onClick={async () => {
+                          console.log('🔄 Relink Instagram clicked. Fetching auth URL...');
+                          try {
+                            const token = localStorage.getItem('token');
+                            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                            const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, {
+                              headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            const data = await res.json();
+                            console.log('🚀 Auth Response:', data);
+                            if (data.url) {
+                              console.log('➡️ Redirecting to:', data.url);
+                              window.location.href = data.url;
+                            } else {
+                              console.error('❌ No URL returned in auth response');
+                            }
+                          } catch (err) {
+                            console.error('❌ Failed to get auth URL:', err);
                           }
-                        } catch (err) {
-                          console.error('❌ Failed to get auth URL:', err);
-                        }
-                      }}
-                    >
-                      <RefreshCw size={14} className="mr-2" /> Reconnect
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center p-12 border-2 border-dashed border-border rounded-[2.5rem] bg-muted/5">
-                     <InstagramIcon size={40} className="mx-auto mb-4 text-muted-foreground/20" />
-                     <p className="text-sm font-bold">No Social Account Linked</p>
-                     <p className="text-xs text-muted-foreground mb-6 max-w-xs mx-auto">VelocityDM needs an Instagram Business account connection to start posting autonomously.</p>
-                     <Button className="gradient-bg text-white text-xs font-black uppercase tracking-widest h-11 px-8 rounded-xl" onClick={() => window.location.href='/setup'}>Link Instagram Now</Button>
-                  </div>
-                )}
+                        }}
+                      >
+                        <RefreshCw size={14} className="mr-2" /> Reconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
+                        <InstagramIcon size={28} className="text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-black text-foreground">Instagram Business Account</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        className="gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
+                        onClick={() => window.location.href='/setup'}
+                      >
+                        Connect
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Gmail Connection */}
+                  {profile.gmailIsConnected ? (
+                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-muted/25 border border-border/30">
+                        <GoogleIcon size={28} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-black text-foreground">{profile.gmailEmail}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+                        onClick={() => handleConnectGmail()}
+                      >
+                        <RefreshCw size={14} className="mr-2" /> Reconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
+                        <GoogleIcon size={28} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-black text-foreground">Gmail / Email Connection</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        className="gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
+                        onClick={() => handleConnectGmail()}
+                      >
+                        Connect
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}

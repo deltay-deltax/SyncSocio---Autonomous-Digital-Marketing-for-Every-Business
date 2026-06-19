@@ -5,14 +5,16 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Folder,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
+import * as XLSX from 'xlsx';
+import { useToast } from '@/hooks/use-toast';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -136,10 +138,17 @@ function imgSrc(src: string | null | undefined): string {
 
 const DashboardStrategy = () => {
   const navigate = useNavigate();
+  const { setShowNotifications } = useOutletContext<{ setShowNotifications?: (show: boolean) => void }>() || {};
+  const { toast } = useToast();
 
   // ── Stage / Mode
   const [stage, setStage] = useState<'pick' | 'builder' | 'generating' | 'results'>('pick');
   const [mode, setMode] = useState<Mode | null>(null);
+
+  // ── Custom Import List Modal
+  const [showListNameModal, setShowListNameModal] = useState(false);
+  const [pendingEmails, setPendingEmails] = useState<string[]>([]);
+  const [listNameInput, setListNameInput] = useState('');
 
   // ── Shared
   const [count, setCount] = useState<number>(4);
@@ -172,6 +181,33 @@ const DashboardStrategy = () => {
   const [campaignImage, setCampaignImage] = useState<string>('');
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const recipientsFileRef = useRef<HTMLInputElement>(null);
+
+  interface EmailListObj {
+    _id: string;
+    name: string;
+    emails: string[];
+  }
+  const [savedLists, setSavedLists] = useState<EmailListObj[]>([]);
+  const [selectedListId, setSelectedListId] = useState<string>('');
+
+  React.useEffect(() => {
+    const fetchSavedLists = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${NODE_BASE}/campaigns/lists`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSavedLists(data);
+        }
+      } catch (err) {
+        console.error("Error fetching email lists:", err);
+      }
+    };
+
+    fetchSavedLists();
+  }, []);
 
   // ── WhatsApp / Email 3-Box Upload states
   const [showCreativeModal, setShowCreativeModal] = useState(false);
@@ -345,18 +381,153 @@ const DashboardStrategy = () => {
     setProductPick(products_[Math.floor(Math.random() * products_.length)]);
   };
 
+  const handleImportedEmails = (emails: string[], filename: string) => {
+    if (!emails.length) {
+      toast({
+        title: "Import Error",
+        description: "No recipients found in the uploaded file.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const defaultListName = filename.split('.')[0] || 'Imported List';
+    setListNameInput(defaultListName);
+    setPendingEmails(emails);
+    setShowListNameModal(true);
+  };
+
+  const handleSaveImportedList = async () => {
+    const finalListName = listNameInput.trim() || 'Imported List';
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${NODE_BASE}/campaigns/lists`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: finalListName,
+          emails: pendingEmails
+        })
+      });
+
+      if (res.ok) {
+        const savedList = await res.json();
+        setSavedLists(prev => {
+          const index = prev.findIndex(x => x._id === savedList._id || x.name === savedList.name);
+          if (index >= 0) {
+            const updated = [...prev];
+            updated[index] = savedList;
+            return updated;
+          }
+          return [savedList, ...prev];
+        });
+        setSelectedListId(savedList._id);
+        setRecipients(savedList.emails);
+        
+        toast({
+          title: "List Saved",
+          description: `Saved list "${finalListName}" with ${savedList.emails.length} recipients!`,
+        });
+      } else {
+        toast({
+          title: "Database Sync Failed",
+          description: "Failed to save recipient list on backend, but imported locally.",
+          variant: "destructive"
+        });
+        setRecipients(pendingEmails);
+      }
+    } catch (err) {
+      console.error("Failed to save list:", err);
+      setRecipients(pendingEmails);
+    } finally {
+      setShowListNameModal(false);
+      setPendingEmails([]);
+    }
+  };
+
+  const parseRecipients = (textOrRows: any, isExcel: boolean): string[] => {
+    const emailPattern = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+    const phonePattern = /\+?\d[\d\s\-()]{7,15}\d/g;
+    const results: string[] = [];
+
+    if (isExcel && Array.isArray(textOrRows)) {
+      for (const row of textOrRows) {
+        if (Array.isArray(row)) {
+          for (const cell of row) {
+            if (cell !== null && cell !== undefined) {
+              const cellStr = String(cell).trim();
+              if (mode === 'email') {
+                const matches = cellStr.match(emailPattern);
+                if (matches) {
+                  results.push(...matches);
+                }
+              } else {
+                const matches = cellStr.match(phonePattern);
+                if (matches) {
+                  const cleaned = matches.map(m => m.replace(/[\s\-()]/g, ''));
+                  results.push(...cleaned);
+                }
+              }
+            }
+          }
+        }
+      }
+    } else if (typeof textOrRows === 'string') {
+      if (mode === 'email') {
+        const matches = textOrRows.match(emailPattern);
+        if (matches) {
+          results.push(...matches);
+        }
+      } else {
+        const matches = textOrRows.match(phonePattern);
+        if (matches) {
+          const cleaned = matches.map(m => m.replace(/[\s\-()]/g, ''));
+          results.push(...cleaned);
+        }
+      }
+    }
+
+    return Array.from(new Set(results));
+  };
+
   const handleRecipientsFile = (files: FileList | null) => {
     if (!files || !files[0]) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = (e.target?.result as string) || '';
-      const pattern = mode === 'email'
-        ? /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
-        : /(\+?\d[\d\s\-()]{7,}\d)/g;
-      const matches = Array.from(new Set(text.match(pattern) || [])).map((x: string) => x.replace(/[\s\-()]/g, ''));
-      setRecipients((r) => Array.from(new Set([...r, ...matches])));
-    };
-    reader.readAsText(files[0]);
+    const file = files[0];
+    const extension = file.name.split('.').pop()?.toLowerCase();
+
+    if (extension === 'xlsx' || extension === 'xls') {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+          
+          const matches = parseRecipients(rows, true);
+          handleImportedEmails(matches, file.name);
+        } catch (err) {
+          console.error("Excel Parse Error:", err);
+          toast({
+            title: "Parse Error",
+            description: "Failed to parse Excel file.",
+            variant: "destructive"
+          });
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = (e.target?.result as string) || '';
+        const matches = parseRecipients(text, false);
+        handleImportedEmails(matches, file.name);
+      };
+      reader.readAsText(file);
+    }
   };
 
   const addRecipient = () => {
@@ -366,10 +537,40 @@ const DashboardStrategy = () => {
     setNewRecipient('');
   };
 
-  const sendCampaign = () => {
+  const sendCampaign = async () => {
     if (!recipients.length) return;
     setSendStatus('sending');
-    setTimeout(() => setSendStatus('sent'), 1800);
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${NODE_BASE}/campaigns/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          recipients: recipients,
+          subject: campaignSubject || 'Email Campaign',
+          body: campaignBody,
+          image: campaignImage
+        })
+      });
+
+      if (res.ok) {
+        setSendStatus('sent');
+      } else {
+        throw new Error('Failed to send campaign');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Campaign Error",
+        description: 'Failed to send campaign: ' + err.message,
+        variant: "destructive"
+      });
+      setSendStatus('idle');
+    }
   };
 
   const generate = async (overrides?: { idea?: string; count?: number; products?: any[]; layout?: string; aspect?: string }) => {
@@ -640,6 +841,15 @@ const DashboardStrategy = () => {
         sendCampaign={sendCampaign}
         back={resetToBuilder}
         regenerate={() => generate()}
+        savedLists={savedLists}
+        setSavedLists={setSavedLists}
+        selectedListId={selectedListId}
+        setSelectedListId={setSelectedListId}
+        showListNameModal={showListNameModal}
+        setShowListNameModal={setShowListNameModal}
+        listNameInput={listNameInput}
+        setListNameInput={setListNameInput}
+        handleSaveImportedList={handleSaveImportedList}
       />
     );
   }
@@ -1785,6 +1995,59 @@ const DashboardStrategy = () => {
           </motion.div>
         )}
       </AnimatePresence>
+ 
+      {/* ─── List Name Modal ─── */}
+      <AnimatePresence>
+        {showListNameModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && setShowListNameModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl flex flex-col p-6 space-y-4"
+            >
+              <div>
+                <h3 className="text-base font-black text-foreground">Name your imported recipient list</h3>
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Provide a recognizable name for this contact list so you can reuse it later.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  value={listNameInput}
+                  onChange={(e) => setListNameInput(e.target.value)}
+                  placeholder="e.g. my fav customer"
+                  className="rounded-xl border-border/80 bg-muted/20 h-11 text-sm font-semibold"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveImportedList()}
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowListNameModal(false)}
+                  className="rounded-xl px-5 h-10 text-xs font-bold border-border/70"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveImportedList}
+                  disabled={!listNameInput.trim()}
+                  className="rounded-xl px-6 h-10 text-xs font-bold"
+                >
+                  Save & Import
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Generate button ─── */}
       {mode !== 'festival' && (
@@ -1898,15 +2161,39 @@ interface CampaignResultsProps {
   back: () => void;
   regenerate: () => void;
   saveHeroImage?: () => void;
+  savedLists: any[];
+  setSavedLists: React.Dispatch<React.SetStateAction<any[]>>;
+  selectedListId: string;
+  setSelectedListId: (v: string) => void;
+  showListNameModal: boolean;
+  setShowListNameModal: (v: boolean) => void;
+  listNameInput: string;
+  setListNameInput: (v: string) => void;
+  handleSaveImportedList: () => Promise<void>;
 }
 
 const CampaignResults: React.FC<CampaignResultsProps> = ({
   mode, brandName, image, subject, setSubject, body, setBody,
   recipients, setRecipients, newRecipient, setNewRecipient, addRecipient,
   recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage,
+  savedLists, setSavedLists, selectedListId, setSelectedListId,
+  showListNameModal, setShowListNameModal, listNameInput, setListNameInput, handleSaveImportedList,
 }) => {
   const isWA = mode === 'whatsapp';
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsListDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -2042,16 +2329,106 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 onClick={() => recipientsFileRef.current?.click()}
                 className="text-[10px] font-semibold text-primary flex items-center gap-1 hover:text-primary/80"
               >
-                <FileSpreadsheet size={11} /> Import CSV/TXT
+                <FileSpreadsheet size={11} /> Import CSV/TXT/Excel
               </button>
               <input
                 ref={recipientsFileRef}
                 type="file"
-                accept=".csv,.txt"
+                accept=".csv,.txt,.xlsx,.xls"
                 className="hidden"
                 onChange={(e) => handleRecipientsFile(e.target.files)}
               />
             </div>
+
+            {/* Saved lists selection dropdown */}
+            {savedLists.length > 0 && (
+              <div ref={dropdownRef} className="relative mb-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <button
+                  type="button"
+                  onClick={() => setIsListDropdownOpen(!isListDropdownOpen)}
+                  className="flex items-center justify-between w-full h-10 px-3 rounded-xl border border-border/60 bg-card text-xs font-semibold hover:bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary transition-all text-left"
+                >
+                  <div className="flex items-center truncate">
+                    {(() => {
+                      const selectedList = savedLists.find(x => x._id === selectedListId);
+                      if (selectedList) {
+                        return (
+                          <>
+                            <Folder size={14} className="text-primary mr-2 shrink-0" />
+                            <span className="truncate text-foreground font-black">{selectedList.name}</span>
+                            <span className="text-[10px] text-muted-foreground ml-1.5 font-bold shrink-0">({selectedList.emails.length} contacts)</span>
+                          </>
+                        );
+                      }
+                      return <span className="text-muted-foreground">-- Choose from saved recipient lists --</span>;
+                    })()}
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      "text-muted-foreground transition-transform duration-200 shrink-0 ml-2",
+                      isListDropdownOpen && "transform rotate-180 text-foreground"
+                    )}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {isListDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute left-0 right-0 mt-1 z-30 max-h-60 overflow-y-auto rounded-2xl border border-border/60 bg-card/95 backdrop-blur-md shadow-2xl p-1.5 space-y-0.5"
+                    >
+                      <div
+                        onClick={() => {
+                          setSelectedListId('');
+                          setRecipients([]);
+                          setIsListDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                          selectedListId === '' 
+                            ? "bg-primary/10 text-primary" 
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                      >
+                        -- Clear selection --
+                      </div>
+                      
+                      {savedLists.map((list) => {
+                        const isSelected = list._id === selectedListId;
+                        return (
+                          <div
+                            key={list._id}
+                            onClick={() => {
+                              setSelectedListId(list._id);
+                              setRecipients(list.emails);
+                              setIsListDropdownOpen(false);
+                            }}
+                            className={cn(
+                              "flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer",
+                              isSelected 
+                                ? "bg-primary/10 text-primary" 
+                                : "text-foreground hover:bg-muted"
+                            )}
+                          >
+                            <div className="flex items-center min-w-0">
+                              <Folder size={14} className={cn("mr-2 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
+                              <span className="truncate">{list.name}</span>
+                            </div>
+                            <span className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ml-2", isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                              {list.emails.length} contacts
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
             <div className="flex gap-2 mb-2">
               <Input
                 value={newRecipient}
@@ -2100,6 +2477,59 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* ─── List Name Modal ─── */}
+      <AnimatePresence>
+        {showListNameModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && setShowListNameModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl flex flex-col p-6 space-y-4"
+            >
+              <div>
+                <h3 className="text-base font-black text-foreground">Name your imported recipient list</h3>
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Provide a recognizable name for this contact list so you can reuse it later.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  value={listNameInput}
+                  onChange={(e) => setListNameInput(e.target.value)}
+                  placeholder="e.g. my fav customer"
+                  className="rounded-xl border-border/80 bg-muted/20 h-11 text-sm font-semibold"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveImportedList()}
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowListNameModal(false)}
+                  className="rounded-xl px-5 h-10 text-xs font-bold border-border/70"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveImportedList}
+                  disabled={!listNameInput.trim()}
+                  className="rounded-xl px-6 h-10 text-xs font-bold"
+                >
+                  Save & Import
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

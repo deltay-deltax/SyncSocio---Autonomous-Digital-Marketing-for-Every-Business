@@ -30,7 +30,13 @@ const DashboardLayout = () => {
   const [loading, setLoading] = useState(true);
   const [showRelinkSuccess, setShowRelinkSuccess] = useState(false);
   const [nextScheduled, setNextScheduled] = useState<any>(null);
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } = useNotifications();
+
+  useEffect(() => {
+    if (showNotifications) {
+      refresh();
+    }
+  }, [showNotifications, refresh]);
 
   useEffect(() => {
     const fetchNextScheduled = async () => {
@@ -342,7 +348,7 @@ const DashboardLayout = () => {
               )}
             </AnimatePresence>
 
-            <Outlet context={{ profile, setProfile }} />
+            <Outlet context={{ profile, setProfile, setShowNotifications }} />
           </div>
         </section>
       </main>

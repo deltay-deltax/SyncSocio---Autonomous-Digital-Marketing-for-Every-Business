@@ -8,6 +8,7 @@ import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import Notification from '../models/Notification.js';
 import PostAnalysis from '../models/PostAnalysis.js';
 import { sendSignupWelcomeEmail } from '../utils/sendWelcomeEmail.js';
+import { createNotification } from '../utils/notificationHelper.js';
 
 const inferAuthProvider = (user) => {
   if (user?.googleId) return 'google';
@@ -26,6 +27,7 @@ export const createOrUpdateProfile = async (req, res) => {
     let profile = await BrandProfile.findOne({ user: req.user._id });
     const hadExistingProfile = Boolean(profile);
     const previousSelectedPlan = profile?.selectedPlan?.trim() || '';
+    const wasGmailConnected = profile ? profile.gmailIsConnected : false;
     
     if (profile) {
       profile = await BrandProfile.findOneAndUpdate(
@@ -35,6 +37,16 @@ export const createOrUpdateProfile = async (req, res) => {
       );
     } else {
       profile = await BrandProfile.create(profileData);
+    }
+
+    if (req.body.gmailIsConnected === true) {
+      const emailStr = req.body.gmailEmail || 'Gmail';
+      await createNotification(
+        req.user._id,
+        'success',
+        wasGmailConnected ? 'Gmail Reconnected Successfully' : 'Gmail Connected Successfully',
+        `Your connection to Google (${emailStr}) has been updated and all systems are online.`
+      );
     }
 
     const shouldSendPlanWelcomeEmail = Boolean(incomingSelectedPlan) && incomingSelectedPlan !== previousSelectedPlan;
