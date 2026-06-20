@@ -1536,6 +1536,9 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             ad_template=request.adTemplate,
             language=request.language,
             generate_image=request.generateImage,
+            video_kind=request.videoKind,
+            avatar_description=request.avatarDescription,
+            video_script=request.videoScript,
         )
 
         return {"status": "success", "posts": posts, "count": len(posts)}

@@ -315,15 +315,47 @@ const AssetLibrary = () => {
     }
   };
 
-  const handleDownload = (asset: any) => {
-    const src = asset.type === 'image' ? asset.thumbnailBase64
+  const handleDownload = async (asset: any) => {
+    const isVideo = asset.type === 'video';
+    const src = isVideo ? (asset.videoUrl || asset.thumbnailBase64)
+              : asset.type === 'image' ? asset.thumbnailBase64
               : asset.type === 'carousel' ? asset.slides?.[0]?.image
               : asset.thumbnailBase64;
     if (!src) return;
-    const a = document.createElement('a');
-    a.href = imgSrc(src);
-    a.download = `velocity-creative-${asset._id?.slice(-6) || 'export'}.jpg`;
-    a.click();
+
+    const srcUrl = isVideo && asset.videoUrl ? asset.videoUrl : imgSrc(src);
+    const filename = `velocity-creative-${asset._id?.slice(-6) || 'export'}.${isVideo && asset.videoUrl ? 'mp4' : 'jpg'}`;
+
+    try {
+      if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:')) {
+        const response = await fetch(srcUrl);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        const link = document.createElement('a');
+        link.href = srcUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error(isVideo ? 'Failed to download video:' : 'Failed to download image:', err);
+      const link = document.createElement('a');
+      link.href = srcUrl;
+      link.target = '_blank';
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const filtered = (

@@ -56,4 +56,6 @@ const strategyCreativeSchema = new mongoose.Schema({
   },
 });
 
+strategyCreativeSchema.index({ user: 1, status: 1, createdAt: -1 });
+
 export default mongoose.model('StrategyCreative', strategyCreativeSchema);

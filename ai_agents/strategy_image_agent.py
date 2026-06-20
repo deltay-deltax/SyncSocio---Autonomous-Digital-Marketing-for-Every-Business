@@ -483,6 +483,7 @@ Description: {product.get('description', '')}
         sys_msg = (
             f"You are an expert D2C copywriter. Write a WhatsApp broadcast message in {language}. It must be short, punchy, conversational, and use emojis. "
             "Output ONLY a valid JSON object with a single key 'body' containing the exact message string. "
+            "Strict Rule: Write the message as PLAIN TEXT only. Do NOT output any HTML tags, code, or CSS. "
             "If a Website URL is provided in the prompt details, you MUST include it directly in the message/body as the CTA link (do NOT use placeholder links like [Link] or [website URL])."
         )
         user_msg = f"{block}\n{product_block}{idea_info}\n\nDraft the WhatsApp message now."
@@ -490,7 +491,15 @@ Description: {product.get('description', '')}
         sys_msg = (
             f"You are an expert D2C email marketer. Write an email campaign in {language}. Output ONLY a valid JSON object with two keys: 'subject' (the email subject line) and 'body' (the email body). "
             "Make the copy highly engaging, brand-aligned, and structured with clear spacing. "
-            "If a Website URL is provided in the prompt details, you MUST include it directly in the email body as the CTA link (do NOT use placeholder links like [Link] or [website URL])."
+            "Strict Rule: Write the email 'body' as a premium, highly aesthetic, modern HTML email template using inline CSS. "
+            "Structure the template with clean typography, styled headings (<h1>, <h2>), styled paragraphs (<p>), list elements (<ul>, <li>), and a Call-to-Action (CTA) button. "
+            "Ensure the colors align with the brand's primary and secondary colors provided in the details. "
+            "The CTA link must be styled as a beautiful, prominent, centered button with border-radius, padding, background-color, and white text. "
+            "Do NOT include surrounding <html>, <head>, or <body> tags — only return the inner <div> structure. "
+            "If a Website URL is provided in the details, you MUST wrap it inside the CTA button href. "
+            f"Strict Footer Rule: The footer of the email MUST NOT assume or invent any shipping details, discounts (like 'free shipping on orders above ₹499'), or other unverified policies. It must consist strictly and only of: "
+            f"1. A clean values/USP line featuring 2-3 genuine short brand USPs or generic D2C values (e.g., '🌱 Natural Actives • 🩺 Dermatologically Tested • 🐰 Cruelty-Free' for skincare/beauty, or appropriate genuine ones for other categories). "
+            f"2. A direct text disclaimer: 'You\'re receiving this because you signed up for {brand_name} updates.'"
         )
         user_msg = f"{block}\n{product_block}{idea_info}\n\nDraft the Email campaign now."
         
@@ -763,6 +772,20 @@ Aspect ratio: {aspect}. Commercial advertising quality.
 """
 
 
+def build_ugc_video_prompt(brand_doc: Dict[str, Any], avatar_description: str, script: str, aspect: str, language: str = "english") -> str:
+    """UGC video prompt targeting talking head creator style."""
+    block = _brand_block(brand_doc)
+    return f"""{block}
+Create a high-quality talking-head UGC (user-generated content) video ad for Instagram Reels / TikTok.
+Actor / Avatar Details: {avatar_description}
+The speaker must look directly at the camera, talking naturally.
+The speaking script / voiceover topic is: "{script}"
+Ensure natural facial expressions, friendly creator-style delivery, and appropriate hand gestures.
+Any subtitles or text overlays must be in {language}.
+Aspect ratio: {aspect}. Commercial advertising quality.
+"""
+
+
 # ──────────────────────────────────────────────
 # Main orchestrator
 # ──────────────────────────────────────────────
@@ -779,6 +802,9 @@ def generate_strategy_images(
     ad_template: Optional[int] = None,
     language: str = "english",
     generate_image: bool = True,
+    video_kind: Optional[str] = "ai-ugc",
+    avatar_description: Optional[str] = "",
+    video_script: Optional[str] = "",
 ) -> List[Dict[str, Any]]:
     """
     Orchestrates generation for all layout types.
@@ -1069,8 +1095,11 @@ def generate_strategy_images(
 
     # ── VIDEO ──────────────────────────────────
     elif layout == "video":
-        prompt = build_video_prompt(brand_doc, idea, aspect_ratio, language=language)
-        print(f"\n[StrategyAgent] 🎥 Video | Prompt length: {len(prompt)}")
+        if video_kind == "ai-ugc":
+            prompt = build_ugc_video_prompt(brand_doc, avatar_description or "", video_script or "", aspect_ratio, language=language)
+        else:
+            prompt = build_video_prompt(brand_doc, idea, aspect_ratio, language=language)
+        print(f"\n[StrategyAgent] 🎥 Video ({video_kind}) | Prompt length: {len(prompt)}")
 
         def run_video_task(index):
             prod = assigned_products[index]

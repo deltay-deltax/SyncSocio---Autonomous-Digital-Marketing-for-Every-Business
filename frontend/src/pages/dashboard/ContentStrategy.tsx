@@ -150,6 +150,53 @@ function imgSrc(src: string | null | undefined): string {
   return `data:image/jpeg;base64,${src}`;
 }
 
+// Simple IndexedDB helper for caching large datasets
+const dbName = 'VelocityAssetCache';
+const storeName = 'assets';
+
+function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        db.createObjectStore(storeName);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function setCache(key: string, val: any): Promise<void> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(val, key);
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    console.error('[Cache] IndexedDB set failed:', e);
+  }
+}
+
+async function getCache(key: string): Promise<any> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(storeName, 'readonly');
+    const request = tx.objectStore(storeName).get(key);
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.error('[Cache] IndexedDB get failed:', e);
+    return null;
+  }
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 const DashboardStrategy = () => {
@@ -175,6 +222,8 @@ const DashboardStrategy = () => {
   const [language, setLanguage] = useState<string>('english');
   const [videoKind, setVideoKind] = useState<string>('ai-ugc');
   const [selectedMotionPreset, setSelectedMotionPreset] = useState<string | null>(null);
+  const [avatarDescription, setAvatarDescription] = useState<string>('');
+  const [videoScript, setVideoScript] = useState<string>('');
 
   // ── E-comm
   const [productName, setProductName] = useState('');
@@ -230,6 +279,7 @@ const DashboardStrategy = () => {
   const [showCreativeModal, setShowCreativeModal] = useState(false);
   const [creativeLibrary, setCreativeLibrary] = useState<any[]>([]);
   const [loadingCreatives, setLoadingCreatives] = useState(false);
+  const [fetchingCreatives, setFetchingCreatives] = useState(false);
   const [selectedCampaignCreative, setSelectedCampaignCreative] = useState<any | null>(null);
   const [selectedCampaignComputerImage, setSelectedCampaignComputerImage] = useState<string | null>(null);
   const [activeCampaignImageSource, setActiveCampaignImageSource] = useState<'product' | 'creative' | 'computer' | null>(null);
@@ -303,7 +353,35 @@ const DashboardStrategy = () => {
   };
 
   const fetchCreativeLibrary = async () => {
-    setLoadingCreatives(true);
+    const cacheKey = `velocity_strategy_assets_${userId}`;
+    
+    // 1. Try to load from IndexedDB cache first
+    try {
+      const cachedData = await getCache(cacheKey);
+      if (Array.isArray(cachedData) && cachedData.length > 0) {
+        setCreativeLibrary(cachedData);
+        setLoadingCreatives(false);
+      } else {
+        // Fallback to localStorage just in case
+        const cachedStr = localStorage.getItem(cacheKey) || localStorage.getItem(ASSET_CACHE_KEY);
+        if (cachedStr) {
+          const fallbackData = JSON.parse(cachedStr);
+          if (Array.isArray(fallbackData) && fallbackData.length > 0) {
+            setCreativeLibrary(fallbackData);
+            setLoadingCreatives(false);
+          } else {
+            setLoadingCreatives(true);
+          }
+        } else {
+          setLoadingCreatives(true);
+        }
+      }
+    } catch (e) {
+      setLoadingCreatives(true);
+    }
+
+    // 2. Fetch the latest from server in the background
+    setFetchingCreatives(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${NODE_BASE}/strategy-assets`, {
@@ -311,12 +389,18 @@ const DashboardStrategy = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setCreativeLibrary(data.creatives || []);
+        const fetchedCreatives = data.creatives || [];
+        setCreativeLibrary(fetchedCreatives);
+        // Save to IndexedDB (as primary cache)
+        await setCache(cacheKey, fetchedCreatives);
+        // Also sync to localStorage for backwards compatibility / fallback
+        localStorage.setItem(cacheKey, JSON.stringify(fetchedCreatives));
       }
     } catch (err) {
       console.error('[Strategy] Fetch creatives error:', err);
     } finally {
       setLoadingCreatives(false);
+      setFetchingCreatives(false);
     }
   };
 
@@ -343,7 +427,9 @@ const DashboardStrategy = () => {
           }
           return [];
         }
-        setActiveCampaignImageSource('product');
+        if (!activeCampaignImageSource || activeCampaignImageSource === 'product') {
+          setActiveCampaignImageSource('product');
+        }
         return [p];
       } else {
         const exists = prev.find((x) => x._id === p._id);
@@ -361,7 +447,11 @@ const DashboardStrategy = () => {
     setStage('builder');
     if (m === 'image') setCount(4);
     if (m === 'carousel') setCount(2);
-    if (m === 'video') setCount(2);
+    if (m === 'video') {
+      setCount(1);
+      setAspect('9:16');
+      setLanguage('english');
+    }
     if (m === 'ecomm') setCount(5);
     if (m === 'festival') setCount(4);
     if (m === 'whatsapp' || m === 'email') {
@@ -396,6 +486,9 @@ const DashboardStrategy = () => {
   // ── Can generate guard
   const canGenerate = (() => {
     if (!mode) return false;
+    if (mode === 'video' && videoKind === 'ai-ugc') {
+      return avatarDescription.trim().length > 0 && videoScript.trim().length > 0;
+    }
     return true;
   })();
 
@@ -614,12 +707,12 @@ const DashboardStrategy = () => {
       let currentLanguage = overrides?.language !== undefined ? overrides.language : language;
 
       let finalIdea = currentIdea;
-      if (currentMode === 'video' && videoKind === 'img2video') {
+      if (currentMode === 'video') {
         currentCount = 1;
         currentAspect = '9:16';
         currentLanguage = 'english';
         
-        if (selectedMotionPreset) {
+        if (videoKind === 'img2video' && selectedMotionPreset) {
           const preset = MOTION_PRESETS.find((p) => p.id === selectedMotionPreset);
           if (preset) {
             finalIdea = `${currentIdea ? currentIdea.trim() + '. ' : ''}${preset.promptModifier}`;
@@ -667,6 +760,10 @@ const DashboardStrategy = () => {
         ...((currentMode === 'image' || currentMode === 'festival') && {
           adTemplate: currentCount === 8 ? -1 : adTemplate,  // -1 means generate all 8 variants
         }),
+        // Video specific (UGC)
+        videoKind: currentMode === 'video' ? videoKind : undefined,
+        avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
+        videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
       };
 
       const promise = fetch(`${AI_BASE}/generate-strategy-images`, {
@@ -720,13 +817,15 @@ const DashboardStrategy = () => {
     setSendStatus('idle');
     setSavedIndices(new Set());
     setShowHeartPop({});
+    setAvatarDescription('');
+    setVideoScript('');
   };
 
   // ── Heart — save to DB + localStorage cache
   const handleHeart = async (post: GeneratedPost, index: number) => {
     try {
       const token = localStorage.getItem('token');
-      const thumbSrc = post.type === 'carousel' ? post.slides?.[0]?.image : post.image;
+      const thumbSrc = post.type === 'carousel' ? post.slides?.[0]?.image : post.type === 'video' ? post.thumbnail : post.image;
 
       const body = {
         type: post.type,
@@ -749,6 +848,18 @@ const DashboardStrategy = () => {
 
       if (res.ok) {
         const data = await res.json();
+        
+        // Save to IndexedDB cache
+        const cacheKey = `velocity_strategy_assets_${userId}`;
+        try {
+          const cached = await getCache(cacheKey) || [];
+          cached.unshift(data.creative);
+          await setCache(cacheKey, cached);
+        } catch (e) {
+          console.error('[Strategy] IndexedDB save error:', e);
+        }
+
+        // LocalStorage fallback update
         const keys = [ASSET_CACHE_KEY, `velocity_strategy_assets_${userId}`];
         for (const key of keys) {
           try {
@@ -772,18 +883,21 @@ const DashboardStrategy = () => {
   };
 
   const handleDownload = async (post: GeneratedPost, index: number) => {
-    const displaySrc = post.type === 'carousel' ? post.slides?.[0]?.image : post.type === 'video' ? post.thumbnail : post.image;
+    const isVideo = post.type === 'video';
+    const displaySrc = isVideo ? (post.url || post.thumbnail) : (post.type === 'carousel' ? post.slides?.[0]?.image : post.image);
     if (!displaySrc) return;
 
-    const srcUrl = imgSrc(displaySrc);
+    const srcUrl = isVideo && post.url ? post.url : imgSrc(displaySrc);
+    const filename = `${brandName || 'velocity'}_creative_${index + 1}.${isVideo && post.url ? 'mp4' : 'jpg'}`;
+
     try {
-      if (srcUrl.startsWith('http')) {
+      if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:')) {
         const response = await fetch(srcUrl);
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = `${brandName || 'velocity'}_creative_${index + 1}.jpg`;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -791,17 +905,17 @@ const DashboardStrategy = () => {
       } else {
         const link = document.createElement('a');
         link.href = srcUrl;
-        link.download = `${brandName || 'velocity'}_creative_${index + 1}.jpg`;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       }
     } catch (err) {
-      console.error('Failed to download image:', err);
+      console.error(isVideo ? 'Failed to download video:' : 'Failed to download image:', err);
       const link = document.createElement('a');
       link.href = srcUrl;
       link.target = '_blank';
-      link.download = `${brandName || 'velocity'}_creative_${index + 1}.jpg`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1397,7 +1511,7 @@ const DashboardStrategy = () => {
           )}
 
           {/* Count + Aspect */}
-          {!(mode === 'video' && videoKind === 'img2video') && (
+          {mode !== 'video' && (
             <section className="mb-6">
               <div className="p-5 rounded-2xl border border-border/60 bg-gradient-to-br from-card to-muted/30 space-y-5">
                 <div>
@@ -1470,7 +1584,7 @@ const DashboardStrategy = () => {
             </section>
           )}
 
-          {!(mode === 'video' && videoKind === 'img2video') && (
+          {mode !== 'video' && (
             <LanguagePicker language={language} setLanguage={setLanguage} />
           )}
 
@@ -1569,10 +1683,10 @@ const DashboardStrategy = () => {
           <section className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                {mode === 'video' && videoKind === 'img2video' ? 'Product image' : 'Reference images'}{' '}
+                {mode === 'video' ? 'Product image' : 'Reference images'}{' '}
                 <span className="font-normal text-muted-foreground/60 normal-case">(optional)</span>
               </p>
-              {!(mode === 'video' && videoKind === 'img2video') && (
+              {mode !== 'video' && (
                 <div className="flex gap-3">
                   <button onClick={pickRandom} className="text-[11px] font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5">
                     <Shuffle size={12} /> Pick Random
@@ -1668,16 +1782,44 @@ const DashboardStrategy = () => {
             </section>
           )}
 
-          <IdeaBox
-            idea={idea}
-            setIdea={setIdea}
-            placeholder={
-              mode === 'video' && videoKind === 'img2video'
-                ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
-                : undefined
-            }
-            label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
-          />
+          {mode === 'video' && videoKind === 'ai-ugc' ? (
+            <>
+              <section className="mb-6">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                  Avatar description <span className="text-destructive">*</span>
+                </p>
+                <Input
+                  value={avatarDescription}
+                  onChange={(e) => setAvatarDescription(e.target.value)}
+                  placeholder="e.g. A 25-year-old friendly female creator speaking in a bright modern kitchen."
+                  className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
+                />
+              </section>
+
+              <section className="mb-6">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                  Video script <span className="text-destructive">*</span>
+                </p>
+                <Textarea
+                  value={videoScript}
+                  onChange={(e) => setVideoScript(e.target.value)}
+                  placeholder="e.g. Hey guys! I just tried this new organic cream and it feels amazing..."
+                  className="min-h-[120px] rounded-2xl border-border/60 bg-card resize-none text-sm leading-relaxed text-foreground focus-visible:ring-primary"
+                />
+              </section>
+            </>
+          ) : (
+            <IdeaBox
+              idea={idea}
+              setIdea={setIdea}
+              placeholder={
+                mode === 'video' && videoKind === 'img2video'
+                  ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
+                  : undefined
+              }
+              label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
+            />
+          )}
         </>
       )}
 
@@ -2140,6 +2282,9 @@ const DashboardStrategy = () => {
                 <div>
                   <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                     <Heart size={18} className="text-rose-500 fill-rose-500" /> Select Creative
+                    {fetchingCreatives && (
+                      <span className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin ml-1 inline-block" />
+                    )}
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Pick a hearted creative from your asset library to use in your campaign.
@@ -2151,15 +2296,21 @@ const DashboardStrategy = () => {
               </div>
 
               <div className="p-5 overflow-y-auto flex-1">
-                {loadingCreatives ? (
+                {loadingCreatives || (fetchingCreatives && creativeLibrary.length === 0) ? (
                   <div className="py-12 flex flex-col items-center justify-center">
                     <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin mb-3" />
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Loading library...</p>
                   </div>
+                ) : creativeLibrary.length === 0 ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/30 flex items-center justify-center mb-3">
+                      <Heart size={20} className="text-rose-500 fill-rose-500" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">No saved creatives yet</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-xs">Heart creatives in the strategy stage to save them to your library.</p>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-
-
                     {creativeLibrary.map((c) => {
                       const src = c.thumbnailBase64 || c.slides?.[0]?.image || '';
                       const selected = selectedCampaignCreative?._id === c._id;
@@ -2176,8 +2327,16 @@ const DashboardStrategy = () => {
                             selected ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' : 'border-border'
                           )}
                         >
-                          <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative">
-                            {src ? (
+                          <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative flex items-center justify-center">
+                            {c.type === 'video' && c.videoUrl ? (
+                              <video
+                                src={`${c.videoUrl}#t=0.5`}
+                                preload="metadata"
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover"
+                              />
+                            ) : src ? (
                               <img src={imgSrc(src)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-muted-foreground/30" /></div>
@@ -2275,10 +2434,8 @@ const DashboardStrategy = () => {
             <Sparkles size={18} />
             {mode === 'whatsapp' ? 'Generate WhatsApp message' :
               mode === 'email' ? 'Generate email campaign' :
-                (mode === 'video' && videoKind === 'img2video') ? 'Generate 1 video' :
-                  `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'video' ? (videoKind === 'ai-ugc' ? 'UGC videos' : 'videos') :
-                    mode === 'carousel' ? 'carousels' :
-                      mode === 'ecomm' ? 'assets' : 'posts'}`}
+                mode === 'video' ? 'Generate 1 video' :
+                  `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
           </Button>
           {!canGenerate && mode !== 'ecomm' && (
             <p className="text-[11px] text-muted-foreground text-center mt-2">
@@ -2501,7 +2658,14 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 {image && (
                   <img src={image} className="w-full rounded-xl object-cover aspect-video" />
                 )}
-                <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{body}</pre>
+                {body.includes('<') && (body.includes('</') || body.includes('/>')) ? (
+                  <div 
+                    className="text-xs text-foreground leading-relaxed email-html-preview" 
+                    dangerouslySetInnerHTML={{ __html: body }} 
+                  />
+                ) : (
+                  <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{body}</pre>
+                )}
               </div>
             </div>
           )}

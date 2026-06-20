@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Grid3X3, List, Eye, Heart, Activity, Sparkles, MessageCircle } from 'lucide-react';
+import { Grid3X3, List, Heart, Activity, Sparkles, MessageCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 const tabs = ['All', 'Agent Posts', 'Original Posts'];
 
@@ -14,6 +14,8 @@ const DashboardFeed = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [posts, setPosts] = useState<any[]>(cachedFeedData || []);
   const [loading, setLoading] = useState(!cachedFeedData);
+  const [reconnectRequired, setReconnectRequired] = useState<{ message: string; reason: string } | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let isMounted = true;
@@ -24,10 +26,22 @@ const DashboardFeed = () => {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/instagram/feed`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        // Handle expired/invalid token → show reconnect banner
+        if (res.status === 401) {
+          const data = await res.json();
+          if (data.requiresReconnect && isMounted) {
+            setReconnectRequired({ message: data.message, reason: data.reason });
+            setLoading(false);
+            return;
+          }
+        }
+
         if (res.ok && isMounted) {
           const result = await res.json();
           cachedFeedData = result.data || [];
           setPosts(cachedFeedData);
+          setReconnectRequired(null); // Clear reconnect state on success
         }
       } catch (err) {
         console.error('Failed to fetch feed:', err);
@@ -57,14 +71,13 @@ const DashboardFeed = () => {
     }
   };
 
-  const isAgentPost = (post: any) => {
-    return !!post.isAgentAssisted;
-  };
+  const isAgentPost = (post: any) => !!post.isAgentAssisted;
 
   const filtered = activeTab === 'All' ? posts
     : activeTab === 'Agent Posts' ? posts.filter(p => isAgentPost(p))
     : posts.filter(p => !isAgentPost(p));
 
+  // ── Loading state ────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="h-[70vh] flex items-center justify-center">
@@ -79,6 +92,46 @@ const DashboardFeed = () => {
     );
   }
 
+  // ── Reconnect Banner ─────────────────────────────────────────────────────────
+  if (reconnectRequired) {
+    return (
+      <div className="space-y-5 animate-in fade-in duration-500">
+        <h2 className="text-lg font-bold text-foreground">Your Instagram Feed</h2>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="border-amber-200 bg-amber-50/60 shadow-sm">
+            <CardContent className="py-12 text-center space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto">
+                <AlertTriangle size={28} className="text-amber-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">
+                  {reconnectRequired.reason === 'token_expired'
+                    ? 'Instagram Session Expired'
+                    : 'Instagram Permissions Changed'}
+                </h3>
+                <p className="text-[12px] text-slate-600 max-w-sm mx-auto leading-relaxed">
+                  {reconnectRequired.message}
+                </p>
+              </div>
+              <button
+                id="reconnect-instagram-btn"
+                onClick={() => navigate('/dashboard/settings?tab=Connected+Accounts')}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-md shadow-primary/20 hover:bg-primary/90 transition-all duration-200"
+              >
+                <RefreshCw size={14} />
+                Reconnect Instagram
+              </button>
+              <p className="text-[10px] text-slate-400">
+                Go to Settings → Connected Accounts and click "Connect Instagram"
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── Main Feed ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -127,15 +180,17 @@ const DashboardFeed = () => {
               <Card className="overflow-hidden hover-lift cursor-default border-border/50 group bg-white shadow-sm border-0">
                 <div className="aspect-square bg-slate-100 flex items-center justify-center text-4xl relative overflow-hidden">
                   {post.media_url ? (
-                    <img 
-                      src={post.media_url} 
-                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 will-change-transform" 
-                      alt="" 
+                    <img
+                      src={post.media_url}
+                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 will-change-transform"
+                      alt=""
                     />
                   ) : (
                     <span className="group-hover:scale-[1.03] transition-transform duration-500">{getEmoji(post.media_type)}</span>
                   )}
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-white/90 backdrop-blur-sm text-foreground shadow-sm uppercase tracking-widest leading-none flex items-center h-5">{post.media_type === 'VIDEO' ? 'REEL' : 'POST'}</span>
+                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-white/90 backdrop-blur-sm text-foreground shadow-sm uppercase tracking-widest leading-none flex items-center h-5">
+                    {post.media_type === 'VIDEO' ? 'REEL' : 'POST'}
+                  </span>
                   {isAgentPost(post) && (
                     <span className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-primary text-white flex items-center gap-1 shadow-sm uppercase tracking-widest leading-none h-5">
                       <Sparkles size={8} /> AI

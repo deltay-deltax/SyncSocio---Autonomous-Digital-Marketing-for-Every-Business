@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
+import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles } from 'lucide-react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 
@@ -61,6 +61,125 @@ const DashboardSettings = () => {
     setShowNotifications?: (show: boolean) => void;
   }>();
   const [updating, setUpdating] = useState(false);
+  const [rescraping, setRescraping] = useState(false);
+
+  const handleRescrape = async () => {
+    if (!formData.website.trim()) {
+      alert('Please enter a website URL to rescrape.');
+      return;
+    }
+
+    if (!confirm(`This will scrape ${formData.website} for new details and import newer products. Do you want to proceed?`)) {
+      return;
+    }
+
+    setRescraping(true);
+    try {
+      const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const token = localStorage.getItem('token');
+
+      // 1. Scrape the website
+      const scrapeRes = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: formData.website })
+      });
+
+      if (!scrapeRes.ok) {
+        const errData = await scrapeRes.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Website scraping failed.');
+      }
+
+      const scraped = await scrapeRes.json();
+
+      // 2. Prepare the updated profile payload
+      let comps = scraped.competitors || [];
+      while (comps.length < 2) {
+        comps.push('');
+      }
+
+      const updatedFormData = {
+        ...formData,
+        brandName: scraped.brandName || formData.brandName,
+        website: scraped.website || formData.website,
+        businessCategory: scraped.businessCategory || formData.businessCategory,
+        city: scraped.location?.city || formData.city,
+        country: scraped.location?.country || formData.country,
+        brandTone: scraped.brandTone || formData.brandTone,
+        usp: scraped.usp || formData.usp,
+        mainGoal: scraped.mainGoal || formData.mainGoal,
+        competitors: comps.slice(0, 2).join(', '),
+        targetAudiences: Array.isArray(scraped.targetAudiences) ? scraped.targetAudiences.join(', ') : formData.targetAudiences,
+        painPoint: scraped.painPoint || formData.painPoint,
+        primaryColor: scraped.primaryColor || formData.primaryColor,
+        secondaryColor: scraped.secondaryColor || formData.secondaryColor,
+        logo: scraped.logo || formData.logo,
+        typography: scraped.typography || formData.typography
+      };
+
+      // 4. Save newly scraped products sequentially
+      const scrapedProducts = scraped.products || [];
+      if (scrapedProducts.length > 0) {
+        for (const prod of scrapedProducts) {
+          try {
+            await fetch(`${apiBase}/products`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                name: prod.name,
+                description: prod.description || '',
+                price: prod.price || '',
+                offerPrice: prod.offerPrice || '',
+                keyBenefit: prod.keyBenefit || '',
+                imageBase64: prod.imageBase64 || ''
+              })
+            });
+          } catch (prodErr) {
+            console.error('Failed to save scraped product:', prodErr);
+          }
+        }
+      }
+
+      // 5. Update local cache for products
+      localStorage.removeItem('velocity_products');
+
+      // 6. Save the updated profile to the DB
+      const profilePayload = {
+        ...updatedFormData,
+        location: { city: updatedFormData.city, country: updatedFormData.country },
+        competitors: updatedFormData.competitors.split(',').map((s: string) => s.trim()).filter(Boolean),
+        targetAudiences: updatedFormData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean)
+      };
+
+      const profileRes = await fetch(`${apiBase}/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profilePayload)
+      });
+
+      if (!profileRes.ok) throw new Error('Failed to save brand profile');
+      const updatedProfile = await profileRes.json();
+
+      // 7. Update UI state and local storage
+      setFormData(updatedFormData);
+      setProfile(updatedProfile);
+      localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+
+      alert(`✅ Website rescrape complete! Brand profile updated and ${scrapedProducts.length} products reloaded successfully.`);
+    } catch (err: any) {
+      alert('Rescrape Error: ' + err.message);
+    } finally {
+      setRescraping(false);
+    }
+  };
+
 
   const handleConnectGmail = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -255,11 +374,26 @@ const DashboardSettings = () => {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Website URL</Label>
-                      <Input 
-                        value={formData.website} 
-                        onChange={e => updateField('website', e.target.value)}
-                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                      />
+                      <div className="flex gap-2">
+                        <Input 
+                          value={formData.website} 
+                          onChange={e => updateField('website', e.target.value)}
+                          className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20 flex-1" 
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleRescrape}
+                          disabled={rescraping || !formData.website}
+                          className="h-12 rounded-xl px-5 bg-primary text-primary-foreground text-xs font-bold gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-primary/10"
+                        >
+                          {rescraping ? (
+                            <RefreshCw size={14} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={14} className="animate-pulse" />
+                          )}
+                          {rescraping ? 'Rescraping...' : 'Rescrape'}
+                        </Button>
+                      </div>
                     </div>
                     {/* Brand Typography */}
                     <div className="space-y-2">

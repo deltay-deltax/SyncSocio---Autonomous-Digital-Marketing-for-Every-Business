@@ -381,9 +381,15 @@ const pollProfileComments = async (profile) => {
     const metaErr = error?.response?.data?.error || error.message;
     // Don't spam logs for token issues - just log once
     if (metaErr?.code === 190) {
-      console.error('[POLLER] Access token expired or invalid. Polling paused until reconnection.');
-      stopPolling();
-      return;
+      console.error(`[POLLER] Access token expired or invalid for ${profile.instagramUsername}. Marking as disconnected.`);
+      // Mark as disconnected in DB so feed/auditor endpoints stop hitting the dead token
+      try {
+        await BrandProfile.findOneAndUpdate(
+          { _id: profile._id },
+          { $set: { instagramIsConnected: false } }
+        );
+      } catch (_) { /* best effort */ }
+      return; // Skip this profile, poller will try others
     }
     if (metaErr?.code === 80002 || metaErr?.code === 4 || metaErr?.code === 17 || metaErr?.code === 32) {
       console.error('[POLLER] Rate limit hit. Sleeping for 15 minutes to recover.');

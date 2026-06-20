@@ -59,3 +59,6 @@ class StrategyImageRequest(BaseModel):
     adTemplate: Optional[int] = None
     language: Optional[str] = "english"
     generateImage: Optional[bool] = True
+    videoKind: Optional[str] = "ai-ugc"
+    avatarDescription: Optional[str] = ""
+    videoScript: Optional[str] = ""

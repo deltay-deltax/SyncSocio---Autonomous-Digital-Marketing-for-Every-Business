@@ -50,6 +50,16 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
+// DELETE /api/products — delete all products for authed user
+router.delete('/', protect, async (req, res) => {
+  try {
+    await Product.deleteMany({ user: req.user._id });
+    res.json({ success: true, message: 'All products deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/products/:id
 router.delete('/:id', protect, async (req, res) => {
   try {

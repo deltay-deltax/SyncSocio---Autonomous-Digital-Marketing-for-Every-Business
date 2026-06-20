@@ -64,6 +64,9 @@ router.post('/send', protect, async (req, res) => {
       return res.status(400).json({ message: 'Recipients, subject, and body are required' });
     }
 
+    const isHtml = body.includes('<') && (body.includes('</') || body.includes('/>'));
+    const cleanBody = isHtml ? body.replace(/[\r\n]+/g, ' ').replace(/>\s+</g, '><').trim() : body;
+
     const profile = await BrandProfile.findOne({ user: req.user._id });
     const brandName = profile?.brandName || 'VelocityDM';
     const senderEmail = profile?.gmailEmail || process.env.SMTP_USER || 'noreply@velocitydm.com';
@@ -94,15 +97,17 @@ router.post('/send', protect, async (req, res) => {
           from: `"${brandName}" <${senderEmail}>`,
           to: recipient,
           subject: subject,
-          html: `
+          html: isHtml
+            ? cleanBody
+            : `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px;">
               ${hasImage ? '<img src="cid:campaign-hero" style="width: 100%; border-radius: 12px; margin-bottom: 20px; display: block;" />' : ''}
-              <div style="font-size: 14px; line-height: 1.6; color: #1a202c; white-space: pre-wrap;">${body}</div>
-              <div style="margin-top: 30px; border-t: 1px solid #edf2f7; padding-top: 15px; font-size: 10px; color: #a0aec0; text-align: center;">
+              <div style="font-size: 14px; line-height: 1.6; color: #1a202c; white-space: pre-wrap;">${cleanBody}</div>
+              <div style="margin-top: 30px; border-top: 1px solid #edf2f7; padding-top: 15px; font-size: 10px; color: #a0aec0; text-align: center;">
                 Sent via ${brandName} | Auto-generated Campaign
               </div>
             </div>
-          `,
+          `.replace(/[\r\n]+/g, ' ').replace(/>\s+</g, '><').trim(),
           attachments: hasImage ? [{
             filename: 'hero.png',
             content: Buffer.from(image.split(',')[1], 'base64'),
