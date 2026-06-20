@@ -40,7 +40,7 @@ const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import axios from "axios";
-import { cn } from "@/lib/utils";
+import { cn, safeSetItem } from "@/lib/utils";
 import { type ContentType } from "@/lib/content-plan";
 import { mediaCache } from "@/lib/media-cache";
 
@@ -180,7 +180,7 @@ const ContentPlan: React.FC = () => {
         }));
         setItems(week);
         // Persist initial skeleton immediately
-        localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: week, captions: {} }));
+        safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: week, captions: {} }));
         // Now fetch captions for all posts
         fetchCaptions(week, token);
       } catch (e) {
@@ -220,7 +220,7 @@ const ContentPlan: React.FC = () => {
       (data.captions || []).forEach((c: any) => { captionMap[c.day_index] = c; });
       setCaptions(captionMap);
       // Persist everything to sessionStorage
-      localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: planItems, captions: captionMap }));
+      safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: planItems, captions: captionMap }));
     } catch (e) {
       console.error('Failed to load captions:', e);
     } finally {
@@ -279,7 +279,7 @@ const ContentPlan: React.FC = () => {
 
         return { ...it, files: updatedFiles, previewUrls: updatedPreviews };
       });
-      localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: newItems, captions }));
+      safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: newItems, captions }));
 
       // Update global cache
       const updatedItem = newItems.find(it => it.id === id);
@@ -298,7 +298,7 @@ const ContentPlan: React.FC = () => {
         (it.previewUrls || []).forEach(url => URL.revokeObjectURL(url));
         return { ...it, files: undefined, previewUrls: undefined };
       });
-      localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: newItems, captions }));
+      safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: newItems, captions }));
       return newItems;
     });
     mediaCache.remove(id);
@@ -353,7 +353,7 @@ const ContentPlan: React.FC = () => {
       // Remove the item from the local plan and update storage
       const updatedItems = items.filter(i => i.id !== item.id);
       setItems(updatedItems);
-      localStorage.setItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: updatedItems, captions }));
+      safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: updatedItems, captions }));
 
       alert(`🚀 Published successfully to ${platforms.instagram ? 'Instagram' : ''}${platforms.instagram && platforms.facebook ? ' & ' : ''}${platforms.facebook ? 'Facebook' : ''}!`);
       navigate('/dashboard/history');

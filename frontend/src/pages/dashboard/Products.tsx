@@ -5,7 +5,8 @@ import {
   Sparkles, Upload, Check, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, safeSetItem } from '@/lib/utils';
+
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const CACHE_KEY = 'velocity_products';
@@ -295,7 +296,7 @@ const Products = () => {
       if (res.ok) {
         const data = await res.json();
         setProducts(data.products || []);
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data.products || []));
+        safeSetItem(CACHE_KEY, JSON.stringify(data.products || []));
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -326,7 +327,7 @@ const Products = () => {
       await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       const updated = products.filter((p) => p._id !== id);
       setProducts(updated);
-      localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+      safeSetItem(CACHE_KEY, JSON.stringify(updated));
     } finally { setDeleting(null); }
   };
 
