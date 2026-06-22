@@ -1096,7 +1096,48 @@ def generate_strategy_images(
     # ── VIDEO ──────────────────────────────────
     elif layout == "video":
         if video_kind == "ai-ugc":
-            prompt = build_ugc_video_prompt(brand_doc, avatar_description or "", video_script or "", aspect_ratio, language=language)
+            # Generate script and avatar description if they are empty
+            if not avatar_description or not video_script:
+                try:
+                    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+                    brand_name = brand_doc.get("brandName", "Brand")
+                    prod_name = products[0].get("name", "") if products else brand_name
+                    prod_desc = products[0].get("description", "") if products else ""
+                    prod_benefit = products[0].get("keyBenefit", "") if products else ""
+                    
+                    sys_msg = "You are a D2C marketing assistant. Generate a talking-head UGC video script and avatar description for the given product."
+                    user_msg = f"""Brand: {brand_name}
+Product: {prod_name}
+Description: {prod_desc}
+Benefit: {prod_benefit}
+
+Please output a JSON object with:
+1. "avatarDescription": A description of the creator/avatar (e.g., "A friendly 20-something female creator in a bright living room"). Keep it under 200 characters.
+2. "videoScript": A highly engaging 15-30 second script for the creator to say, promoting the product. Keep it under 500 characters.
+
+Output ONLY valid JSON. No markdown formatting.
+"""
+                    response = llm.invoke([SystemMessage(content=sys_msg), HumanMessage(content=user_msg)])
+                    content = response.content
+                    if isinstance(content, list):
+                        content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+                    text = content.strip()
+                    if text.startswith("```json"): text = text[7:]
+                    if text.startswith("```"): text = text[3:]
+                    if text.endswith("```"): text = text[:-3]
+                    data = json.loads(text.strip())
+                    if not avatar_description:
+                        avatar_description = data.get("avatarDescription", "A friendly creator presenting the product.")
+                    if not video_script:
+                        video_script = data.get("videoScript", f"Check out this amazing {prod_name}! It is a game changer.")
+                except Exception as e:
+                    print(f"[StrategyAgent] UGC generation fallback error: {e}")
+                    if not avatar_description:
+                        avatar_description = "A friendly creator presenting the product."
+                    if not video_script:
+                        video_script = "Check out this amazing product! It's a total game changer."
+
+            prompt = build_ugc_video_prompt(brand_doc, avatar_description, video_script, aspect_ratio, language=language)
         else:
             prompt = build_video_prompt(brand_doc, idea, aspect_ratio, language=language)
         print(f"\n[StrategyAgent] 🎥 Video ({video_kind}) | Prompt length: {len(prompt)}")
