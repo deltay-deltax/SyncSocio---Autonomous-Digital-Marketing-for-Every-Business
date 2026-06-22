@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, safeSetItem } from '@/lib/utils';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
 import Masonry from 'react-masonry-css';
@@ -329,7 +329,7 @@ const DashboardStrategy = () => {
         if (res.ok) {
           const data = await res.json();
           setProducts(data.products || []);
-          localStorage.setItem('velocity_products', JSON.stringify(data.products || []));
+          safeSetItem('velocity_products', JSON.stringify(data.products || []));
         }
       } catch (e) { console.error(e); }
     };
