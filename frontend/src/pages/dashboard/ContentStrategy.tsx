@@ -25,7 +25,7 @@ const breakpointColumnsObj = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Mode = 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email';
+type Mode = 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email';
 type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '2:3';
 
 // Keep the original GeneratedPost type for real API responses
@@ -39,6 +39,7 @@ interface GeneratedPost {
   error?: string;
   subject?: string;
   template?: string;
+  sectionType?: string;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ const NODE_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const ASSET_CACHE_KEY = 'velocity_strategy_assets';
 
 const modes: { id: Mode; label: string; icon: any; desc: string; accent: string }[] = [
+  { id: 'all_in_one', label: 'All In One', icon: Wand2, desc: 'Generate complete marketing pack', accent: 'from-indigo-500/20 via-purple-500/10 to-pink-500/5' },
   { id: 'image', label: 'Image', icon: ImageIcon, desc: 'Single static post', accent: 'from-sky-500/20 to-blue-500/10' },
   { id: 'carousel', label: 'Carousel', icon: Layers, desc: 'Multi-slide swipe', accent: 'from-fuchsia-500/20 to-rose-500/10' },
   { id: 'video', label: 'Video', icon: Video, desc: 'Reel / motion post', accent: 'from-amber-500/20 to-orange-500/10' },
@@ -291,7 +293,7 @@ const DashboardStrategy = () => {
   const [showProductModal, setShowProductModal] = useState(false);
 
   React.useEffect(() => {
-    const maxProducts = mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count);
+    const maxProducts = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
     if (selectedProducts.length > maxProducts) {
       setSelectedProducts(selectedProducts.slice(0, maxProducts));
     }
@@ -434,7 +436,7 @@ const DashboardStrategy = () => {
       } else {
         const exists = prev.find((x) => x._id === p._id);
         if (exists) return prev.filter((x) => x._id !== p._id);
-        const limit = mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count);
+        const limit = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
         if (prev.length >= limit) return prev;
         return [...prev, p];
       }
@@ -445,6 +447,10 @@ const DashboardStrategy = () => {
   const openMode = (m: Mode) => {
     setMode(m);
     setStage('builder');
+    if (m === 'all_in_one') {
+      setCount(1);
+      setLanguage('english');
+    }
     if (m === 'image') setCount(4);
     if (m === 'carousel') setCount(2);
     if (m === 'video') {
@@ -486,6 +492,9 @@ const DashboardStrategy = () => {
   // ── Can generate guard
   const canGenerate = (() => {
     if (!mode) return false;
+    if (mode === 'all_in_one') {
+      return selectedProducts.length > 0 || uploads.length > 0;
+    }
     if (mode === 'video' && videoKind === 'ai-ugc') {
       return avatarDescription.trim().length > 0 && videoScript.trim().length > 0;
     }
@@ -696,8 +705,6 @@ const DashboardStrategy = () => {
     setGenError(null);
 
     try {
-      // Convert all ref images to base64 so the backend can use them
-      let refImages: string[] = [];
       const currentMode = overrides?.layout || (mode === 'festival' ? 'image' : mode);
       const currentProducts = overrides?.products !== undefined ? overrides.products : selectedProducts;
       const currentIdea = overrides?.idea !== undefined ? overrides.idea : idea;
@@ -706,20 +713,7 @@ const DashboardStrategy = () => {
       let currentAspect = overrides?.aspect !== undefined ? overrides.aspect : (mode === 'festival' && tone === 'Story' ? '9:16' : aspect);
       let currentLanguage = overrides?.language !== undefined ? overrides.language : language;
 
-      let finalIdea = currentIdea;
-      if (currentMode === 'video') {
-        currentCount = 1;
-        currentAspect = '9:16';
-        currentLanguage = 'english';
-        
-        if (videoKind === 'img2video' && selectedMotionPreset) {
-          const preset = MOTION_PRESETS.find((p) => p.id === selectedMotionPreset);
-          if (preset) {
-            finalIdea = `${currentIdea ? currentIdea.trim() + '. ' : ''}${preset.promptModifier}`;
-          }
-        }
-      }
-
+      let refImages: string[] = [];
       if (currentMode === 'whatsapp' || currentMode === 'email') {
         if (activeCampaignImageSource === 'product' && currentProducts[0]?.imageBase64) {
           refImages = [currentProducts[0].imageBase64];
@@ -740,6 +734,95 @@ const DashboardStrategy = () => {
         }
       }
 
+      if (currentMode === 'all_in_one') {
+        const requests = [
+          // 1. 1 image
+          {
+            userId,
+            layout: 'image',
+            count: 1,
+            aspectRatio: '1:1',
+            idea: currentIdea,
+            refImages,
+            products: currentProducts.length > 0 ? currentProducts : undefined,
+            language: currentLanguage,
+            generateImage: true,
+          },
+          // 2. 1 carousel of 2 slides
+          {
+            userId,
+            layout: 'carousel',
+            count: 1,
+            slideCount: 2,
+            aspectRatio: '1:1',
+            idea: currentIdea,
+            refImages,
+            products: currentProducts.length > 0 ? currentProducts : undefined,
+            language: currentLanguage,
+            generateImage: true,
+          },
+          // 3. 2 ecomm listing images
+          {
+            userId,
+            layout: 'ecomm',
+            count: 2,
+            aspectRatio: '1:1',
+            idea: currentIdea,
+            refImages,
+            products: currentProducts.length > 0 ? currentProducts : undefined,
+            language: currentLanguage,
+            generateImage: true,
+            platform: 'Shopify',
+          }
+        ];
+
+        console.log('[Strategy] Dispatching parallel All-in-One generation requests...');
+        const fetchPromises = requests.map(req =>
+          fetch(`${AI_BASE}/generate-strategy-images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req),
+          }).then(async (res) => {
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({ detail: res.statusText }));
+              throw new Error(err.detail || 'Generation failed');
+            }
+            return res.json();
+          })
+        );
+
+        const resultsArray = await Promise.all(fetchPromises);
+        let allPosts: any[] = [];
+        resultsArray.forEach((data, reqIndex) => {
+          const req = requests[reqIndex];
+          const posts = (data.posts || []).map((post: any) => ({
+            ...post,
+            sectionType: req.layout,
+          }));
+          allPosts = [...allPosts, ...posts];
+        });
+
+        setGenerated(allPosts);
+        setSavedIndices(new Set());
+        setShowHeartPop({});
+        setStage('results');
+        return;
+      }
+
+      let finalIdea = currentIdea;
+      if (currentMode === 'video') {
+        currentCount = 1;
+        currentAspect = '9:16';
+        currentLanguage = 'english';
+        
+        if (videoKind === 'img2video' && selectedMotionPreset) {
+          const preset = MOTION_PRESETS.find((p) => p.id === selectedMotionPreset);
+          if (preset) {
+            finalIdea = `${currentIdea ? currentIdea.trim() + '. ' : ''}${preset.promptModifier}`;
+          }
+        }
+      }
+
       const payload = {
         userId,
         layout: currentMode === 'ecomm' ? 'ecomm' : currentMode === 'festival' ? 'image' : currentMode,
@@ -751,58 +834,43 @@ const DashboardStrategy = () => {
         products: currentProducts.length > 0 ? currentProducts : undefined,
         language: currentLanguage,
         generateImage: (currentMode === 'whatsapp' || currentMode === 'email') ? false : generateImage,
-        // E-comm specific — platform + image count for shot-type rotation
         ...(currentMode === 'ecomm' && {
           platform,
           imageCount: ecommTotal,
         }),
-        // Image template — null = let backend pick shots, number = specific template
         ...((currentMode === 'image' || currentMode === 'festival') && {
-          adTemplate: currentCount === 8 ? -1 : adTemplate,  // -1 means generate all 8 variants
+          adTemplate: currentCount === 8 ? -1 : adTemplate,
         }),
-        // Video specific (UGC)
         videoKind: currentMode === 'video' ? videoKind : undefined,
         avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
         videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
       };
 
-      const promise = fetch(`${AI_BASE}/generate-strategy-images`, {
+      const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      })
-        .then(async (res) => {
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ detail: res.statusText }));
-            throw new Error(err.detail || 'Generation failed');
-          }
-          return res.json();
-        })
-        .then((data) => {
-          return data;
-        });
+      });
 
-      promise
-        .then((data) => {
-          const posts = data.posts || [];
-          setGenerated(posts);
-          setSavedIndices(new Set());
-          setShowHeartPop({});
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || 'Generation failed');
+      }
 
-          if (mode === 'whatsapp' || mode === 'email') {
-            const first = posts[0] || {};
-            setCampaignImage(imgSrc(first.image) || '');
-            setCampaignBody(first.caption || '');
-            if (mode === 'email') setCampaignSubject(first.subject || '');
-          }
+      const data = await res.json();
+      const posts = data.posts || [];
+      setGenerated(posts);
+      setSavedIndices(new Set());
+      setShowHeartPop({});
 
-          setStage('results');
-        })
-        .catch((err) => {
-          setGenError(err.message || 'Something went wrong');
-          setStage('builder');
-        });
+      if (mode === 'whatsapp' || mode === 'email') {
+        const first = posts[0] || {};
+        setCampaignImage(imgSrc(first.image) || '');
+        setCampaignBody(first.caption || '');
+        if (mode === 'email') setCampaignSubject(first.subject || '');
+      }
 
+      setStage('results');
     } catch (err: any) {
       console.error('[Strategy] Generation setup error:', err);
       setGenError(err.message || 'Something went wrong');
@@ -972,14 +1040,21 @@ const DashboardStrategy = () => {
           <Sparkles className="text-primary-foreground" size={32} />
         </motion.div>
         <h2 className="text-2xl font-display font-bold text-foreground mb-2">
-          {mode === 'whatsapp' ? 'Drafting your WhatsApp blast 📲' : mode === 'email' ? 'Composing your email campaign ✉️' : 'Cooking up your posts ✨'}
+          {mode === 'all_in_one' ? 'Generating All-in-One Marketing Pack ⚡' :
+            mode === 'whatsapp' ? 'Drafting your WhatsApp blast 📲' :
+            mode === 'email' ? 'Composing your email campaign ✉️' :
+            'Cooking up your posts ✨'}
         </h2>
         <p className="text-sm text-muted-foreground mb-2">
-          {mode === 'whatsapp' || mode === 'email'
+          {mode === 'all_in_one'
+            ? 'Velocity is cooking up 1 image, 1 carousel, and 2 listing designs…'
+            : mode === 'whatsapp' || mode === 'email'
             ? 'Velocity is writing copy & laying out the creative…'
             : `Velocity AI is generating ${count} on-brand ${mode === 'video' ? 'videos' : mode === 'carousel' ? 'carousels' : 'posts'}…`}
         </p>
-        <p className="text-xs text-muted-foreground/60 mb-6">This may take 15–30 seconds</p>
+        <p className="text-xs text-muted-foreground/60 mb-6">
+          {mode === 'all_in_one' ? 'Since we are running them in parallel, this takes 2 - 5 mins' : 'This may take 15–30 seconds'}
+        </p>
         <div className="flex gap-2">
           {[0, 1, 2].map((i) => (
             <motion.div
@@ -1036,17 +1111,191 @@ const DashboardStrategy = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   if (stage === 'results') {
     const selectedFest = FESTIVALS_2026.find((f) => f.id === festival);
-    const modeLabel = mode === 'ecomm' ? `Listing · ${platform}`
+    const modeLabel = mode === 'all_in_one' ? 'All-in-One Pack · Velocity AI'
+      : mode === 'ecomm' ? `Listing · ${platform}`
       : mode === 'festival' && selectedFest ? `Campaign · ${selectedFest.name} ${selectedFest.emoji}`
         : mode === 'festival' ? `Campaign · ${festival}`
           : mode === 'video' ? 'Reel · Velocity AI'
             : 'Post · Velocity AI';
 
-    const accentGrad = mode === 'festival' ? 'from-violet-500 via-fuchsia-500 to-rose-500'
+    const accentGrad = mode === 'all_in_one' ? 'from-indigo-500 via-purple-500 via-pink-500 to-amber-500'
+      : mode === 'festival' ? 'from-violet-500 via-fuchsia-500 to-rose-500'
       : mode === 'ecomm' ? 'from-emerald-400 via-teal-400 to-cyan-500'
-        : mode === 'video' ? 'from-amber-400 via-orange-500 to-rose-500'
-          : mode === 'carousel' ? 'from-fuchsia-500 via-rose-500 to-pink-400'
-            : 'from-sky-400 via-indigo-500 to-fuchsia-500';
+      : mode === 'video' ? 'from-amber-400 via-orange-500 to-rose-500'
+      : mode === 'carousel' ? 'from-fuchsia-500 via-rose-500 to-pink-400'
+      : 'from-sky-400 via-indigo-500 to-fuchsia-500';
+
+    const hasSection = (sectionType: string) => {
+      return generated.some((post: any) => post.sectionType === sectionType);
+    };
+
+    const renderPostCard = (post: GeneratedPost, i: number) => {
+      const isBig = mode === 'all_in_one' ? false : (i % 3 === 0);
+      const displaySrc = (() => {
+        if (mode === 'carousel' || post.type === 'carousel') return imgSrc(post.slides?.[0]?.image);
+        if (mode === 'video' || post.type === 'video') return imgSrc(post.thumbnail);
+        return imgSrc(post.image);
+      })();
+
+      return (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: (i % 8) * 0.06 }}
+          className="break-inside-avoid rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm group"
+        >
+          <div
+            onClick={() => handleImageClick(post, i, displaySrc || '')}
+            className={cn('relative w-full overflow-hidden cursor-pointer select-none', isBig ? 'aspect-[3/4]' : 'aspect-square')}
+          >
+            {(mode === 'video' || post.type === 'video') && post.url ? (
+              <video
+                src={`${post.url}#t=0.5`}
+                preload="metadata"
+                muted
+                playsInline
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+            ) : displaySrc ? (
+              <img
+                src={displaySrc}
+                alt=""
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+            ) : (
+              <div className="w-full h-full bg-muted flex items-center justify-center">
+                {post.error ? (
+                  <AlertCircle size={24} className="text-destructive/40" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                )}
+              </div>
+            )}
+
+            {/* Heart pop-up animation */}
+            <AnimatePresence>
+              {showHeartPop[i] && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.3 }}
+                  animate={{ opacity: 1, scale: 1.2 }}
+                  exit={{ opacity: 0, scale: 1.5 }}
+                  transition={{ duration: 0.4 }}
+                  className="absolute inset-0 flex items-center justify-center bg-black/20 z-10 pointer-events-none"
+                >
+                  <Heart className="w-16 h-16 text-rose-500 fill-rose-500 filter drop-shadow-md" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            {/* Featured badge on first item */}
+            {i === 0 && (
+              <div className="absolute top-0 inset-x-0 p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={cn('w-8 h-8 rounded-full p-[2px] bg-gradient-to-tr', accentGrad)}>
+                    <div className="w-full h-full rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-white">{brandName.slice(0, 2).toUpperCase()}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold text-white leading-tight">{brandName}</p>
+                    <p className="text-[9px] text-white/60">{modeLabel}</p>
+                  </div>
+                </div>
+                <div className="px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20">
+                  <span className="text-[9px] font-bold text-white tracking-wide">★ FEATURED</span>
+                </div>
+              </div>
+            )}
+
+            {/* Rank pill */}
+            {i > 0 && (
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-white text-[9px] font-bold">
+                #{i + 1}
+              </div>
+            )}
+
+            {/* Video play icon */}
+            {(mode === 'video' || post.type === 'video') && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className={cn('rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center shadow-2xl', isBig ? 'w-14 h-14' : 'w-10 h-10')}>
+                  <div className={cn('border-l-white border-y-transparent', isBig ? 'border-l-[12px] border-y-[8px] ml-1' : 'border-l-[8px] border-y-[6px] ml-1')} />
+                </div>
+              </div>
+            )}
+
+            {/* Carousel badge */}
+            {(mode === 'carousel' || post.type === 'carousel') && (
+              <div className={cn('absolute bg-black/50 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full', i === 0 ? 'top-16 right-3' : 'top-2 right-2')}>
+                1/{post.slides?.length || slideCount}
+              </div>
+            )}
+
+            {/* Hover caption */}
+            <div className="absolute inset-x-0 bottom-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+              <p className="text-[11px] text-white font-medium line-clamp-2 leading-snug drop-shadow">{post.caption}</p>
+            </div>
+          </div>
+
+          {/* Card footer */}
+          <div className="p-3">
+            <p className="text-xs font-medium text-foreground line-clamp-2 mb-2">{post.caption}</p>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => handleDownload(post, i)}
+                className="flex-1 h-7 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground text-[10px] font-semibold flex items-center justify-center gap-1 transition"
+              >
+                <Download size={10} /> Download
+              </button>
+              <button
+                onClick={() => {
+                  if (!savedIndices.has(i)) handleHeart(post, i);
+                }}
+                className={cn(
+                  "flex-1 h-7 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition",
+                  savedIndices.has(i)
+                    ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                    : "bg-rose-500/10 hover:bg-rose-500/20 text-rose-500"
+                )}
+              >
+                <Heart size={10} className={cn(savedIndices.has(i) && "fill-rose-500 text-rose-500")} />
+                {savedIndices.has(i) ? 'Saved' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      );
+    };
+
+    const renderSection = (sectionType: string, title: string, subtitle: string) => {
+      const sectionPosts = generated
+        .map((post, index) => ({ post, index }))
+        .filter(({ post }: any) => post.sectionType === sectionType);
+
+      if (sectionPosts.length === 0) return null;
+
+      return (
+        <div className="space-y-5 border border-border/40 rounded-3xl p-6 bg-card/10 backdrop-blur-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-[0.03] bg-primary" />
+          
+          <div>
+            <h2 className="text-lg font-display font-black text-foreground">{title}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+          </div>
+
+          <Masonry
+            breakpointCols={breakpointColumnsObj}
+            className="my-masonry-grid"
+            columnClassName="my-masonry-grid_column"
+          >
+            {sectionPosts.map(({ post, index }) => renderPostCard(post, index))}
+          </Masonry>
+        </div>
+      );
+    };
 
     return (
       <div className="relative max-w-6xl mx-auto">
@@ -1068,12 +1317,16 @@ const DashboardStrategy = () => {
               <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
                 Your{' '}
                 <span className={cn('bg-gradient-to-r bg-clip-text text-transparent', accentGrad)}>
-                  {mode}
+                  {mode === 'all_in_one' ? 'All-in-One' : mode}
                 </span>{' '}
                 drop is ready
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
-                {generated.length} on-brand {generated.length > 1 ? 'creatives' : 'creative'} · {aspect} · {languages.find((l) => l.id === language)?.label}
+                {mode === 'all_in_one' ? (
+                  `${generated.length} on-brand creatives · Multi-format pack`
+                ) : (
+                  `${generated.length} on-brand ${generated.length > 1 ? 'creatives' : 'creative'} · ${aspect} · ${languages.find((l) => l.id === language)?.label}`
+                )}
               </p>
             </div>
           </div>
@@ -1119,153 +1372,23 @@ const DashboardStrategy = () => {
           )}
         </AnimatePresence>
 
-        {/* Masonry / zigzag bento gallery */}
-        <Masonry
-          breakpointCols={breakpointColumnsObj}
-          className="my-masonry-grid"
-          columnClassName="my-masonry-grid_column"
-        >
-          {generated.map((post, i) => {
-            const isBig = i % 3 === 0;
-            const displaySrc = (() => {
-              if (mode === 'carousel' || post.type === 'carousel') return imgSrc(post.slides?.[0]?.image);
-              if (mode === 'video' || post.type === 'video') return imgSrc(post.thumbnail);
-              return imgSrc(post.image);
-            })();
-
-            return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className="break-inside-avoid rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm group"
-              >
-                <div
-                  onClick={() => handleImageClick(post, i, displaySrc || '')}
-                  className={cn('relative w-full overflow-hidden cursor-pointer select-none', isBig ? 'aspect-[3/4]' : 'aspect-square')}
-                >
-                  {(mode === 'video' || post.type === 'video') && post.url ? (
-                    <video
-                      src={`${post.url}#t=0.5`}
-                      preload="metadata"
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  ) : displaySrc ? (
-                    <img
-                      src={displaySrc}
-                      alt=""
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      {post.error ? (
-                        <AlertCircle size={24} className="text-destructive/40" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Heart pop-up animation */}
-                  <AnimatePresence>
-                    {showHeartPop[i] && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.3 }}
-                        animate={{ opacity: 1, scale: 1.2 }}
-                        exit={{ opacity: 0, scale: 1.5 }}
-                        transition={{ duration: 0.4 }}
-                        className="absolute inset-0 flex items-center justify-center bg-black/20 z-10 pointer-events-none"
-                      >
-                        <Heart className="w-16 h-16 text-rose-500 fill-rose-500 filter drop-shadow-md" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                  {/* Featured badge on first item */}
-                  {i === 0 && (
-                    <div className="absolute top-0 inset-x-0 p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={cn('w-8 h-8 rounded-full p-[2px] bg-gradient-to-tr', accentGrad)}>
-                          <div className="w-full h-full rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-white">{brandName.slice(0, 2).toUpperCase()}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-semibold text-white leading-tight">{brandName}</p>
-                          <p className="text-[9px] text-white/60">{modeLabel}</p>
-                        </div>
-                      </div>
-                      <div className="px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20">
-                        <span className="text-[9px] font-bold text-white tracking-wide">★ FEATURED</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Rank pill */}
-                  {i > 0 && (
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-white text-[9px] font-bold">
-                      #{i + 1}
-                    </div>
-                  )}
-
-                  {/* Video play icon */}
-                  {(mode === 'video' || post.type === 'video') && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className={cn('rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center shadow-2xl', isBig ? 'w-14 h-14' : 'w-10 h-10')}>
-                        <div className={cn('border-l-white border-y-transparent', isBig ? 'border-l-[12px] border-y-[8px] ml-1' : 'border-l-[8px] border-y-[6px] ml-1')} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Carousel badge */}
-                  {(mode === 'carousel' || post.type === 'carousel') && (
-                    <div className={cn('absolute bg-black/50 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full', i === 0 ? 'top-16 right-3' : 'top-2 right-2')}>
-                      1/{post.slides?.length || slideCount}
-                    </div>
-                  )}
-
-                  {/* Hover caption */}
-                  <div className="absolute inset-x-0 bottom-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                    <p className="text-[11px] text-white font-medium line-clamp-2 leading-snug drop-shadow">{post.caption}</p>
-                  </div>
-                </div>
-
-                {/* Card footer */}
-                <div className="p-3">
-                  <p className="text-xs font-medium text-foreground line-clamp-2 mb-2">{post.caption}</p>
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => handleDownload(post, i)}
-                      className="flex-1 h-7 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground text-[10px] font-semibold flex items-center justify-center gap-1 transition"
-                    >
-                      <Download size={10} /> Download
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (!savedIndices.has(i)) handleHeart(post, i);
-                      }}
-                      className={cn(
-                        "flex-1 h-7 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition",
-                        savedIndices.has(i)
-                          ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
-                          : "bg-rose-500/10 hover:bg-rose-500/20 text-rose-500"
-                      )}
-                    >
-                      <Heart size={10} className={cn(savedIndices.has(i) && "fill-rose-500 text-rose-500")} />
-                      {savedIndices.has(i) ? 'Saved' : 'Save'}
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </Masonry>
+        {/* Gallery */}
+        {mode === 'all_in_one' ? (
+          <div className="grid grid-cols-1 gap-12">
+            {hasSection('image') && renderSection('image', 'Static Images 📸', 'Vibrant single-post creatives designed to capture attention in feeds.')}
+            {hasSection('carousel') && renderSection('carousel', 'Carousel Swipeables 🎠', 'Multi-slide storytelling creatives for progressive product narratives.')}
+            {hasSection('video') && renderSection('video', 'AI Reels & UGC Videos 🎥', 'Engagement-focused short-form video creatives.')}
+            {hasSection('ecomm') && renderSection('ecomm', 'E-Commerce Listings 🛒', 'Conversion-optimized marketplace listing hero shots.')}
+          </div>
+        ) : (
+          <Masonry
+            breakpointCols={breakpointColumnsObj}
+            className="my-masonry-grid"
+            columnClassName="my-masonry-grid_column"
+          >
+            {generated.map((post, i) => renderPostCard(post, i))}
+          </Masonry>
+        )}
 
 
 
@@ -1910,6 +2033,83 @@ const DashboardStrategy = () => {
         </>
       )}
 
+      {/* ─── ALL IN ONE ─── */}
+      {mode === 'all_in_one' && (
+        <div className="space-y-6">
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Product catalog <span className="text-destructive">*</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Choose a product from your catalog to generate the complete visual pack.</p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={pickRandom} className="text-[11px] font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5">
+                  <Shuffle size={12} /> Pick Random
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+              <button
+                onClick={() => setShowProductModal(true)}
+                className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-1 group"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary flex items-center justify-center transition">
+                  <Plus size={16} />
+                </div>
+                <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground">Add Product</span>
+              </button>
+
+              {/* Selected product */}
+              {selectedProducts.map((p, i) => (
+                <motion.div
+                  key={`prod-${p._id || i}`}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative aspect-square rounded-xl overflow-hidden group bg-card border border-primary/40 shadow-sm shadow-primary/10"
+                >
+                  {p.imageBase64 ? (
+                    <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-cover p-1 rounded-xl" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted/50 p-2 text-center">
+                      <Package size={16} className="text-muted-foreground mb-1" />
+                      <span className="text-[9px] font-medium leading-tight text-foreground line-clamp-2">{p.name}</span>
+                    </div>
+                  )}
+                  <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full">PRODUCT</div>
+                  <button
+                    onClick={() => toggleProduct(p)}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-foreground/70 backdrop-blur text-background opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                  >
+                    <X size={11} />
+                  </button>
+                </motion.div>
+              ))}
+
+              {/* Uploads */}
+              {uploads.map((url, i) => (
+                <motion.div
+                  key={`up-${i}`}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative aspect-square rounded-xl overflow-hidden group bg-muted"
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setUploads((u) => u.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-foreground/70 backdrop-blur text-background opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                  >
+                    <X size={11} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+
       {/* ─── FESTIVAL — Calendar driven ─── */}
       {mode === 'festival' && (
         <FestivalCalendar
@@ -2203,7 +2403,7 @@ const DashboardStrategy = () => {
                     <ShoppingBag size={18} className="text-primary" /> Select Products
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Pick up to {mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)} product{(mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)) > 1 ? 's' : ''}. Velocity will anchor generations to these.
+                    Pick up to {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} product{(mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) > 1 ? 's' : ''}. Velocity will anchor generations to these.
                   </p>
                 </div>
                 <button onClick={() => setShowProductModal(false)} className="p-2 rounded-xl hover:bg-muted transition">
@@ -2217,7 +2417,7 @@ const DashboardStrategy = () => {
 
                   {products.map((p) => {
                     const selected = !!selectedProducts.find((x) => x._id === p._id);
-                    const disabled = !selected && selectedProducts.length >= (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
+                    const disabled = !selected && selectedProducts.length >= (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)));
                     return (
                       <button
                         key={p._id}
@@ -2251,9 +2451,9 @@ const DashboardStrategy = () => {
 
               <div className="p-5 border-t border-border/50 shrink-0 flex items-center justify-between">
                 <p className="text-xs font-semibold text-muted-foreground">
-                  <span className={cn(selectedProducts.length === (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)) ? 'text-primary' : 'text-foreground')}>
+                  <span className={cn(selectedProducts.length === (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) ? 'text-primary' : 'text-foreground')}>
                     {selectedProducts.length}
-                  </span> / {mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)} selected
+                  </span> / {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} selected
                 </p>
                 <Button onClick={() => setShowProductModal(false)} className="rounded-xl px-6">Done</Button>
               </div>
@@ -2432,12 +2632,13 @@ const DashboardStrategy = () => {
             )}
           >
             <Sparkles size={18} />
-            {mode === 'whatsapp' ? 'Generate WhatsApp message' :
+            {mode === 'all_in_one' ? 'Generate All-in-One Pack' :
+              mode === 'whatsapp' ? 'Generate WhatsApp message' :
               mode === 'email' ? 'Generate email campaign' :
-                mode === 'video' ? 'Generate 1 video' :
-                  `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
+              mode === 'video' ? 'Generate 1 video' :
+                `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
           </Button>
-          {!canGenerate && mode !== 'ecomm' && (
+          {!canGenerate && mode !== 'ecomm' && mode !== 'all_in_one' && (
             <p className="text-[11px] text-muted-foreground text-center mt-2">
               Tell us your idea to start ✨
             </p>
