@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare } from 'lucide-react';
+import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare, Zap } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -46,8 +46,26 @@ const plans: Plan[] = [
     popular: true,
     cta: 'Go Pro',
     ctaStyle: 'inverted',
-  }
+  },
+  {
+    name: 'VelocityDM Elite',
+    price: '₹3999',
+    period: '/month',
+    frequency: 'Daily + Stories',
+    formats: 'All Formats + Videos',
+    postsPerMonth: '60 posts/month',
+    features: ['Deep DNA brand synthesis', '5 active agents', 'Real-time sync', 'All platform posting', 'Dedicated account manager', 'Custom AI personas'],
+    cta: 'Go Elite',
+    ctaStyle: 'primary',
+  },
 ];
+
+// Credits awarded per plan (shown in UI — actual amount is random within range)
+const PLAN_CREDITS_DISPLAY: Record<string, { label: string; color: string; glow: string }> = {
+  'VelocityDM Starter': { label: '~1,200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
+  'VelocityDM PRO':     { label: '~3,000 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
+  'VelocityDM Elite':   { label: '~6,000 Credits', color: 'from-amber-400 to-orange-600', glow: 'shadow-amber-500/40' },
+};
 
 // ─── Checklist Steps ─────────────────────────────────────────────────
 interface StepItem {
@@ -315,6 +333,26 @@ const Setup = () => {
             body: JSON.stringify(payload)
           });
 
+          // Assign credits for chosen plan
+          if (selectedPlan) {
+            try {
+              const credRes = await fetch(`${API_BASE}/credits/assign`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ plan: selectedPlan })
+              });
+              if (credRes.ok) {
+                const credData = await credRes.json();
+                localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+              }
+            } catch (credErr) {
+              console.error('[Setup] Failed to assign credits:', credErr);
+            }
+          }
+
           // Update local storage to match new sync
           if (syncData) {
             const updatedProfile = { ...onboardingData, ...syncData, selectedPlan };
@@ -481,11 +519,12 @@ const Setup = () => {
           <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {plans.map((plan, i) => {
             const isDmEnabled = dmToggles[plan.name];
             const basePrice = parseInt(plan.price.replace('₹', ''));
             const currentPrice = basePrice + (isDmEnabled ? 399 : 0);
+            const credInfo = PLAN_CREDITS_DISPLAY[plan.name];
 
             return (
               <motion.div
@@ -511,6 +550,15 @@ const Setup = () => {
                     plan.popular ? "bg-emerald-500 text-white border-emerald-400" : "bg-emerald-50 text-emerald-600 border-emerald-100"
                   )}>
                     <Sparkles size={10} /> Recommended for you
+                  </div>
+                )}
+
+                {/* ── Credits Badge ─────────────────────────────────── */}
+                {credInfo && (
+                  <div className={`mb-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r ${credInfo.color} shadow-lg ${credInfo.glow}`}>
+                    <Zap size={14} className="text-white fill-white shrink-0" />
+                    <span className="text-white text-xs font-black tracking-widest uppercase">{credInfo.label}</span>
+                    <span className="ml-auto text-white/70 text-[10px] font-bold">Included</span>
                   </div>
                 )}
 

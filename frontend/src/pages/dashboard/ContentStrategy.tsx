@@ -156,7 +156,7 @@ const storeName = 'assets';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(dbName, 1);
+    const request = indexedDB.open(dbName, 2);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(storeName)) {
@@ -195,6 +195,41 @@ async function getCache(key: string): Promise<any> {
     console.error('[Cache] IndexedDB get failed:', e);
     return null;
   }
+}
+
+// ── Product Cache IDB Helpers ────────────────────────────────────────────────
+const IDB_PRODUCT_NAME = 'VelocityProductCache';
+const IDB_PRODUCT_STORE = 'products';
+const PRODUCT_CACHE_KEY = 'velocity_products';
+
+function openProductDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_PRODUCT_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_PRODUCT_STORE)) db.createObjectStore(IDB_PRODUCT_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function setProductCache(val: any): Promise<void> {
+  try {
+    const db = await openProductDB();
+    const tx = db.transaction(IDB_PRODUCT_STORE, 'readwrite');
+    tx.objectStore(IDB_PRODUCT_STORE).put(val, PRODUCT_CACHE_KEY);
+    return new Promise((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+  } catch (e) { console.warn('[ProductCache] IDB set failed:', e); }
+}
+
+async function getProductCache(): Promise<any> {
+  try {
+    const db = await openProductDB();
+    const tx = db.transaction(IDB_PRODUCT_STORE, 'readonly');
+    const req = tx.objectStore(IDB_PRODUCT_STORE).get(PRODUCT_CACHE_KEY);
+    return new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
+  } catch (e) { console.warn('[ProductCache] IDB get failed:', e); return null; }
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -284,6 +319,7 @@ const DashboardStrategy = () => {
   const [selectedCampaignComputerImage, setSelectedCampaignComputerImage] = useState<string | null>(null);
   const [activeCampaignImageSource, setActiveCampaignImageSource] = useState<'product' | 'creative' | 'computer' | null>(null);
   const campaignFileInput = useRef<HTMLInputElement>(null);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Products (from API)
   const [products, setProducts] = useState<any[]>([]);
@@ -321,15 +357,22 @@ const DashboardStrategy = () => {
   React.useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const cached = localStorage.getItem('velocity_products');
-        if (cached) setProducts(JSON.parse(cached));
+        const cached = await getProductCache();
+        if (Array.isArray(cached) && cached.length > 0) setProducts(cached);
+        else {
+          const ls = localStorage.getItem('velocity_products');
+          if (ls) setProducts(JSON.parse(ls));
+        }
+
         const res = await fetch(`${NODE_BASE}/products`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         if (res.ok) {
           const data = await res.json();
-          setProducts(data.products || []);
-          safeSetItem('velocity_products', JSON.stringify(data.products || []));
+          const list = data.products || [];
+          setProducts(list);
+          await setProductCache(list);
+          try { localStorage.removeItem('velocity_products'); } catch {}
         }
       } catch (e) { console.error(e); }
     };
@@ -350,6 +393,50 @@ const DashboardStrategy = () => {
     const url = URL.createObjectURL(files[0]);
     setSelectedCampaignComputerImage(url);
     setActiveCampaignImageSource('computer');
+  };
+
+  const handleModalPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const limit = mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count);
+    if (selectedProducts.length >= limit) {
+      alert(`You can select at most ${limit} item(s). Please deselect an item first.`);
+      return;
+    }
+
+    try {
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const res = reader.result as string;
+          const rawB64 = res.split(',')[1] || res;
+          resolve(rawB64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const customProduct = {
+        _id: 'custom-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+        name: file.name.split('.')[0] || 'Uploaded Photo',
+        imageBase64: b64,
+        isCustomUpload: true,
+        price: '',
+        offerPrice: '',
+        description: '',
+        keyBenefit: ''
+      };
+
+      setSelectedProducts((prev) => [...prev, customProduct]);
+      
+      // Reset input value so same file can be selected again
+      if (modalFileInputRef.current) {
+        modalFileInputRef.current.value = '';
+      }
+    } catch (err) {
+      console.error('[Upload] Failed to process modal upload:', err);
+    }
   };
 
   const fetchCreativeLibrary = async () => {
@@ -740,6 +827,8 @@ const DashboardStrategy = () => {
         }
       }
 
+      const hasCustomUpload = currentProducts.some((p: any) => p.isCustomUpload);
+
       const payload = {
         userId,
         layout: currentMode === 'ecomm' ? 'ecomm' : currentMode === 'festival' ? 'image' : currentMode,
@@ -748,7 +837,7 @@ const DashboardStrategy = () => {
         aspectRatio: currentAspect,
         idea: currentMode === 'ecomm' ? '' : finalIdea,
         refImages,
-        products: currentProducts.length > 0 ? currentProducts : undefined,
+        products: (currentProducts.length > 0 && !hasCustomUpload) ? currentProducts : undefined,
         language: currentLanguage,
         generateImage: (currentMode === 'whatsapp' || currentMode === 'email') ? false : generateImage,
         // E-comm specific — platform + image count for shot-type rotation
@@ -765,6 +854,26 @@ const DashboardStrategy = () => {
         avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
         videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
       };
+
+      // ── Credit cost — calculated upfront, deducted ONLY after success ──
+      let creditCost = 0;
+      if (currentMode === 'video') {
+        creditCost = currentCount * 30;
+      } else if (currentMode === 'carousel') {
+        creditCost = currentCount * slideCount * 12;
+      } else if (currentMode === 'ecomm') {
+        creditCost = ecommTotal * 12;
+      } else if (currentMode === 'whatsapp' || currentMode === 'email') {
+        creditCost = 0;  // campaigns are free
+      } else {
+        creditCost = currentCount * 12;  // image / festival
+      }
+      const creditReason = `${currentMode} generation (${
+        currentMode === 'ecomm' ? ecommTotal
+        : currentMode === 'carousel' ? `${currentCount} × ${slideCount} slides`
+        : currentCount
+      } items)`;
+      // ─────────────────────────────────────────────────────────────────
 
       const promise = fetch(`${AI_BASE}/generate-strategy-images`, {
         method: 'POST',
@@ -783,7 +892,7 @@ const DashboardStrategy = () => {
         });
 
       promise
-        .then((data) => {
+        .then(async (data) => {
           const posts = data.posts || [];
           setGenerated(posts);
           setSavedIndices(new Set());
@@ -797,6 +906,35 @@ const DashboardStrategy = () => {
           }
 
           setStage('results');
+
+          // ── Deduct credits ONLY after successful generation ───────────
+          if (creditCost > 0 && posts.length > 0) {
+            try {
+              const token = localStorage.getItem('token');
+              const deductRes = await fetch(`${NODE_BASE}/credits/deduct`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ amount: creditCost, reason: creditReason }),
+              });
+
+              if (deductRes.ok) {
+                const credData = await deductRes.json();
+                localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+                window.dispatchEvent(new StorageEvent('storage', {
+                  key: 'velocity_credits',
+                  newValue: String(credData.credits ?? 0),
+                }));
+              } else {
+                console.warn('[Credits] Deduction failed after generation:', await deductRes.text());
+              }
+            } catch (creditErr) {
+              console.warn('[Credits] Deduction error (non-blocking):', creditErr);
+            }
+          }
+          // ─────────────────────────────────────────────────────────────
         })
         .catch((err) => {
           setGenError(err.message || 'Something went wrong');
@@ -1722,7 +1860,9 @@ const DashboardStrategy = () => {
                       <span className="text-[9px] font-medium leading-tight text-foreground line-clamp-2">{p.name}</span>
                     </div>
                   )}
-                  <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full">PRODUCT</div>
+                  <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+                    {p.isCustomUpload ? 'UPLOAD' : 'PRODUCT'}
+                  </div>
                   <button
                     onClick={() => toggleProduct(p)}
                     className="absolute top-1 right-1 w-5 h-5 rounded-full bg-foreground/70 backdrop-blur text-background opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
@@ -1893,7 +2033,9 @@ const DashboardStrategy = () => {
               {selectedProducts.map((p, i) => (
                 <motion.div key={`prod-${p._id || i}`} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} className="relative aspect-square rounded-xl overflow-hidden group bg-card border border-primary/40">
                   {p.imageBase64 ? <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-cover p-1 rounded-xl" /> : <div className="w-full h-full flex flex-col items-center justify-center bg-muted/50 p-2 text-center"><Package size={16} className="text-muted-foreground mb-1" /><span className="text-[9px] font-medium leading-tight text-foreground line-clamp-2">{p.name}</span></div>}
-                  <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full">PRODUCT</div>
+                  <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+                    {p.isCustomUpload ? 'UPLOAD' : 'PRODUCT'}
+                  </div>
                   <button onClick={() => toggleProduct(p)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-foreground/70 backdrop-blur text-background opacity-0 group-hover:opacity-100 transition flex items-center justify-center"><X size={11} /></button>
                 </motion.div>
               ))}
@@ -2213,7 +2355,45 @@ const DashboardStrategy = () => {
 
               <div className="p-5 overflow-y-auto flex-1">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {/* Upload from Computer Card */}
+                  <button
+                    type="button"
+                    onClick={() => modalFileInputRef.current?.click()}
+                    className="text-center relative p-3 rounded-2xl border border-dashed flex flex-col items-center justify-center min-h-[140px] transition bg-card hover:bg-muted/30 border-border hover:border-primary/40 group"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary flex items-center justify-center mb-2 transition">
+                      <Upload size={16} />
+                    </div>
+                    <p className="text-xs font-bold text-foreground">Upload Photo</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">From computer</p>
+                  </button>
+                  <input
+                    ref={modalFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleModalPhotoUpload}
+                  />
 
+                  {/* Custom Uploaded Items */}
+                  {selectedProducts.filter((p) => p.isCustomUpload).map((p) => {
+                    return (
+                      <button
+                        key={p._id}
+                        onClick={() => toggleProduct(p)}
+                        className="text-left relative p-3 rounded-2xl border border-primary bg-primary/5 shadow-md shadow-primary/10 transition overflow-hidden"
+                      >
+                        <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative">
+                          <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-2" />
+                          <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm">
+                            <CheckCircle2 size={12} />
+                          </div>
+                        </div>
+                        <p className="text-xs font-bold text-foreground leading-tight truncate">{p.name}</p>
+                        <div className="absolute bottom-1 right-2 bg-primary/20 text-primary text-[8px] font-bold px-1 rounded">LOCAL</div>
+                      </button>
+                    );
+                  })}
 
                   {products.map((p) => {
                     const selected = !!selectedProducts.find((x) => x._id === p._id);

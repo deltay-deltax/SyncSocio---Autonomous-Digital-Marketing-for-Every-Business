@@ -31,12 +31,67 @@ const DashboardLayout = () => {
   const [showRelinkSuccess, setShowRelinkSuccess] = useState(false);
   const [nextScheduled, setNextScheduled] = useState<any>(null);
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } = useNotifications();
+  const [credits, setCredits] = useState<number | null>(() => {
+    const cached = localStorage.getItem('velocity_credits');
+    return cached ? parseInt(cached, 10) : null;
+  });
+  const [creditsAnim, setCreditsAnim] = useState(false);
 
   useEffect(() => {
     if (showNotifications) {
       refresh();
     }
   }, [showNotifications, refresh]);
+
+  // Fetch credits balance
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const res = await fetch(`${API_BASE}/credits`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const newCredits = data.credits ?? 0;
+          setCredits(prev => {
+            if (prev !== null && prev !== newCredits) {
+              setCreditsAnim(true);
+              setTimeout(() => setCreditsAnim(false), 800);
+            }
+            return newCredits;
+          });
+          localStorage.setItem('velocity_credits', String(newCredits));
+        }
+      } catch (err) {
+        console.warn('[Credits] Failed to fetch:', err);
+      }
+    };
+    fetchCredits();
+    // Refresh credits every 60 seconds
+    const interval = setInterval(fetchCredits, 60000);
+
+    // Also listen for immediate updates dispatched by ContentStrategy after deductions
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'velocity_credits' && e.newValue !== null) {
+        const updated = parseInt(e.newValue, 10);
+        setCredits(prev => {
+          if (prev !== null && prev !== updated) {
+            setCreditsAnim(true);
+            setTimeout(() => setCreditsAnim(false), 800);
+          }
+          return updated;
+        });
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchNextScheduled = async () => {
@@ -294,6 +349,30 @@ const DashboardLayout = () => {
               <Sparkles size={13} className="text-primary" />
               <span className="text-[10px] font-black text-primary uppercase tracking-widest">Strategy v2.1</span>
             </div>
+
+            {/* ── Credits Badge ──────────────────────────────── */}
+            {credits !== null && (
+              <div
+                className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${
+                  credits < 50
+                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
+                    : credits < 200
+                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                    : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700'
+                } ${creditsAnim ? 'scale-110' : 'scale-100'}`}
+                title={`${credits} credits remaining`}
+              >
+                <Zap
+                  size={11}
+                  className={`fill-current shrink-0 ${
+                    credits < 50 ? 'text-rose-500' : credits < 200 ? 'text-amber-500' : 'text-violet-500'
+                  }`}
+                />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {credits.toLocaleString()} <span className="opacity-60 font-bold normal-case tracking-normal">credits</span>
+                </span>
+              </div>
+            )}
 
             <button
               onClick={() => setShowNotifications(!showNotifications)}

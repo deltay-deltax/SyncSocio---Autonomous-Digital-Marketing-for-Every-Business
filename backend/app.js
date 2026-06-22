@@ -17,6 +17,7 @@ import assetRoutes from './routes/assetRoutes.js';
 import strategyAssetRoutes from './routes/strategyAssetRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
+import creditsRoutes from './routes/creditsRoutes.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
@@ -65,6 +66,7 @@ app.use('/api/assets', assetRoutes);
 app.use('/api/strategy-assets', strategyAssetRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/credits', creditsRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
