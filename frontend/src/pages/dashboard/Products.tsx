@@ -11,6 +11,40 @@ import { cn, safeSetItem } from '@/lib/utils';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const CACHE_KEY = 'velocity_products';
 
+// ── IndexedDB helpers (avoids localStorage 5MB quota on base64 images) ────────
+const IDB_NAME = 'VelocityProductCache';
+const IDB_STORE = 'products';
+
+function openProductDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(val: any): Promise<void> {
+  try {
+    const db = await openProductDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(val, CACHE_KEY);
+    return new Promise((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+  } catch (e) { console.warn('[ProductCache] IDB set failed:', e); }
+}
+
+async function idbGet(): Promise<any> {
+  try {
+    const db = await openProductDB();
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(CACHE_KEY);
+    return new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
+  } catch (e) { console.warn('[ProductCache] IDB get failed:', e); return null; }
+}
+
 interface Product {
   _id?: string;
   imageBase64: string;
@@ -289,17 +323,41 @@ const Products = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) setProducts(JSON.parse(cached));
+    // Load from IndexedDB cache first for instant display
     try {
+      const cached = await idbGet();
+      if (Array.isArray(cached) && cached.length > 0) {
+        setProducts(cached);
+        console.log('[Products] Cache hit:', cached.length, 'products');
+      }
+    } catch (e) {
+      // Also try legacy localStorage as fallback (read-only, won't write)
+      try {
+        const ls = localStorage.getItem(CACHE_KEY);
+        if (ls) setProducts(JSON.parse(ls));
+      } catch {}
+    }
+
+    try {
+      console.log('[Products] Token present:', !!token, '| API_BASE:', API_BASE);
+      console.log('[Products] Fetching →', `${API_BASE}/products`);
       const res = await fetch(`${API_BASE}/products`, { headers: { Authorization: `Bearer ${token}` } });
+      console.log('[Products] Response status:', res.status, res.statusText);
       if (res.ok) {
         const data = await res.json();
-        setProducts(data.products || []);
-        safeSetItem(CACHE_KEY, JSON.stringify(data.products || []));
+        const list = data.products || [];
+        console.log('[Products] Received:', list.length, 'products');
+        setProducts(list);
+        // Persist to IndexedDB (no size limit unlike localStorage)
+        await idbSet(list);
+        // Clean up old localStorage entry to free quota
+        try { localStorage.removeItem(CACHE_KEY); } catch {}
       }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      console.log('[Products] ❌ Network/parse error:', e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchProducts(); }, []);
@@ -327,7 +385,7 @@ const Products = () => {
       await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       const updated = products.filter((p) => p._id !== id);
       setProducts(updated);
-      safeSetItem(CACHE_KEY, JSON.stringify(updated));
+      await idbSet(updated);
     } finally { setDeleting(null); }
   };
 
