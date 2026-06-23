@@ -20,9 +20,9 @@ from dm_flow_agent import process_calendar_for_dm_flows
 from asset_agent import generate_asset_content
 from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
-from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_video_minimax, generate_fal_video_wan
+from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_video_minimax, generate_fal_video_wan, generate_fal_image_gpt2
 from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
-from models import BrandInfo, StrategyResponse, StrategyImageRequest
+from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
 from mix_agent import predict_brand_mix
@@ -34,6 +34,20 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from google import genai
 from auditors.meta_auditor import MetaAuditor
 from auditors.models import AuditorInput, AuditorResponse
+
+# ── SaaS / Services / Consulting mode agents ───────────────────────────────
+try:
+    from saas_agents.saas_profiles import is_saas_brand
+    from saas_agents.brand_verifier_agent import verify_and_enrich_brand
+    from saas_agents.saas_image_agent import generate_saas_strategy_images
+    _SAAS_AGENT_AVAILABLE = True
+    print("[Main] ✅ SaaS agents loaded successfully")
+except ImportError as _saas_err:
+    _SAAS_AGENT_AVAILABLE = False
+    print(f"[Main] ⚠️ SaaS agents not available: {_saas_err}")
+    def is_saas_brand(cat): return False
+    def verify_and_enrich_brand(doc): return {"is_saas": False, "saas_directive": "", "saas_intelligence": "", "saas_profile": None}
+    def generate_saas_strategy_images(*args, **kwargs): raise ValueError("SaaS agents not loaded")
 
 app = FastAPI(title="Velocity AI Strategy Service")
 
@@ -65,10 +79,12 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class HTMLMetadataExtractor(HTMLParser):
-    def __init__(self, base_url=""):
+    def __init__(self, base_url="", is_saas=False):
         super().__init__()
         self.base_url = base_url
+        self.is_saas = is_saas
         self.title = ""
+        self.title_captured = False
         self.meta_desc = ""
         self.current_tag = ""
         self.body_text = []
@@ -78,7 +94,11 @@ class HTMLMetadataExtractor(HTMLParser):
         self.logo_candidates = []
 
     def handle_starttag(self, tag, attrs):
-        self.current_tag = tag
+        if tag == "title":
+            self.current_tag = "title" if not self.title_captured else ""
+        else:
+            self.current_tag = tag
+            
         if tag in self.ignore_tags and tag != "head":
             self.in_ignore = True
         
@@ -152,13 +172,16 @@ class HTMLMetadataExtractor(HTMLParser):
                     self.logo_candidates.append({"src": absolute_src, "source": "img-logo-attr", "alt": alt})
 
     def handle_endtag(self, tag):
+        if tag == "title":
+            self.title_captured = True
         if tag in self.ignore_tags:
             self.in_ignore = False
         self.current_tag = ""
 
     def handle_data(self, data):
         if self.current_tag == "title":
-            self.title += data.strip()
+            if not self.title_captured:
+                self.title += data.strip()
         elif not self.in_ignore:
             text = data.strip()
             if text:
@@ -170,8 +193,12 @@ class HTMLMetadataExtractor(HTMLParser):
         for img in self.images:
             src = img["src"]
             src_lower = src.lower()
-            if src.startswith("data:") or src.endswith(".svg") or "logo" in src_lower or "icon" in src_lower:
-                continue
+            if not self.is_saas:
+                if src.startswith("data:") or src.endswith(".svg") or "logo" in src_lower or "icon" in src_lower:
+                    continue
+            else:
+                if src.startswith("data:"):
+                    continue
             if not img["alt"].strip() and any(x in src_lower for x in ["dot", "star", "squiggle", "bg", "background", "hero_light", "hero_dark"]):
                 continue
             
@@ -243,8 +270,12 @@ def download_image_as_base64(url: str) -> str:
                     content_type = "image/png"
                 elif url.endswith(".webp"):
                     content_type = "image/webp"
+                elif url.endswith(".svg"):
+                    content_type = "image/svg+xml"
                 else:
                     content_type = "image/jpeg"
+            elif "svg" in content_type:
+                content_type = "image/svg+xml"
             encoded = base64.b64encode(res.content).decode("utf-8")
             print(f"[WEBSITE SCANNER] [DOWNLOAD] ✅ Successfully base64-encoded. Content type: {content_type}")
             return f"data:{content_type};base64,{encoded}"
@@ -256,6 +287,7 @@ def download_image_as_base64(url: str) -> str:
 
 class ScrapeRequest(BaseModel):
     url: str
+    businessCategory: Optional[str] = None
 
 @app.post("/scrape-brand-profile")
 async def api_scrape_brand_profile(payload: ScrapeRequest):
@@ -352,15 +384,15 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
         raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
         
     try:
-        system_prompt = """You are an expert brand researcher and product cataloging agent. 
-Analyze the website's title, meta description, lists of logo candidates, typography candidates, page images, and body text content to extract the brand's profile information and standard products list.
+        system_prompt = """You are an expert brand researcher and product/service cataloging agent. 
+Analyze the website's title, meta description, lists of logo candidates, typography candidates, page images, and body text content to extract the brand's profile information and standard products or services list.
 
-Your output must be a valid JSON object matching the following structure. If any field or product detail is not found, keep it as an empty string ("") or empty array ([])—DO NOT invent fake information, but infer sensible defaults when obvious (e.g. brand name from title, colors from context, or standard goals).
+Your output must be a valid JSON object matching the following structure. If any field or product/service detail is not found, keep it as an empty string ("") or empty array ([])—DO NOT invent fake information, but infer sensible defaults when obvious (e.g. brand name from title, colors from context, or standard goals).
 
-IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep them concise. Product descriptions MUST be strictly 200 characters or less.
-IMPORTANT: Do not extract more than 12 products. Set a strict product limit of 12.
+IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep them concise. Descriptions MUST be strictly 200 characters or less.
+IMPORTANT: Do not extract more than 12 items. Set a strict limit of 12.
 
-For each product, select the most relevant image URL from the provided list of images by matching the product name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
+For each product or service, select the most relevant image URL from the provided list of images by matching the name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
 
 For the brand logo, select the best URL matching the brand logo from the provided logo candidates. If no candidates exist or look valid, select an appropriate image from the general images list. If none are found, set "logo" to an empty string.
 
@@ -389,11 +421,12 @@ JSON Structure:
   "secondaryColor": "Hex code representing the brand's secondary color (default: '#60A5FA')",
   "products": [
     {
-      "name": "Product Name",
-      "description": "Short product description (strictly 200 characters or less, rephrased for conciseness)",
-      "price": "Estimate/scraped price in local currency, as a clean numeric string (e.g. '599', '29', etc.)",
-      "offerPrice": "Optional scraped/estimate sale price if applicable (numeric string, e.g. '499')",
-      "keyBenefit": "One-liner key benefit or feature of this product",
+      "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
+      "serviceProvider": "Company/Platform providing this service if it is a cloud/digital service or tool (e.g., 'AWS', 'Google Cloud', 'Stripe', or the brand name itself)",
+      "description": "Short description of the product or service (strictly 200 characters or less, rephrased for conciseness)",
+      "price": "Estimate/scraped price, subscription cost, or pricing model tier (e.g. '$0.023/GB', '$29/mo', 'Pay-as-you-go', 'Free Tier', or numeric string e.g. '599')",
+      "offerPrice": "Optional discount/promo price or lower subscription tier (or empty string)",
+      "keyBenefit": "One-liner key benefit or feature of this product/service",
       "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
     }
   ]
@@ -434,11 +467,11 @@ JSON Structure:
                     scraped_data["logo"] = logo_b64
                     print(f"[WEBSITE SCANNER] [LOGO] ✅ Saved logo as base64 ({len(logo_b64)} characters)")
                 else:
-                    scraped_data["logo"] = ""
-                    print("[WEBSITE SCANNER] [LOGO] ❌ Failed to download logo. Cleared logo field.")
+                    scraped_data["logo"] = logo_url
+                    print(f"[WEBSITE SCANNER] [LOGO] ❌ Failed to download logo. Kept original URL.")
             else:
                 print(f"[WEBSITE SCANNER] [LOGO] ⚠️ Logo URL is not absolute: {logo_url}")
-                scraped_data["logo"] = ""
+                scraped_data["logo"] = logo_url
         else:
             scraped_data["logo"] = ""
 
@@ -462,11 +495,11 @@ JSON Structure:
                         prod["imageBase64"] = b64_data
                         print(f"[WEBSITE SCANNER] [PRODUCTS] ✅ Saved image as base64 for '{prod_name}' ({len(b64_data)} characters)")
                     else:
-                        prod["imageBase64"] = ""
-                        print(f"[WEBSITE SCANNER] [PRODUCTS] ❌ Failed download/conversion for '{prod_name}'. Image cleared.")
+                        prod["imageBase64"] = img_url
+                        print(f"[WEBSITE SCANNER] [PRODUCTS] ❌ Failed download/conversion for '{prod_name}'. Kept original URL.")
                 else:
-                    print(f"[WEBSITE SCANNER] [PRODUCTS] ⚠️ Invalid image url format for '{prod_name}'. Image cleared.")
-                    prod["imageBase64"] = ""
+                    print(f"[WEBSITE SCANNER] [PRODUCTS] ⚠️ Invalid image url format for '{prod_name}'. Kept original URL.")
+                    prod["imageBase64"] = img_url
             else:
                 print(f"[WEBSITE SCANNER] [PRODUCTS] ℹ️ No image found or assigned for '{prod_name}'.")
                     
@@ -481,6 +514,8 @@ JSON Structure:
 async def api_scrape_single_product(payload: ScrapeRequest):
     url = payload.url
     openai_key = os.getenv("OPENAI_API_KEY")
+    business_category = payload.businessCategory or ""
+    _is_saas = is_saas_brand(business_category)
     
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
@@ -488,10 +523,33 @@ async def api_scrape_single_product(payload: ScrapeRequest):
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
         
+    is_fallback = False
+    extracted = None
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
+        
+        # Force offline fallback for console / login / auth / dashboard pages
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        netloc_lower = parsed_url.netloc.lower()
+        path_lower = parsed_url.path.lower()
+        
+        is_console_or_auth = (
+            "console." in netloc_lower or 
+            "login" in netloc_lower or 
+            "signin" in netloc_lower or 
+            "auth" in netloc_lower or
+            "dashboard" in netloc_lower or
+            "login" in path_lower or 
+            "signin" in path_lower or 
+            "signup" in path_lower or
+            "accounts.google" in netloc_lower
+        )
+        if is_console_or_auth:
+            raise Exception("Console or auth-walled URL detected. Forcing offline LLM synthesis fallback.")
+
         try:
             response = requests.get(url, headers=headers, timeout=12, verify=False)
         except Exception as e:
@@ -504,40 +562,161 @@ async def api_scrape_single_product(payload: ScrapeRequest):
         response.raise_for_status()
         html_content = response.text
         
-        parser = HTMLMetadataExtractor(base_url=url)
+        parser = HTMLMetadataExtractor(base_url=url, is_saas=_is_saas)
         parser.feed(html_content)
         extracted = parser.get_content()
+        
+        # Inject standard fallback logo as a candidate to ensure high-quality logo detection for cloud/digital services
+        fallback_logos_mapping = {
+            "amazon s3": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Amazon-S3-Logo.svg",
+            "s3": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Amazon-S3-Logo.svg",
+            "amazon ec2": "https://upload.wikimedia.org/wikipedia/commons/9/99/AWS_Simple_Icons_Compute_Amazon_EC2.svg",
+            "ec2": "https://upload.wikimedia.org/wikipedia/commons/9/99/AWS_Simple_Icons_Compute_Amazon_EC2.svg",
+            "amazon web services": "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg",
+            "amazon": "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg",
+            "aws": "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg",
+            "google cloud": "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg",
+            "gcp": "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg",
+            "stripe": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg",
+            "salesforce": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg",
+            "mongodb": "https://upload.wikimedia.org/wikipedia/commons/3/32/MongoDb-Logo.svg",
+        }
+        
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        netloc_lower = parsed_url.netloc.lower()
+        path_lower = parsed_url.path.lower()
+        title_lower = extracted.get("title", "").lower()
+        
+        injected_logo = ""
+        injected_alt = ""
+        if "s3" in path_lower or "s3" in netloc_lower or "s3" in title_lower:
+            injected_logo = fallback_logos_mapping["amazon s3"]
+            injected_alt = "Amazon S3 Logo"
+        elif "ec2" in path_lower or "ec2" in netloc_lower or "ec2" in title_lower:
+            injected_logo = fallback_logos_mapping["amazon ec2"]
+            injected_alt = "Amazon EC2 Logo"
+        elif "aws" in netloc_lower or "amazon" in netloc_lower or "aws" in title_lower:
+            injected_logo = fallback_logos_mapping["aws"]
+            injected_alt = "Amazon Web Services Logo"
+        elif "stripe" in netloc_lower or "stripe" in title_lower:
+            injected_logo = fallback_logos_mapping["stripe"]
+            injected_alt = "Stripe Logo"
+        elif "salesforce" in netloc_lower or "salesforce" in title_lower:
+            injected_logo = fallback_logos_mapping["salesforce"]
+            injected_alt = "Salesforce Logo"
+        elif "mongodb" in netloc_lower or "mongodb" in title_lower:
+            injected_logo = fallback_logos_mapping["mongodb"]
+            injected_alt = "MongoDB Logo"
+        elif "google cloud" in title_lower or "gcp" in netloc_lower or "google cloud" in netloc_lower:
+            injected_logo = fallback_logos_mapping["google cloud"]
+            injected_alt = "Google Cloud Logo"
+            
+        if injected_logo:
+            if "logo_candidates" not in extracted:
+                extracted["logo_candidates"] = []
+            extracted["logo_candidates"].append({"src": injected_logo, "alt": injected_alt, "source": "injected-fallback"})
+            print(f"[SCRAPER] Injected fallback logo candidate: {injected_logo} for URL {url}")
         
         if not extracted["body_text"].strip():
             raise Exception("No readable text content found on the webpage.")
             
     except Exception as scrape_err:
-        print(f"Scrape error for {url}: {scrape_err}")
-        raise HTTPException(status_code=422, detail=f"Failed to fetch or scrape website: {str(scrape_err)}")
+        print(f"[SCRAPER] Single product scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis fallback...")
+        is_fallback = True
+        
+        # Parse host/path to infer service details
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        path_parts = [p for p in parsed_url.path.split('/') if p]
+        domain_parts = parsed_url.netloc.split('.')
+        
+        # If AWS console url e.g. console.aws.amazon.com/ec2/home
+        inferred_name = ""
+        netloc_lower = parsed_url.netloc.lower()
+        if "aws" in netloc_lower or "amazon" in netloc_lower:
+            # Check path or subdomain
+            aws_service = ""
+            for part in path_parts + domain_parts:
+                if part.lower() in ["ec2", "s3", "rds", "lambda", "dynamodb", "ecs", "eks", "sqs", "sns", "iam", "route53", "cloudfront", "vpc"]:
+                    aws_service = part.upper()
+                    break
+            if aws_service:
+                inferred_name = f"Amazon {aws_service}"
+            else:
+                inferred_name = "Amazon Web Services"
+        elif "stripe" in netloc_lower:
+            inferred_name = "Stripe Payments"
+        elif "salesforce" in netloc_lower:
+            inferred_name = "Salesforce CRM"
+        elif "mongodb" in netloc_lower:
+            inferred_name = "MongoDB Atlas"
+        elif "google" in netloc_lower or "gcp" in netloc_lower:
+            inferred_name = "Google Cloud Platform"
+        else:
+            # General fallback: get last non-empty path part or domain name
+            if path_parts:
+                inferred_name = path_parts[-1].replace('-', ' ').replace('_', ' ').capitalize()
+            else:
+                inferred_name = domain_parts[-2].capitalize() if len(domain_parts) >= 2 else domain_parts[0].capitalize()
+                
+        # Fallback logos for common services (ordered by specificity)
+        fallback_logos_ordered = [
+            ("amazon s3", "https://upload.wikimedia.org/wikipedia/commons/b/bc/Amazon-S3-Logo.svg"),
+            ("amazon ec2", "https://upload.wikimedia.org/wikipedia/commons/9/99/AWS_Simple_Icons_Compute_Amazon_EC2.svg"),
+            ("amazon web services", "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"),
+            ("google cloud", "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg"),
+            ("salesforce", "https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg"),
+            ("mongodb", "https://upload.wikimedia.org/wikipedia/commons/3/32/MongoDb-Logo.svg"),
+            ("stripe", "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg"),
+            ("amazon", "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"),
+            ("aws", "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"),
+            ("gcp", "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg"),
+        ]
+        logo_url = ""
+        lower_inferred = inferred_name.lower()
+        for key, val in fallback_logos_ordered:
+            if key in lower_inferred:
+                logo_url = val
+                break
+                
+        extracted = {
+            "title": inferred_name,
+            "meta_description": f"Service details for {inferred_name}",
+            "body_text": f"Scraping was blocked by firewall or required login. Synthesizing details for service/product: {inferred_name}.",
+            "images": [{"src": logo_url, "alt": inferred_name}] if logo_url else []
+        }
         
     if not openai_key:
         raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
         
     try:
-        system_prompt = """You are an expert product cataloging agent. 
-Analyze the website's title, meta description, lists of found image URLs, and body text content to extract the details of the main product shown on this page.
+        system_prompt = """You are an expert product and service cataloging agent. 
+Analyze the website's title, meta description, lists of found image URLs, and body text content to extract the details of the main product, SaaS tool, feature, or cloud/digital service (e.g., AWS EC2, S3, Stripe Payments, MongoDB Atlas, Salesforce CRM, etc.) shown on this page.
 
-Your output must be a valid JSON object matching the following structure. Do NOT extract multiple products, just the primary one. If any detail is not found, keep it as an empty string ("")—DO NOT invent fake information.
-Product description MUST be strictly 200 characters or less.
+Your output must be a valid JSON object matching the following structure. Do NOT extract multiple products or services, just the primary one. If any detail is not found, keep it as an empty string ("")—DO NOT invent fake information.
+The description MUST be strictly 200 characters or less.
 
-For the product, select the most relevant image URL from the provided list of images by matching the product name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
+Identify the service provider (e.g. AWS/Amazon Web Services, Google Cloud, Microsoft, Stripe, Shopify, or the brand name itself) if the page describes a service, API, or cloud infrastructure component.
+
+For the product/service, select the most relevant image or logo URL from the provided list of images by matching the name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
 
 JSON Structure:
 {
-  "name": "Product Name",
-  "description": "Short product description (strictly 200 characters or less, rephrased for conciseness)",
-  "price": "Estimate/scraped price in local currency, as a clean numeric string (e.g. '599', '29', etc.)",
-  "offerPrice": "Optional scraped/estimate sale price if applicable (numeric string, e.g. '499')",
-  "keyBenefit": "One-liner key benefit or feature of this product",
+  "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
+  "serviceProvider": "The company/platform providing this service (e.g., 'AWS' or 'Amazon Web Services', 'Google Cloud', 'Stripe', 'Salesforce')",
+  "description": "Short description (strictly 200 characters or less, rephrased for conciseness)",
+  "price": "Estimate/scraped price, subscription cost, or pricing model tier (e.g. '$0.023/GB', '$29/mo', 'Pay-as-you-go', 'Free Tier', or empty string if not found)",
+  "offerPrice": "Optional discount price, or lower subscription tier (or empty string)",
+  "keyBenefit": "One-liner key benefit or feature of this product/service",
   "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
 }
 """
-        images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
+        all_imgs = extracted.get("images", [])
+        if "logo_candidates" in extracted:
+            all_imgs = all_imgs + extracted["logo_candidates"]
+            
+        images_info_str = "\n".join([f"- URL: {img.get('src', '')} | Alt text: {img.get('alt', '')}" for img in all_imgs])
         user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
         
         gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt)
@@ -554,9 +733,12 @@ JSON Structure:
             if b64_data:
                 scraped_data["imageBase64"] = b64_data
             else:
-                scraped_data["imageBase64"] = ""
+                scraped_data["imageBase64"] = img_url
         else:
-            scraped_data["imageBase64"] = ""
+            if img_url:
+                scraped_data["imageBase64"] = img_url
+            else:
+                scraped_data["imageBase64"] = ""
             
         return scraped_data
         
@@ -1522,24 +1704,64 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
 
         print(f"[StrategyImages] ✅ Brand found: {brand_doc.get('brandName')} | platform={request.platform or 'N/A'}")
 
-        # 2. Run the strategy image agent (sync — runs in executor automatically via FastAPI)
-        posts = generate_strategy_images(
-            brand_doc=brand_doc,
-            layout=request.layout,
-            count=request.count,
-            slide_count=request.slideCount,
-            aspect_ratio=request.aspectRatio,
-            idea=request.idea,
-            ref_images=request.refImages or [],
-            products=request.products,
-            platform=request.platform or "",
-            ad_template=request.adTemplate,
-            language=request.language,
-            generate_image=request.generateImage,
-            video_kind=request.videoKind,
-            avatar_description=request.avatarDescription,
-            video_script=request.videoScript,
-        )
+        # 2. Detect if SaaS/Services/Consulting brand and route accordingly
+        business_category = brand_doc.get("businessCategory", "")
+        _is_saas = _SAAS_AGENT_AVAILABLE and is_saas_brand(business_category)
+
+        if _is_saas:
+            # Block ecomm layout for SaaS brands
+            if request.layout == "ecomm":
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "E-Comm Listing is not available for SaaS/Services/Consulting brands. "
+                        "Please use Image, Carousel, Video, or Festival instead."
+                    ),
+                )
+
+            print(f"[StrategyImages] 🤖 SaaS mode active for '{brand_doc.get('brandName')}' [{business_category}]")
+
+            # Run brand verifier agent to get saas_directive + intelligence
+            brand_context = verify_and_enrich_brand(brand_doc)
+            saas_directive  = brand_context["saas_directive"]
+            saas_intelligence = brand_context["saas_intelligence"]
+
+            # Route to SaaS image agent
+            posts = generate_saas_strategy_images(
+                brand_doc=brand_doc,
+                layout=request.layout,
+                count=request.count,
+                slide_count=request.slideCount,
+                aspect_ratio=request.aspectRatio,
+                idea=request.idea,
+                ref_images=request.refImages or [],
+                saas_directive=saas_directive,
+                saas_intelligence=saas_intelligence,
+                ad_template=request.adTemplate,
+                language=request.language,
+                video_kind=request.videoKind,
+                avatar_description=request.avatarDescription,
+                video_script=request.videoScript,
+            )
+        else:
+            # 3. Standard D2C route — run the original strategy image agent
+            posts = generate_strategy_images(
+                brand_doc=brand_doc,
+                layout=request.layout,
+                count=request.count,
+                slide_count=request.slideCount,
+                aspect_ratio=request.aspectRatio,
+                idea=request.idea,
+                ref_images=request.refImages or [],
+                products=request.products,
+                platform=request.platform or "",
+                ad_template=request.adTemplate,
+                language=request.language,
+                generate_image=request.generateImage,
+                video_kind=request.videoKind,
+                avatar_description=request.avatarDescription,
+                video_script=request.videoScript,
+            )
 
         return {"status": "success", "posts": posts, "count": len(posts)}
 
@@ -1681,6 +1903,79 @@ async def generate_asset(request: AssetGenerateRequest):
     except Exception as e:
         print(f"[AssetGen] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/edit-strategy-media")
+async def api_edit_strategy_media(request: EditMediaRequest):
+    """
+    Edits a generated image/video/carousel-slide using FAL engines.
+    """
+    try:
+        print(f"\n[EditMedia] 📥 Request: type={request.type} instruction='{request.instruction}'")
+
+        # Map aspect ratio to FAL's image size
+        size_map = {
+            "1:1": "square_hd",
+            "4:5": "portrait_4_3",
+            "9:16": "portrait_16_9",
+            "16:9": "landscape_16_9",
+            "2:3": "portrait_4_3"
+        }
+        image_size = size_map.get(request.aspectRatio or "1:1", "square_hd")
+
+        # Clean/pass base64 representation of the image
+        image_data = request.image
+
+        if request.type in ["image", "carousel"]:
+            # Edit the image using gpt-image-2
+            res = generate_fal_image_gpt2(
+                prompt=request.instruction,
+                image=image_data,
+                image_size=image_size
+            )
+            return {
+                "status": "success",
+                "image": res.get("image"),
+                "type": request.type
+            }
+
+        elif request.type == "video":
+            # 1. Edit the video thumbnail / frame first
+            print(f"[EditMedia] Editing video thumbnail frame...")
+            img_res = generate_fal_image_gpt2(
+                prompt=request.instruction,
+                image=image_data,
+                image_size=image_size
+            )
+            edited_image = img_res.get("image")
+            if not edited_image:
+                raise HTTPException(status_code=500, detail="Failed to edit video frame")
+
+            # 2. Animate the edited frame into a video using Wan
+            print(f"[EditMedia] Animating edited frame with Wan Image-to-Video...")
+            edited_image_url = f"data:image/jpeg;base64,{edited_image}"
+            video_res = generate_fal_video_wan(
+                prompt=request.instruction,
+                image=edited_image_url,
+                aspect_ratio="9:16"
+            )
+
+            return {
+                "status": "success",
+                "url": video_res.get("url"),
+                "thumbnail": edited_image,
+                "type": "video"
+            }
+
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported media type: {request.type}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[EditMedia] ❌ Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

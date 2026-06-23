@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, Edit3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -216,20 +216,20 @@ function openProductDB(): Promise<IDBDatabase> {
   });
 }
 
-async function setProductCache(val: any): Promise<void> {
+async function setProductCache(key: string, val: any): Promise<void> {
   try {
     const db = await openProductDB();
     const tx = db.transaction(IDB_PRODUCT_STORE, 'readwrite');
-    tx.objectStore(IDB_PRODUCT_STORE).put(val, PRODUCT_CACHE_KEY);
+    tx.objectStore(IDB_PRODUCT_STORE).put(val, key);
     return new Promise((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
   } catch (e) { console.warn('[ProductCache] IDB set failed:', e); }
 }
 
-async function getProductCache(): Promise<any> {
+async function getProductCache(key: string): Promise<any> {
   try {
     const db = await openProductDB();
     const tx = db.transaction(IDB_PRODUCT_STORE, 'readonly');
-    const req = tx.objectStore(IDB_PRODUCT_STORE).get(PRODUCT_CACHE_KEY);
+    const req = tx.objectStore(IDB_PRODUCT_STORE).get(key);
     return new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
   } catch (e) { console.warn('[ProductCache] IDB get failed:', e); return null; }
 }
@@ -339,6 +339,10 @@ const DashboardStrategy = () => {
   const [generated, setGenerated] = useState<GeneratedPost[]>([]);
   const [genError, setGenError] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<GeneratedPost | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editInstruction, setEditInstruction] = useState<string>('');
+  const [isApplyingEdit, setIsApplyingEdit] = useState<boolean>(false);
   const [previewSlide, setPreviewSlide] = useState<number>(0);
   const [copiedText, setCopiedText] = useState<boolean>(false);
   const [savedCount, setSavedCount] = useState(0);
@@ -352,18 +356,30 @@ const DashboardStrategy = () => {
 
   // ── Profile
   const profile = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
-  const userId = profile._id || profile.userId || profile.id || '';
+  const userId = profile.user || profile._id || 'default';
   const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
+
+  // ── SaaS / Services / Consulting mode detection
+  // If the brand category is one of these 3, hide E-Comm Listing tab and route to SaaS prompts
+  const SAAS_BRAND_CATEGORIES = ['SaaS & Digital', 'Services', 'Coaching & Consulting'];
+  const isSaasMode = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
+
+  // Filter modes: SaaS brands don’t see E-Comm Listing
+  const visibleModes = isSaasMode
+    ? modes.filter((m) => m.id !== 'ecomm')
+    : modes;
 
   // ── Fetch products
   React.useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const cached = await getProductCache();
+        const cacheKey = userId ? `${PRODUCT_CACHE_KEY}_${userId}` : PRODUCT_CACHE_KEY;
+        const cached = await getProductCache(cacheKey);
         if (Array.isArray(cached) && cached.length > 0) setProducts(cached);
         else {
-          const ls = localStorage.getItem('velocity_products');
+          const ls = localStorage.getItem(cacheKey);
           if (ls) setProducts(JSON.parse(ls));
+          else setProducts([]);
         }
 
         const res = await fetch(`${NODE_BASE}/products`, {
@@ -373,13 +389,17 @@ const DashboardStrategy = () => {
           const data = await res.json();
           const list = data.products || [];
           setProducts(list);
-          await setProductCache(list);
-          try { localStorage.removeItem('velocity_products'); } catch {}
+          await setProductCache(cacheKey, list);
+          try { localStorage.removeItem(cacheKey); } catch {}
+        } else {
+          if (res.status === 401 || res.status === 403) {
+            setProducts([]);
+          }
         }
       } catch (e) { console.error(e); }
     };
     fetchProducts();
-  }, []);
+  }, [userId]);
 
 
 
@@ -893,6 +913,38 @@ const DashboardStrategy = () => {
         setSavedIndices(new Set());
         setShowHeartPop({});
         setStage('results');
+
+        // ── Deduct credits ONLY after successful generation ───────────
+        const creditCost = 60;
+        const creditReason = 'All-in-One generation (1 image, 1 carousel, 2 ecomm listings)';
+        if (creditCost > 0 && allPosts.length > 0) {
+          try {
+            const token = localStorage.getItem('token');
+            const deductRes = await fetch(`${NODE_BASE}/credits/deduct`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ amount: creditCost, reason: creditReason }),
+            });
+
+            if (deductRes.ok) {
+              const credData = await deductRes.json();
+              localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+              window.dispatchEvent(new StorageEvent('storage', {
+                key: 'velocity_credits',
+                newValue: String(credData.credits ?? 0),
+              }));
+            } else {
+              console.warn('[Credits] Deduction failed after All-in-One generation:', await deductRes.text());
+            }
+          } catch (creditErr) {
+            console.warn('[Credits] Deduction error (non-blocking):', creditErr);
+          }
+        }
+        // ─────────────────────────────────────────────────────────────
+
         return;
       }
 
@@ -934,7 +986,6 @@ const DashboardStrategy = () => {
         videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
       };
 
-      const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
       let creditCost = 0;
       if (currentMode === 'video') {
@@ -959,25 +1010,14 @@ const DashboardStrategy = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || 'Generation failed');
+        }
+        return res.json();
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }));
-        throw new Error(err.detail || 'Generation failed');
-      }
-
-      const data = await res.json();
-      const posts = data.posts || [];
-      setGenerated(posts);
-      setSavedIndices(new Set());
-      setShowHeartPop({});
-
-      if (mode === 'whatsapp' || mode === 'email') {
-        const first = posts[0] || {};
-        setCampaignImage(imgSrc(first.image) || '');
-        setCampaignBody(first.caption || '');
-        if (mode === 'email') setCampaignSubject(first.subject || '');
-      }
       promise
         .then(async (data) => {
           const posts = data.posts || [];
@@ -1027,8 +1067,6 @@ const DashboardStrategy = () => {
           setGenError(err.message || 'Something went wrong');
           setStage('builder');
         });
-
-      setStage('results');
     } catch (err: any) {
       console.error('[Strategy] Generation setup error:', err);
       setGenError(err.message || 'Something went wrong');
@@ -1171,8 +1209,94 @@ const DashboardStrategy = () => {
       clickTimeoutRef.current[index] = setTimeout(() => {
         delete clickTimeoutRef.current[index];
         setPreviewPost(post);
+        setPreviewIndex(index);
         setPreviewSlide(0);
+        setIsEditing(false);
+        setEditInstruction('');
       }, 250);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditInstruction('');
+  };
+
+  const handleApplyEdit = async () => {
+    if (!previewPost || previewIndex === null) return;
+    setIsApplyingEdit(true);
+    try {
+      let baseMedia = '';
+      if (previewPost.type === 'carousel' && previewPost.slides && previewPost.slides.length > 0) {
+        baseMedia = previewPost.slides[previewSlide]?.image || '';
+      } else if (previewPost.type === 'video') {
+        baseMedia = previewPost.thumbnail || '';
+      } else {
+        baseMedia = previewPost.image || '';
+      }
+
+      const fullMediaSrc = imgSrc(baseMedia);
+
+      const response = await fetch(`${AI_BASE}/edit-strategy-media`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: fullMediaSrc,
+          instruction: editInstruction,
+          type: previewPost.type,
+          aspectRatio: aspect,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Failed to edit media');
+      }
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        const updatedPost = { ...previewPost };
+        
+        if (previewPost.type === 'carousel') {
+          const updatedSlides = [...(previewPost.slides || [])];
+          if (updatedSlides[previewSlide]) {
+            updatedSlides[previewSlide] = {
+              ...updatedSlides[previewSlide],
+              image: data.image,
+            };
+          }
+          updatedPost.slides = updatedSlides;
+        } else if (previewPost.type === 'video') {
+          updatedPost.url = data.url;
+          updatedPost.thumbnail = data.thumbnail;
+        } else {
+          updatedPost.image = data.image;
+        }
+
+        setPreviewPost(updatedPost);
+        
+        setGenerated((prev) => {
+          const next = [...prev];
+          next[previewIndex] = updatedPost;
+          return next;
+        });
+
+        setEditInstruction('');
+        setIsEditing(false);
+      } else {
+        throw new Error(data.message || 'Edit failed');
+      }
+    } catch (err: any) {
+      console.error('Error applying edit:', err);
+      toast({
+        title: "Edit Error",
+        description: err.message || "Failed to apply changes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApplyingEdit(false);
     }
   };
 
@@ -1671,6 +1795,93 @@ const DashboardStrategy = () => {
                       {previewPost.caption || "No caption generated."}
                     </p>
                   </div>
+
+                  {/* Edit action footer */}
+                  <div className="p-4 border-t border-border/50 bg-muted/10 space-y-3">
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <textarea
+                          value={editInstruction}
+                          onChange={(e) => setEditInstruction(e.target.value)}
+                          placeholder="What would you like to change? (e.g. 'Make the background a serene beach', 'Add bold yellow text saying SALE')"
+                          className="w-full min-h-[80px] p-2.5 rounded-xl border border-border text-xs bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={isApplyingEdit}
+                            className="flex-1 py-2 text-xs font-semibold rounded-xl border border-border hover:bg-muted text-muted-foreground transition disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleApplyEdit}
+                            disabled={isApplyingEdit || !editInstruction.trim()}
+                            className="flex-1 py-2 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-1.5 shadow-sm transition disabled:opacity-50"
+                          >
+                            {isApplyingEdit ? (
+                              <>
+                                <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                                Applying...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 size={13} />
+                                Apply Edit
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        {['all_in_one', 'image', 'carousel', 'video', 'ecomm', 'festival'].includes(mode) ? (
+                          <>
+                            <button
+                              onClick={() => setIsEditing(true)}
+                              className="flex-1 h-9 rounded-xl border border-border hover:bg-muted text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                            >
+                              <Edit3 size={13} />
+                              Edit Media
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (previewIndex !== null && !savedIndices.has(previewIndex)) {
+                                  handleHeart(previewPost, previewIndex);
+                                }
+                              }}
+                              className={cn(
+                                "flex-1 h-9 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition",
+                                previewIndex !== null && savedIndices.has(previewIndex)
+                                  ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                                  : "bg-rose-500/10 hover:bg-rose-500/20 text-rose-500"
+                              )}
+                            >
+                              <Heart size={13} className={cn(previewIndex !== null && savedIndices.has(previewIndex) && "fill-rose-500 text-rose-500")} />
+                              {previewIndex !== null && savedIndices.has(previewIndex) ? 'Saved' : 'Save/Heart'}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (previewIndex !== null && !savedIndices.has(previewIndex)) {
+                                handleHeart(previewPost, previewIndex);
+                              }
+                            }}
+                            className={cn(
+                              "w-full h-9 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition",
+                              previewIndex !== null && savedIndices.has(previewIndex)
+                                ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                                : "bg-rose-500/10 hover:bg-rose-500/20 text-rose-500"
+                            )}
+                          >
+                            <Heart size={13} className={cn(previewIndex !== null && savedIndices.has(previewIndex) && "fill-rose-500 text-rose-500")} />
+                            {previewIndex !== null && savedIndices.has(previewIndex) ? 'Saved' : 'Save/Heart'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -1698,7 +1909,7 @@ const DashboardStrategy = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {modes.map((m, i) => (
+          {visibleModes.map((m, i) => (
             <motion.button
               key={m.id}
               onClick={() => openMode(m.id)}
@@ -2283,6 +2494,7 @@ const DashboardStrategy = () => {
             secondaryColor: profile.secondaryColor || '#f59e0b',
             visualStyle: profile.visualStyle || 'modern premium',
           }}
+          isSaas={isSaasMode}
           language={(language === 'hinglish' || language === 'hindi' ? language : 'english') as 'english' | 'hinglish' | 'hindi'}
           products={products}
           onGenerate={(data) => {
