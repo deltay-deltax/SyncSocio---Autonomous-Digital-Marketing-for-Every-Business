@@ -23,7 +23,7 @@ import {
 
 const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
-const POLL_INTERVAL_MS = 60_000; // 60 seconds (temporary for testing, restore to 300_000 for production)
+const POLL_INTERVAL_MS = 300_000; // 5 minutes to avoid rate limits (was 60s for testing)
 const clickTrackingBaseUrl = (process.env.BACKEND_PUBLIC_URL || process.env.WEBHOOK_PUBLIC_URL || '').trim();
 
 const safeTrim = (v) => (typeof v === 'string' ? v.trim() : '');

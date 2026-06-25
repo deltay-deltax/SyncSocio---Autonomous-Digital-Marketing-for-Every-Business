@@ -28,6 +28,7 @@ export const createOrUpdateProfile = async (req, res) => {
     const hadExistingProfile = Boolean(profile);
     const previousSelectedPlan = profile?.selectedPlan?.trim() || '';
     const wasGmailConnected = profile ? profile.gmailIsConnected : false;
+    const wasWhatsappConnected = profile ? profile.whatsappIsConnected : false;
     
     if (profile) {
       profile = await BrandProfile.findOneAndUpdate(
@@ -46,6 +47,16 @@ export const createOrUpdateProfile = async (req, res) => {
         'success',
         wasGmailConnected ? 'Gmail Reconnected Successfully' : 'Gmail Connected Successfully',
         `Your connection to Google (${emailStr}) has been updated and all systems are online.`
+      );
+    }
+
+    if (req.body.whatsappIsConnected === true) {
+      const numStr = req.body.whatsappNumber || 'WhatsApp';
+      await createNotification(
+        req.user._id,
+        'success',
+        wasWhatsappConnected ? 'WhatsApp Reconnected Successfully' : 'WhatsApp Connected Successfully',
+        `Your WhatsApp Business Account (${numStr}) has been linked and is ready to broadcast campaigns.`
       );
     }
 

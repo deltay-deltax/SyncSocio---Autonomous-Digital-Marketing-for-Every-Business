@@ -515,6 +515,15 @@ router.get('/metrics', protect, async (req, res) => {
                 fbError
             });
         }
+        
+        // Rate Limits
+        if (fbError?.code === 4 || fbError?.code === 17 || fbError?.code === 32 || fbError?.code === 613 || fbError?.code === 80002 || fbError?.code === 80004) {
+            return res.status(429).json({
+                message: 'Instagram API Rate Limit Exceeded. Please wait a bit before refreshing.',
+                requiresReconnect: false,
+                fbError
+            });
+        }
 
         res.status(500).json({ 
             message: fbError?.message || 'Error fetching v25.0 Meta metrics', 
