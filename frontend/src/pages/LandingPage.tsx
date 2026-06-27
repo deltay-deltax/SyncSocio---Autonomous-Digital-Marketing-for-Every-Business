@@ -36,7 +36,7 @@ const Index = () => {
           const profile = await profRes.json();
           localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
           
-          if (profile.instagramIsConnected) {
+          if (profile.selectedPlan && profile.selectedPlan !== 'Free') {
             localStorage.setItem("syncsocio_setup_done", "true");
             navigate("/dashboard");
           } else {

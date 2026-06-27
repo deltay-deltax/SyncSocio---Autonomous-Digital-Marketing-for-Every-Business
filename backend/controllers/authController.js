@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import BrandProfile from '../models/BrandProfile.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
@@ -86,11 +87,36 @@ export const signup = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
     const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser && existingUser.isVerified === true) {
-      if (normalizedEmail.endsWith('@gmail.com') || existingUser.googleId) {
-        return res.status(400).json({ message: 'Already have an account? Try logging in either through email/password or Google sign-in.' });
+
+    if (existingUser) {
+      // Check if onboarding is complete
+      const profile = await BrandProfile.findOne({ user: existingUser._id });
+      const onboardingComplete = profile && profile.selectedPlan && profile.selectedPlan !== 'Free';
+
+      if (onboardingComplete) {
+        if (normalizedEmail.endsWith('@gmail.com') || existingUser.googleId) {
+          return res.status(400).json({ message: 'Already have an account? Try logging in either through email/password or Google sign-in.' });
+        }
+        return res.status(400).json({ message: 'Already have an account? Try signing in.' });
       }
-      return res.status(400).json({ message: 'Already have an account? Try signing in.' });
+
+      // Onboarding is NOT complete: welcome back flow
+      if (existingUser.isVerified === true) {
+        if (!existingUser.password) {
+          return res.status(400).json({ message: 'This email is linked to an account using OAuth. Please sign in via Google/Apple.' });
+        }
+        const isMatch = await bcrypt.compare(password, existingUser.password);
+        if (!isMatch) {
+          return res.status(400).json({ message: 'Welcome back! To continue your setup, please enter your correct password.' });
+        }
+
+        // Correct password: log in directly to continue onboarding/setup
+        return res.status(200).json({
+          message: 'Welcome back! Continue where you left off',
+          token: generateToken(existingUser._id),
+          user: existingUser
+        });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);

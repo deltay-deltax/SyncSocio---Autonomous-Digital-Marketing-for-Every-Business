@@ -3,19 +3,30 @@ import { motion } from 'framer-motion';
 import { Grid3X3, List, Heart, Activity, Sparkles, MessageCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 
 const tabs = ['All', 'Agent Posts', 'Original Posts'];
 
 let cachedFeedData: any = null;
 
 const DashboardFeed = () => {
+  const { profile } = useOutletContext<{ profile: any }>() || {};
   const [activeTab, setActiveTab] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [posts, setPosts] = useState<any[]>(cachedFeedData || []);
   const [loading, setLoading] = useState(!cachedFeedData);
   const [reconnectRequired, setReconnectRequired] = useState<{ message: string; reason: string } | null>(null);
   const navigate = useNavigate();
+
+  if (profile && !profile.instagramIsConnected) {
+    return (
+      <ConnectInstagramFallback 
+        title="Connect Instagram to View Feed" 
+        description="SyncSocio needs a connected Instagram account to display your brand's feed and recent agent activity."
+      />
+    );
+  }
 
   useEffect(() => {
     let isMounted = true;

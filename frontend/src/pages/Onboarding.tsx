@@ -238,8 +238,8 @@ const Onboarding = () => {
       7: { icon: <Star size={80} strokeWidth={0.5} className="text-primary" />, title: "Personality", desc: "Crafting a voice that resonates and connects." },
       8: { icon: <Layers size={80} strokeWidth={0.5} className="text-primary" />, title: "Visual Vibe", desc: "Establishing an aesthetic that turns heads." },
       9: { icon: <Repeat size={80} strokeWidth={0.5} className="text-primary" />, title: "Format Strategy", desc: "Choosing the best vehicles for your message." },
-      10: { icon: <BarChart3 size={80} strokeWidth={0.5} className="text-primary" />, title: "Growth Logistics", desc: "Setting the rhythm for your social explosion." },
-      11: { icon: <Zap size={80} strokeWidth={0.5} className="text-primary" />, title: "Agent DNA", desc: "Synthesizing your 12-month growth roadmap." }
+      10: { icon: <BarChart3 size={80} strokeWidth={0.5} className="text-primary" />, title: "Content Logistics", desc: "Setting the rhythm for your creative pipeline." },
+      11: { icon: <Zap size={80} strokeWidth={0.5} className="text-primary" />, title: "Agent DNA", desc: "Synthesizing your 12-month creative strategy." }
     };
     return contents[step] || contents[1];
   };
@@ -1041,8 +1041,8 @@ const Onboarding = () => {
                             <div className="h-px flex-1 bg-border/50" />
                           </div>
 
-                          <h3 className="text-2xl font-bold text-foreground leading-tight mb-6">
-                            {formData.brandName || 'Untitled Brand'} is ready for <span className="text-primary italic">social dominance</span>.
+                           <h3 className="text-2xl font-bold text-foreground leading-tight mb-6">
+                            {formData.brandName || 'Untitled Brand'} is ready for <span className="text-primary italic">creative velocity</span>.
                           </h3>
 
                           <div className="grid grid-cols-3 gap-3 mb-8">
@@ -1061,15 +1061,15 @@ const Onboarding = () => {
 
                           <div className="bg-primary/5 rounded-[1.5rem] p-6 border border-primary/15 relative">
                             <div className="flex items-center justify-between mb-4">
-                              <p className="text-[10px] font-black text-primary uppercase tracking-widest">Growth Trajectory</p>
-                              <TrendingUp size={14} className="text-emerald-500" />
+                              <p className="text-[10px] font-black text-primary uppercase tracking-widest">Creative Performance</p>
+                              <Sparkles size={14} className="text-primary animate-pulse" />
                             </div>
                             <div className="flex items-baseline gap-2">
                               <span className="text-5xl font-black text-foreground tracking-tighter">4.2x</span>
                               <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">efficiency boost</span>
                             </div>
                             <p className="text-[11px] font-medium text-muted-foreground mt-4 leading-relaxed">
-                              Initial audit suggests <span className="text-foreground font-bold">{(parseInt(formData.analytics.followers) || 0) + 1240}+ new followers</span> in your first 30 days using our AI content pipeline.
+                              Initial pipeline setup targets <span className="text-foreground font-bold">120+ high-fidelity assets</span> generated in your first 30 days using our AI content pipeline.
                             </p>
                           </div>
 

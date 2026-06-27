@@ -5,13 +5,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { cn } from '@/lib/utils';
+import { useOutletContext } from 'react-router-dom';
+import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 
 let cachedAnalyticsData: Record<string, any> = {};
 
 const DashboardAnalytics = () => {
+  const { profile } = useOutletContext<{ profile: any }>() || {};
   const [data, setData] = useState<any>(cachedAnalyticsData['default'] || null);
   const [loading, setLoading] = useState(!cachedAnalyticsData['default']);
   const [error, setError] = useState<string | null>(null);
+
+  if (profile && !profile.instagramIsConnected) {
+    return (
+      <ConnectInstagramFallback 
+        title="Connect Instagram to View Analytics" 
+        description="SyncSocio needs a connected Instagram account to analyze your profile performance and generate your dashboard summary."
+      />
+    );
+  }
 
   useEffect(() => {
     let isMounted = true;

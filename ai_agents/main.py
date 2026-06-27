@@ -52,9 +52,14 @@ except ImportError as _saas_err:
 app = FastAPI(title="SyncSocio AI Strategy Service")
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+origins = [origin.strip() for origin in frontend_url.split(",")] if frontend_url else []
+for fallback in ["http://localhost:5173", "http://localhost:3000", "https://velocity-26.vercel.app"]:
+    if fallback not in origins:
+        origins.append(fallback)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -173,25 +173,41 @@ SAAS_CONTENT_PROFILES = {
 
 # ─── Category → Profile key mapping ─────────────────────────────────────────
 
-# PRIMARY triggers (the 3 specified by the user)
+# PRIMARY triggers
 SAAS_TRIGGER_CATEGORIES = {
+    "health & wellness",
+    "mobile apps",
+    "it & technical tools",
+    "gaming & entertainment",
+    "digital products",
     "saas & digital",
-    "services",
     "coaching & consulting",
+    "architecture",
+    "financial services",
+    "real estate & property",
+    "travel & hospitality",
+    "education & training",
+    "newsletters",
+    "online marketplaces",
+    "services",
 }
 
 CATEGORY_TO_PROFILE_KEY = {
-    # Primary triggers
-    "saas & digital":        "saas",
-    "services":              "agency",
-    "coaching & consulting": "consulting",
-    # Secondary / adjacent categories that benefit from the same treatment
-    "financial services":    "consulting",
-    "architecture":          "agency",
+    "health & wellness":      "consulting",
+    "mobile apps":            "tech",
+    "it & technical tools":    "tech",
+    "gaming & entertainment": "tech",
     "digital products":      "tech",
-    "it & technical tools":  "tech",
+    "saas & digital":        "saas",
+    "coaching & consulting": "consulting",
+    "architecture":          "agency",
+    "financial services":    "consulting",
+    "real estate & property": "agency",
+    "travel & hospitality":  "agency",
+    "education & training":  "consulting",
     "newsletters":           "agency",
     "online marketplaces":   "tech",
+    "services":              "agency",
 }
 
 

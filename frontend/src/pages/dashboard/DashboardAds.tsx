@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Target, TrendingUp, Users, Clock, IndianRupee, Sparkles, Rocket, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useOutletContext } from 'react-router-dom';
+import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 
 interface Recommendation {
   id: string;
@@ -18,10 +20,20 @@ interface Recommendation {
 }
 
 const DashboardAds = () => {
+  const { profile } = useOutletContext<{ profile: any }>() || {};
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [nextScan, setNextScan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  if (profile && !profile.instagramIsConnected) {
+    return (
+      <ConnectInstagramFallback 
+        title="Connect Instagram to View Ad Recommendations" 
+        description="SyncSocio needs a connected Instagram account to scan your top-performing organic posts and recommend high-ROI paid boost campaigns."
+      />
+    );
+  }
 
   useEffect(() => {
     const fetchRecommendations = async () => {

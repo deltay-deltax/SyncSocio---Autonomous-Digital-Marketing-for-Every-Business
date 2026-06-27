@@ -4,6 +4,8 @@ import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap, X } from
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useOutletContext } from 'react-router-dom';
+import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 
 const iconMap: Record<string, any> = {
   TrendingUp: TrendingUp,
@@ -15,10 +17,20 @@ const iconMap: Record<string, any> = {
 let cachedSummaryData: any = null;
 
 const DashboardHome = () => {
+  const { profile } = useOutletContext<{ profile: any }>() || {};
   const [data, setData] = useState<any>(cachedSummaryData);
   const [loading, setLoading] = useState(!cachedSummaryData);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  if (profile && !profile.instagramIsConnected) {
+    return (
+      <ConnectInstagramFallback 
+        title="Connect Instagram to View Analytics" 
+        description="SyncSocio needs a connected Instagram account to analyze your profile performance and generate your dashboard summary."
+      />
+    );
+  }
 
   useEffect(() => {
     let isMounted = true;

@@ -301,7 +301,7 @@ const Setup = () => {
   // Activation animation
   useEffect(() => {
     if (screen !== 'activation') return;
-    const msgs = ['Brand profile loaded', 'Instagram connected', `${selectedPlan} plan activated`, 'First post generating...'];
+    const msgs = ['Brand profile loaded', 'Instagram connected', `${selectedPlan} plan activated`];
     let i = 0;
     const timer = setInterval(async () => {
       i++;
@@ -502,6 +502,14 @@ const Setup = () => {
             Continue with Facebook
           </Button>
 
+          <Button
+            variant="ghost"
+            onClick={() => setScreen('plan')}
+            className="w-full h-11 mt-3 text-xs font-semibold text-muted-foreground hover:text-foreground border border-border"
+          >
+            Skip for Now
+          </Button>
+
           <p className="text-[11px] text-muted-foreground mt-4">You can disconnect at any time from Settings</p>
         </div>
       </Wrapper>
@@ -689,7 +697,6 @@ const Setup = () => {
     'Brand profile loaded',
     'Instagram connected',
     `${selectedPlan} plan activated`,
-    'First post generating...',
   ];
 
   return (

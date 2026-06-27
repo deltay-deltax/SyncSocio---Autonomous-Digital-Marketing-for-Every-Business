@@ -85,7 +85,7 @@ const Signup = () => {
 
       if (profRes.ok) {
         const profile = await profRes.json();
-        if (profile.instagramIsConnected) {
+        if (profile.selectedPlan && profile.selectedPlan !== 'Free') {
           localStorage.setItem("syncsocio_setup_done", "true");
           window.location.href = "/dashboard";
         } else {
