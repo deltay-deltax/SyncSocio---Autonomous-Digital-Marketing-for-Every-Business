@@ -17,7 +17,7 @@ router.get('/', protect, async (req, res) => {
 // POST /api/products — create a product
 router.post('/', protect, async (req, res) => {
   try {
-    const { imageBase64, name, description, price, offerPrice, keyBenefit } = req.body;
+    const { imageBase64, name, description, price, offerPrice, keyBenefit, serviceProvider } = req.body;
     if (!name) return res.status(400).json({ error: 'Product name is required' });
 
     const product = await Product.create({
@@ -28,6 +28,7 @@ router.post('/', protect, async (req, res) => {
       price: price || '',
       offerPrice: offerPrice || '',
       keyBenefit: keyBenefit || '',
+      serviceProvider: serviceProvider || '',
     });
     res.status(201).json({ success: true, product });
   } catch (err) {

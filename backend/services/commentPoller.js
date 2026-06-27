@@ -24,6 +24,7 @@ import {
 const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
 const POLL_INTERVAL_MS = 300_000; // 5 minutes to avoid rate limits (was 60s for testing)
+const POLL_INTERVAL_MS = 300_000; // 5 minutes (restore to 300_000 for production)
 const clickTrackingBaseUrl = (process.env.BACKEND_PUBLIC_URL || process.env.WEBHOOK_PUBLIC_URL || '').trim();
 
 const safeTrim = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -411,7 +412,19 @@ const runPollCycle = async () => {
 
     if (profiles.length === 0) return;
 
+    // Deduplicate profiles by instagramBusinessAccountId to avoid duplicate requests and hitting rate limits
+    const uniqueProfiles = [];
+    const seenAccountIds = new Set();
+
     for (const profile of profiles) {
+      const accountId = profile.instagramBusinessAccountId;
+      if (!seenAccountIds.has(accountId)) {
+        seenAccountIds.add(accountId);
+        uniqueProfiles.push(profile);
+      }
+    }
+
+    for (const profile of uniqueProfiles) {
       await pollProfileComments(profile);
     }
   } catch (err) {

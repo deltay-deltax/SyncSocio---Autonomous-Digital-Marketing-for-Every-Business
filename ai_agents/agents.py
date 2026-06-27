@@ -17,6 +17,15 @@ load_dotenv()
 
 from post_validator import critic_node as post_critic_node # Reuse logic if applicable
 
+# ── SaaS profile injection (for non-D2C brands) ───────────────────────────────
+try:
+    from saas_agents.saas_profiles import get_saas_profile, build_saas_directive
+    _SAAS_PROFILES_AVAILABLE = True
+except ImportError:
+    _SAAS_PROFILES_AVAILABLE = False
+    def get_saas_profile(cat): return None
+    def build_saas_directive(profile, name=""): return ""
+
 # State definition
 class GraphState(TypedDict):
     brand_info: Dict[str, Any]
@@ -186,6 +195,30 @@ def planner_node(state: GraphState):
     if images_count > 0:
         product_images_guideline = f"\n- Also, look at the {images_count} attached product images to understand the packaging, design details, texture, and colors, and refer to or describe them accurately in your hooks and strategy."
 
+    # ── SaaS mode: build content directive if applicable ──────────────────
+    saas_strategy_section = ""
+    if _SAAS_PROFILES_AVAILABLE:
+        saas_profile = get_saas_profile(brand.get("businessCategory", ""))
+        if saas_profile:
+            saas_strategy_section = f"""
+    ═══════════ SaaS/SERVICES BRAND CONTENT DIRECTIVE ═══════════
+    This is a SaaS/Services/Consulting brand. DO NOT generate:
+    - Consumer product unboxing or D2C product posts
+    - Festival discount/sale posts
+    - Lifestyle stock photo concepts
+    
+    CONTENT PILLARS to use: {', '.join(saas_profile['content_pillars'])}
+    AD FRAMEWORKS to apply: {', '.join(saas_profile['ad_frameworks'])}
+    VISUAL STYLE: {saas_profile['visual_style']}
+    COPY TONE: {saas_profile['copy_tone']}
+    CTA STYLE: {saas_profile['cta_style']}
+    AVOID: {saas_profile['avoid']}
+    
+    All posts must feel professional, B2B-oriented, and insight-driven.
+    Use thought leadership, case studies, frameworks, and metric-driven hooks.
+    ═══════════════════════════════════════════════════════════════
+    """
+
     prompt = f"""
     You are the Lead Strategist for Velocity AI. Your goal is to create a high-impact {post_count}-post content strategy.
     Read the FULL brand dossier below and use EVERY detail to craft hyper-relevant, on-brand content.
@@ -204,6 +237,7 @@ def planner_node(state: GraphState):
     (Use these colors as the primary visual palette)
 
     {product_brief_section}
+    {saas_strategy_section}
     {custom_section}
     
     ═══════════ STRATEGIC CONSTRAINTS ═══════════
@@ -324,8 +358,19 @@ def visual_illustrator_node(state: GraphState):
     # Layer 1: Foundation (Dynamic based on Category)
     category_raw = brand.get("businessCategory", "other").lower()
     is_luxury_cpg = any(k in category_raw for k in ["cosmetic", "beauty", "jewel", "food", "drink", "cpg"])
-    
-    if is_luxury_cpg:
+
+    # ── SaaS/Services/Consulting override ────────────────────────────────
+    _saas_profile_vis = get_saas_profile(brand.get("businessCategory", "")) if _SAAS_PROFILES_AVAILABLE else None
+    _is_saas_vis = _saas_profile_vis is not None
+
+    if _is_saas_vis:
+        # SaaS brands get workspace/UI-first aesthetics, never studio product shots
+        universal_base = (
+            "Clean professional workspace photography or UI dashboard screenshot. "
+            "Natural light from a large window. Light oak desk, monitor with product UI visible. "
+            "No product packaging. No consumer lifestyle props. Minimal, premium, B2B feel."
+        )
+    elif is_luxury_cpg:
         # High-end studio look for luxury/food
         universal_base = "Professional cinematic studio product photography, 8k, medium format, 90mm macro lens. Three-point lighting (Key, Fill, Rim). Sharp textures, no artifacts."
     else:
@@ -430,7 +475,13 @@ def visual_illustrator_node(state: GraphState):
                 category_raw = brand.get("businessCategory", "other").lower()
                 is_luxury_cpg = any(k in category_raw for k in ["cosmetic", "makeup", "beauty", "jewel", "food", "drink", "cpg"])
                 
-                if is_luxury_cpg:
+                if _is_saas_vis:
+                    style_modifier = (
+                        "clean professional workspace, natural daylight, UI dashboard visible, "
+                        "minimal props, no product packaging, premium B2B aesthetic, "
+                        "high-fidelity photography, not 3D rendered"
+                    )
+                elif is_luxury_cpg:
                     style_modifier = "3D render, sleek, premium studio lighting, hyper-realistic 8k, glassmorphism, depth of field"
                 else:
                     style_modifier = "realistic, natural, high-fidelity film photography, candid, authentic, organic shadows, non-studio environment, shun all 3D styles, no rendered effects, shot on 35mm lens"
@@ -495,9 +546,15 @@ def visual_illustrator_node(state: GraphState):
                 
                 # Determine industry style for video
                 category_raw = brand.get("businessCategory", "other").lower()
-                style_mod = "realistic, cinematic lighting, 4k 60fps"
-                if any(k in category_raw for k in ["cosmetic", "jewel", "food", "cpg"]):
+                if _is_saas_vis:
+                    style_mod = (
+                        "clean workspace B-roll, natural light, UI screen visible, "
+                        "slow pan, professional, no product packaging, B2B SaaS aesthetic"
+                    )
+                elif any(k in category_raw for k in ["cosmetic", "jewel", "food", "cpg"]):
                     style_mod = "sleek 3D motion, premium studio lighting, hyper-realistic"
+                else:
+                    style_mod = "realistic, cinematic lighting, 4k 60fps"
 
                 item['visual_prompt'] = f"Video Prompt ({style_mod}): {content.strip()[:2000]}"
                 item['detailed_visual_description'] = content.strip()

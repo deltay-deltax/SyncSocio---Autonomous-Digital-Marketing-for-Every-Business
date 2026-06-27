@@ -114,5 +114,6 @@ class MetaAuditor:
                 recommendation="Audit failed, using high-performance defaults.",
                 efficiency_score=0.5,
                 top_performer_type="Reel",
-                g_score=7.0
+                g_score=7.0,
+                learnings=[]
             )

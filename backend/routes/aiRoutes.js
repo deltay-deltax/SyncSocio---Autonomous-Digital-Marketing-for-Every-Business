@@ -4,6 +4,7 @@ import { protect } from '../middleware/authMiddleware.js';
 import { generateContentMix } from '../utils/contentMixAgentService.js';
 import { generateContentPlan } from '../utils/contentPlanService.js';
 import { generateCaptionsAndHashtags } from '../utils/contentCaptionService.js';
+import BrandProfile from '../models/BrandProfile.js';
 
 const router = express.Router();
 
@@ -21,6 +22,9 @@ router.post('/scrape-product', async (req, res) => {
         const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
         
+        const profile = await BrandProfile.findOne({ user: req.user._id });
+        const businessCategory = profile?.businessCategory || '';
+
         // Dynamic fetch since Node doesn't always have global fetch in older versions, 
         // but this project seems to use axios or fetch in other places. 
         // I will use axios as it is imported elsewhere or standard fetch.
@@ -28,7 +32,7 @@ router.post('/scrape-product', async (req, res) => {
         const response = await fetch('http://127.0.0.1:8000/scrape-single-product', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
+            body: JSON.stringify({ url, businessCategory })
         });
         
         if (!response.ok) {

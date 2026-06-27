@@ -62,3 +62,10 @@ class StrategyImageRequest(BaseModel):
     videoKind: Optional[str] = "ai-ugc"
     avatarDescription: Optional[str] = ""
     videoScript: Optional[str] = ""
+
+class EditMediaRequest(BaseModel):
+    image: str
+    instruction: str
+    type: str
+    aspectRatio: Optional[str] = "1:1"
+

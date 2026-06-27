@@ -34,15 +34,20 @@ export async function performStrategicAudit(userId, brandProfile) {
     await logActivity(userId, 'Neural Pulse', 'Running strategic performance audit...', 'active');
 
     // 1. Fetch last 20 posts metrics
-    const mediaRes = await axios.get(`${API_BASE}/${igId}/media`, {
-      params: {
-        fields: 'id,caption,media_type,timestamp,like_count,comments_count',
-        limit: 20,
-        access_token: accessToken
-      }
-    });
+    let posts = [];
+    try {
+      const mediaRes = await axios.get(`${API_BASE}/${igId}/media`, {
+        params: {
+          fields: 'id,caption,media_type,timestamp,like_count,comments_count',
+          limit: 20,
+          access_token: accessToken
+        }
+      });
+      posts = mediaRes.data.data || [];
+    } catch (apiError) {
+      console.warn(`[AUDIT] ⚠️ Failed to fetch media from Meta API for ${brandProfile.brandName || userId}: ${apiError.message}. Proceeding with empty historical posts.`);
+    }
 
-    const posts = mediaRes.data.data || [];
     const auditPosts = [];
 
     for (const p of posts) {
@@ -56,16 +61,19 @@ export async function performStrategicAudit(userId, brandProfile) {
         const insData = insightsRes.data.data || [];
         const reach = insData.find(m => m.name === 'reach')?.values[0]?.value || 0;
         const saved = insData.find(m => m.name === 'saved')?.values[0]?.value || 0;
-        const er = reach > 0 ? (((p.like_count + p.comments_count + saved) / reach) * 100).toFixed(2) : 0;
+        
+        const likes = p.like_count || 0;
+        const comments = p.comments_count || 0;
+        const er = reach > 0 ? (((likes + comments + saved) / reach) * 100).toFixed(2) : 0;
 
         auditPosts.push({
           post_id: p.id,
           type: p.media_type === 'VIDEO' ? 'Reel' : p.media_type === 'CAROUSEL_ALBUM' ? 'Carousel' : 'Static',
           reach,
-          likes: p.like_count,
-          comments: p.comments_count,
+          likes,
+          comments,
           saves: saved,
-          engagement_rate: er,
+          engagement_rate: Number(er) || 0,
           timestamp: p.timestamp
         });
       } catch (e) {
