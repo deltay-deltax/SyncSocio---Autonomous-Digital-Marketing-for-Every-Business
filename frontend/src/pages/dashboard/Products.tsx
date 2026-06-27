@@ -9,10 +9,10 @@ import { cn, safeSetItem } from '@/lib/utils';
 
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-const CACHE_KEY = 'velocity_products';
+const CACHE_KEY = 'syncsocio_products';
 
 // ── IndexedDB helpers (avoids localStorage 5MB quota on base64 images) ────────
-const IDB_NAME = 'VelocityProductCache';
+const IDB_NAME = 'SyncSocioProductCache';
 const IDB_STORE = 'products';
 
 function openProductDB(): Promise<IDBDatabase> {
@@ -88,7 +88,7 @@ const ProductForm: React.FC<{
   onSave: (p: Product) => Promise<void>;
   onClose: () => void;
 }> = ({ initial, onSave, onClose }) => {
-  const profile = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
+  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
   const SAAS_BRAND_CATEGORIES = ['SaaS & Digital', 'Services', 'Coaching & Consulting'];
   const isSaas = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
 
@@ -380,7 +380,7 @@ const ProductForm: React.FC<{
 
 // ── Main Products Page ────────────────────────────────────────────────────────
 const Products = () => {
-  const profile = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
+  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
   const SAAS_BRAND_CATEGORIES = ['SaaS & Digital', 'Services', 'Coaching & Consulting'];
   const isSaas = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
 
@@ -491,8 +491,8 @@ const Products = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isSaas 
-              ? "Add your services & features — Velocity will use them to generate targeted ad creatives." 
-              : "Add your products — Velocity will use them to generate targeted ad creatives."}
+              ? "Add your services & features — SyncSocio will use them to generate targeted ad creatives." 
+              : "Add your products — SyncSocio will use them to generate targeted ad creatives."}
           </p>
         </div>
         <Button
@@ -518,8 +518,8 @@ const Products = () => {
           </h3>
           <p className="text-sm text-muted-foreground max-w-xs mb-6">
             {isSaas 
-              ? "Add your first service or feature and Velocity will anchor ad creatives directly to it." 
-              : "Add your first product and Velocity will anchor ad creatives directly to it."}
+              ? "Add your first service or feature and SyncSocio will anchor ad creatives directly to it." 
+              : "Add your first product and SyncSocio will anchor ad creatives directly to it."}
           </p>
           <Button onClick={() => setShowForm(true)} className="rounded-2xl gap-2">
             <Plus size={16} /> {isSaas ? "Add your first service/feature" : "Add your first product"}

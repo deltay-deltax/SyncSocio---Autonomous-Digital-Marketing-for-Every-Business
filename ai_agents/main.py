@@ -49,7 +49,7 @@ except ImportError as _saas_err:
     def verify_and_enrich_brand(doc): return {"is_saas": False, "saas_directive": "", "saas_intelligence": "", "saas_profile": None}
     def generate_saas_strategy_images(*args, **kwargs): raise ValueError("SaaS agents not loaded")
 
-app = FastAPI(title="Velocity AI Strategy Service")
+app = FastAPI(title="SyncSocio AI Strategy Service")
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
 app.add_middleware(
@@ -776,7 +776,7 @@ async def api_analyze_mix(userId: str = Query(...), durationWeeks: int = Query(1
             "usp": brand_doc.get("usp", "Not specified"),
             "painPoint": brand_doc.get("painPoint", "Not specified"),
             "mainGoal": brand_doc.get("mainGoal", "Growth"),
-            "selectedPlan": brand_doc.get("selectedPlan", "VelocityDM Starter"),
+            "selectedPlan": brand_doc.get("selectedPlan", "SyncSocio Starter"),
             "durationWeeks": durationWeeks
         }
         
@@ -824,7 +824,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
             "secondaryColor": brand_doc.get("secondaryColor", "#60A5FA"),
             "visualVibe": brand_doc.get("visualVibe", "Modern"),
             "brandKeywords": brand_doc.get("brandKeywords", ""),
-            "selectedPlan": brand_doc.get("selectedPlan", "VelocityDM Starter")
+            "selectedPlan": brand_doc.get("selectedPlan", "SyncSocio Starter")
         }
         
         product_brief = brand_info.productBrief or {}
@@ -1060,7 +1060,7 @@ async def api_validate_post(
         # 3. Retrieve 'Winner's Circle' posts from Vector Search
         winner_posts = await find_similar_posts(description, userId)
 
-        # 4. Run Velocity Optimizer Flow
+        # 4. Run SyncSocio Optimizer Flow
         result = optimize_post({
             "userId": userId,
             "mediaPaths": media_paths,
@@ -1497,6 +1497,7 @@ async def api_generate_visuals(request: VisualGenRequest):
             _primary_color    = _bd.get('primaryColor', '')
             _secondary_color  = _bd.get('secondaryColor', '')
             _usp              = _bd.get('usp', '')
+            _logo             = _bd.get('logo', '')
             _primary_words    = _hex_to_words(_primary_color)
             _secondary_words  = _hex_to_words(_secondary_color)
             _product_name     = request.prompt  # best available product descriptor
@@ -1543,6 +1544,7 @@ STYLE:
 Brand tone: {_brand_tone}
 Visual vibe: {_visual_vibe}
 USP context: {_usp}
+{"Brand Logo reference: " + (_logo if _logo.startswith("http") else "[Logo image is uploaded and available for branding]") + "\nIncorporate the brand logo reference cleanly on the creative." if _logo else ""}
 Indian D2C brand aesthetic. Commercial advertising quality.
 Clean, premium, minimal. No random props. No clutter.
 Not a stock photo. Not AI-looking.
@@ -1776,7 +1778,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
 @app.post("/audit-performance", response_model=AuditorResponse)
 async def api_audit_performance(input_data: AuditorInput):
     """
-    The 'Velocity Pulse' Auditor endpoint.
+    The 'SyncSocio Pulse' Auditor endpoint.
     Analyzes historical Meta metrics and predicts the optimal Content Mix.
     """
     try:

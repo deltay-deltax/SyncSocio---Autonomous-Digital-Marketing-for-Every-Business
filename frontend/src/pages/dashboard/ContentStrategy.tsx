@@ -5,8 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, Edit3,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,7 +46,7 @@ interface GeneratedPost {
 
 const AI_BASE = 'http://localhost:8000';
 const NODE_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-const ASSET_CACHE_KEY = 'velocity_strategy_assets';
+const ASSET_CACHE_KEY = 'syncsocio_strategy_assets';
 
 const modes: { id: Mode; label: string; icon: any; desc: string; accent: string }[] = [
   { id: 'all_in_one', label: 'All In One', icon: Wand2, desc: 'Generate complete marketing pack', accent: 'from-indigo-500/20 via-purple-500/10 to-pink-500/5' },
@@ -154,7 +153,7 @@ function imgSrc(src: string | null | undefined): string {
 }
 
 // Simple IndexedDB helper for caching large datasets
-const dbName = 'VelocityAssetCache';
+const dbName = 'SyncSocioAssetCache';
 const storeName = 'assets';
 
 function openDB(): Promise<IDBDatabase> {
@@ -201,9 +200,9 @@ async function getCache(key: string): Promise<any> {
 }
 
 // ── Product Cache IDB Helpers ────────────────────────────────────────────────
-const IDB_PRODUCT_NAME = 'VelocityProductCache';
+const IDB_PRODUCT_NAME = 'SyncSocioProductCache';
 const IDB_PRODUCT_STORE = 'products';
-const PRODUCT_CACHE_KEY = 'velocity_products';
+const PRODUCT_CACHE_KEY = 'syncsocio_products';
 
 function openProductDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -372,7 +371,7 @@ const DashboardStrategy = () => {
   const fileInput = useRef<HTMLInputElement>(null);
 
   // ── Profile
-  const profile = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
+  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
   const userId = profile.user || profile._id || 'default';
   const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
 
@@ -479,7 +478,7 @@ const DashboardStrategy = () => {
   };
 
   const fetchCreativeLibrary = async () => {
-    const cacheKey = `velocity_strategy_assets_${userId}`;
+    const cacheKey = `syncsocio_strategy_assets_${userId}`;
     
     // 1. Try to load from IndexedDB cache first
     try {
@@ -1092,9 +1091,9 @@ const DashboardStrategy = () => {
 
             if (deductRes.ok) {
               const credData = await deductRes.json();
-              localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+              localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
               window.dispatchEvent(new StorageEvent('storage', {
-                key: 'velocity_credits',
+                key: 'syncsocio_credits',
                 newValue: String(credData.credits ?? 0),
               }));
             } else {
@@ -1171,12 +1170,6 @@ const DashboardStrategy = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      }).then(async (res) => {
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ detail: res.statusText }));
-          throw new Error(err.detail || 'Generation failed');
-        }
-        return res.json();
       });
 
       if (!res.ok) {
@@ -1196,19 +1189,6 @@ const DashboardStrategy = () => {
         setCampaignBody(first.caption || '');
         if (mode === 'email') setCampaignSubject(first.subject || '');
       }
-      promise
-        .then(async (data) => {
-          const posts = data.posts || [];
-          setGenerated(posts);
-          setSavedIndices(new Set());
-          setShowHeartPop({});
-
-          if (mode === 'whatsapp' || mode === 'email') {
-            const first = posts[0] || {};
-            setCampaignImage(imgSrc(first.image) || '');
-            setCampaignBody(first.caption || '');
-            if (mode === 'email') setCampaignSubject(first.subject || '');
-          }
 
       // ── Deduct credits ONLY after successful generation ───────────
       if (creditCost > 0 && posts.length > 0) {
@@ -1225,9 +1205,9 @@ const DashboardStrategy = () => {
 
           if (deductRes.ok) {
             const credData = await deductRes.json();
-            localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+            localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
             window.dispatchEvent(new StorageEvent('storage', {
-              key: 'velocity_credits',
+              key: 'syncsocio_credits',
               newValue: String(credData.credits ?? 0),
             }));
           } else {
@@ -1240,12 +1220,6 @@ const DashboardStrategy = () => {
       // ─────────────────────────────────────────────────────────────
 
       setStage('results');
-          // ─────────────────────────────────────────────────────────────
-        })
-        .catch((err) => {
-          setGenError(err.message || 'Something went wrong');
-          setStage('builder');
-        });
     } catch (err: any) {
       console.error('[Strategy] Generation setup error:', err);
       setGenError(err.message || 'Something went wrong');
@@ -1293,7 +1267,7 @@ const DashboardStrategy = () => {
         const data = await res.json();
         
         // Save to IndexedDB cache
-        const cacheKey = `velocity_strategy_assets_${userId}`;
+        const cacheKey = `syncsocio_strategy_assets_${userId}`;
         try {
           const cached = await getCache(cacheKey) || [];
           cached.unshift(data.creative);
@@ -1303,7 +1277,7 @@ const DashboardStrategy = () => {
         }
 
         // LocalStorage fallback update
-        const keys = [ASSET_CACHE_KEY, `velocity_strategy_assets_${userId}`];
+        const keys = [ASSET_CACHE_KEY, `syncsocio_strategy_assets_${userId}`];
         for (const key of keys) {
           try {
             const cached = JSON.parse(localStorage.getItem(key) || '[]');
@@ -1331,7 +1305,7 @@ const DashboardStrategy = () => {
     if (!displaySrc) return;
 
     const srcUrl = isVideo && post.url ? post.url : imgSrc(displaySrc);
-    const filename = `${brandName || 'velocity'}_creative_${index + 1}.${isVideo && post.url ? 'mp4' : 'jpg'}`;
+    const filename = `${brandName || 'syncsocio'}_creative_${index + 1}.${isVideo && post.url ? 'mp4' : 'jpg'}`;
 
     try {
       if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:')) {
@@ -1508,10 +1482,10 @@ const DashboardStrategy = () => {
         </h2>
         <p className="text-sm text-muted-foreground mb-2">
           {mode === 'all_in_one'
-            ? 'Velocity is cooking up 1 image, 1 carousel, and 2 listing designs…'
+            ? 'SyncSocio is cooking up 1 image, 1 carousel, and 2 listing designs…'
             : mode === 'whatsapp' || mode === 'email'
-            ? 'Velocity is writing copy & laying out the creative…'
-            : `Velocity AI is generating ${count} on-brand ${mode === 'video' ? 'videos' : mode === 'carousel' ? 'carousels' : 'posts'}…`}
+            ? 'SyncSocio is writing copy & laying out the creative…'
+            : `SyncSocio AI is generating ${count} on-brand ${mode === 'video' ? 'videos' : mode === 'carousel' ? 'carousels' : 'posts'}…`}
         </p>
         <p className="text-xs text-muted-foreground/60 mb-6">
           {mode === 'all_in_one' ? 'Since we are running them in parallel, this takes 2 - 5 mins' : 'This may take 15–30 seconds'}
@@ -1574,12 +1548,12 @@ const DashboardStrategy = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   if (stage === 'results') {
     const selectedFest = FESTIVALS_2026.find((f) => f.id === festival);
-    const modeLabel = mode === 'all_in_one' ? 'All-in-One Pack · Velocity AI'
+    const modeLabel = mode === 'all_in_one' ? 'All-in-One Pack · SyncSocio AI'
       : mode === 'ecomm' ? `Listing · ${platform}`
       : mode === 'festival' && selectedFest ? `Campaign · ${selectedFest.name} ${selectedFest.emoji}`
         : mode === 'festival' ? `Campaign · ${festival}`
-          : mode === 'video' ? 'Reel · Velocity AI'
-            : 'Post · Velocity AI';
+          : mode === 'video' ? 'Reel · SyncSocio AI'
+            : 'Post · SyncSocio AI';
 
     const accentGrad = mode === 'all_in_one' ? 'from-indigo-500 via-purple-500 via-pink-500 to-amber-500'
       : mode === 'festival' ? 'from-violet-500 via-fuchsia-500 to-rose-500'
@@ -2016,7 +1990,7 @@ const DashboardStrategy = () => {
                       </div>
                     ) : (
                       <div className="flex gap-2">
-                        {['all_in_one', 'image', 'carousel', 'video', 'ecomm', 'festival'].includes(mode) ? (
+                        {['all_in_one', 'image', 'carousel', 'video', 'ecomm', 'festival'].includes(mode || '') ? (
                           <>
                             <button
                               onClick={() => setIsEditing(true)}
@@ -2086,7 +2060,7 @@ const DashboardStrategy = () => {
           <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-tight">
             What do you want to generate today?
           </h1>
-          <p className="text-sm text-muted-foreground mt-1.5">Pick a format — Velocity opens a tailored brief for it.</p>
+          <p className="text-sm text-muted-foreground mt-1.5">Pick a format — SyncSocio opens a tailored brief for it.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2343,7 +2317,7 @@ const DashboardStrategy = () => {
 
                     {adTemplate === null && (
                       <p className="mt-2.5 text-[10px] text-muted-foreground">
-                        No template selected — Velocity will choose the best layout for your brief.
+                        No template selected — SyncSocio will choose the best layout for your brief.
                       </p>
                     )}
                   </motion.div>
@@ -2958,7 +2932,7 @@ const DashboardStrategy = () => {
                     <ShoppingBag size={18} className="text-primary" /> Select Products
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Pick up to {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} product{(mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) > 1 ? 's' : ''}. Velocity will anchor generations to these.
+                    Pick up to {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} product{(mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) > 1 ? 's' : ''}. SyncSocio will anchor generations to these.
                   </p>
                 </div>
                 <button onClick={() => setShowProductModal(false)} className="p-2 rounded-xl hover:bg-muted transition">

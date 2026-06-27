@@ -58,7 +58,7 @@ const InstagramInstructions = () => {
       title: "Grant 'Manage Business' Scope",
       description: "When the Facebook login popup appears, you MUST select 'Manage your Business'.",
       icon: <ShieldCheck className="text-green-500" size={24} />,
-      details: "Without this, Meta hides your business assets (Pages) from the VelocityDM app."
+      details: "Without this, Meta hides your business assets (Pages) from the SyncSocio app."
     }
   ];
 
@@ -133,7 +133,7 @@ const InstagramInstructions = () => {
         <div className="mt-12 text-center p-8 rounded-3xl bg-gradient-to-b from-primary/10 to-transparent border border-white/[0.05]">
           <h2 className="text-xl font-bold text-foreground mb-2">Finished all steps?</h2>
           <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
-            You are now ready to hit "Continue with Facebook". VelocityDM will be able to see your business assets and activate your agent immediately.
+            You are now ready to hit "Continue with Facebook". SyncSocio will be able to see your business assets and activate your agent immediately.
           </p>
           <Button 
             onClick={() => navigate('/setup')} 

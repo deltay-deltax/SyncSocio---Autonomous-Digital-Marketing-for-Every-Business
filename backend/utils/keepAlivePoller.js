@@ -1,6 +1,6 @@
 export const startKeepAlivePoller = () => {
-  const AI_AGENT_URL = process.env.AI_SERVICE_URL || 'https://velocity-ai-agents.onrender.com';
-  const BACKEND_URL = `https://velocity-backend-87zk.onrender.com`; // Hardcoded for this project
+  const AI_AGENT_URL = process.env.AI_SERVICE_URL || 'https://syncsocio-ai-agents.onrender.com';
+  const BACKEND_URL = `https://syncsocio-backend-87zk.onrender.com`; // Hardcoded for this project
 
   console.log('Starting Keep-Alive Poller to prevent Render servers from sleeping...');
 

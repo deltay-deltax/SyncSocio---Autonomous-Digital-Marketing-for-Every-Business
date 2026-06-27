@@ -118,8 +118,8 @@ router.post('/send', protect, async (req, res) => {
     const cleanBody = isHtml ? body.replace(/[\r\n]+/g, ' ').replace(/>\s+</g, '><').trim() : body;
 
     const profile = await BrandProfile.findOne({ user: req.user._id });
-    const brandName = profile?.brandName || 'VelocityDM';
-    const senderEmail = profile?.gmailEmail || process.env.SMTP_USER || 'noreply@velocitydm.com';
+    const brandName = profile?.brandName || 'SyncSocio';
+    const senderEmail = profile?.gmailEmail || process.env.SMTP_USER || 'noreply@syncsocio.com';
 
     // Verify SMTP is configured
     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {

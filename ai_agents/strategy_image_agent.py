@@ -28,6 +28,7 @@ from fal_visual_engine import (
     generate_fal_image_gpt2,
     generate_fal_carousel_ideogram,
     generate_fal_video_wan,
+    generate_fal_video_seedance,
 )
 
 # ──────────────────────────────────────────────
@@ -376,6 +377,11 @@ def _brand_block(bd: Dict[str, Any]) -> str:
     usp            = bd.get("usp", "")
     headline       = bd.get("mainGoal", "")
     website        = bd.get("website", "")
+    logo           = bd.get("logo", "")
+
+    logo_ref = ""
+    if logo:
+        logo_ref = f"Brand Logo Reference: {logo if logo.startswith('http') else '[Logo image is uploaded and available for branding]'}\n"
 
     return (
         f"{brand_name} — {category} brand.\n"
@@ -385,6 +391,7 @@ def _brand_block(bd: Dict[str, Any]) -> str:
         f"Target audience: {target_audience}.\n"
         f"Key message: {headline}.\n"
         f"Product: {product_name}. USP: {usp}.\n"
+        + logo_ref
         + (f"Website URL: {website}\n" if website else "")
     )
 
@@ -415,18 +422,19 @@ Anchor the visual to this exact product.
 """
 
     idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
+    logo_inst = " Incorporate the brand logo reference cleanly on the creative." if brand_doc.get("logo") else ""
 
     # If it is whatsapp or email campaign, we follow the exact requested structure in request 4
     if campaign_mode == "whatsapp":
         return f"""{block}
 {product_block}
-{idea_str}Create a high-converting product whatsapp ad creative. Make it feel native to whtsapp msg . Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
+{idea_str}Create a high-converting product whatsapp ad creative. Make it feel native to whtsapp msg .{logo_inst} Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
 Any text overlays, labels, or copy displayed in the image must be in {language}."""
 
     if campaign_mode == "email":
         return f"""{block}
 {product_block}
-{idea_str}Create a high-converting product email campaign creative. Make it feel native to an email newsletter. Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
+{idea_str}Create a high-converting product email campaign creative. Make it feel native to an email newsletter.{logo_inst} Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
 Any text overlays, labels, or copy displayed in the image must be in {language}."""
 
     # ── Inject ad composition template directive (or rotate if None) ───
@@ -458,6 +466,7 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
 {idea_str}{template_block}
 Create a high-converting product ad creative.
 {platform_instruction}
+{logo_inst}
 Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
 Any text overlays, labels, or copy displayed in the image must be in {language}."""
 
@@ -465,7 +474,7 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
 # Copy generation for WhatsApp & Email
 # ──────────────────────────────────────────────
 def get_campaign_copy_prompts(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], layout: str, idea: Optional[str], language: str = "english") -> tuple:
-    brand_name = brand_doc.get("brandName", "Velocity Brand")
+    brand_name = brand_doc.get("brandName", "SyncSocio Brand")
     block = _brand_block(brand_doc)
     
     product_block = ""
@@ -586,7 +595,7 @@ def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str
         return json.loads(text.strip())
     except Exception as e:
         print(f"[CopyAgent] ❌ LLM failed: {e}")
-        brand_name = brand_doc.get("brandName", "Velocity Brand")
+        brand_name = brand_doc.get("brandName", "SyncSocio Brand")
         return {
             "subject": f"New from {brand_name}",
             "body": f"Hey there,\n\nCheck out our latest release!\n\n{idea if idea else ''}\n\nBest,\nTeam {brand_name}"
@@ -1149,11 +1158,53 @@ Output ONLY valid JSON. No markdown formatting.
             try:
                 # Extract product image or reference image if available
                 ref = prod.get("imageBase64") if prod else (assigned_refs[index] if index < len(assigned_refs) else None)
-                result = generate_fal_video_wan(prompt, image=ref, aspect_ratio=aspect_ratio)
+                if ref and not ref.startswith("http") and not ref.startswith("data:"):
+                    ref = "data:image/jpeg;base64," + ref
+
+                if video_kind == "ai-ugc":
+                    # Stage 1: Brand DNA + avatar + prod info + the script is passed to GPT Image
+                    brand_info = _brand_block(brand_doc)
+                    prod_info = ""
+                    if prod:
+                        prod_info = f"Product: {prod.get('name')}\nBenefit: {prod.get('keyBenefit')}\nDescription: {prod.get('description')}\n"
+                    
+                    stage1_prompt = f"""{brand_info}
+{prod_info}
+Avatar Description: {avatar_description}
+Video Script: {video_script}
+
+Create a high-quality, photorealistic portrait image of this UGC creator/avatar holding or presenting the product, which will be used to generate a UGC video for the product. The scene is bright and professional. No text overlays, letters, or characters on the image. Aspect ratio: {aspect_ratio}."""
+                    
+                    print(f"[StrategyAgent] UGC Stage 1: Generating starting image with GPT-Image-2...")
+                    gpt_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "portrait_16_9")
+                    gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=ref, image_size=gpt_size)
+                    generated_img = gpt_res.get("image")
+                    if not generated_img:
+                        raise Exception("UGC Stage 1 image generation failed")
+                    
+                    # Generate custom Instagram caption + hashtags using Gemini during Stage 1
+                    caption = generate_instagram_caption_and_hashtags(
+                        brand_doc=brand_doc,
+                        product=prod,
+                        layout="video",
+                        idea=f"UGC Video post with script: {video_script}",
+                        language=language,
+                        template_label="UGC Creator Video",
+                        index=index,
+                    )
+                    
+                    # Stage 2: Take the generated hero image and send it to Seedance Image-to-Video
+                    print(f"[StrategyAgent] UGC Stage 2: Animating starting image with Seedance Fast Image-to-Video...")
+                    result = generate_fal_video_seedance(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio)
+                else:
+                    # Standard img2video uses Wan Image-to-Video
+                    caption = pick_caption(index)
+                    result = generate_fal_video_wan(prompt, image=ref, aspect_ratio=aspect_ratio)
+
                 return {
                     "url":       result.get("url"),
                     "thumbnail": result.get("thumbnail"),
-                    "caption":   pick_caption(index),
+                    "caption":   caption,
                     "type":      "video",
                     "index":     index
                 }
@@ -1197,7 +1248,7 @@ def print_assumed_brand_prompts():
                 pass
 
     assumed_brand = {
-        "brandName": "Velocity Sneakers",
+        "brandName": "SyncSocio Sneakers",
         "businessCategory": "Footwear",
         "brandTone": "Energetic & Bold",
         "visualVibe": "Dynamic Studio Lighting & Vibrant Gradients",

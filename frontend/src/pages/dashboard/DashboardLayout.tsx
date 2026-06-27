@@ -32,7 +32,7 @@ const DashboardLayout = () => {
   const [nextScheduled, setNextScheduled] = useState<any>(null);
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } = useNotifications();
   const [credits, setCredits] = useState<number | null>(() => {
-    const cached = localStorage.getItem('velocity_credits');
+    const cached = localStorage.getItem('syncsocio_credits');
     return cached ? parseInt(cached, 10) : null;
   });
   const [creditsAnim, setCreditsAnim] = useState(false);
@@ -62,7 +62,7 @@ const DashboardLayout = () => {
             }
             return newCredits;
           });
-          localStorage.setItem('velocity_credits', String(newCredits));
+          localStorage.setItem('syncsocio_credits', String(newCredits));
         }
       } catch (err) {
         console.warn('[Credits] Failed to fetch:', err);
@@ -74,7 +74,7 @@ const DashboardLayout = () => {
 
     // Also listen for immediate updates dispatched by ContentStrategy after deductions
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'velocity_credits' && e.newValue !== null) {
+      if (e.key === 'syncsocio_credits' && e.newValue !== null) {
         const updated = parseInt(e.newValue, 10);
         setCredits(prev => {
           if (prev !== null && prev !== updated) {
@@ -180,22 +180,22 @@ const DashboardLayout = () => {
         if (res.ok) {
           const data = await res.json();
           setProfile(data);
-          localStorage.setItem('velocity_profile', JSON.stringify(data));
+          localStorage.setItem('syncsocio_profile', JSON.stringify(data));
         } else if (res.status === 401) {
           console.error('Session expired or invalid. Redirecting to login.');
           localStorage.removeItem('token');
-          localStorage.removeItem('velocity_profile');
+          localStorage.removeItem('syncsocio_profile');
           window.location.href = '/login';
         } else {
           if (res.status !== 404) {
             console.error('Profile fetch returned status:', res.status);
           }
-          const stored = localStorage.getItem('velocity_profile');
+          const stored = localStorage.getItem('syncsocio_profile');
           if (stored) setProfile(JSON.parse(stored));
         }
       } catch (err) {
         console.error('Failed to fetch profile:', err);
-        const stored = localStorage.getItem('velocity_profile');
+        const stored = localStorage.getItem('syncsocio_profile');
         if (stored) setProfile(JSON.parse(stored));
       } finally {
         setLoading(false);
@@ -227,7 +227,7 @@ const DashboardLayout = () => {
             <Zap size={18} fill="currentColor" className="text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="font-black text-lg tracking-tighter uppercase text-foreground leading-none">VelocityDM</span>
+            <span className="font-black text-lg tracking-tighter uppercase text-foreground leading-none">SyncSocio</span>
             <span className="text-[8px] font-bold text-primary tracking-[0.2em] leading-none uppercase mt-1">Agent as a Service</span>
           </div>
         </div>

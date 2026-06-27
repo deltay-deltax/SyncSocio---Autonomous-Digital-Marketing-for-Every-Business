@@ -31,7 +31,7 @@ const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
 );
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-const CACHE_KEY = 'velocity_strategy_assets';
+const CACHE_KEY = 'syncsocio_strategy_assets';
 
 const aspectClass: Record<string, string> = {
   '1:1':  'aspect-square',
@@ -48,7 +48,7 @@ function imgSrc(b64: string | null | undefined) {
 }
 
 // Simple IndexedDB helper for caching large datasets
-const dbName = 'VelocityAssetCache';
+const dbName = 'SyncSocioAssetCache';
 const storeName = 'assets';
 
 function openDB(): Promise<IDBDatabase> {
@@ -117,9 +117,9 @@ const typeIcon: Record<string, any> = {
 
 const AssetLibrary = () => {
   const navigate = useNavigate();
-  const profile = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
+  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
   const userId = profile._id || profile.userId || profile.id || 'guest';
-  const cacheKey = `velocity_strategy_assets_${userId}`;
+  const cacheKey = `syncsocio_strategy_assets_${userId}`;
 
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
@@ -324,7 +324,7 @@ const AssetLibrary = () => {
     if (!src) return;
 
     const srcUrl = isVideo && asset.videoUrl ? asset.videoUrl : imgSrc(src);
-    const filename = `velocity-creative-${asset._id?.slice(-6) || 'export'}.${isVideo && asset.videoUrl ? 'mp4' : 'jpg'}`;
+    const filename = `syncsocio-creative-${asset._id?.slice(-6) || 'export'}.${isVideo && asset.videoUrl ? 'mp4' : 'jpg'}`;
 
     try {
       if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:')) {

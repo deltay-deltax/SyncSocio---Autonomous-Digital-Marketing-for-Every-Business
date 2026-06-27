@@ -416,3 +416,68 @@ def generate_fal_video_wan(prompt: str, image: str = None, aspect_ratio: str = "
         print(f"FAL WAN ENGINE ERROR: {str(e)}")
         # Fallback to minimax
         return generate_fal_video_minimax(prompt, "6s")
+
+
+def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:16"):
+    """
+    Video generation using ByteDance's Seedance 2.0 Image-to-Video Fast model.
+    Accepts starting image and prompts for animation.
+    
+    Args:
+        prompt: Video description/script
+        image: Base64 starting image or image URL
+        aspect_ratio: Video aspect ratio ("9:16", "1:1", etc.)
+    
+    Returns:
+        Dict with video URL, thumbnail, and success status
+    """
+    api_key = os.getenv("FAL_API_KEY") or os.getenv("FAL_KEY")
+    if not api_key:
+        raise ValueError("FAL_API_KEY or FAL_KEY not found in environment")
+    os.environ["FAL_KEY"] = api_key
+    
+    try:
+        print(f"FAL ENGINE (Seedance 2.0 Image-to-Video Fast): Generating 480p video...")
+        if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
+            image_url = image
+        else:
+            if "base64," in image:
+                image = image.split("base64,")[1]
+            image_url = f"data:image/jpeg;base64,{image}"
+        
+        arguments = {
+            "prompt": prompt,
+            "image_url": image_url,
+            "resolution": "480p",
+            "aspect_ratio": aspect_ratio,
+            "duration": "8",
+            "generate_audio": True
+        }
+        
+        result = fal_client.subscribe(
+            "bytedance/seedance-2.0/fast/image-to-video",
+            arguments=arguments
+        )
+        
+        if result and "video" in result:
+            video_url = result["video"]["url"]
+            thumbnail_url = None
+            if "image" in result and result["image"]:
+                thumbnail_url = result["image"]["url"]
+            
+            if not thumbnail_url:
+                thumbnail_url = image_url
+                
+            return {
+                "status": "success",
+                "url": video_url,
+                "thumbnail": thumbnail_url,
+                "message": "Video generated with Seedance 2.0 Fast"
+            }
+        else:
+            raise Exception("No video data in Seedance response")
+            
+    except Exception as e:
+        print(f"FAL SEEDANCE ENGINE ERROR: {str(e)}")
+        # Fallback to minimax
+        return generate_fal_video_minimax(prompt, "6s")

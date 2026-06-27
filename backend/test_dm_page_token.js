@@ -38,7 +38,7 @@ try {
     `https://graph.facebook.com/v25.0/${profile.instagramPageId}/messages`,
     {
       recipient: { comment_id: "17841405822304914" }, // Dummy comment ID
-      message: { text: "This is a test message from VelocityDM" }
+      message: { text: "This is a test message from SyncSocio" }
     },
     {
       params: { access_token: pageToken },

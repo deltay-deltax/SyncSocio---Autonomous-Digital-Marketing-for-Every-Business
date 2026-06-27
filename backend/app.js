@@ -70,7 +70,7 @@ app.use('/api/credits', creditsRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
-  res.send('VelocityDM Backend is running');
+  res.send('SyncSocio Backend is running');
 });
 
 const PORT = process.env.PORT || 5050;

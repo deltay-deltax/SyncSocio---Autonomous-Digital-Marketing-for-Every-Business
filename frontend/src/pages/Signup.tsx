@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, TrendingUp, Users, AlertCircle } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Sparkles, Users, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 import AppleSignin from 'react-apple-signin-auth';
 
-const PLAN_STORAGE_KEY = "velocity_selected_plan";
+const PLAN_STORAGE_KEY = "syncsocio_selected_plan";
 
 const socialStats = [
-  { platform: "Facebook", icon: <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>, color: "bg-[#1877F2] text-white", followers: "32.5K", growth: "+420%" },
-  { platform: "Instagram", icon: <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608.975-.975-2.242-1.245 3.608-1.308 1.266-.058-1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>, color: "bg-gradient-to-br from-pink-500 to-orange-400 text-white", followers: "24.8K", growth: "+540%" },
-  { platform: "Twitter / X", icon: <svg className="w-4 h-4 text-background" fill="currentColor" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>, color: "bg-foreground text-background", followers: "15.3K", growth: "+310%" },
+  { platform: "Facebook", icon: <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>, color: "bg-[#1877F2] text-white", status: "Connected", detail: "8.2K creatives synced" },
+  { platform: "Instagram", icon: <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608.975-.975-2.242-1.245 3.608-1.308 1.266-.058-1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>, color: "bg-gradient-to-br from-pink-500 to-orange-400 text-white", status: "Connected", detail: "12.4K assets generated" },
 ];
 
 export const checkPasswordStrength = (pw: string) => {
@@ -64,12 +63,12 @@ const Signup = () => {
 
     const queryDm = new URLSearchParams(window.location.search).get("dm");
     if (queryDm !== null) {
-      localStorage.setItem("velocity_dm_automation", queryDm);
+      localStorage.setItem("syncsocio_dm_automation", queryDm);
     }
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => setActiveIdx((p) => (p + 1) % 3), 2500);
+    const interval = setInterval(() => setActiveIdx((p) => (p + 1) % 2), 2500);
     return () => clearInterval(interval);
   }, []);
 
@@ -87,10 +86,10 @@ const Signup = () => {
       if (profRes.ok) {
         const profile = await profRes.json();
         if (profile.instagramIsConnected) {
-          localStorage.setItem("velocity_setup_done", "true");
+          localStorage.setItem("syncsocio_setup_done", "true");
           window.location.href = "/dashboard";
         } else {
-          localStorage.setItem("velocity_setup_done", "false");
+          localStorage.setItem("syncsocio_setup_done", "false");
           window.location.href = "/setup";
         }
       } else {
@@ -235,7 +234,7 @@ const Signup = () => {
 
         <div className="relative z-10 max-w-md px-12">
           <Link to="/" className="font-display text-2xl font-bold tracking-tight mb-10 block">
-            <span className="gradient-text">VelocityDM</span>
+            <span className="gradient-text">SyncSocio</span>
           </Link>
 
           <h2 className="text-3xl font-extrabold leading-tight text-foreground mb-3">
@@ -244,7 +243,7 @@ const Signup = () => {
             intelligence era.
           </h2>
           <p className="text-muted-foreground text-base leading-relaxed mb-10">
-            Join thousands of creators who automate their growth with AI-powered agents.
+            Join thousands of creators who automate their campaigns with AI-powered agents.
           </p>
 
           <div className="space-y-3 mb-8">
@@ -264,21 +263,21 @@ const Signup = () => {
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-semibold text-foreground">{s.platform}</div>
-                  <div className="text-xs text-muted-foreground">{s.followers} followers</div>
+                  <div className="text-xs text-muted-foreground">{s.detail}</div>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-semibold text-primary">
-                  <TrendingUp size={13} />
-                  {s.growth}
+                <div className="flex items-center gap-1.5 text-xs font-black text-primary uppercase tracking-widest bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
+                  <Sparkles size={11} className="animate-pulse" />
+                  {s.status}
                 </div>
               </motion.div>
             ))}
           </div>
 
           <div className="bg-card rounded-xl p-5 border border-border shadow-sm mb-8">
-            <p className="text-sm italic text-muted-foreground mb-3">"VelocityDM took us from 200 to 12K followers in just 60 days."</p>
+            <p className="text-sm italic text-muted-foreground mb-3">"SyncSocio took our digital campaigns from days of manual work to seconds of generation."</p>
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users size={13} className="text-primary" />
+                <Sparkles size={13} className="text-primary" />
               </div>
               <div className="text-xs font-semibold text-foreground">Priya S. <span className="text-muted-foreground font-normal">· Founder, GlowCraft</span></div>
             </div>
@@ -295,7 +294,7 @@ const Signup = () => {
           className="w-full max-w-md"
         >
           <Link to="/" className="lg:hidden font-display text-2xl font-bold tracking-tight mb-8 block">
-            <span className="gradient-text">VelocityDM</span>
+            <span className="gradient-text">SyncSocio</span>
           </Link>
 
           <h1 className="text-3xl font-bold mb-2">{isOtpStep ? "Verify your email" : "Create account"}</h1>

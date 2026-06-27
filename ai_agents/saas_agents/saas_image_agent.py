@@ -37,6 +37,7 @@ from fal_visual_engine import (
     generate_fal_image_gpt2,
     generate_fal_carousel_ideogram,
     generate_fal_video_wan,
+    generate_fal_video_seedance,
 )
 from saas_agents.saas_profiles import get_saas_profile, build_saas_directive
 
@@ -217,6 +218,11 @@ def _brand_block(bd: Dict[str, Any]) -> str:
     usp             = bd.get("usp", "")
     main_goal       = bd.get("mainGoal", "Get leads / enquiries")
     website         = bd.get("website", "")
+    logo            = bd.get("logo", "")
+
+    logo_ref = ""
+    if logo:
+        logo_ref = f"Brand Logo Reference: {logo if logo.startswith('http') else '[Logo image is uploaded and available for branding]'}\n"
 
     return (
         f"{brand_name} — {category} company.\n"
@@ -226,6 +232,7 @@ def _brand_block(bd: Dict[str, Any]) -> str:
         f"Target audience: {target_audience}.\n"
         f"Core goal: {main_goal}.\n"
         f"USP: {usp}.\n"
+        + logo_ref
         + (f"Website: {website}\n" if website else "")
     )
 
@@ -248,11 +255,12 @@ def build_saas_image_prompt(
     """
     block = _brand_block(brand_doc)
     idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
+    logo_inst = " Incorporate the brand logo reference cleanly on the creative." if brand_doc.get("logo") else ""
 
     if campaign_mode == "whatsapp":
         return (
             f"{block}\n{idea_str}{saas_directive}\n\n"
-            "Create a professional B2B WhatsApp campaign visual. "
+            f"Create a professional B2B WhatsApp campaign visual.{logo_inst} "
             "Clean, minimal, trust-building. Use workspace or UI imagery. "
             f"Aspect ratio: {aspect}. "
             f"Any text must be in {language}."
@@ -261,7 +269,7 @@ def build_saas_image_prompt(
     if campaign_mode == "email":
         return (
             f"{block}\n{idea_str}{saas_directive}\n\n"
-            "Create a professional B2B email campaign header image. "
+            f"Create a professional B2B email campaign header image.{logo_inst} "
             "Clean corporate aesthetic, data-driven visual, no product packaging. "
             f"Aspect ratio: {aspect}. "
             f"Any text must be in {language}."
@@ -291,7 +299,7 @@ def build_saas_image_prompt(
 
     return (
         f"{block}\n{idea_str}{saas_directive}\n{template_block}\n"
-        "Create a high-converting B2B/SaaS ad creative for Instagram feed. "
+        f"Create a high-converting B2B/SaaS ad creative for Instagram feed.{logo_inst} "
         "Use UI screenshots, dashboards, charts, or clean workspace photography as hero visual. "
         "NO product packaging. NO lifestyle stock photos. NO discount/sale elements. "
         f"Aspect ratio: {aspect}. Premium, professional, commercial quality. "
@@ -744,9 +752,47 @@ def generate_saas_strategy_images(
             ref = assigned_refs[index] if index < len(assigned_refs) else None
             print(f"\n[SaaSAgent] 🎬 Video {index+1}/{count}...")
             try:
-                result = generate_fal_video_wan(video_prompt, image=ref, aspect_ratio=aspect_ratio)
+                if ref and not ref.startswith("http") and not ref.startswith("data:"):
+                    ref = "data:image/jpeg;base64," + ref
+
+                if video_kind == "ai-ugc":
+                    # Stage 1: Brand DNA + avatar + directive + the script is passed to GPT Image
+                    brand_info = _brand_block(brand_doc)
+                    stage1_prompt = f"""{brand_info}
+{saas_directive}
+Avatar Description: {avatar_description}
+Video Script: {video_script}
+
+Create a high-quality, photorealistic portrait image of this UGC creator/presenter in a professional office environment, which will be used to generate a UGC video. The scene is bright and clean. No text overlays, letters, or characters on the image. Aspect ratio: {aspect_ratio}."""
+                    
+                    print(f"[SaaSAgent] UGC Stage 1: Generating starting image with GPT-Image-2...")
+                    gpt_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "portrait_16_9")
+                    gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=ref, image_size=gpt_size)
+                    generated_img = gpt_res.get("image")
+                    if not generated_img:
+                        raise Exception("UGC Stage 1 image generation failed")
+                    
+                    # Generate custom B2B Instagram caption + hashtags using Gemini during Stage 1
+                    caption = generate_saas_instagram_caption(
+                        brand_doc=brand_doc,
+                        layout="video",
+                        idea=f"UGC Video post with script: {video_script}",
+                        saas_directive=saas_directive,
+                        saas_intelligence=saas_intelligence,
+                        language=language,
+                        index=index,
+                    )
+                    
+                    # Stage 2: Take the generated hero image and send it to Seedance Image-to-Video
+                    print(f"[SaaSAgent] UGC Stage 2: Animating starting image with Seedance Fast Image-to-Video...")
+                    result = generate_fal_video_seedance(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio)
+                else:
+                    # Standard img2video uses Wan Image-to-Video
+                    caption = pick_caption(index)
+                    result = generate_fal_video_wan(video_prompt, image=ref, aspect_ratio=aspect_ratio)
+
                 return {"url": result.get("url"), "thumbnail": result.get("thumbnail"),
-                        "caption": pick_caption(index), "type": "video", "index": index}
+                        "caption": caption, "type": "video", "index": index}
             except Exception as e:
                 print(f"[SaaSAgent] ❌ Video {index+1} failed: {e}")
                 return {"url": None, "caption": pick_caption(index), "type": "video",

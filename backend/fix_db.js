@@ -31,7 +31,7 @@ const run = async () => {
         id: 'inserted_button_123',
         label: 'Open Link',
         type: 'url',
-        url: 'https://github.com/deltay-deltax/Velocity_AaaS_MajorProject'
+        url: 'https://github.com/deltay-deltax/SyncSocio_AaaS_MajorProject'
       }];
       await DMFlow.updateOne({ _id: testFlow._id }, { $set: { messages: testFlow.messages } });
       console.log('Added the missing Open Link button to Test Flow!');

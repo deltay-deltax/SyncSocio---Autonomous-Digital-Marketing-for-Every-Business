@@ -2,9 +2,9 @@ import User from '../models/User.js';
 
 // Credit amounts per plan tier (random within range)
 const PLAN_CREDITS = {
-  'VelocityDM Starter': { min: 1200, max: 1500 },
-  'VelocityDM PRO':     { min: 2800, max: 3200 },
-  'VelocityDM Elite':   { min: 5500, max: 6000 },
+  'SyncSocio Starter': { min: 1200, max: 1500 },
+  'SyncSocio PRO':     { min: 2800, max: 3200 },
+  'SyncSocio Elite':   { min: 5500, max: 6000 },
 };
 
 function randomInRange(min, max) {

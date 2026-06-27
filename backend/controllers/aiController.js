@@ -66,7 +66,7 @@ export const regenerateStrategy = async (req, res) => {
       usp: profile.usp,
       painPoint: profile.painPoint,
       brandKeywords: profile.brandKeywords,
-      selectedPlan: profile.selectedPlan || 'VelocityDM Starter'
+      selectedPlan: profile.selectedPlan || 'SyncSocio Starter'
     });
 
     res.status(200).json(response.data);

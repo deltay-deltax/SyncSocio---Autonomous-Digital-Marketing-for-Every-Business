@@ -270,7 +270,7 @@ const Onboarding = () => {
             <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
               <Zap size={18} fill="currentColor" />
             </div>
-            <h1 className="text-lg font-black tracking-tight text-foreground uppercase">VelocityDM</h1>
+            <h1 className="text-lg font-black tracking-tight text-foreground uppercase">SyncSocio</h1>
           </div>
           
           <div className="flex flex-col items-center justify-center flex-grow text-center px-8 relative z-10 transition-all duration-700">
@@ -315,7 +315,7 @@ const Onboarding = () => {
                 <ChevronLeft size={14} className="mr-1 group-hover:-translate-x-0.5 transition-transform" /> BACK
               </button>
             ) : (
-              <Link to="/" className="md:hidden text-lg font-black tracking-tight text-primary">VelocityDM</Link>
+              <Link to="/" className="md:hidden text-lg font-black tracking-tight text-primary">SyncSocio</Link>
             )}
             
             <div className="hidden md:block"></div>
@@ -1118,11 +1118,11 @@ const Onboarding = () => {
                                     }
                                   }
 
-                                  localStorage.setItem('velocity_profile', JSON.stringify(formData));
+                                  localStorage.setItem('syncsocio_profile', JSON.stringify(formData));
                                   window.location.href = "/setup";
                                 } catch (err) {
                                   console.error(err);
-                                  localStorage.setItem('velocity_profile', JSON.stringify(formData));
+                                  localStorage.setItem('syncsocio_profile', JSON.stringify(formData));
                                   window.location.href = "/setup";
                                 }
                               }}

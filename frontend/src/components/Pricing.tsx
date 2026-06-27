@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 const plans = [
   {
-    name: "VelocityDM Starter",
+    name: "SyncSocio Starter",
     basePrice: 999,
     period: "/month",
     description: "For creators ready to scale at speed.",
@@ -24,7 +24,7 @@ const plans = [
     cta: "Get Started",
   },
   {
-    name: "VelocityDM PRO",
+    name: "SyncSocio PRO",
     basePrice: 1999,
     period: "/month",
     description: "Maximum efficiency for power creators.",
@@ -49,8 +49,8 @@ const Pricing = () => {
   const navigate = useNavigate();
 
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
-    "VelocityDM Starter": false,
-    "VelocityDM PRO": false,
+    "SyncSocio Starter": false,
+    "SyncSocio PRO": false,
   });
 
   const handleToggle = (planName: string) => {

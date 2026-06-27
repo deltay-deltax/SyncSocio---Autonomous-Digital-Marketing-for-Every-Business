@@ -4,8 +4,8 @@ import { Plus, HelpCircle, Mail, Phone, MapPin, MessageCircle } from "lucide-rea
 
 const FAQS = [
   {
-    q: "What is VelocityDM?",
-    a: "VelocityDM is an AI-powered content workspace that helps creators plan, optimize and publish high-performing posts across reels, images and carousels — all from one elegant dashboard.",
+    q: "What is SyncSocio?",
+    a: "SyncSocio is an AI-powered content workspace that helps creators plan, optimize and publish high-performing posts across reels, images and carousels — all from one elegant dashboard.",
   },
   {
     q: "How does the Content Mix work?",
@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: "How is the optimal posting time decided?",
-    a: "VelocityDM analyzes your specific audience behavior via the Instagram Graph API to identify the 'Peak Hour' when the highest number of your followers are online and active.",
+    a: "SyncSocio analyzes your specific audience behavior via the Instagram Graph API to identify the 'Peak Hour' when the highest number of your followers are online and active.",
   },
   {
     q: "What does 'Posts This Month' represent?",
@@ -49,11 +49,11 @@ const FAQS = [
   },
   {
     q: "What are 'Total Followers'?",
-    a: "This is your current, live follower count directly from Instagram. We also track 'Follower Growth' over 30 days to help you visualize your audience expansion velocity.",
+    a: "This is your current, live follower count directly from Instagram. We also track 'Follower Growth' over 30 days to help you visualize your audience expansion syncsocio.",
   },
   {
     q: "What do the percentage changes (e.g., +10.5%) mean?",
-    a: "These indicators show your 'Growth Velocity' by comparing your current performance (e.g., this week) against the previous period. A positive percentage means your reach or engagement is trending up.",
+    a: "These indicators show your 'Growth SyncSocio' by comparing your current performance (e.g., this week) against the previous period. A positive percentage means your reach or engagement is trending up.",
   },
   {
     q: "Is my data private?",
@@ -82,7 +82,7 @@ function DashboardFAQ() {
             <span className="text-primary">questions.</span>
           </h1>
           <p className="mt-4 text-sm text-muted-foreground max-w-md mx-auto font-medium leading-relaxed">
-            Everything you need to know about creating, scheduling and shipping content with VelocityDM.
+            Everything you need to know about creating, scheduling and shipping content with SyncSocio.
           </p>
         </motion.div>
 
@@ -169,8 +169,8 @@ function DashboardFAQ() {
                 {
                   icon: Mail,
                   label: "Email us",
-                  value: "supportvelocitydm@gmail.com",
-                  href: "mailto:supportvelocitydm@gmail.com",
+                  value: "supportsyncsocio@gmail.com",
+                  href: "mailto:supportsyncsocio@gmail.com",
                 },
                 {
                   icon: Phone,

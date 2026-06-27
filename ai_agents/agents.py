@@ -41,7 +41,7 @@ def analyze_brand_mix(brand_info: Dict[str, Any]):
     """
     Agent that decides the content mix. 
     """
-    plan = brand_info.get('selectedPlan', 'VelocityDM Starter')
+    plan = brand_info.get('selectedPlan', 'SyncSocio Starter')
     duration_weeks = brand_info.get('durationWeeks', 1)
     base_count = 3 if 'Starter' in plan else 7
     post_count = base_count * duration_weeks
@@ -120,7 +120,7 @@ def planner_node(state: GraphState):
     rejected_items = state.get('rejected_items', [])
     mix = state.get('suggested_mix', {"reels": 3, "static": 2, "carousel": 2})
     
-    plan = brand.get('selectedPlan', 'VelocityDM Starter')
+    plan = brand.get('selectedPlan', 'SyncSocio Starter')
     duration_weeks = state.get('duration_weeks', 1)
     base_count = 3 if 'Starter' in plan else 7
     post_count = base_count * duration_weeks
@@ -220,7 +220,7 @@ def planner_node(state: GraphState):
     """
 
     prompt = f"""
-    You are the Lead Strategist for Velocity AI. Your goal is to create a high-impact {post_count}-post content strategy.
+    You are the Lead Strategist for SyncSocio AI. Your goal is to create a high-impact {post_count}-post content strategy.
     Read the FULL brand dossier below and use EVERY detail to craft hyper-relevant, on-brand content.
 
     ═══════════ BRAND DOSSIER ═══════════
@@ -577,7 +577,7 @@ def strategy_critic_node(state: GraphState):
     brief = state['product_brief']
     
     prompt = f"""
-    You are the Velocity Algorithm Critic. Analyze this 7-day content strategy.
+    You are the SyncSocio Algorithm Critic. Analyze this 7-day content strategy.
     
     BRAND: {brand.get('brandName')}
     PRODUCT: {brief.get('name') if brief.get('name') else 'Not specified (focus on core brand and category: ' + brand.get('businessCategory', '') + ')'}

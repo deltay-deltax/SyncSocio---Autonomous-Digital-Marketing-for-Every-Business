@@ -25,7 +25,7 @@ interface Plan {
 // ─── Plan Data ───────────────────────────────────────────────────────
 const plans: Plan[] = [
   {
-    name: 'VelocityDM Starter',
+    name: 'SyncSocio Starter',
     price: '₹999',
     period: '/month',
     frequency: '3 times a week',
@@ -36,7 +36,7 @@ const plans: Plan[] = [
     ctaStyle: 'primary',
   },
   {
-    name: 'VelocityDM PRO',
+    name: 'SyncSocio PRO',
     price: '₹1999',
     period: '/month',
     frequency: 'Daily',
@@ -48,7 +48,7 @@ const plans: Plan[] = [
     ctaStyle: 'inverted',
   },
   {
-    name: 'VelocityDM Elite',
+    name: 'SyncSocio Elite',
     price: '₹3999',
     period: '/month',
     frequency: 'Daily + Stories',
@@ -62,9 +62,9 @@ const plans: Plan[] = [
 
 // Credits awarded per plan (shown in UI — actual amount is random within range)
 const PLAN_CREDITS_DISPLAY: Record<string, { label: string; color: string; glow: string }> = {
-  'VelocityDM Starter': { label: '~1,200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
-  'VelocityDM PRO':     { label: '~3,000 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
-  'VelocityDM Elite':   { label: '~6,000 Credits', color: 'from-amber-400 to-orange-600', glow: 'shadow-amber-500/40' },
+  'SyncSocio Starter': { label: '~1,200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
+  'SyncSocio PRO':     { label: '~3,000 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
+  'SyncSocio Elite':   { label: '~6,000 Credits', color: 'from-amber-400 to-orange-600', glow: 'shadow-amber-500/40' },
 };
 
 // ─── Checklist Steps ─────────────────────────────────────────────────
@@ -116,8 +116,8 @@ const Wrapper = ({ children, maxW = 'max-w-xl', screenKey }: { children: React.R
         size="sm" 
         onClick={() => {
           localStorage.removeItem('token');
-          localStorage.removeItem('velocity_profile');
-          localStorage.removeItem('velocity_setup_done');
+          localStorage.removeItem('syncsocio_profile');
+          localStorage.removeItem('syncsocio_setup_done');
           window.location.href = '/login';
         }}
         className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -144,8 +144,8 @@ const Setup = () => {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>('checklist');
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
-    'VelocityDM Starter': localStorage.getItem('velocity_dm_automation') === 'true',
-    'VelocityDM PRO': localStorage.getItem('velocity_dm_automation') === 'true',
+    'SyncSocio Starter': localStorage.getItem('syncsocio_dm_automation') === 'true',
+    'SyncSocio PRO': localStorage.getItem('syncsocio_dm_automation') === 'true',
   });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null);
@@ -218,7 +218,7 @@ const Setup = () => {
 
   // Load onboarding data and determine recommendation
   useEffect(() => {
-    const stored = localStorage.getItem('velocity_profile');
+    const stored = localStorage.getItem('syncsocio_profile');
     if (stored) {
       const data = JSON.parse(stored);
       setOnboardingData(data);
@@ -230,11 +230,11 @@ const Setup = () => {
       if (freq === 'Once / wk' && !hasReels) {
         setRecommendedPlan('Bootstrapper');
       } else if (freq === '3-4x / wk' && !hasReels) {
-        setRecommendedPlan('VelocityDM Starter');
+        setRecommendedPlan('SyncSocio Starter');
       } else if (freq === 'Daily' || hasReels) {
-        setRecommendedPlan('VelocityDM Pro');
+        setRecommendedPlan('SyncSocio Pro');
       } else {
-        setRecommendedPlan('VelocityDM Pro');
+        setRecommendedPlan('SyncSocio Pro');
       }
     }
   }, []);
@@ -261,7 +261,7 @@ const Setup = () => {
         issues.push('Reels & Carousels will be disabled');
         sync.contentTypes = ['Static Posts'];
       }
-    } else if (plan.name === 'VelocityDM Starter') {
+    } else if (plan.name === 'SyncSocio Starter') {
       if (currentFreq === 'Daily') {
         issues.push('Frequency will be reduced to 3-4x/wk');
         sync.postingFrequency = '3-4x / wk';
@@ -276,7 +276,7 @@ const Setup = () => {
       setSyncData(sync);
       setWarningPlan(plan.name);
     } else {
-      localStorage.setItem('velocity_dm_automation', dmToggles[plan.name] ? 'true' : 'false');
+      localStorage.setItem('syncsocio_dm_automation', dmToggles[plan.name] ? 'true' : 'false');
       setSelectedPlan(plan.name);
       setScreen('activation');
     }
@@ -293,7 +293,7 @@ const Setup = () => {
 
   const steps: StepItem[] = [
     { label: 'Brand Profile Created', description: 'Your brand DNA has been captured', status: 'done', icon: <Check size={16} /> },
-    { label: 'Connect Instagram', description: 'Allow VelocityDM to post on your behalf', status: igConnected ? 'done' : 'active', icon: <InstagramIcon size={16} /> },
+    { label: 'Connect Instagram', description: 'Allow SyncSocio to post on your behalf', status: igConnected ? 'done' : 'active', icon: <InstagramIcon size={16} /> },
     { label: 'Choose Your Plan', description: 'Pick how often your agent posts', status: planChosen ? 'done' : igConnected ? 'active' : 'locked', icon: <CreditCard size={16} /> },
     { label: 'Agent Goes Live 🚀', description: 'Your autonomous agent activates', status: planChosen ? 'active' : 'locked', icon: <Rocket size={16} /> },
   ];
@@ -308,14 +308,14 @@ const Setup = () => {
       setActivationStep(i);
       if (i >= msgs.length + 1) {
         clearInterval(timer);
-        localStorage.setItem('velocity_setup_done', 'true');
+        localStorage.setItem('syncsocio_setup_done', 'true');
         
         // Save selected plan and synced preferences to backend
         try {
           const token = localStorage.getItem('token');
           const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
           
-          const isDmEnabled = localStorage.getItem('velocity_dm_automation') === 'true';
+          const isDmEnabled = localStorage.getItem('syncsocio_dm_automation') === 'true';
 
           const payload = { 
             selectedPlan,
@@ -346,7 +346,7 @@ const Setup = () => {
               });
               if (credRes.ok) {
                 const credData = await credRes.json();
-                localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+                localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
               }
             } catch (credErr) {
               console.error('[Setup] Failed to assign credits:', credErr);
@@ -356,7 +356,7 @@ const Setup = () => {
           // Update local storage to match new sync
           if (syncData) {
             const updatedProfile = { ...onboardingData, ...syncData, selectedPlan };
-            localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+            localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
           }
         } catch (err) {
           console.error('Failed to save selected plan:', err);
@@ -451,7 +451,7 @@ const Setup = () => {
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Connect your Instagram</h1>
           <p className="text-sm text-muted-foreground mb-8">
-            VelocityDM needs permission to read and publish content on your behalf
+            SyncSocio needs permission to read and publish content on your behalf
           </p>
 
           {error && (

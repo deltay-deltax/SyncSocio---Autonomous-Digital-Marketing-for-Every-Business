@@ -591,7 +591,7 @@ const PostOptimizer: React.FC = () => {
                 </div>
                 <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">System <span className="text-slate-300 font-normal">Offline</span></h3>
                 <p className="text-slate-400 max-w-sm text-[13px] font-medium leading-relaxed">
-                  Provide your content on the left to activate our <span className="text-primary font-bold">VelocityDM Cognitive Engine</span> and see your high-confidence growth predictions.
+                  Provide your content on the left to activate our <span className="text-primary font-bold">SyncSocio Cognitive Engine</span> and see your high-confidence growth predictions.
                 </p>
                 <div className="mt-8 flex gap-4">
                   {[1, 2, 3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-200" />)}
@@ -647,7 +647,7 @@ const PostOptimizer: React.FC = () => {
                       <Clock size={24} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Optimal Velocity Window</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Optimal SyncSocio Window</p>
                       <h3 className="text-2xl font-bold tracking-tight text-slate-900">
                         {formatTime(result.bestPostingTime)} <span className="text-slate-300 font-normal">|</span> <span className="text-primary">{formatDate(result.bestPostingTime)}</span>
                       </h3>

@@ -45,7 +45,7 @@ router.get('/metrics', protect, async (req, res) => {
             }
         }
 
-        // Calculate historical follower change percentage (VelocityDM detection)
+        // Calculate historical follower change percentage (SyncSocio detection)
         let followersChange = 'Live';
         if (brandProfile.followerHistory && brandProfile.followerHistory.length > 1) {
             const history = brandProfile.followerHistory;
@@ -549,7 +549,7 @@ router.get('/metrics', protect, async (req, res) => {
                 username: brandProfile?.instagramUsername || 'brand_user',
                 profile_info: {
                     name: brandProfile?.brandName || 'Brand Partner',
-                    biography: 'Velocity AI Assisted Account'
+                    biography: 'SyncSocio AI Assisted Account'
                 },
                 hourlyActivity: [],
                 peakHourText: '8 PM',

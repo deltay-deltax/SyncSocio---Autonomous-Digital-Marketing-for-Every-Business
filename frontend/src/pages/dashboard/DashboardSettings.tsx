@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 
@@ -44,6 +46,47 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 const settingsTabs = ['Brand Profile', 'Connected Accounts', 'Posting Preferences', 'Plan & Billing', 'Legal & Privacy', 'Danger Zone'];
+
+const industries = [
+  'Baby & Kids',
+  'Food & Beverage',
+  'Home & Living',
+  'Education & Training',
+  'Real Estate & Property',
+  'Travel & Hospitality',
+  'Mobile Apps',
+  'IT & Technical Tools',
+  'Gaming & Entertainment',
+  'Fashion & Apparel',
+  'Beauty & Personal Care',
+  'Health & Wellness',
+  'Coaching & Consulting',
+  'Architecture',
+  'Financial Services',
+  'Newsletters',
+  'Online Marketplaces',
+  'Digital Products',
+  'E-Commerce',
+  'Services',
+  'SaaS & Digital'
+];
+const voiceTones = [
+  'Warm & Friendly',
+  'Professional & Clean',
+  'Fun & Energetic',
+  'Inspirational',
+  'Luxury & Premium'
+];
+const typographyOptions = ['Sans Serif Modern', 'Serif Classic', 'Display Bold', 'Handwritten', 'Mono Tech'];
+const growthGoals = [
+  'Grow followers',
+  'Sell products / get orders',
+  'Build brand awareness',
+  'Get leads / enquiries'
+];
+const ageRanges = ['18-24', '25-34', '35-44', '45+'];
+const genders = ['All', 'Male', 'Female'];
+const visualVibes = ['Minimalist', 'Vibrant', 'Luxury', 'Edgy'];
 
 const InfoItem = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | string[] }) => (
   <div className="flex items-start gap-4 p-4 rounded-2xl bg-muted/10 border border-border/30 hover:bg-muted/20 transition-all group">
@@ -151,16 +194,16 @@ const DashboardSettings = () => {
       }
 
       // 5. Update local cache for products
-      localStorage.removeItem('velocity_products');
+      localStorage.removeItem('syncsocio_products');
       const uId = profile?.user || profile?._id || 'default';
-      localStorage.removeItem(`velocity_products_${uId}`);
+      localStorage.removeItem(`syncsocio_products_${uId}`);
       try {
-        const req = indexedDB.open('VelocityProductCache', 1);
+        const req = indexedDB.open('SyncSocioProductCache', 1);
         req.onsuccess = () => {
           const db = req.result;
           if (db.objectStoreNames.contains('products')) {
             const tx = db.transaction('products', 'readwrite');
-            tx.objectStore('products').delete(`velocity_products_${uId}`);
+            tx.objectStore('products').delete(`syncsocio_products_${uId}`);
           }
         };
       } catch (e) {
@@ -190,7 +233,7 @@ const DashboardSettings = () => {
       // 7. Update UI state and local storage
       setFormData(updatedFormData);
       setProfile(updatedProfile);
-      localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+      localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
 
       alert(`✅ Website rescrape complete! Brand profile updated and ${scrapedProducts.length} products reloaded successfully.`);
     } catch (err: any) {
@@ -230,7 +273,7 @@ const DashboardSettings = () => {
         if (!profileRes.ok) throw new Error('Failed to update brand profile with connected Gmail');
         const updatedProfile = await profileRes.json();
         setProfile(updatedProfile);
-        localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+        localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
         if (setShowNotifications) {
           setShowNotifications(true);
         }
@@ -244,6 +287,10 @@ const DashboardSettings = () => {
       alert('Google authentication failed.');
     }
   });
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [keywordInput, setKeywordInput] = useState('');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -261,7 +308,11 @@ const DashboardSettings = () => {
     primaryColor: profile?.primaryColor || '#2563EB',
     secondaryColor: profile?.secondaryColor || '#60A5FA',
     logo: profile?.logo || '',
-    typography: profile?.typography || ''
+    typography: profile?.typography || '',
+    ageRange: profile?.ageRange || '',
+    genderFocus: profile?.genderFocus || '',
+    brandKeywords: profile?.brandKeywords || '',
+    visualVibe: profile?.visualVibe || ''
   });
 
   useEffect(() => {
@@ -281,10 +332,40 @@ const DashboardSettings = () => {
         primaryColor: profile.primaryColor || '#2563EB',
         secondaryColor: profile.secondaryColor || '#60A5FA',
         logo: profile.logo || '',
-        typography: profile.typography || ''
+        typography: profile.typography || '',
+        ageRange: profile.ageRange || '',
+        genderFocus: profile.genderFocus || '',
+        brandKeywords: profile.brandKeywords || '',
+        visualVibe: profile.visualVibe || ''
       });
+      
+      const kwList = profile.brandKeywords ? profile.brandKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [];
+      setKeywords(kwList);
     }
   }, [profile]);
+
+  const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => updateField('logo', reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const addKeyword = () => {
+    const k = keywordInput.trim();
+    if (!k || keywords.includes(k)) return;
+    const newKeywords = [...keywords, k];
+    setKeywords(newKeywords);
+    updateField('brandKeywords', newKeywords.join(', '));
+    setKeywordInput('');
+  };
+
+  const removeKeyword = (k: string) => {
+    const newKeywords = keywords.filter(x => x !== k);
+    setKeywords(newKeywords);
+    updateField('brandKeywords', newKeywords.join(', '));
+  };
 
   // Load Google Fonts stylesheet dynamically for live typography rendering
   useEffect(() => {
@@ -302,6 +383,17 @@ const DashboardSettings = () => {
       }
     }
   }, [formData.typography]);
+
+  const completeness = (() => {
+    const fields = [
+      formData.brandName, formData.city, formData.country, formData.businessCategory,
+      formData.brandTone, formData.website, formData.typography, formData.logo,
+      formData.usp, formData.mainGoal, formData.competitors,
+      formData.targetAudiences, formData.painPoint, formData.ageRange, formData.genderFocus
+    ];
+    const filled = fields.filter(Boolean).length + (formData.brandKeywords ? 1 : 0);
+    return Math.round((filled / (fields.length + 1)) * 100);
+  })();
 
   if (!profile) return null;
 
@@ -330,7 +422,7 @@ const DashboardSettings = () => {
       if (!res.ok) throw new Error('Update failed');
       const updatedProfile = await res.json();
       setProfile(updatedProfile);
-      localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+      localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
       alert('✅ Brand Identity updated successfully! The AI Agent has been notified.');
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -364,282 +456,220 @@ const DashboardSettings = () => {
           ))}
         </div>
 
-        {/* Content */}
         <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-right-4 duration-500">
           {activeTab === 'Brand Profile' && (
-            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="p-8 pb-2">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Brand Profile</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">Configure your core brand settings and identity details.</p>
-              </CardHeader>
-              <CardContent className="p-8 space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Basic Info */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Name</Label>
-                      <Input 
-                        value={formData.brandName} 
-                        onChange={e => updateField('brandName', e.target.value)}
-                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Industry</Label>
-                      <Input 
-                        value={formData.businessCategory} 
-                        onChange={e => updateField('businessCategory', e.target.value)}
-                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Website URL</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                          value={formData.website} 
-                          onChange={e => updateField('website', e.target.value)}
-                          className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20 flex-1" 
-                        />
-                        <Button
-                          type="button"
-                          onClick={handleRescrape}
-                          disabled={rescraping || !formData.website}
-                          className="h-12 rounded-xl px-5 bg-primary text-primary-foreground text-xs font-bold gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-primary/10"
-                        >
-                          {rescraping ? (
-                            <RefreshCw size={14} className="animate-spin" />
-                          ) : (
-                            <Sparkles size={14} className="animate-pulse" />
-                          )}
-                          {rescraping ? 'Rescraping...' : 'Rescrape'}
-                        </Button>
-                      </div>
-                    </div>
-                    {/* Brand Typography */}
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Typography</Label>
-                      <Input 
-                        value={formData.typography} 
-                        onChange={e => updateField('typography', e.target.value)}
-                        placeholder="e.g. Outfit, sans-serif"
-                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                      />
-                      {formData.typography && (
-                        <div className="mt-1 px-4 py-2 bg-muted/10 border border-border/30 rounded-xl">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">Live Font Preview</span>
-                          <p 
-                            className="text-base font-bold transition-all truncate" 
-                            style={{ fontFamily: formData.typography }}
-                          >
-                            The quick brown fox jumps over the lazy dog.
-                          </p>
-                        </div>
+            <div className="space-y-5">
+              {/* Hero header */}
+              <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-primary/10 via-background to-purple-500/5 p-6 shadow-sm">
+                <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/10 blur-3xl -z-0" />
+                <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="relative group">
+                    <div
+                      className="w-20 h-20 rounded-2xl border-2 border-dashed border-border bg-background flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors relative"
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {formData.logo ? (
+                        <img src={formData.logo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
+                      ) : (
+                        <Camera size={22} className="text-muted-foreground group-hover:text-primary" />
                       )}
                     </div>
+                    <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleLogo} />
                   </div>
-
-                  {/* Additional Identity */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Location</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                          value={formData.city} 
-                          onChange={e => updateField('city', e.target.value)}
-                          placeholder="City" 
-                          className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                        />
-                        <Input 
-                          value={formData.country} 
-                          onChange={e => updateField('country', e.target.value)}
-                          placeholder="Country" 
-                          className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                        />
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Brand Identity</p>
+                    <h3 className="text-xl font-bold text-foreground truncate">{formData.brandName || 'Untitled Brand'}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {formData.businessCategory || 'Industry not set'} · {formData.city || 'City'}, {formData.country || 'Country'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase">Profile</span>
+                      <span className="text-xs font-bold text-primary ml-auto">{completeness}%</span>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Voice / Tone</Label>
-                      <Input 
-                        value={formData.brandTone} 
-                        onChange={e => updateField('brandTone', e.target.value)}
-                        className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                      />
+                    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${completeness}%` }} />
                     </div>
-                    {/* Brand Colors */}
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Colors</Label>
-                      <div className="flex gap-4 items-center">
-                        <div className="flex items-center gap-2 border border-border/50 bg-muted/20 rounded-xl px-3 py-2 flex-1">
-                          <input 
-                            type="color" 
-                            value={formData.primaryColor} 
-                            onChange={e => updateField('primaryColor', e.target.value)}
-                            className="w-8 h-8 rounded-lg cursor-pointer border border-border bg-transparent shrink-0" 
-                          />
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Primary</span>
-                            <input 
-                              type="text" 
-                              value={formData.primaryColor} 
-                              onChange={e => updateField('primaryColor', e.target.value)}
-                              className="text-xs font-bold bg-transparent outline-none w-20 text-foreground" 
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 border border-border/50 bg-muted/20 rounded-xl px-3 py-2 flex-1">
-                          <input 
-                            type="color" 
-                            value={formData.secondaryColor} 
-                            onChange={e => updateField('secondaryColor', e.target.value)}
-                            className="w-8 h-8 rounded-lg cursor-pointer border border-border bg-transparent shrink-0" 
-                          />
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Secondary</span>
-                            <input 
-                              type="text" 
-                              value={formData.secondaryColor} 
-                              onChange={e => updateField('secondaryColor', e.target.value)}
-                              className="text-xs font-bold bg-transparent outline-none w-20 text-foreground" 
-                            />
-                          </div>
-                        </div>
-                      </div>
+                    <p className="text-[10px] text-muted-foreground">{completeness === 100 ? 'Fully tuned 🔥' : 'Complete it for sharper outputs'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Identity */}
+              <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Building2 size={14} className="text-primary" /> Identity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Brand Name" required>
+                    <Input value={formData.brandName} onChange={e => updateField('brandName', e.target.value)} placeholder="The Crumb Story" className="text-sm" />
+                  </Field>
+                  <Field label="Website URL" icon={<Globe size={11} />}>
+                    <div className="flex gap-2">
+                      <Input value={formData.website} onChange={e => updateField('website', e.target.value)} placeholder="https://..." className="text-sm flex-1" />
+                      <Button
+                        type="button"
+                        onClick={handleRescrape}
+                        disabled={rescraping || !formData.website}
+                        className="h-10 rounded-xl px-5 bg-primary text-primary-foreground text-xs font-bold gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-primary/10 shrink-0"
+                      >
+                        {rescraping ? (
+                          <RefreshCw size={14} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={14} className="animate-pulse" />
+                        )}
+                        {rescraping ? 'Rescraping...' : 'Rescrape'}
+                      </Button>
                     </div>
-                    {/* Brand Logo */}
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Logo</Label>
-                      <div className="flex gap-4 items-center">
-                        {/* Preview Card */}
-                        <div className="w-16 h-16 rounded-2xl border border-border/50 bg-muted/10 flex items-center justify-center shrink-0 overflow-hidden relative group">
-                          {formData.logo ? (
-                            <img 
-                              src={formData.logo} 
-                              alt="Brand Logo" 
-                              className="w-full h-full object-contain p-2" 
-                            />
-                          ) : (
-                            <div className="text-[9px] font-black text-muted-foreground/60 text-center uppercase tracking-tighter p-1">No Logo</div>
-                          )}
-                        </div>
-                        
-                        {/* Upload Actions */}
-                        <div className="flex flex-row items-center gap-2 flex-1">
-                          <Label 
-                            htmlFor="logo-upload" 
-                            className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-border/50 bg-muted/25 text-xs font-bold text-foreground cursor-pointer hover:bg-muted/40 transition-colors"
-                          >
-                            Upload Image
-                          </Label>
-                          <input 
-                            id="logo-upload" 
-                            type="file" 
-                            accept="image/*" 
-                            className="hidden" 
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  if (event.target?.result) {
-                                    updateField('logo', event.target.result as string);
-                                  }
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                          />
-                          {formData.logo && (
-                            <button 
-                              type="button" 
-                              onClick={() => updateField('logo', '')}
-                              className="p-2.5 rounded-xl border border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                              title="Remove logo"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-[9px] text-muted-foreground mt-1">Supports PNG, SVG, JPG, WebP.</p>
-                    </div>
-                  </div>
-                </div>
+                  </Field>
+                  <Field label="City" icon={<MapPin size={11} />}>
+                    <Input value={formData.city} onChange={e => updateField('city', e.target.value)} placeholder="Mumbai" className="text-sm" />
+                  </Field>
+                  <Field label="Country">
+                    <Input value={formData.country} onChange={e => updateField('country', e.target.value)} placeholder="India" className="text-sm" />
+                  </Field>
+                  <Field label="Industry" className="md:col-span-2">
+                    <ChipGroup options={industries} value={formData.businessCategory} onChange={v => updateField('businessCategory', v)} />
+                  </Field>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Unique Selling Point (USP)</Label>
-                  <Input 
-                    value={formData.usp} 
-                    onChange={e => updateField('usp', e.target.value)}
-                    className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Main Growth Goal</Label>
-                    <Input 
-                      value={formData.mainGoal} 
-                      onChange={e => updateField('mainGoal', e.target.value)}
-                      className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                    />
+              {/* Visual identity */}
+              <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Palette size={14} className="text-primary" /> Visual Identity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Primary Color">
+                      <ColorPicker value={formData.primaryColor} onChange={v => updateField('primaryColor', v)} />
+                    </Field>
+                    <Field label="Secondary Color">
+                      <ColorPicker value={formData.secondaryColor} onChange={v => updateField('secondaryColor', v)} />
+                    </Field>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Competitor Handles</Label>
-                    <Input 
-                      value={formData.competitors} 
-                      onChange={e => updateField('competitors', e.target.value)}
-                      placeholder="@rival1, @rival2" 
-                      className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Target Audience</Label>
-                    <Input 
-                      value={formData.targetAudiences} 
-                      onChange={e => updateField('targetAudiences', e.target.value)}
-                      className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Addressing Pain Point</Label>
-                    <Input 
-                      value={formData.painPoint} 
-                      onChange={e => updateField('painPoint', e.target.value)}
-                      className="h-12 rounded-xl text-sm font-bold border-border/50 bg-muted/20" 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Age Range</Label>
-                    <Input defaultValue={profile.ageRange || ''} className="h-11 rounded-xl text-xs font-bold border-border/50 bg-muted/10 text-center" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Gender Focus</Label>
-                    <Input defaultValue={profile.genderFocus || ''} className="h-11 rounded-xl text-xs font-bold border-border/50 bg-muted/10 text-center" />
-                  </div>
-                  <div className="space-y-2 col-span-2 md:col-span-1">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Brand Keywords</Label>
-                    <Input defaultValue={profile.brandKeywords || ''} className="h-11 rounded-xl text-xs font-bold border-border/50 bg-muted/10" />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-border/30">
-                  <Button 
-                    onClick={handleUpdate}
-                    disabled={updating}
-                    className="gradient-bg text-primary-foreground border-0 text-[10px] font-black uppercase tracking-widest h-12 px-10 rounded-xl shadow-lg shadow-primary/20"
+                  <div
+                    className="h-14 rounded-xl border border-border flex items-center justify-center text-white text-xs font-bold tracking-wider"
+                    style={{ background: `linear-gradient(135deg, ${formData.primaryColor}, ${formData.secondaryColor})` }}
                   >
-                    {updating ? 'Updating...' : 'Update Brand Identity'}
-                  </Button>
-                  <p className="text-[10px] text-muted-foreground font-medium italic mt-3">Changes here will trigger a retraining cycle for your AI Posting Agent.</p>
+                    LIVE BRAND GRADIENT PREVIEW
+                  </div>
+                  <Field label="Typography" icon={<Type size={11} />}>
+                    <ChipGroup options={typographyOptions} value={formData.typography} onChange={v => updateField('typography', v)} />
+                  </Field>
+                  <Field label="Visual Vibe" icon={<Palette size={11} />}>
+                    <ChipGroup options={visualVibes} value={formData.visualVibe} onChange={v => updateField('visualVibe', v)} />
+                  </Field>
+                </CardContent>
+              </Card>
+
+              {/* Voice & Positioning */}
+              <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Megaphone size={14} className="text-primary" /> Voice & Positioning
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Field label="Brand Voice / Tone" icon={<Languages size={11} />}>
+                    <ChipGroup options={voiceTones} value={formData.brandTone} onChange={v => updateField('brandTone', v)} />
+                  </Field>
+                  <Field label="Unique Selling Point" icon={<Sparkles size={11} />}>
+                    <Textarea value={formData.usp} onChange={e => updateField('usp', e.target.value)} placeholder="What makes you the only choice?" className="text-sm min-h-[70px]" />
+                  </Field>
+                  <Field label="Main Growth Goal" icon={<TrendingUp size={11} />}>
+                    <ChipGroup options={growthGoals} value={formData.mainGoal} onChange={v => updateField('mainGoal', v)} />
+                  </Field>
+                  <Field label="Competitor Handles" icon={<AtSign size={11} />}>
+                    <Input value={formData.competitors} onChange={e => updateField('competitors', e.target.value)} placeholder="@brand1, @brand2, @brand3" className="text-sm" />
+                  </Field>
+                </CardContent>
+              </Card>
+
+              {/* Audience */}
+              <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Users size={14} className="text-primary" /> Target Audience
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Field label="Who are they?" icon={<Target size={11} />}>
+                    <Textarea value={formData.targetAudiences} onChange={e => updateField('targetAudiences', e.target.value)} placeholder="Urban millennials chasing premium-but-affordable experiences..." className="text-sm min-h-[70px]" />
+                  </Field>
+                  <Field label="Pain point you solve" icon={<Heart size={11} />}>
+                    <Textarea value={formData.painPoint} onChange={e => updateField('painPoint', e.target.value)} placeholder="They struggle with..." className="text-sm min-h-[70px]" />
+                  </Field>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Age">
+                      <ChipGroup options={ageRanges} value={formData.ageRange} onChange={v => updateField('ageRange', v)} small />
+                    </Field>
+                    <Field label="Gender">
+                      <ChipGroup options={genders} value={formData.genderFocus} onChange={v => updateField('genderFocus', v)} small />
+                    </Field>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Keywords */}
+              <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Hash size={14} className="text-primary" /> Brand Keywords
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      value={keywordInput}
+                      onChange={e => setKeywordInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
+                      placeholder="Type a keyword and press Enter"
+                      className="text-sm"
+                    />
+                    <Button type="button" onClick={addKeyword} variant="outline" size="sm" className="text-xs shrink-0">Add</Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 min-h-[32px]">
+                    {keywords.length === 0 && (
+                      <p className="text-[11px] text-muted-foreground italic">No keywords yet — add a few to anchor your agent.</p>
+                    )}
+                    {keywords.map(k => (
+                      <Badge key={k} variant="secondary" className="text-[11px] gap-1 pl-2 pr-1 py-0.5">
+                        {k}
+                        <button onClick={() => removeKeyword(k)} className="hover:bg-background/50 rounded p-0.5">
+                          <X size={10} />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Sticky save */}
+              <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/90 backdrop-blur-xl p-3 shadow-lg">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                    <Sparkles size={13} className="text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">Ready to retrain your agent?</p>
+                    <p className="text-[10px] text-muted-foreground truncate">Changes apply to all future generations</p>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+                <Button 
+                  onClick={handleUpdate}
+                  disabled={updating}
+                  className="bg-primary text-primary-foreground border-0 text-xs shrink-0 font-black uppercase tracking-widest h-10 px-5 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all"
+                >
+                  <Check size={12} className="mr-1" /> {updating ? 'Updating...' : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
           )}
 
           {activeTab === 'Connected Accounts' && (
@@ -801,7 +831,7 @@ const DashboardSettings = () => {
                               if (!profileRes.ok) throw new Error('Failed to reconnect WhatsApp');
                               const updatedProfile = await profileRes.json();
                               setProfile(updatedProfile);
-                              localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+                              localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
                               alert('WhatsApp account reconnected successfully.');
                             } catch (err: any) {
                               alert('Error: ' + err.message);
@@ -847,7 +877,7 @@ const DashboardSettings = () => {
                               if (!profileRes.ok) throw new Error('Failed to connect WhatsApp');
                               const updatedProfile = await profileRes.json();
                               setProfile(updatedProfile);
-                              localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+                              localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
                               alert('WhatsApp account connected successfully.');
                               if (setShowNotifications) {
                                 setShowNotifications(true);
@@ -909,7 +939,7 @@ const DashboardSettings = () => {
                     <Zap size={120} fill="currentColor" />
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-2 opacity-70">Active Strategy Plan</p>
-                  <h3 className="text-3xl font-black tracking-tighter mb-4">VelocityDM {profile.selectedPlan || 'Pro'}</h3>
+                  <h3 className="text-3xl font-black tracking-tighter mb-4">SyncSocio {profile.selectedPlan || 'Pro'}</h3>
                   <div className="flex gap-4">
                     <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md">
                       <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Status</p>
@@ -1057,8 +1087,8 @@ const DashboardSettings = () => {
                     className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-muted"
                     onClick={() => {
                       localStorage.removeItem('token');
-                      localStorage.removeItem('velocity_profile');
-                      localStorage.removeItem('velocity_setup_done');
+                      localStorage.removeItem('syncsocio_profile');
+                      localStorage.removeItem('syncsocio_setup_done');
                       window.location.href = '/login';
                     }}
                   >
@@ -1075,3 +1105,44 @@ const DashboardSettings = () => {
 };
 
 export default DashboardSettings;
+
+const Field = ({ label, icon, required, className, children }: { label: string; icon?: React.ReactNode; required?: boolean; className?: string; children: React.ReactNode }) => (
+  <div className={cn('space-y-1.5', className)}>
+    <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+      {icon}
+      {label}
+      {required && <span className="text-primary">*</span>}
+    </Label>
+    {children}
+  </div>
+);
+
+const ChipGroup = ({ options, value, onChange, small }: { options: string[]; value: string; onChange: (v: string) => void; small?: boolean }) => (
+  <div className="flex flex-wrap gap-1.5">
+    {options.map(opt => (
+      <button
+        key={opt}
+        type="button"
+        onClick={() => onChange(opt)}
+        className={cn(
+          'rounded-full border transition-all',
+          small ? 'text-[11px] px-2.5 py-1' : 'text-xs px-3 py-1.5',
+          value === opt
+            ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+            : 'bg-background border-border text-foreground hover:border-primary/50 hover:bg-primary/5'
+        )}
+      >
+        {opt}
+      </button>
+    ))}
+  </div>
+);
+
+const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+  <div className="flex items-center gap-2 rounded-lg border border-input bg-background px-2 py-1.5">
+    <div className="relative w-8 h-8 rounded-md overflow-hidden border border-border shrink-0" style={{ backgroundColor: value }}>
+      <input type="color" value={value} onChange={e => onChange(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+    </div>
+    <Input value={value} onChange={e => onChange(e.target.value)} className="border-0 h-8 px-1 text-sm font-mono focus-visible:ring-0" />
+  </div>
+);

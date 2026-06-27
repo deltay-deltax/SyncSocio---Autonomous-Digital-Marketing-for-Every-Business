@@ -15,7 +15,7 @@ function safeSetItem(key: string, value: string) {
         // Clear all public asset caches first to free up space
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k && k.startsWith('velocity_public_asset_')) {
+          if (k && k.startsWith('syncsocio_public_asset_')) {
             localStorage.removeItem(k);
           }
         }
@@ -58,7 +58,7 @@ const AssetPage: React.FC = () => {
   const { username, slug } = useParams<{ username: string; slug: string }>();
   const [asset, setAsset] = useState<AssetData | null>(() => {
     if (username && slug) {
-      const cached = localStorage.getItem(`velocity_public_asset_${username}_${slug}`);
+      const cached = localStorage.getItem(`syncsocio_public_asset_${username}_${slug}`);
       if (cached) {
         try {
           return JSON.parse(cached);
@@ -72,7 +72,7 @@ const AssetPage: React.FC = () => {
 
   const [loading, setLoading] = useState<boolean>(() => {
     if (username && slug) {
-      const cached = localStorage.getItem(`velocity_public_asset_${username}_${slug}`);
+      const cached = localStorage.getItem(`syncsocio_public_asset_${username}_${slug}`);
       return !cached;
     }
     return true;
@@ -83,7 +83,7 @@ const AssetPage: React.FC = () => {
 
   useEffect(() => {
     const fetchAsset = async () => {
-      const cacheKey = `velocity_public_asset_${username}_${slug}`;
+      const cacheKey = `syncsocio_public_asset_${username}_${slug}`;
       const cached = localStorage.getItem(cacheKey);
       try {
         const res = await fetch(`${API_BASE}/assets/public/${username}/${slug}`);
@@ -401,7 +401,7 @@ const AssetPage: React.FC = () => {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="max-w-5xl mx-auto flex items-center justify-between text-xs text-slate-600">
-          <span>Powered by VelocityDM</span>
+          <span>Powered by SyncSocio</span>
           <span>@{asset.username}</span>
         </div>
       </footer>

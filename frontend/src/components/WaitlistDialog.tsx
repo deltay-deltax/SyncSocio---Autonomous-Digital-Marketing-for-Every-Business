@@ -40,13 +40,13 @@ const WaitlistDialog = ({ open, onOpenChange, onSuccess }: WaitlistDialogProps) 
 
       if (!res.ok) throw new Error('Failed to join waitlist');
       
-      localStorage.setItem("velocity_waitlist_joined", "true");
+      localStorage.setItem("syncsocio_waitlist_joined", "true");
       setSubmitted(true);
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error(err);
       // Even if it fails, we mark as joined locally so UI updates
-      localStorage.setItem("velocity_waitlist_joined", "true");
+      localStorage.setItem("syncsocio_waitlist_joined", "true");
       setSubmitted(true);
       if (onSuccess) onSuccess();
     }
@@ -78,7 +78,7 @@ const WaitlistDialog = ({ open, onOpenChange, onSuccess }: WaitlistDialogProps) 
                   We're Building Something Big
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
-                  VelocityDM is under construction. Hop on the waitlist — you don't wanna miss this.
+                  SyncSocio is under construction. Hop on the waitlist — you don't wanna miss this.
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -154,7 +154,7 @@ const WaitlistDialog = ({ open, onOpenChange, onSuccess }: WaitlistDialogProps) 
             </div>
             <h3 className="text-xl font-bold mb-2">You're in, fam! 🎉</h3>
             <p className="text-muted-foreground text-sm max-w-xs">
-              We'll ping you the moment VelocityDM is ready. Stay tuned — big things loading.
+              We'll ping you the moment SyncSocio is ready. Stay tuned — big things loading.
             </p>
             <Button
               variant="outline"

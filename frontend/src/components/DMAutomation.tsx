@@ -136,7 +136,7 @@ const DMAutomation = () => {
                     <InstagramIcon size={18} className="text-primary-foreground" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-foreground">velocity_agent</div>
+                    <div className="text-sm font-semibold text-foreground">syncsocio_agent</div>
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                       <span className="text-xs text-muted-foreground">Active now</span>
@@ -181,7 +181,7 @@ const DMAutomation = () => {
 
                   <div className="flex justify-end items-center gap-1">
                     <Send size={10} className="text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">Sent by VelocityDM Agent</span>
+                    <span className="text-[10px] text-muted-foreground">Sent by SyncSocio Agent</span>
                   </div>
                 </div>
               </motion.div>

@@ -1,6 +1,6 @@
 """
-Velocity Actor-Critic Post Validation Agent
-Implements the Velocity Algorithm whitepaper's G-Factor scoring and recursive improvement loop.
+SyncSocio Actor-Critic Post Validation Agent
+Implements the SyncSocio Algorithm whitepaper's G-Factor scoring and recursive improvement loop.
 """
 
 import os
@@ -232,7 +232,7 @@ def vision_actor_node(state: PostState) -> PostState:
 
             prompt = f"""
             You are a Social Media Content Expert. Analyze this image for a brand with the following context:
-            - Brand: {state['brand_profile'].get('brandName', 'Velocity User')}
+            - Brand: {state['brand_profile'].get('brandName', 'SyncSocio User')}
             - Niche: {state['brand_profile'].get('businessCategory', '')}
             - Goal: {state['brand_profile'].get('mainGoal', '')}
             - Locale: {state['brand_profile'].get('businessLocation', 'Global')}
@@ -295,7 +295,7 @@ def vision_actor_node(state: PostState) -> PostState:
 # ── Node 3: Critic Node (G-Factor scoring + feedback loop) ────────────────
 def critic_node(state: PostState) -> PostState:
     """
-    Implements the Velocity Algorithm G-Factor:
+    Implements the SyncSocio Algorithm G-Factor:
     G = (Saves × 3 + Shares × 2 + Comments × 1.5) / Reach × Recency_Boost
     Then gives recursive improvement suggestions if G < 2.0.
     """
@@ -326,7 +326,7 @@ def critic_node(state: PostState) -> PostState:
             winner_context += f"- Post: {w.get('description', '')} | G={w.get('growthFactor', 0)}\n"
 
     prompt = f"""
-You are the Velocity Algorithm Critic — the most demanding social media strategist alive.
+You are the SyncSocio Algorithm Critic — the most demanding social media strategist alive.
 
 CONTEXT:
 - User Content (Placeholder): "{description}"
@@ -405,7 +405,7 @@ def caption_generator_node(state: PostState) -> PostState:
     content_type = state["content_type"]
 
     prompt = f"""
-    You are a Viral Social Media Copywriter (Velocity Optimizer). Write a high-converting caption for this content.
+    You are a Viral Social Media Copywriter (SyncSocio Optimizer). Write a high-converting caption for this content.
 
     CONTEXT:
     - Brand: {brand.get('brandName', '')} ({brand.get('businessCategory', '')})
@@ -471,7 +471,7 @@ def strategist_node(state: PostState) -> PostState:
     description = state["description"]
     
     prompt = f"""
-You are the Velocity Timing Strategist. Your goal is to pick the single best time to post based on data.
+You are the SyncSocio Timing Strategist. Your goal is to pick the single best time to post based on data.
 
 CONTEXT:
 - Brand Profile (Identity): {brand.get('brandName', '')} | {brand.get('businessCategory', '')}
@@ -615,7 +615,7 @@ def publisher_node(state: PostState) -> PostState:
             upload_result = cloudinary.uploader.upload(
                 path,
                 resource_type=resource_type,
-                folder="velocity_posts"
+                folder="syncsocio_posts"
             )
             asset_urls.append(upload_result["secure_url"])
             public_ids.append((upload_result["public_id"], resource_type))
@@ -824,7 +824,7 @@ optimizer_app = build_optimizer_graph()
 def validate_post(post_data: Dict[str, Any]) -> Dict[str, Any]:
     """Entry point for the Actor-Critic pipeline (Viral Analysis)."""
     print(f"\n{'='*60}")
-    print(f"🚀 VELOCITY VIRAL ANALYSIS STARTING - User: {post_data.get('userId')}")
+    print(f"🚀 SYNCSOCIO VIRAL ANALYSIS STARTING - User: {post_data.get('userId')}")
     print(f"{'='*60}")
     
     initial_state = {
@@ -847,14 +847,14 @@ def validate_post(post_data: Dict[str, Any]) -> Dict[str, Any]:
     result = validation_app.invoke(initial_state)
     
     print(f"\n{'='*60}")
-    print(f"✅ VELOCITY VIRAL ANALYSIS COMPLETE")
+    print(f"✅ SYNCSOCIO VIRAL ANALYSIS COMPLETE")
     print(f"{'='*60}\n")
     return result
 
 def optimize_post(post_data: Dict[str, Any]) -> Dict[str, Any]:
     """Entry point for the Post Optimizer (Simple Generation)."""
     print(f"\n{'='*60}")
-    print(f"⚡ VELOCITY OPTIMIZER STARTING - User: {post_data.get('userId')}")
+    print(f"⚡ SYNCSOCIO OPTIMIZER STARTING - User: {post_data.get('userId')}")
     print(f"{'='*60}")
     
     initial_state = {
@@ -887,7 +887,7 @@ def optimize_post(post_data: Dict[str, Any]) -> Dict[str, Any]:
         result["critique"]["optimal_time_reason"] = result.get("scheduling_reason", "")
 
     print(f"\n{'='*60}")
-    print(f"✅ VELOCITY OPTIMIZER COMPLETE")
+    print(f"✅ SYNCSOCIO OPTIMIZER COMPLETE")
     print(f"{'='*60}\n")
     return result
 

@@ -73,7 +73,7 @@ def get_universal_system_prompt(agent_role: str) -> str:
     Sets the persona without hardcoding the specific strategy rules.
     """
     return f"""
-You are the {agent_role} for Velocity, a high-end Autonomous Growth Engine for Instagram.
+You are the {agent_role} for SyncSocio, a high-end Autonomous Growth Engine for Instagram.
 Your decisions must be rooted strictly in the provided BRAND DNA and PERFORMANCE METRICS.
 
 Rules:

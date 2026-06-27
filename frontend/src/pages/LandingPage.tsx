@@ -3,8 +3,10 @@ import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import WhatWeAre from "@/components/WhatWeAre";
 import Features from "@/components/Features";
+import CreativeShowcase from "@/components/CreativeShowcase";
 import HowItWorks from "@/components/HowItWorks";
 import DMAutomation from "@/components/DMAutomation";
+import CampaignChannels from "@/components/CampaignChannels";
 import Pricing from "@/components/Pricing";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
@@ -32,13 +34,13 @@ const Index = () => {
 
         if (profRes.ok) {
           const profile = await profRes.json();
-          localStorage.setItem("velocity_profile", JSON.stringify(profile));
+          localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
           
           if (profile.instagramIsConnected) {
-            localStorage.setItem("velocity_setup_done", "true");
+            localStorage.setItem("syncsocio_setup_done", "true");
             navigate("/dashboard");
           } else {
-            localStorage.setItem("velocity_setup_done", "false");
+            localStorage.setItem("syncsocio_setup_done", "false");
             navigate("/setup");
           }
         } else {
@@ -55,7 +57,7 @@ const Index = () => {
 
     checkUserStatus();
 
-    const joined = localStorage.getItem("velocity_waitlist_joined") === "true";
+    const joined = localStorage.getItem("syncsocio_waitlist_joined") === "true";
     setIsWaitlistJoined(joined);
   }, [navigate]);
 
@@ -80,8 +82,10 @@ const Index = () => {
       />
       <WhatWeAre />
       <Features />
+      <CreativeShowcase />
       <HowItWorks />
       <DMAutomation />
+      <CampaignChannels />
       <Pricing />
       <CTASection 
         onWaitlistClick={() => setIsWaitlistOpen(true)} 

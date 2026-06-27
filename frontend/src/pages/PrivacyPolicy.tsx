@@ -32,7 +32,7 @@ const PrivacyPolicy = () => {
               <ShieldCheck size={18} />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight md:text-3xl">VelocityDM Privacy Policy</h1>
+              <h1 className="text-2xl font-black tracking-tight md:text-3xl">SyncSocio Privacy Policy</h1>
               <p className="mt-1 text-sm text-muted-foreground">Last updated: {updatedOn}</p>
             </div>
           </div>
@@ -41,7 +41,7 @@ const PrivacyPolicy = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">1. Overview</h2>
               <p className="mt-2">
-                This Privacy Policy explains how VelocityDM collects, uses, stores, and discloses information when you
+                This Privacy Policy explains how SyncSocio collects, uses, stores, and discloses information when you
                 use our AI marketing automation services, including dashboard analytics, Instagram integrations, and
                 message automation features.
               </p>
@@ -128,7 +128,7 @@ const PrivacyPolicy = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">10. Children</h2>
               <p className="mt-2">
-                VelocityDM is not directed to children and is intended for business and professional use. Do not use the
+                SyncSocio is not directed to children and is intended for business and professional use. Do not use the
                 service if prohibited by applicable age restrictions in your jurisdiction.
               </p>
             </section>
@@ -144,7 +144,7 @@ const PrivacyPolicy = () => {
             <section>
               <h2 className="text-base font-black uppercase tracking-wider text-foreground">12. Contact</h2>
               <p className="mt-2">
-                Privacy and data requests: supportvelocitydm@gmail.com.
+                Privacy and data requests: supportsyncsocio@gmail.com.
               </p>
             </section>
           </div>

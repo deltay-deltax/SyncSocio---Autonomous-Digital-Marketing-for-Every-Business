@@ -25,7 +25,7 @@ export function safeSetItem(key: string, value: string) {
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k && (k.startsWith('velocity_public_asset_') || k.startsWith('velocity_strategy_assets_') || k.startsWith('velocity_strategy_assets'))) {
+          if (k && (k.startsWith('syncsocio_public_asset_') || k.startsWith('syncsocio_strategy_assets_') || k.startsWith('syncsocio_strategy_assets'))) {
             keysToRemove.push(k);
           }
         }

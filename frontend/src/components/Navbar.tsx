@@ -36,8 +36,8 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("velocity_profile");
-    localStorage.removeItem("velocity_setup_done");
+    localStorage.removeItem("syncsocio_profile");
+    localStorage.removeItem("syncsocio_setup_done");
     window.location.href = "/login";
   };
 
@@ -50,7 +50,7 @@ const Navbar = () => {
     >
       <div className="container mx-auto flex items-center justify-between px-6 py-4">
         <Link to="/" className="font-display text-xl font-bold tracking-tight">
-          <span className="gradient-text">VelocityDM</span>
+          <span className="gradient-text">SyncSocio</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

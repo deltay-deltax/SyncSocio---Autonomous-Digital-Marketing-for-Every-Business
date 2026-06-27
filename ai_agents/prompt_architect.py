@@ -1,6 +1,6 @@
 """
 prompt_architect.py
-Standalone Prompt Architect for Velocity AI.
+Standalone Prompt Architect for SyncSocio AI.
 
 Provides:
   - build_ideogram_slide_prompt()  → used by main.py carousel slide loop

@@ -131,7 +131,7 @@ def analyze_post_for_dm_flow(
 
     # ── LLM Decision ─────────────────────────────────────────────────────
     prompt = f"""
-You are the DM Automation Strategist for Velocity AI.
+You are the DM Automation Strategist for SyncSocio AI.
 Analyse the following Instagram post and decide if a DM automation flow should be created.
 
 POST DATA:

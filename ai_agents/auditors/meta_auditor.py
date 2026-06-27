@@ -35,7 +35,7 @@ class MetaAuditor:
         top_type = max(efficiency, key=efficiency.get) if any(efficiency.values()) else "Reel"
         
         prompt = f"""
-        You are the 'Velocity Pulse' Auditor. Your goal is to analyze Instagram performance and suggest the optimal Content Mix.
+        You are the 'SyncSocio Pulse' Auditor. Your goal is to analyze Instagram performance and suggest the optimal Content Mix.
         
         BRAND: {data.brandName} ({data.businessCategory})
         
@@ -49,7 +49,7 @@ class MetaAuditor:
         
         TASK (ACTOR-CRITIC LOOP):
         1. GLOBAL MANDATE: Discovery (REELS) is non-negotiable for growth. Even if Static reach is higher locally, prioritize Reels to exit the local maximum and reach non-followers.
-        2. GROWTH BIAS: If local data is sparse (e.g. < 5 posts analyzed), DO NOT play it safe. Force a pivot to high-velocity formats (70%+ Reels/Carousels).
+        2. GROWTH BIAS: If local data is sparse (e.g. < 5 posts analyzed), DO NOT play it safe. Force a pivot to high-syncsocio formats (70%+ Reels/Carousels).
         3. ACTOR: Propose a new % mix (Reels, Static, Carousel) that totals 100%.
         4. CRITIC: If the user's top-performing format (highest reach) is under-represented in their CURRENT MIX, force a pivot towards it—UNLESS that format is Static, in which case maintain a healthy Reel/Carousel ratio for discovery.
         5. NEURAL LEARNING: Identify 3 distinct "Learnings" about this brand's audience. Be specific (e.g. "Posts before 12pm perform 30% better").
