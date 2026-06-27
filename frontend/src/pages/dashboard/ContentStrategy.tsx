@@ -5,6 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink
   Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, Edit3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -279,33 +280,49 @@ const DashboardStrategy = () => {
   const [productPick, setProductPick] = useState<string>('');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [newRecipient, setNewRecipient] = useState('');
+  const [whatsappCountryCode, setWhatsappCountryCode] = useState('+91');
   const [campaignSubject, setCampaignSubject] = useState('');
   const [campaignBody, setCampaignBody] = useState('');
   const [campaignImage, setCampaignImage] = useState<string>('');
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const recipientsFileRef = useRef<HTMLInputElement>(null);
 
-  interface EmailListObj {
+  interface SavedListObj {
     _id: string;
     name: string;
-    emails: string[];
+    emails?: string[];
+    phones?: string[];
   }
-  const [savedLists, setSavedLists] = useState<EmailListObj[]>([]);
+  const [savedEmailLists, setSavedEmailLists] = useState<SavedListObj[]>([]);
+  const [savedPhoneLists, setSavedPhoneLists] = useState<SavedListObj[]>([]);
+  const savedLists = mode === 'whatsapp' ? savedPhoneLists : savedEmailLists;
+
+  const setSavedLists = React.useCallback((val: any) => {
+    if (mode === 'whatsapp') {
+      setSavedPhoneLists(val);
+    } else {
+      setSavedEmailLists(val);
+    }
+  }, [mode]);
+
   const [selectedListId, setSelectedListId] = useState<string>('');
 
   React.useEffect(() => {
     const fetchSavedLists = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${NODE_BASE}/campaigns/lists`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSavedLists(data);
+        const [emailRes, phoneRes] = await Promise.all([
+          fetch(`${NODE_BASE}/campaigns/lists`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${NODE_BASE}/campaigns/phone-lists`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+        if (emailRes.ok) {
+          setSavedEmailLists(await emailRes.json());
+        }
+        if (phoneRes.ok) {
+          setSavedPhoneLists(await phoneRes.json());
         }
       } catch (err) {
-        console.error("Error fetching email lists:", err);
+        console.error("Error fetching saved lists:", err);
       }
     };
 
@@ -503,7 +520,11 @@ const DashboardStrategy = () => {
         // Save to IndexedDB (as primary cache)
         await setCache(cacheKey, fetchedCreatives);
         // Also sync to localStorage for backwards compatibility / fallback
-        localStorage.setItem(cacheKey, JSON.stringify(fetchedCreatives));
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(fetchedCreatives));
+        } catch (e) {
+          console.warn('[Strategy] LocalStorage cache quota exceeded, relying on IndexedDB:', e);
+        }
       }
     } catch (err) {
       console.error('[Strategy] Fetch creatives error:', err);
@@ -632,25 +653,28 @@ const DashboardStrategy = () => {
   };
 
   const handleSaveImportedList = async () => {
+    const isWhatsapp = mode === 'whatsapp';
+    const endpoint = isWhatsapp ? `${NODE_BASE}/campaigns/phone-lists` : `${NODE_BASE}/campaigns/lists`;
     const finalListName = listNameInput.trim() || 'Imported List';
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${NODE_BASE}/campaigns/lists`, {
+      const payload = isWhatsapp 
+        ? { name: finalListName, phones: pendingEmails } 
+        : { name: finalListName, emails: pendingEmails };
+        
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: finalListName,
-          emails: pendingEmails
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
         const savedList = await res.json();
-        setSavedLists(prev => {
-          const index = prev.findIndex(x => x._id === savedList._id || x.name === savedList.name);
+        setSavedLists((prev: any[]) => {
+          const index = prev.findIndex((x: any) => x._id === savedList._id || x.name === savedList.name);
           if (index >= 0) {
             const updated = [...prev];
             updated[index] = savedList;
@@ -659,11 +683,12 @@ const DashboardStrategy = () => {
           return [savedList, ...prev];
         });
         setSelectedListId(savedList._id);
-        setRecipients(savedList.emails);
+        const savedRecipients = isWhatsapp ? savedList.phones : savedList.emails;
+        setRecipients(savedRecipients);
 
         toast({
           title: "List Saved",
-          description: `Saved list "${finalListName}" with ${savedList.emails.length} recipients!`,
+          description: `Saved list "${finalListName}" with ${savedRecipients.length} recipients!`,
         });
       } else {
         toast({
@@ -682,44 +707,152 @@ const DashboardStrategy = () => {
     }
   };
 
-  const parseRecipients = (textOrRows: any, isExcel: boolean): string[] => {
+  const parseTextToRows = (text: string): any[][] | null => {
+    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+    if (lines.length < 2) return null;
+
+    // 1. Detect if it is a markdown table by looking for lines with at least 2 pipes
+    const pipeLines = lines.filter(line => (line.match(/\|/g) || []).length >= 2);
+    if (pipeLines.length >= 2) {
+      const rows = pipeLines.map(line => {
+        const parts = line.split('|').map(p => p.trim());
+        if (line.startsWith('|')) parts.shift();
+        if (line.endsWith('|')) parts.pop();
+        return parts;
+      });
+      return rows.filter(row => !row.every(cell => /^[-:\s]+$/.test(cell)));
+    }
+
+    // 2. Try CSV/TSV/Semicolon-separated detection with header/metadata tolerance
+    const delimiters = [',', '\t', ';'];
+    for (const delimiter of delimiters) {
+      const columnCounts = lines.map(line => line.split(delimiter).length);
+      const countMap: Record<number, number> = {};
+      let maxCount = 0;
+      let bestColCount = 0;
+
+      for (const count of columnCounts) {
+        if (count < 2) continue;
+        countMap[count] = (countMap[count] || 0) + 1;
+        if (countMap[count] > maxCount) {
+          maxCount = countMap[count];
+          bestColCount = count;
+        }
+      }
+
+      if (bestColCount >= 2 && maxCount >= Math.max(2, lines.length * 0.5)) {
+        return lines
+          .filter(line => line.split(delimiter).length === bestColCount)
+          .map(line => line.split(delimiter).map(cell => cell.trim()));
+      }
+    }
+
+    return null;
+  };
+
+  const parseRecipients = (textOrRows: any, isRows: boolean): string[] => {
     const emailPattern = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
     const phonePattern = /\+?\d[\d\s\-()]{7,15}\d/g;
     const results: string[] = [];
 
-    if (isExcel && Array.isArray(textOrRows)) {
-      for (const row of textOrRows) {
-        if (Array.isArray(row)) {
-          for (const cell of row) {
-            if (cell !== null && cell !== undefined) {
-              const cellStr = String(cell).trim();
-              if (mode === 'email') {
-                const matches = cellStr.match(emailPattern);
-                if (matches) {
-                  results.push(...matches);
-                }
+    const extractPhonesFromRow = (rowCells: any[]) => {
+      let rowStr = rowCells.map(c => String(c || '').trim()).join(' ');
+      // Try to find a country code cell or pattern in the row
+      let rowCC = '';
+      for (const cell of rowCells) {
+        if (cell === null || cell === undefined) continue;
+        const cellStr = String(cell).trim();
+        // Look for cell starting with + followed by 1-4 digits
+        const ccMatch = cellStr.match(/^\+(\d{1,4})/);
+        // Ensure the cell isn't a full phone number
+        if (ccMatch && cellStr.replace(/[^\d+]/g, '').length <= 5) {
+          rowCC = '+' + ccMatch[1];
+          break;
+        }
+      }
+      
+      // If not found in a specific cell, try a loose regex on the whole row
+      if (!rowCC) {
+        const looseMatch = rowStr.match(/(?:^|\s)\+(\d{1,4})(?:\s|\(|$)/);
+        if (looseMatch) {
+          rowCC = '+' + looseMatch[1];
+        }
+      }
+
+      const matches = rowStr.match(phonePattern);
+      if (matches) {
+        for (const m of matches) {
+          let cleaned = m.replace(/[\s\-()]/g, '');
+          if (cleaned.length < 7) continue;
+
+          if (cleaned.startsWith('+')) {
+            results.push(cleaned);
+          } else {
+            if (cleaned.startsWith('0') && cleaned.length > 5) {
+              cleaned = cleaned.substring(1);
+            }
+            if (rowCC) {
+              const ccDigits = rowCC.replace('+', '');
+              if (cleaned.startsWith(ccDigits)) {
+                results.push('+' + cleaned);
               } else {
-                const matches = cellStr.match(phonePattern);
-                if (matches) {
-                  const cleaned = matches.map(m => m.replace(/[\s\-()]/g, ''));
-                  results.push(...cleaned);
-                }
+                results.push(rowCC + cleaned);
+              }
+            } else {
+              const ccDigits = whatsappCountryCode.replace('+', '');
+              if (cleaned.startsWith(ccDigits)) {
+                results.push('+' + cleaned);
+              } else {
+                results.push(whatsappCountryCode + cleaned);
               }
             }
           }
         }
       }
-    } else if (typeof textOrRows === 'string') {
-      if (mode === 'email') {
-        const matches = textOrRows.match(emailPattern);
-        if (matches) {
-          results.push(...matches);
+    };
+
+    const extractEmailsFromRow = (rowCells: any[]) => {
+      let rowStr = rowCells.map(c => String(c || '').trim()).join(' ');
+      const matches = rowStr.match(emailPattern);
+      if (matches) {
+        results.push(...matches);
+      }
+    };
+
+    // Strip basic RTF/HTML for fallback string parsing
+    let processedTextOrRows = textOrRows;
+    let finalIsRows = isRows;
+
+    if (typeof processedTextOrRows === 'string' && processedTextOrRows.includes('{\\rtf')) {
+      // Very rudimentary RTF table parsing: split by \row to keep rows together
+      const rows = processedTextOrRows.split('\\row');
+      processedTextOrRows = rows.map((r: string) => r.replace(/\\[a-z0-9]+[ ]?/gi, '').replace(/[\{\}]/g, '').trim()).filter((r: string) => r.length > 0);
+      finalIsRows = true;
+    } else if (typeof processedTextOrRows === 'string' && processedTextOrRows.includes('<tr')) {
+      // Basic HTML table parsing
+      const rows = processedTextOrRows.split(/<tr[^>]*>/i);
+      processedTextOrRows = rows.map((r: string) => r.replace(/<[^>]+>/g, ' ').trim()).filter((r: string) => r.length > 0);
+      finalIsRows = true;
+    }
+
+    if (finalIsRows && Array.isArray(processedTextOrRows) && processedTextOrRows.length > 0) {
+      for (const row of processedTextOrRows) {
+        const cells = Array.isArray(row) ? row : [row];
+        if (mode === 'email') {
+          extractEmailsFromRow(cells);
+        } else {
+          extractPhonesFromRow(cells);
         }
+      }
+    } else if (typeof processedTextOrRows === 'string') {
+      if (mode === 'email') {
+        const matches = processedTextOrRows.match(emailPattern);
+        if (matches) results.push(...matches);
       } else {
-        const matches = textOrRows.match(phonePattern);
-        if (matches) {
-          const cleaned = matches.map(m => m.replace(/[\s\-()]/g, ''));
-          results.push(...cleaned);
+        // Split into lines and treat each line as a row to preserve row-level CC context
+        const lines = processedTextOrRows.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        for (const line of lines) {
+          extractPhonesFromRow([line]);
         }
       }
     }
@@ -744,10 +877,10 @@ const DashboardStrategy = () => {
           const matches = parseRecipients(rows, true);
           handleImportedEmails(matches, file.name);
         } catch (err) {
-          console.error("Excel Parse Error:", err);
+          console.error("File Parse Error:", err);
           toast({
             title: "Parse Error",
-            description: "Failed to parse Excel file.",
+            description: `Failed to parse ${extension.toUpperCase()} file.`,
             variant: "destructive"
           });
         }
@@ -757,16 +890,37 @@ const DashboardStrategy = () => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = (e.target?.result as string) || '';
-        const matches = parseRecipients(text, false);
-        handleImportedEmails(matches, file.name);
+        const rows = parseTextToRows(text);
+        if (rows) {
+          const matches = parseRecipients(rows, true);
+          handleImportedEmails(matches, file.name);
+        } else {
+          const matches = parseRecipients(text, false);
+          handleImportedEmails(matches, file.name);
+        }
       };
       reader.readAsText(file);
     }
   };
 
   const addRecipient = () => {
-    const v = newRecipient.trim();
+    let v = newRecipient.trim();
     if (!v) return;
+    if (mode === 'whatsapp') {
+      // Strip spaces, dashes, and parentheses
+      let cleanNum = v.replace(/[\s\-()]/g, '');
+      // Strip leading local zero if prepending code
+      if (cleanNum.startsWith('0') && cleanNum.length > 5 && !cleanNum.startsWith(whatsappCountryCode.replace('+', ''))) {
+        cleanNum = cleanNum.substring(1);
+      }
+      // If the number doesn't start with a plus or doesn't have the selected country code, prepend it
+      if (!cleanNum.startsWith('+') && !cleanNum.startsWith(whatsappCountryCode.replace('+', ''))) {
+        cleanNum = `${whatsappCountryCode}${cleanNum}`;
+      } else if (cleanNum.startsWith(whatsappCountryCode.replace('+', '')) && !cleanNum.startsWith('+')) {
+        cleanNum = `+${cleanNum}`;
+      }
+      v = cleanNum;
+    }
     setRecipients((r) => Array.from(new Set([...r, v])));
     setNewRecipient('');
   };
@@ -777,18 +931,25 @@ const DashboardStrategy = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${NODE_BASE}/campaigns/send`, {
+      const isWhatsapp = mode === 'whatsapp';
+      const endpoint = isWhatsapp 
+        ? `${NODE_BASE}/campaigns/send-whatsapp` 
+        : `${NODE_BASE}/campaigns/send`;
+
+      const payload: any = {
+        recipients: recipients,
+        body: campaignBody,
+        image: campaignImage,
+        subject: campaignSubject || (isWhatsapp ? 'WhatsApp Campaign' : 'Email Campaign')
+      };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          recipients: recipients,
-          subject: campaignSubject || 'Email Campaign',
-          body: campaignBody,
-          image: campaignImage
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -1006,7 +1167,7 @@ const DashboardStrategy = () => {
       } items)`;
       // ─────────────────────────────────────────────────────────────────
 
-      const promise = fetch(`${AI_BASE}/generate-strategy-images`, {
+      const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -1018,6 +1179,23 @@ const DashboardStrategy = () => {
         return res.json();
       });
 
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || 'Generation failed');
+      }
+
+      const data = await res.json();
+      const posts = data.posts || [];
+      setGenerated(posts);
+      setSavedIndices(new Set());
+      setShowHeartPop({});
+
+      if (mode === 'whatsapp' || mode === 'email') {
+        const first = posts[0] || {};
+        setCampaignImage(imgSrc(first.image) || '');
+        setCampaignBody(first.caption || '');
+        if (mode === 'email') setCampaignSubject(first.subject || '');
+      }
       promise
         .then(async (data) => {
           const posts = data.posts || [];
@@ -1032,35 +1210,36 @@ const DashboardStrategy = () => {
             if (mode === 'email') setCampaignSubject(first.subject || '');
           }
 
-          setStage('results');
+      // ── Deduct credits ONLY after successful generation ───────────
+      if (creditCost > 0 && posts.length > 0) {
+        try {
+          const token = localStorage.getItem('token');
+          const deductRes = await fetch(`${NODE_BASE}/credits/deduct`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ amount: creditCost, reason: creditReason }),
+          });
 
-          // ── Deduct credits ONLY after successful generation ───────────
-          if (creditCost > 0 && posts.length > 0) {
-            try {
-              const token = localStorage.getItem('token');
-              const deductRes = await fetch(`${NODE_BASE}/credits/deduct`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ amount: creditCost, reason: creditReason }),
-              });
-
-              if (deductRes.ok) {
-                const credData = await deductRes.json();
-                localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
-                window.dispatchEvent(new StorageEvent('storage', {
-                  key: 'velocity_credits',
-                  newValue: String(credData.credits ?? 0),
-                }));
-              } else {
-                console.warn('[Credits] Deduction failed after generation:', await deductRes.text());
-              }
-            } catch (creditErr) {
-              console.warn('[Credits] Deduction error (non-blocking):', creditErr);
-            }
+          if (deductRes.ok) {
+            const credData = await deductRes.json();
+            localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+            window.dispatchEvent(new StorageEvent('storage', {
+              key: 'velocity_credits',
+              newValue: String(credData.credits ?? 0),
+            }));
+          } else {
+            console.warn('[Credits] Deduction failed after generation:', await deductRes.text());
           }
+        } catch (creditErr) {
+          console.warn('[Credits] Deduction error (non-blocking):', creditErr);
+        }
+      }
+      // ─────────────────────────────────────────────────────────────
+
+      setStage('results');
           // ─────────────────────────────────────────────────────────────
         })
         .catch((err) => {
@@ -1368,6 +1547,8 @@ const DashboardStrategy = () => {
         setRecipients={setRecipients}
         newRecipient={newRecipient}
         setNewRecipient={setNewRecipient}
+        whatsappCountryCode={whatsappCountryCode}
+        setWhatsappCountryCode={setWhatsappCountryCode}
         addRecipient={addRecipient}
         recipientsFileRef={recipientsFileRef}
         handleRecipientsFile={handleRecipientsFile}
@@ -3133,6 +3314,8 @@ interface CampaignResultsProps {
   setRecipients: React.Dispatch<React.SetStateAction<string[]>>;
   newRecipient: string;
   setNewRecipient: (v: string) => void;
+  whatsappCountryCode: string;
+  setWhatsappCountryCode: (v: string) => void;
   addRecipient: () => void;
   recipientsFileRef: React.RefObject<HTMLInputElement | null>;
   handleRecipientsFile: (f: FileList | null) => void;
@@ -3152,9 +3335,136 @@ interface CampaignResultsProps {
   handleSaveImportedList: () => Promise<void>;
 }
 
+const COUNTRY_CODES = [
+  { code: "+91", name: "India", flag: "🇮🇳" },
+  { code: "+1", name: "United States", flag: "🇺🇸" },
+  { code: "+44", name: "United Kingdom", flag: "🇬🇧" },
+  { code: "+61", name: "Australia", flag: "🇦🇺" },
+  { code: "+64", name: "New Zealand", flag: "🇳🇿" },
+  { code: "+971", name: "United Arab Emirates", flag: "🇦🇪" },
+  { code: "+65", name: "Singapore", flag: "🇸🇬" },
+  { code: "+49", name: "Germany", flag: "🇩🇪" },
+  { code: "+33", name: "France", flag: "🇫🇷" },
+  { code: "+81", name: "Japan", flag: "🇯🇵" },
+  { code: "+86", name: "China", flag: "🇨🇳" },
+  { code: "+82", name: "South Korea", flag: "🇰🇷" },
+  { code: "+39", name: "Italy", flag: "🇮🇹" },
+  { code: "+34", name: "Spain", flag: "🇪🇸" },
+  { code: "+7", name: "Russia", flag: "🇷🇺" },
+  { code: "+55", name: "Brazil", flag: "🇧🇷" },
+  { code: "+52", name: "Mexico", flag: "🇲🇽" },
+  { code: "+27", name: "South Africa", flag: "🇿🇦" },
+  { code: "+62", name: "Indonesia", flag: "🇮🇩" },
+  { code: "+60", name: "Malaysia", flag: "🇲🇾" },
+  { code: "+66", name: "Thailand", flag: "🇹🇭" },
+  { code: "+84", name: "Vietnam", flag: "🇻🇳" },
+  { code: "+63", name: "Philippines", flag: "🇵🇭" },
+  { code: "+90", name: "Turkey", flag: "🇹🇷" },
+  { code: "+92", name: "Pakistan", flag: "🇵🇰" },
+  { code: "+880", name: "Bangladesh", flag: "🇧🇩" },
+  { code: "+94", name: "Sri Lanka", flag: "🇱🇰" },
+  { code: "+977", name: "Nepal", flag: "🇳🇵" },
+  { code: "+966", name: "Saudi Arabia", flag: "🇸🇦" },
+  { code: "+965", name: "Kuwait", flag: "🇰🇼" },
+  { code: "+974", name: "Qatar", flag: "🇶🇦" },
+  { code: "+968", name: "Oman", flag: "🇴🇲" },
+  { code: "+973", name: "Bahrain", flag: "🇧🇭" },
+  { code: "+20", name: "Egypt", flag: "🇪🇬" },
+  { code: "+31", name: "Netherlands", flag: "🇳🇱" },
+  { code: "+32", name: "Belgium", flag: "🇧🇪" },
+  { code: "+41", name: "Switzerland", flag: "🇨🇭" },
+  { code: "+43", name: "Austria", flag: "🇦🇹" },
+  { code: "+46", name: "Sweden", flag: "🇸🇪" },
+  { code: "+47", name: "Norway", flag: "🇳🇴" },
+  { code: "+45", name: "Denmark", flag: "🇩🇰" },
+  { code: "+358", name: "Finland", flag: "🇫🇮" },
+  { code: "+353", name: "Ireland", flag: "🇮🇪" },
+  { code: "+351", name: "Portugal", flag: "🇵🇹" },
+  { code: "+30", name: "Greece", flag: "🇬🇷" },
+  { code: "+48", name: "Poland", flag: "🇵🇱" },
+  { code: "+420", name: "Czech Republic", flag: "🇨🇿" },
+  { code: "+36", name: "Hungary", flag: "🇭🇺" },
+  { code: "+40", name: "Romania", flag: "🇷🇴" },
+  { code: "+380", name: "Ukraine", flag: "🇺🇦" },
+  { code: "+972", name: "Israel", flag: "🇮🇱" },
+  { code: "+962", name: "Jordan", flag: "🇯🇴" },
+  { code: "+961", name: "Lebanon", flag: "🇱🇧" },
+  { code: "+98", name: "Iran", flag: "🇮🇷" },
+  { code: "+964", name: "Iraq", flag: "🇮🇶" },
+  { code: "+93", name: "Afghanistan", flag: "🇦🇫" },
+  { code: "+212", name: "Morocco", flag: "🇲🇦" },
+  { code: "+213", name: "Algeria", flag: "🇩🇿" },
+  { code: "+216", name: "Tunisia", flag: "🇹🇳" },
+  { code: "+218", name: "Libya", flag: "🇱🇾" },
+  { code: "+234", name: "Nigeria", flag: "🇳🇬" },
+  { code: "+254", name: "Kenya", flag: "🇰🇪" },
+  { code: "+251", name: "Ethiopia", flag: "🇪🇹" },
+  { code: "+233", name: "Ghana", flag: "🇬🇭" },
+  { code: "+211", name: "South Sudan", flag: "🇸🇸" },
+  { code: "+249", name: "Sudan", flag: "🇸🇩" },
+  { code: "+256", name: "Uganda", flag: "🇺🇬" },
+  { code: "+255", name: "Tanzania", flag: "🇹🇿" },
+  { code: "+263", name: "Zimbabwe", flag: "🇿🇼" },
+  { code: "+260", name: "Zambia", flag: "🇿🇲" },
+  { code: "+244", name: "Angola", flag: "🇦🇴" },
+  { code: "+258", name: "Mozambique", flag: "🇲🇿" },
+  { code: "+264", name: "Namibia", flag: "🇳🇦" },
+  { code: "+267", name: "Botswana", flag: "🇧🇼" },
+  { code: "+230", name: "Mauritius", flag: "🇲🇺" },
+  { code: "+248", name: "Seychelles", flag: "🇸🇨" },
+  { code: "+356", name: "Malta", flag: "🇲🇹" },
+  { code: "+357", name: "Cyprus", flag: "🇨🇾" },
+  { code: "+354", name: "Iceland", flag: "🇮🇸" },
+  { code: "+370", name: "Lithuania", flag: "🇱🇹" },
+  { code: "+371", name: "Latvia", flag: "🇱🇻" },
+  { code: "+372", name: "Estonia", flag: "🇪🇪" },
+  { code: "+386", name: "Slovenia", flag: "🇸🇮" },
+  { code: "+385", name: "Croatia", flag: "🇭🇷" },
+  { code: "+381", name: "Serbia", flag: "🇷🇸" },
+  { code: "+382", name: "Montenegro", flag: "🇲🇪" },
+  { code: "+359", name: "Bulgaria", flag: "🇧🇬" },
+  { code: "+421", name: "Slovakia", flag: "🇸🇰" },
+  { code: "+373", name: "Moldova", flag: "🇲🇩" },
+  { code: "+995", name: "Georgia", flag: "🇬🇪" },
+  { code: "+994", name: "Azerbaijan", flag: "🇦🇿" },
+  { code: "+976", name: "Mongolia", flag: "🇲🇳" },
+  { code: "+95", name: "Myanmar", flag: "🇲🇲" },
+  { code: "+855", name: "Cambodia", flag: "🇰🇭" },
+  { code: "+856", name: "Laos", flag: "🇱🇦" },
+  { code: "+852", name: "Hong Kong", flag: "🇭🇰" },
+  { code: "+886", name: "Taiwan", flag: "🇹🇼" },
+  { code: "+54", name: "Argentina", flag: "🇦🇷" },
+  { code: "+56", name: "Chile", flag: "🇨🇱" },
+  { code: "+57", name: "Colombia", flag: "🇨🇴" },
+  { code: "+51", name: "Peru", flag: "🇵🇪" },
+  { code: "+58", name: "Venezuela", flag: "🇻🇪" },
+  { code: "+593", name: "Ecuador", flag: "🇪🇨" },
+  { code: "+598", name: "Uruguay", flag: "🇺🇾" },
+  { code: "+595", name: "Paraguay", flag: "🇵🇾" },
+  { code: "+591", name: "Bolivia", flag: "🇧🇴" },
+  { code: "+506", name: "Costa Rica", flag: "🇨🇷" },
+  { code: "+507", name: "Panama", flag: "🇵🇦" },
+  { code: "+502", name: "Guatemala", flag: "🇬🇹" },
+  { code: "+503", name: "El Salvador", flag: "🇸🇻" },
+  { code: "+504", name: "Honduras", flag: "🇭🇳" },
+  { code: "+505", name: "Nicaragua", flag: "🇳🇮" },
+  { code: "+597", name: "Suriname", flag: "🇸🇷" },
+  { code: "+592", name: "Guyana", flag: "🇬🇾" },
+  { code: "+509", name: "Haiti", flag: "🇭🇹" },
+  { code: "+876", name: "Jamaica", flag: "🇯🇲" },
+  { code: "+242", name: "Congo", flag: "🇨🇬" },
+  { code: "+243", name: "DR Congo", flag: "🇨🇩" },
+  { code: "+225", name: "Ivory Coast", flag: "🇨🇮" },
+  { code: "+221", name: "Senegal", flag: "🇸🇳" },
+  { code: "+237", name: "Cameroon", flag: "🇨🇲" },
+  { code: "+241", name: "Gabon", flag: "🇬🇦" },
+  { code: "+261", name: "Madagascar", flag: "🇲🇬" },
+  { code: "+679", name: "Fiji", flag: "🇫🇯" }
+];
+
 const CampaignResults: React.FC<CampaignResultsProps> = ({
   mode, brandName, image, subject, setSubject, body, setBody,
-  recipients, setRecipients, newRecipient, setNewRecipient, addRecipient,
+  recipients, setRecipients, newRecipient, setNewRecipient, whatsappCountryCode, setWhatsappCountryCode, addRecipient,
   recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage,
   savedLists, setSavedLists, selectedListId, setSelectedListId,
   showListNameModal, setShowListNameModal, listNameInput, setListNameInput, handleSaveImportedList,
@@ -3165,10 +3475,22 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
   const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const [countrySearchQuery, setCountrySearchQuery] = useState('');
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredCountries = COUNTRY_CODES.filter(c => 
+    c.name.toLowerCase().includes(countrySearchQuery.toLowerCase()) || 
+    c.code.includes(countrySearchQuery)
+  );
+
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsListDropdownOpen(false);
+      }
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
+        setIsCountryDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -3207,7 +3529,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Live preview</p>
           {isWA ? (
             /* WhatsApp phone mockup */
-            <div className="rounded-3xl overflow-hidden border-[6px] border-foreground/80 shadow-2xl max-w-sm mx-auto bg-[#e5ddd5]">
+            <div className="rounded-3xl overflow-hidden border-[6px] border-foreground/80 shadow-2xl max-w-[320px] mx-auto bg-[#e5ddd5]">
               <div className="bg-[#075E54] text-white px-3 py-2.5 flex items-center gap-3">
                 <ArrowLeft size={16} />
                 <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">
@@ -3224,18 +3546,30 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 className="p-3 min-h-[420px] space-y-2"
                 style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px)', backgroundSize: '14px 14px' }}
               >
-                <div className="ml-auto max-w-[88%] bg-[#dcf8c6] rounded-2xl rounded-tr-md shadow-sm overflow-hidden">
+                <div className="ml-auto max-w-[88%] bg-white rounded-2xl rounded-tr-md shadow-sm overflow-hidden border border-black/5 flex flex-col">
                   {image && (
-                    <div className="p-1">
-                      <img src={image} className="w-full rounded-xl aspect-square object-cover" />
-                    </div>
+                    <img src={image} className="w-full object-cover aspect-[16/10]" />
                   )}
-                  <div className="px-3 pb-2 pt-1">
-                    <pre className="text-[12px] text-foreground whitespace-pre-wrap font-sans leading-relaxed">{body}</pre>
-                    <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-foreground/50">
-                      {time} <CheckCheck size={12} className="text-[#34B7F1]" />
+                  <div className="p-3.5 pb-2.5">
+                    <h4 className="text-[13px] font-bold text-gray-900 leading-snug mb-1.5">
+                      {subject || `${brandName} Exclusive Offer`}
+                    </h4>
+                    <pre className="text-[11px] text-gray-600 whitespace-pre-wrap font-sans leading-relaxed mb-2.5">{body}</pre>
+                    <p className="text-[9px] text-gray-400 font-medium">
+                      T&C apply. Reply STOP to unsubscribe.
+                    </p>
+                    <div className="flex items-center justify-end gap-1 mt-1.5 text-[9px] text-gray-400">
+                      {time} <CheckCheck size={11} className="text-[#34B7F1]" />
                     </div>
                   </div>
+                  <a 
+                    href="#" 
+                    className="flex items-center justify-center gap-1.5 py-2.5 bg-white border-t border-gray-100 text-[11px] font-bold text-[#0066cc] hover:bg-gray-50 active:bg-gray-100 transition-colors w-full"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <ExternalLink size={11} className="text-[#0066cc]" />
+                    <span>{brandName.toLowerCase()} now</span>
+                  </a>
                 </div>
               </div>
               <div className="bg-[#f0f0f0] px-3 py-2 flex items-center gap-2">
@@ -3291,14 +3625,12 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
               {isWA ? 'Edit message' : 'Edit email body'}
             </p>
-            {!isWA && (
-              <Input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Email subject line…"
-                className="rounded-xl border-border/60 bg-card h-10 text-sm mb-2"
-              />
-            )}
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder={isWA ? "WhatsApp Heading (e.g., Flat ₹100 OFF for you!)" : "Email subject line…"}
+              className="rounded-xl border-border/60 bg-card h-10 text-sm mb-2"
+            />
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -3333,6 +3665,12 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsListDropdownOpen(!isListDropdownOpen)}
+                  title={(() => {
+                    const selectedList = savedLists.find(x => x._id === selectedListId);
+                    if (!selectedList) return '';
+                    const contacts = mode === 'whatsapp' ? selectedList.phones : selectedList.emails;
+                    return contacts?.join('\n') || '';
+                  })()}
                   className="flex items-center justify-between w-full h-10 px-3 rounded-xl border border-border/60 bg-card text-xs font-semibold hover:bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary transition-all text-left"
                 >
                   <div className="flex items-center truncate">
@@ -3343,7 +3681,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                           <>
                             <Folder size={14} className="text-primary mr-2 shrink-0" />
                             <span className="truncate text-foreground font-black">{selectedList.name}</span>
-                            <span className="text-[10px] text-muted-foreground ml-1.5 font-bold shrink-0">({selectedList.emails.length} contacts)</span>
+                            <span className="text-[10px] text-muted-foreground ml-1.5 font-bold shrink-0">({(mode === 'whatsapp' ? selectedList.phones : selectedList.emails)?.length || 0} contacts)</span>
                           </>
                         );
                       }
@@ -3386,28 +3724,37 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
 
                       {savedLists.map((list) => {
                         const isSelected = list._id === selectedListId;
+                        const contacts = mode === 'whatsapp' ? list.phones : list.emails;
+                        const safeContacts = contacts || [];
+                        const contactsPreview = safeContacts.slice(0, 3).join(', ') + (safeContacts.length > 3 ? '...' : '');
                         return (
                           <div
                             key={list._id}
                             onClick={() => {
                               setSelectedListId(list._id);
-                              setRecipients(list.emails);
+                              setRecipients(safeContacts);
                               setIsListDropdownOpen(false);
                             }}
+                            title={safeContacts.join('\n')}
                             className={cn(
-                              "flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer",
+                              "flex flex-col px-3 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer",
                               isSelected
                                 ? "bg-primary/10 text-primary"
                                 : "text-foreground hover:bg-muted"
                             )}
                           >
-                            <div className="flex items-center min-w-0">
-                              <Folder size={14} className={cn("mr-2 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
-                              <span className="truncate">{list.name}</span>
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center min-w-0">
+                                <Folder size={14} className={cn("mr-2 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
+                                <span className="truncate">{list.name}</span>
+                              </div>
+                              <span className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ml-2", isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                                {safeContacts.length} contacts
+                              </span>
                             </div>
-                            <span className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ml-2", isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
-                              {list.emails.length} contacts
-                            </span>
+                            <div className="text-[10px] text-muted-foreground/70 font-medium truncate ml-5 mt-1 max-w-[320px]">
+                              {contactsPreview}
+                            </div>
                           </div>
                         );
                       })}
@@ -3417,22 +3764,73 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
               </div>
             )}
             <div className="flex gap-2 mb-2">
+              {isWA && (
+                <div ref={countryDropdownRef} className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                    className="rounded-xl border border-border/60 bg-card h-10 px-3 text-sm focus:outline-none text-foreground flex items-center gap-1.5 font-semibold hover:bg-muted/30 transition-all"
+                  >
+                    <span>{COUNTRY_CODES.find(c => c.code === whatsappCountryCode)?.flag || '🌐'}</span>
+                    <span>{whatsappCountryCode}</span>
+                    <ChevronDown size={12} className={cn("text-muted-foreground transition-transform", isCountryDropdownOpen && "transform rotate-180")} />
+                  </button>
+                  
+                  {isCountryDropdownOpen && (
+                    <div className="absolute left-0 mt-1 z-[60] w-64 bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-2xl p-2 flex flex-col gap-2">
+                      <Input
+                        type="text"
+                        value={countrySearchQuery}
+                        onChange={(e) => setCountrySearchQuery(e.target.value)}
+                        placeholder="Search country or code..."
+                        className="h-8 rounded-lg text-xs bg-muted/30 border-border/50"
+                        autoFocus
+                      />
+                      <div className="max-h-60 overflow-y-auto space-y-0.5">
+                        {filteredCountries.length > 0 ? (
+                          filteredCountries.map((c) => (
+                            <button
+                              key={c.name + c.code}
+                              type="button"
+                              onClick={() => {
+                                setWhatsappCountryCode(c.code);
+                                setIsCountryDropdownOpen(false);
+                                setCountrySearchQuery('');
+                              }}
+                              className={cn(
+                                "flex items-center gap-2 px-2.5 py-2 hover:bg-muted rounded-xl text-xs font-semibold cursor-pointer w-full text-left transition-colors",
+                                whatsappCountryCode === c.code ? "bg-primary/10 text-primary" : "text-foreground"
+                              )}
+                            >
+                              <span className="text-sm shrink-0">{c.flag}</span>
+                              <span className="flex-1 truncate text-left">{c.name}</span>
+                              <span className="text-[10px] text-muted-foreground font-mono font-bold shrink-0">{c.code}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="text-[10px] text-muted-foreground text-center py-4 font-semibold">No countries found</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <Input
                 value={newRecipient}
                 onChange={(e) => setNewRecipient(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
-                placeholder={isWA ? '+91 98765 43210' : 'email@example.com'}
-                className="rounded-xl border-border/60 bg-card h-10 text-sm"
+                placeholder={isWA ? '98765 43210' : 'email@example.com'}
+                className="rounded-xl border-border/60 bg-card h-10 text-sm flex-1"
               />
               <Button onClick={addRecipient} variant="outline" className="rounded-xl h-10 shrink-0">Add</Button>
             </div>
             {recipients.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+              <div className="flex flex-wrap gap-1.5 max-h-72 overflow-y-auto border border-border/40 rounded-xl p-3 bg-muted/20 mb-3">
                 {recipients.map((r, i) => (
-                  <span key={i} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                  <span key={i} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted border border-border/20 text-xs font-medium">
                     {r}
                     <button onClick={() => setRecipients((prev) => prev.filter((_, idx) => idx !== i))}>
-                      <X size={10} className="text-muted-foreground hover:text-foreground" />
+                      <X size={10} className="text-muted-foreground hover:text-foreground cursor-pointer" />
                     </button>
                   </span>
                 ))}

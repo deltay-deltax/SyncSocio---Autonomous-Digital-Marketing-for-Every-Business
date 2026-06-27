@@ -31,6 +31,12 @@ const GoogleIcon = ({ size = 20, className = "" }: { size?: number; className?: 
   </svg>
 );
 
+const WhatsAppIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12.004 2c-5.518 0-10 4.482-10 10 0 1.767.46 3.427 1.263 4.887L2 22l5.286-1.39A9.957 9.957 0 0 0 12.004 22c5.518 0 10-4.482 10-10s-4.482-10-10-10zm0 1.636c4.613 0 8.364 3.75 8.364 8.364 0 4.613-3.75 8.364-8.364 8.364a8.315 8.315 0 0 1-4.267-1.17l-.307-.183-3.167.832.846-3.087-.202-.32a8.32 8.32 0 0 1-1.269-4.436c0-4.613 3.75-8.364 8.364-8.364zm-3.52 3.393c-.198 0-.523.074-.796.371-.272.296-1.042 1.018-1.042 2.48 0 1.463 1.066 2.877 1.215 3.076.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.695.626.713.226 1.36.194 1.872.118.572-.085 1.603-.656 1.83-1.262.228-.605.228-1.123.16-1.233-.07-.11-.25-.181-.522-.317-.272-.136-1.61-.795-1.859-.885-.25-.09-.431-.136-.613.136-.182.273-.703.885-.862 1.068-.16.182-.318.204-.59.068-.272-.136-1.15-.424-2.19-1.353-.809-.722-1.355-1.616-1.514-1.888-.159-.272-.017-.42.12-.556.121-.122.27-.318.407-.477.136-.159.18-.273.272-.455.09-.182.045-.34-.023-.477-.07-.136-.613-1.477-.84-2.023-.223-.534-.488-.46-.67-.47l-.57-.01z"/>
+  </svg>
+);
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -752,6 +758,105 @@ const DashboardSettings = () => {
                         size="sm" 
                         className="gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
                         onClick={() => handleConnectGmail()}
+                      >
+                        Connect
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* WhatsApp Connection */}
+                  {profile.whatsappIsConnected ? (
+                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-tr from-[#128C7E] to-[#25D366] border border-green-500/30">
+                        <WhatsAppIcon size={28} className="text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-black text-foreground">{profile.whatsappNumber || 'Connected'}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+                        onClick={async () => {
+                          const num = prompt("Enter your WhatsApp Business Number to reconnect:", profile.whatsappNumber || '');
+                          if (num) {
+                            try {
+                              const token = localStorage.getItem('token');
+                              const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                              const profileRes = await fetch(`${apiBase}/profile`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                  whatsappIsConnected: true,
+                                  whatsappNumber: num
+                                })
+                              });
+                              if (!profileRes.ok) throw new Error('Failed to reconnect WhatsApp');
+                              const updatedProfile = await profileRes.json();
+                              setProfile(updatedProfile);
+                              localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+                              alert('WhatsApp account reconnected successfully.');
+                            } catch (err: any) {
+                              alert('Error: ' + err.message);
+                            }
+                          }
+                        }}
+                      >
+                        <RefreshCw size={14} className="mr-2" /> Reconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
+                        <WhatsAppIcon size={28} className="text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-black text-foreground">WhatsApp Business API</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
+                        onClick={async () => {
+                          const num = prompt("Enter your WhatsApp Business Number to connect:");
+                          if (num) {
+                            try {
+                              const token = localStorage.getItem('token');
+                              const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                              const profileRes = await fetch(`${apiBase}/profile`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                  whatsappIsConnected: true,
+                                  whatsappNumber: num
+                                })
+                              });
+                              if (!profileRes.ok) throw new Error('Failed to connect WhatsApp');
+                              const updatedProfile = await profileRes.json();
+                              setProfile(updatedProfile);
+                              localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+                              alert('WhatsApp account connected successfully.');
+                              if (setShowNotifications) {
+                                setShowNotifications(true);
+                              }
+                            } catch (err: any) {
+                              alert('Error: ' + err.message);
+                            }
+                          }
+                        }}
                       >
                         Connect
                       </Button>
