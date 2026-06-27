@@ -28,6 +28,7 @@ interface BrandShape {
 interface Props {
   brand?: BrandShape;
   language?: 'english' | 'hinglish' | 'hindi';
+  isSaas?: boolean;  // When true: SaaS/Services/Consulting mode — override all D2C angles
   onGenerate?: (data: {
     prompt: string;
     postType: 'Static Ad' | 'Story';
@@ -322,6 +323,233 @@ const FILTERS: ({ id: 'all'; label: string } | { id: FestivalType; label: string
   { id: 'regional', label: 'Regional' },
 ];
 
+// ── SaaS Festival Angles ──────────────────────────────────────────────────────
+// Replaces all D2C/skincare angles with B2B thought-leadership angles for
+// SaaS & Digital, Services, and Coaching & Consulting brands.
+const SAAS_FESTIVAL_ANGLES: Record<string, Festival['angles']> = {
+  // NATIONAL
+  republic_day: [
+    { id: 'milestone', label: 'Company Milestone', emoji: '🏆', description: 'Share a key achievement from the past year' },
+    { id: 'vision', label: 'Vision & Mission', emoji: '🎯', description: 'Restate your brand\'s purpose and national impact' },
+    { id: 'community', label: 'Community Story', emoji: '🤝', description: 'Celebrate the community you serve' },
+  ],
+  independence_day: [
+    { id: 'independence', label: 'Freedom from Manual Work', emoji: '⚡', description: 'How your solution liberates teams from repetitive tasks' },
+    { id: 'indian_growth', label: 'Built for India', emoji: '🇮🇳', description: 'Your contribution to Indian entrepreneurship' },
+    { id: 'team_culture', label: 'Team Culture', emoji: '👥', description: 'Celebrate the team behind the brand' },
+  ],
+  gandhi_jayanti: [
+    { id: 'simplicity', label: 'Simplify Your Stack', emoji: '🕊️', description: 'Less is more — how you simplify complex workflows' },
+    { id: 'values', label: 'Brand Values', emoji: '💚', description: 'The principles that drive your business decisions' },
+    { id: 'impact', label: 'Social Impact', emoji: '🌱', description: 'A genuine story of positive impact in the community' },
+  ],
+  // COMMERCE
+  new_year: [
+    { id: 'year_wrap', label: '2025 In Numbers', emoji: '📊', description: 'Share key metrics and wins from the past year' },
+    { id: 'goals', label: 'Goals for 2026', emoji: '🎯', description: 'Preview what your team is building this year' },
+    { id: 'framework', label: 'New Year Framework', emoji: '🧠', description: 'Share a planning framework for the new year' },
+  ],
+  valentines: [
+    { id: 'love_clients', label: 'Client Love', emoji: '❤️', description: 'Celebrate the clients who trust you most' },
+    { id: 'team_appreciation', label: 'Team Appreciation', emoji: '💜', description: 'Spotlight the people behind your brand' },
+    { id: 'product_love', label: 'What We Love Building', emoji: '🚀', description: 'Share what excites your team about the product' },
+  ],
+  womens_day: [
+    { id: 'empowerment', label: 'Women in Tech/Business', emoji: '💪', description: 'Spotlight women leaders and your D&I stance' },
+    { id: 'team_spotlight', label: 'Team Spotlight', emoji: '🌟', description: 'Feature women on your team making impact' },
+    { id: 'thought_leadership', label: 'Industry Insight', emoji: '🧠', description: 'A provocative stat or insight on women in your industry' },
+  ],
+  mothers_day: [
+    { id: 'team_story', label: 'Team Family Story', emoji: '🌷', description: 'A human story from the team about work-life balance' },
+    { id: 'gratitude', label: 'Client Gratitude', emoji: '💌', description: 'Thank your clients in a warm, human way' },
+    { id: 'insight', label: 'Industry Reflection', emoji: '💡', description: 'A reflective insight connecting the theme to business' },
+  ],
+  fathers_day: [
+    { id: 'leadership', label: 'Leadership Lesson', emoji: '👔', description: 'A lesson about leadership or mentorship' },
+    { id: 'team_story', label: 'Founder/Team Story', emoji: '🏗️', description: 'A personal story about building with purpose' },
+    { id: 'insight', label: 'Business Wisdom', emoji: '🧠', description: 'A framework or principle that guides your work' },
+  ],
+  childrens_day: [
+    { id: 'curiosity', label: 'Stay Curious', emoji: '🔭', description: 'The value of curiosity and learning in business' },
+    { id: 'future', label: 'Building the Future', emoji: '🚀', description: 'What you\'re building for tomorrow\'s generation' },
+    { id: 'team_culture', label: 'Learning Culture', emoji: '📚', description: 'How your team keeps learning and growing' },
+  ],
+  // HINDU
+  makar_sankranti: [
+    { id: 'fresh_start', label: 'New Season, New Goals', emoji: '☀️', description: 'Use the seasonal shift as a business planning hook' },
+    { id: 'harvest', label: 'Q1 Planning', emoji: '🌾', description: 'Share a Q1 goal-setting framework' },
+    { id: 'community', label: 'Community Celebration', emoji: '🎉', description: 'Warm wishes + a genuine brand milestone' },
+  ],
+  vasant_panchami: [
+    { id: 'knowledge', label: 'Knowledge & Learning', emoji: '📚', description: 'The role of learning in growing your business' },
+    { id: 'spring_launch', label: 'Spring Feature Launch', emoji: '🌸', description: 'A new feature, product, or initiative going live' },
+    { id: 'insight', label: 'Industry Insight', emoji: '💡', description: 'A sharp insight for your audience this season' },
+  ],
+  mahashivratri: [
+    { id: 'focus', label: 'Deep Work & Focus', emoji: '🕉️', description: 'The power of focused work and minimal distraction' },
+    { id: 'transformation', label: 'Transformation Story', emoji: '🔄', description: 'A client or product transformation story' },
+    { id: 'community', label: 'Gratitude Post', emoji: '🙏', description: 'A thoughtful appreciation post for your community' },
+  ],
+  holi: [
+    { id: 'bold_thinking', label: 'Think in Color', emoji: '🎨', description: 'Bold, colorful thinking — challenge convention in your industry' },
+    { id: 'team_culture', label: 'Team Celebration', emoji: '🌈', description: 'A vibrant, energetic team culture post' },
+    { id: 'rebrand', label: 'Fresh Perspective', emoji: '✨', description: 'A new way of looking at a familiar business problem' },
+  ],
+  ram_navami: [
+    { id: 'values', label: 'Brand Values', emoji: '💛', description: 'The core principles that guide your team and brand' },
+    { id: 'leadership', label: 'Leadership Reflection', emoji: '🏹', description: 'A thought on decisive, principled leadership' },
+    { id: 'community', label: 'Community Moment', emoji: '🌸', description: 'A warm, inclusive community celebration post' },
+  ],
+  akshaya_tritiya: [
+    { id: 'investment', label: 'Invest in Your Business', emoji: '💰', description: 'Why now is the right time to invest in [your category]' },
+    { id: 'roi', label: 'ROI Story', emoji: '📈', description: 'A real client ROI or growth story' },
+    { id: 'growth', label: 'Growth Mindset', emoji: '🌱', description: 'A framework for sustainable business growth' },
+  ],
+  raksha_bandhan: [
+    { id: 'partnership', label: 'Partnership Story', emoji: '🤝', description: 'Celebrate a key partner or integration' },
+    { id: 'community', label: 'Client Relationships', emoji: '❤️', description: 'The bond between your brand and your clients' },
+    { id: 'team', label: 'Team Bond', emoji: '🎀', description: 'Celebrate the unbreakable bonds within your team' },
+  ],
+  janmashtami: [
+    { id: 'origin_story', label: 'Origin Story', emoji: '✨', description: 'Share the founding story of your brand' },
+    { id: 'joyful', label: 'Celebrate the Team', emoji: '🦚', description: 'A joyful, celebratory post about your people' },
+    { id: 'wisdom', label: 'Business Lesson', emoji: '🪭', description: 'A timeless insight applied to modern business' },
+  ],
+  ganesh_chaturthi: [
+    { id: 'new_beginning', label: 'New Product/Feature Launch', emoji: '🐘', description: 'Position your launch as a new beginning' },
+    { id: 'obstacles', label: 'Removing Obstacles', emoji: '🚀', description: 'How your solution removes key business obstacles' },
+    { id: 'gratitude', label: 'Community Gratitude', emoji: '🙏', description: 'Celebrate and thank your growing community' },
+  ],
+  navratri: [
+    { id: 'energy', label: 'High-Energy Team Culture', emoji: '💃', description: 'The vibrant energy that drives your team forward' },
+    { id: 'nine_days', label: '9-Day Challenge/Tip Series', emoji: '✨', description: 'Share 9 quick tips or insights (one per day)' },
+    { id: 'strength', label: 'Strength & Resilience', emoji: '⚡', description: 'The resilience that defines your brand journey' },
+  ],
+  dussehra: [
+    { id: 'victory', label: 'Victory Over Inefficiency', emoji: '🏹', description: 'How your brand helps defeat workflow bottlenecks' },
+    { id: 'milestone', label: 'Team Win', emoji: '🏆', description: 'Celebrate a recent team or product victory' },
+    { id: 'case_study', label: 'Client Win Story', emoji: '🎆', description: 'A brief, punchy client success story' },
+  ],
+  dhanteras: [
+    { id: 'roi', label: 'Invest in Growth', emoji: '💎', description: 'Why investing in [your solution] is the best ROI decision' },
+    { id: 'value', label: 'Value Story', emoji: '📈', description: 'The long-term value your brand creates for clients' },
+    { id: 'auspicious_launch', label: 'Launch Announcement', emoji: '🪙', description: 'Use the auspicious day to announce something new' },
+  ],
+  diwali: [
+    { id: 'light_up', label: 'Light Up Your Growth', emoji: '🪔', description: 'How your brand lights up client business outcomes' },
+    { id: 'year_milestone', label: 'Year-End Milestone', emoji: '✨', description: 'Reflect on wins from the year with your community' },
+    { id: 'new_beginning', label: 'New Phase Launch', emoji: '🎇', description: 'Use Diwali as a launch moment for a new initiative' },
+  ],
+  bhai_dooj: [
+    { id: 'partnership', label: 'Partner Appreciation', emoji: '🤝', description: 'Celebrate a key business partner relationship' },
+    { id: 'team_bond', label: 'Team Bonds', emoji: '❤️', description: 'A warm post about the brotherly bonds in your team' },
+    { id: 'community', label: 'Community Love', emoji: '💙', description: 'Appreciation for the community that supports you' },
+  ],
+  chhath_puja: [
+    { id: 'dedication', label: 'Dedicated to Excellence', emoji: '☀️', description: 'The dedication and discipline behind your brand' },
+    { id: 'sustainability', label: 'Sustainable Growth', emoji: '🌱', description: 'Building business sustainably for the long term' },
+    { id: 'community', label: 'Community Celebration', emoji: '🙏', description: 'A respectful, inclusive celebration post' },
+  ],
+  // REGIONAL
+  pongal: [
+    { id: 'harvest', label: 'Q1 Harvest: Key Wins', emoji: '🌾', description: 'Share the wins your clients harvested using your solution' },
+    { id: 'new_chapter', label: 'New Chapter', emoji: '🌅', description: 'A fresh-start energy post for the new quarter' },
+    { id: 'team_culture', label: 'South India Spotlight', emoji: '☀️', description: 'Celebrate the South Indian tech and business ecosystem' },
+  ],
+  baisakhi: [
+    { id: 'harvest', label: 'Results Season', emoji: '🌻', description: 'It\'s harvest time — share your clients\' results' },
+    { id: 'new_financial_year', label: 'New Financial Year', emoji: '📊', description: 'Planning tips for the new Indian financial year' },
+    { id: 'community', label: 'Community Celebration', emoji: '🎉', description: 'A warm, inclusive celebration for the season' },
+  ],
+  onam: [
+    { id: 'abundance', label: 'Abundance Story', emoji: '🌸', description: 'The abundance your solution creates for clients' },
+    { id: 'community', label: 'Kerala Tech Community', emoji: '🌴', description: 'Celebrate the vibrant South Indian tech ecosystem' },
+    { id: 'milestone', label: 'Team Milestone', emoji: '🎊', description: 'A joyful team or product milestone celebration' },
+  ],
+  ugadi: [
+    { id: 'new_year_goals', label: 'New Year Goals', emoji: '🌿', description: 'Set bold goals for the Telugu/Kannada new year' },
+    { id: 'fresh_start', label: 'Fresh Product Chapter', emoji: '✨', description: 'A new product phase or roadmap announcement' },
+    { id: 'community', label: 'South India Community', emoji: '🌺', description: 'Celebrate the rich culture and business community' },
+  ],
+  bihu: [
+    { id: 'team_culture', label: 'Joyful Team Culture', emoji: '🎵', description: 'The energy and celebration at the heart of your team' },
+    { id: 'northeast_spotlight', label: 'Northeast India Spotlight', emoji: '🌾', description: 'Celebrate the growing business ecosystem in Northeast India' },
+    { id: 'community', label: 'Community Moment', emoji: '🎉', description: 'A celebratory community post with cultural respect' },
+  ],
+  durga_puja: [
+    { id: 'strength', label: 'Strength & Power', emoji: '🌺', description: 'The power of your solution to overcome business challenges' },
+    { id: 'kolkata_ecosystem', label: 'Bengal Business Spotlight', emoji: '✨', description: 'Celebrate the Bengal startup and business ecosystem' },
+    { id: 'team_culture', label: 'Team Celebration', emoji: '🎊', description: 'A joyful team culture moment inspired by the pujo spirit' },
+  ],
+  // MUSLIM
+  eid_fitr: [
+    { id: 'gratitude', label: 'Client Gratitude', emoji: '🌙', description: 'Express deep gratitude to clients and the community' },
+    { id: 'renewal', label: 'Product Renewal/Update', emoji: '✨', description: 'Use Eid as a moment to announce a fresh update' },
+    { id: 'community', label: 'Inclusive Community Post', emoji: '🤝', description: 'A warm, inclusive Eid Mubarak to your entire community' },
+  ],
+  eid_adha: [
+    { id: 'sacrifice', label: 'Built on Sacrifice', emoji: '💙', description: 'The dedication and sacrifice behind your brand journey' },
+    { id: 'gratitude', label: 'Community Gratitude', emoji: '🌙', description: 'Thank your community warmly and inclusively' },
+    { id: 'milestone', label: 'Brand Milestone', emoji: '🏆', description: 'Celebrate a key company achievement' },
+  ],
+  muharram: [
+    { id: 'reflection', label: 'Reflection & Resilience', emoji: '🕊️', description: 'A thoughtful, respectful reflection on resilience in business' },
+    { id: 'values', label: 'Brand Values', emoji: '💚', description: 'Revisit the core values that guide your brand' },
+    { id: 'community', label: 'Respectful Solidarity', emoji: '🤝', description: 'A thoughtful, respectful acknowledgment of the occasion' },
+  ],
+  // CHRISTIAN
+  good_friday: [
+    { id: 'reflection', label: 'Pause & Reflect', emoji: '🕊️', description: 'A thoughtful pause — what your brand stands for' },
+    { id: 'resilience', label: 'Resilience Story', emoji: '💙', description: 'A story of overcoming challenges with purpose' },
+    { id: 'community', label: 'Community Respect', emoji: '✝️', description: 'A respectful, inclusive post acknowledging the day' },
+  ],
+  easter: [
+    { id: 'renewal', label: 'Product Rebirth/Update', emoji: '🌱', description: 'A new product update or rebrand announcement' },
+    { id: 'fresh_start', label: 'Fresh Start Energy', emoji: '🐣', description: 'A spring-energy post about new beginnings in business' },
+    { id: 'growth', label: 'Growth Story', emoji: '🌷', description: 'A client or brand growth story that mirrors renewal' },
+  ],
+  christmas: [
+    { id: 'year_review', label: 'Year in Review', emoji: '🎄', description: 'Key achievements, lessons, and gratitude for the year' },
+    { id: 'team_appreciation', label: 'Team Appreciation', emoji: '🎁', description: 'Celebrate the people who made this year possible' },
+    { id: 'vision', label: '2026 Vision Teaser', emoji: '✨', description: 'Tease what\'s coming in the new year with excitement' },
+  ],
+  // ECOM (repurposed for SaaS)
+  amazon_sale: [
+    { id: 'featured', label: 'Platform Feature', emoji: '🚀', description: 'Get featured or integrate with top platforms' },
+    { id: 'roi', label: 'ROI Story', emoji: '📊', description: 'How clients achieve more with less using your platform' },
+    { id: 'insight', label: 'Market Insight', emoji: '💡', description: 'A sharp insight about the current market opportunity' },
+  ],
+  big_billion: [
+    { id: 'growth', label: 'Billion in Savings', emoji: '💰', description: 'The collective value created for your client base' },
+    { id: 'scale', label: 'Scale Story', emoji: '📈', description: 'How you help businesses scale without chaos' },
+    { id: 'milestone', label: 'Company Milestone', emoji: '🏆', description: 'A major product or revenue milestone' },
+  ],
+  black_friday: [
+    { id: 'value', label: 'Real Value, Not Discounts', emoji: '💎', description: 'Why long-term value beats one-day deals' },
+    { id: 'roi', label: 'Year-Round ROI', emoji: '📊', description: 'The consistent ROI clients see every month' },
+    { id: 'insight', label: 'Contrarian Take', emoji: '🧠', description: 'A bold contrarian perspective on Black Friday for B2B' },
+  ],
+  end_of_season_summer: [
+    { id: 'q2_review', label: 'H1 Wrap-Up', emoji: '☀️', description: 'Key learnings and results from the first half of the year' },
+    { id: 'planning', label: 'H2 Planning', emoji: '📋', description: 'A framework or tips for planning the second half' },
+    { id: 'team_milestone', label: 'Team Milestone', emoji: '🏖️', description: 'Celebrate a key team achievement this quarter' },
+  ],
+  end_of_season_winter: [
+    { id: 'year_wrap', label: 'Year-End Wrap', emoji: '❄️', description: 'Full-year summary of client wins and team achievements' },
+    { id: 'roadmap', label: '2026 Roadmap Teaser', emoji: '🗺️', description: 'Tease what\'s on the product roadmap for next year' },
+    { id: 'gratitude', label: 'Community Gratitude', emoji: '🙏', description: 'A heartfelt thank-you to everyone who believed in you' },
+  ],
+};
+
+// Returns SaaS angles for a festival, falling back to generic B2B angles
+const getSaasAngles = (festivalId: string): Festival['angles'] => {
+  return SAAS_FESTIVAL_ANGLES[festivalId] || [
+    { id: 'milestone', label: 'Company Milestone', emoji: '🏆', description: 'Share a key achievement or company win' },
+    { id: 'insight', label: 'Industry Insight', emoji: '💡', description: 'A sharp, relevant insight for your audience' },
+    { id: 'community', label: 'Community Appreciation', emoji: '🤝', description: 'Celebrate and thank your community or clients' },
+  ];
+};
+
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -343,7 +571,7 @@ function imgSrc(src: string | null | undefined): string {
   return `data:image/jpeg;base64,${src}`;
 }
 
-export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'english', onGenerate, products }) => {
+export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'english', isSaas = false, onGenerate, products }) => {
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [filter, setFilter] = useState<'all' | FestivalType>('all');
@@ -355,6 +583,8 @@ export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'engl
   const [imageCount, setImageCount] = useState<number>(1);
   const [customInstruction, setCustomInstruction] = useState<string>('');
   const [showProdModal, setShowProdModal] = useState<boolean>(false);
+  // SaaS-only: campaign focus input (replaces product picker)
+  const [campaignFocus, setCampaignFocus] = useState<string>('');
 
   const filtered = useMemo(
     () => FESTIVALS_2026.filter((f) => filter === 'all' || f.type === filter),
@@ -391,11 +621,14 @@ export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'engl
   }, [cursor]);
 
   const openFestival = (f: Festival) => {
-    setSelected(f);
-    setAngleId(f.angles[0].id);
+    // When isSaas, use SaaS-specific angles instead of D2C ones
+    setSelected(isSaas ? { ...f, angles: getSaasAngles(f.id) } : f);
+    const angles = isSaas ? getSaasAngles(f.id) : f.angles;
+    setAngleId(angles[0].id);
     setPostType('Static Ad');
     setLang(language);
     setSelectedProductId('');
+    setCampaignFocus('');
     setImageCount(1);
     setCustomInstruction('');
   };
@@ -405,8 +638,54 @@ export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'engl
 
   const buildPrompt = () => {
     if (!selected || !selectedAngle) return '';
-    
-    // 1. BRAND DNA
+
+    if (isSaas) {
+      // ── SaaS mode prompt ────────────────────────────────────────────────
+      const brandDna = `BRAND DNA:
+- Brand Name: ${brand.brandName || 'Your Brand'}
+- Business Category: ${brand.businessCategory || 'SaaS & Digital'}
+- Brand Tone: ${brand.brandTone || 'Professional & Direct'}
+- Color Palette: Primary ${brand.primaryColor || '#2563eb'}, Secondary ${brand.secondaryColor || '#6366f1'}
+- Visual Style: ${brand.visualStyle || 'Clean minimal B2B'}`;
+
+      const saasDirective = `SAAS/SERVICES BRAND RULES:
+- NO product packaging photography
+- NO discount, sale, or urgency language
+- NO lifestyle stock photos
+- USE dashboard UI, workspace, data visuals, or clean typographic layouts
+- Headlines must lead with outcomes, insights, or frameworks
+- Tone: professional, B2B, thought-leadership focused`;
+
+      const campaignInfo = `OCCASION: ${selected.name} ${selected.emoji}
+CAMPAIGN ANGLE: ${selectedAngle.label} — ${selectedAngle.description}`;
+
+      const focusInfo = campaignFocus.trim()
+        ? `CAMPAIGN FOCUS / BRAND CONTEXT:\n${campaignFocus.trim()}`
+        : '';
+
+      const langInstr =
+        lang === 'english' ? 'Write in clean professional English.'
+        : lang === 'hinglish' ? 'Write in Hinglish — mix Hindi words naturally with an English base. Professional B2B tone.'
+        : 'Write entirely in Hindi using Devanagari script. Maintain professional tone.';
+
+      const customInstrLine = customInstruction.trim()
+        ? `CUSTOM INSTRUCTIONS:\n${customInstruction.trim()}`
+        : '';
+
+      const creativePrompt = `CREATIVE BRIEF:
+Create a premium B2B brand post for ${selected.name}.
+Angle: ${selectedAngle.label} — ${selectedAngle.description}.
+Visual: Use clean professional workspace photography, UI dashboards, data charts, or elegant typographic layouts in brand colors.
+No product shots. No sale badges. No discount copy.
+Post type: ${postType}.
+${langInstr}`;
+
+      return [brandDna, saasDirective, campaignInfo, focusInfo, customInstrLine, creativePrompt]
+        .filter(Boolean)
+        .join('\n\n');
+    }
+
+    // ── D2C / original mode prompt ────────────────────────────────────────
     const brandDna = `BRAND DNA:
 - Brand Name: ${brand.brandName || 'Your Brand'}
 - Business Category: ${brand.businessCategory || 'D2C'}
@@ -441,8 +720,7 @@ LANGUAGE INSTRUCTION: ${langInstr}`;
 
     // 5. INSTRUCTION (Optional Instruction Box)
     const customInstrLine = customInstruction.trim()
-      ? `CUSTOM INSTRUCTIONS:
-${customInstruction.trim()}`
+      ? `CUSTOM INSTRUCTIONS:\n${customInstruction.trim()}`
       : '';
 
     // 6. ACTUAL CREATIVE PROMPT
@@ -459,15 +737,7 @@ ${angleLine}
 Ensure a clean layout, ${brand.visualStyle || 'modern premium'} aesthetic, and bold readable text.`;
 
     // Combine all sections clearly
-    return `${brandDna}
-
-${productDna}
-
-${campaignAngle}
-
-${postTypeAndLang}
-${customInstrLine ? `\n${customInstrLine}\n` : ''}
-${actualPrompt}`;
+    return `${brandDna}\n\n${productDna}\n\n${campaignAngle}\n\n${postTypeAndLang}${customInstrLine ? `\n\n${customInstrLine}` : ''}\n\n${actualPrompt}`;
   };
 
   const prompt = buildPrompt();
@@ -717,50 +987,64 @@ ${actualPrompt}`;
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Choose Product Card */}
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Choose product (optional)</p>
-                    {chosenProduct ? (
-                      <div
-                        onClick={() => setShowProdModal(true)}
-                        className="h-20 flex items-center justify-between px-3 py-2 border border-primary bg-primary/5 ring-1 ring-primary rounded-2xl cursor-pointer relative overflow-hidden group transition duration-200"
-                      >
-                        <div className="flex items-center gap-2.5 overflow-hidden">
-                          {chosenProduct.imageBase64 ? (
-                            <img src={imgSrc(chosenProduct.imageBase64)} className="w-10 h-10 rounded-lg object-contain bg-white border border-border/40 shrink-0" alt="" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                              <Package size={16} className="text-muted-foreground/30" />
-                            </div>
-                          )}
-                          <div className="text-left overflow-hidden">
-                            <p className="text-xs font-bold text-foreground truncate w-full">{chosenProduct.name}</p>
-                            <p className="text-[9px] text-muted-foreground/80 uppercase tracking-widest">{chosenProduct.price ? `$${chosenProduct.price}` : 'Product'}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedProductId('');
-                          }}
-                          className="w-5 h-5 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center shrink-0 transition"
+                  {/* Campaign Focus (SaaS) OR Product Picker (D2C) */}
+                  {isSaas ? (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Campaign focus (optional)</p>
+                      <div className="h-20 flex items-center">
+                        <textarea
+                          value={campaignFocus}
+                          onChange={(e) => setCampaignFocus(e.target.value)}
+                          placeholder={`e.g. "We just crossed 500 clients" or "Launching our new automation feature"`}
+                          className="w-full h-full p-3 rounded-xl border border-border/60 bg-card text-xs text-foreground resize-none leading-normal focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Choose product (optional)</p>
+                      {chosenProduct ? (
+                        <div
+                          onClick={() => setShowProdModal(true)}
+                          className="h-20 flex items-center justify-between px-3 py-2 border border-primary bg-primary/5 ring-1 ring-primary rounded-2xl cursor-pointer relative overflow-hidden group transition duration-200"
                         >
-                          <X size={10} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => setShowProdModal(true)}
-                        className="h-20 flex flex-col items-center justify-center p-3 border border-border/60 hover:border-primary/40 bg-card rounded-2xl cursor-pointer relative overflow-hidden group transition duration-200 text-center"
-                      >
-                        <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1.5 group-hover:bg-primary group-hover:text-primary-foreground transition duration-200">
-                          <ShoppingBag size={13} />
+                          <div className="flex items-center gap-2.5 overflow-hidden">
+                            {chosenProduct.imageBase64 ? (
+                              <img src={imgSrc(chosenProduct.imageBase64)} className="w-10 h-10 rounded-lg object-contain bg-white border border-border/40 shrink-0" alt="" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                <Package size={16} className="text-muted-foreground/30" />
+                              </div>
+                            )}
+                            <div className="text-left overflow-hidden">
+                              <p className="text-xs font-bold text-foreground truncate w-full">{chosenProduct.name}</p>
+                              <p className="text-[9px] text-muted-foreground/80 uppercase tracking-widest">{chosenProduct.price ? `$${chosenProduct.price}` : 'Product'}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedProductId('');
+                            }}
+                            className="w-5 h-5 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground flex items-center justify-center shrink-0 transition"
+                          >
+                            <X size={10} />
+                          </button>
                         </div>
-                        <p className="text-xs font-bold text-foreground">Product Catalog</p>
-                        <p className="text-[9px] text-muted-foreground mt-0.5">Select store product</p>
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div
+                          onClick={() => setShowProdModal(true)}
+                          className="h-20 flex flex-col items-center justify-center p-3 border border-border/60 hover:border-primary/40 bg-card rounded-2xl cursor-pointer relative overflow-hidden group transition duration-200 text-center"
+                        >
+                          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1.5 group-hover:bg-primary group-hover:text-primary-foreground transition duration-200">
+                            <ShoppingBag size={13} />
+                          </div>
+                          <p className="text-xs font-bold text-foreground">Product Catalog</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">Select store product</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Image Count Selector */}
                   <div>
@@ -784,6 +1068,7 @@ ${actualPrompt}`;
                     </div>
                   </div>
                 </div>
+
 
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Optional instructions</p>

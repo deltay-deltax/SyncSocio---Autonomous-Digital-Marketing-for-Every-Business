@@ -35,6 +35,10 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  serviceProvider: {
+    type: String,
+    default: '',
+  },
 }, { timestamps: true });
 
 export default mongoose.model('Product', productSchema);

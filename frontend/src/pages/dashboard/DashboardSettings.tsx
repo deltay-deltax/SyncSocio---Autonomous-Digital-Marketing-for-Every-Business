@@ -146,6 +146,20 @@ const DashboardSettings = () => {
 
       // 5. Update local cache for products
       localStorage.removeItem('velocity_products');
+      const uId = profile?.user || profile?._id || 'default';
+      localStorage.removeItem(`velocity_products_${uId}`);
+      try {
+        const req = indexedDB.open('VelocityProductCache', 1);
+        req.onsuccess = () => {
+          const db = req.result;
+          if (db.objectStoreNames.contains('products')) {
+            const tx = db.transaction('products', 'readwrite');
+            tx.objectStore('products').delete(`velocity_products_${uId}`);
+          }
+        };
+      } catch (e) {
+        console.warn('Failed to clear IDB product cache:', e);
+      }
 
       // 6. Save the updated profile to the DB
       const profilePayload = {

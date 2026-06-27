@@ -27,20 +27,20 @@ function openProductDB(): Promise<IDBDatabase> {
   });
 }
 
-async function idbSet(val: any): Promise<void> {
+async function idbSet(key: string, val: any): Promise<void> {
   try {
     const db = await openProductDB();
     const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put(val, CACHE_KEY);
+    tx.objectStore(IDB_STORE).put(val, key);
     return new Promise((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
   } catch (e) { console.warn('[ProductCache] IDB set failed:', e); }
 }
 
-async function idbGet(): Promise<any> {
+async function idbGet(key: string): Promise<any> {
   try {
     const db = await openProductDB();
     const tx = db.transaction(IDB_STORE, 'readonly');
-    const req = tx.objectStore(IDB_STORE).get(CACHE_KEY);
+    const req = tx.objectStore(IDB_STORE).get(key);
     return new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
   } catch (e) { console.warn('[ProductCache] IDB get failed:', e); return null; }
 }
@@ -53,6 +53,7 @@ interface Product {
   price: string;
   offerPrice: string;
   keyBenefit: string;
+  serviceProvider?: string;
 }
 
 const emptyProduct = (): Product => ({
@@ -62,6 +63,7 @@ const emptyProduct = (): Product => ({
   price: '',
   offerPrice: '',
   keyBenefit: '',
+  serviceProvider: '',
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,6 +88,10 @@ const ProductForm: React.FC<{
   onSave: (p: Product) => Promise<void>;
   onClose: () => void;
 }> = ({ initial, onSave, onClose }) => {
+  const profile = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
+  const SAAS_BRAND_CATEGORIES = ['SaaS & Digital', 'Services', 'Coaching & Consulting'];
+  const isSaas = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
+
   const [form, setForm] = useState<Product>(initial ?? emptyProduct());
   const [saving, setSaving] = useState(false);
   const [imgPreview, setImgPreview] = useState(initial?.imageBase64 || '');
@@ -117,6 +123,7 @@ const ProductForm: React.FC<{
       setForm(f => ({
         ...f,
         name: data.name || f.name,
+        serviceProvider: data.serviceProvider || f.serviceProvider || '',
         description: data.description || f.description,
         price: data.price || f.price,
         offerPrice: data.offerPrice || f.offerPrice,
@@ -129,7 +136,7 @@ const ProductForm: React.FC<{
       setLink('');
     } catch (e) {
       console.error(e);
-      alert('Failed to scrape product from link.');
+      alert(isSaas ? 'Failed to scrape service details from link.' : 'Failed to scrape product from link.');
     } finally {
       setScraping(false);
     }
@@ -159,8 +166,15 @@ const ProductForm: React.FC<{
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border/50">
           <div>
-            <h2 className="text-lg font-bold text-foreground">{initial?._id ? 'Edit Product' : 'Add Product'}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Fill in your product details</p>
+            <h2 className="text-lg font-bold text-foreground">
+              {isSaas
+                ? (initial?._id ? 'Edit Service/Feature' : 'Add Service/Feature')
+                : (initial?._id ? 'Edit Product' : 'Add Product')
+              }
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isSaas ? 'Fill in your service details' : 'Fill in your product details'}
+            </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted transition">
             <X size={18} className="text-muted-foreground" />
@@ -178,7 +192,7 @@ const ProductForm: React.FC<{
                 <input
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
-                  placeholder="Paste product URL..."
+                  placeholder={isSaas ? "Paste service or feature URL (e.g. AWS EC2, S3)..." : "Paste product URL..."}
                   className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 <Button 
@@ -194,44 +208,87 @@ const ProductForm: React.FC<{
 
           {/* Image Upload */}
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Product Image</p>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className={cn(
-                'w-full h-40 rounded-2xl border-2 border-dashed transition overflow-hidden relative group',
-                imgPreview ? 'border-primary/40' : 'border-border hover:border-primary hover:bg-primary/5'
-              )}
-            >
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              {isSaas ? 'Service / Feature Graphic' : 'Product Image'}
+            </p>
+            <div className="relative">
               {imgPreview ? (
-                <>
-                  <img src={imgSrc(imgPreview)} alt="" className="w-full h-full object-contain" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                    <p className="text-white text-xs font-semibold flex items-center gap-1.5"><Upload size={14} /> Change</p>
+                <div className="w-full h-40 rounded-2xl border border-primary/20 overflow-hidden relative bg-muted flex items-center justify-center group">
+                  <img src={imgSrc(imgPreview)} alt="" className="w-full h-full object-contain p-2" />
+                  
+                  {/* Overlay for Changing/Removing image */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => fileRef.current?.click()}
+                      className="bg-primary text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 px-3 py-1.5 shadow"
+                    >
+                      <Upload size={13} /> Change
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        setImgPreview('');
+                        set('imageBase64', '');
+                      }}
+                      className="text-xs font-semibold rounded-xl flex items-center gap-1.5 px-3 py-1.5 shadow"
+                    >
+                      <Trash2 size={13} /> Remove
+                    </Button>
                   </div>
-                </>
+
+                  {/* Always-visible small badge for mobile/clarity */}
+                  <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 pointer-events-none group-hover:opacity-0 transition duration-200">
+                    <Edit2 size={8} /> Click / Hover to edit
+                  </div>
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-2">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full h-40 rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-2 group"
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-105 transition duration-200">
                     <Upload size={18} />
                   </div>
-                  <p className="text-xs text-muted-foreground font-medium">Upload product photo</p>
-                  <p className="text-[10px] text-muted-foreground/60">PNG, JPG, AVIF, WebP</p>
-                </div>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {isSaas ? 'Upload service graphic/icon' : 'Upload product photo'}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/60">PNG, JPG, AVIF, WebP, SVG</p>
+                </button>
               )}
-            </button>
+            </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])} />
           </div>
 
           {/* Name */}
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Product Name *</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+              {isSaas ? 'Service / Feature Name *' : 'Product Name *'}
+            </p>
             <input
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
-              placeholder="e.g. SPF 50 Sunscreen"
+              placeholder={isSaas ? "e.g. Simple Storage Service (S3)" : "e.g. SPF 50 Sunscreen"}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
+
+          {/* Service Provider (SaaS only) */}
+          {isSaas && (
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Service Provider</p>
+              <input
+                value={form.serviceProvider || ''}
+                onChange={(e) => set('serviceProvider', e.target.value)}
+                placeholder="e.g. AWS, Google Cloud, Stripe, Salesforce"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          )}
 
           {/* Description */}
           <div>
@@ -244,7 +301,7 @@ const ProductForm: React.FC<{
             <textarea
               value={form.description}
               onChange={(e) => set('description', e.target.value.slice(0, 200))}
-              placeholder="e.g. Broad spectrum PA++++ with Niacinamide"
+              placeholder={isSaas ? "e.g. Highly scalable and secure object storage service." : "e.g. Broad spectrum PA++++ with Niacinamide"}
               rows={2}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
             />
@@ -253,26 +310,37 @@ const ProductForm: React.FC<{
           {/* Price row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Price</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                {isSaas ? 'Pricing' : 'Price'}
+              </p>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                {!isSaas && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>}
                 <input
                   value={form.price}
                   onChange={(e) => set('price', e.target.value)}
-                  placeholder="599"
-                  className="w-full pl-7 pr-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder={isSaas ? "e.g. $0.023/GB or Pay-as-you-go" : "599"}
+                  className={cn(
+                    "w-full pr-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30",
+                    !isSaas ? "pl-7" : "px-4"
+                  )}
                 />
               </div>
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Offer Price <span className="font-normal opacity-60">(opt)</span></p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                {isSaas ? 'Promo / Offer Pricing' : 'Offer Price'}{' '}
+                <span className="font-normal opacity-60">(opt)</span>
+              </p>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                {!isSaas && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>}
                 <input
                   value={form.offerPrice}
                   onChange={(e) => set('offerPrice', e.target.value)}
-                  placeholder="479"
-                  className="w-full pl-7 pr-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder={isSaas ? "e.g. Free Tier or $0.020/GB" : "479"}
+                  className={cn(
+                    "w-full pr-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30",
+                    !isSaas ? "pl-7" : "px-4"
+                  )}
                 />
               </div>
             </div>
@@ -284,7 +352,7 @@ const ProductForm: React.FC<{
             <input
               value={form.keyBenefit}
               onChange={(e) => set('keyBenefit', e.target.value)}
-              placeholder="e.g. UVA protection indoors"
+              placeholder={isSaas ? "e.g. 99.999999999% data durability" : "e.g. UVA protection indoors"}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
@@ -301,7 +369,7 @@ const ProductForm: React.FC<{
             {saving ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <><Check size={14} className="mr-1.5" /> Save Product</>
+              <><Check size={14} className="mr-1.5" /> {isSaas ? 'Save Service' : 'Save Product'}</>
             )}
           </Button>
         </div>
@@ -312,6 +380,13 @@ const ProductForm: React.FC<{
 
 // ── Main Products Page ────────────────────────────────────────────────────────
 const Products = () => {
+  const profile = JSON.parse(localStorage.getItem('velocity_profile') || '{}');
+  const SAAS_BRAND_CATEGORIES = ['SaaS & Digital', 'Services', 'Coaching & Consulting'];
+  const isSaas = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
+
+  const userId = profile.user || profile._id || 'default';
+  const cacheKey = `${CACHE_KEY}_${userId}`;
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -325,17 +400,23 @@ const Products = () => {
     setLoading(true);
     // Load from IndexedDB cache first for instant display
     try {
-      const cached = await idbGet();
+      const cached = await idbGet(cacheKey);
       if (Array.isArray(cached) && cached.length > 0) {
         setProducts(cached);
         console.log('[Products] Cache hit:', cached.length, 'products');
+      } else {
+        // Clear products if no cache exists to prevent leakage from previous user
+        setProducts([]);
       }
     } catch (e) {
       // Also try legacy localStorage as fallback (read-only, won't write)
       try {
-        const ls = localStorage.getItem(CACHE_KEY);
+        const ls = localStorage.getItem(cacheKey);
         if (ls) setProducts(JSON.parse(ls));
-      } catch {}
+        else setProducts([]);
+      } catch {
+        setProducts([]);
+      }
     }
 
     try {
@@ -349,9 +430,14 @@ const Products = () => {
         console.log('[Products] Received:', list.length, 'products');
         setProducts(list);
         // Persist to IndexedDB (no size limit unlike localStorage)
-        await idbSet(list);
+        await idbSet(cacheKey, list);
         // Clean up old localStorage entry to free quota
-        try { localStorage.removeItem(CACHE_KEY); } catch {}
+        try { localStorage.removeItem(cacheKey); } catch {}
+      } else {
+        // If unauthorized or error, empty products
+        if (res.status === 401 || res.status === 403) {
+          setProducts([]);
+        }
       }
     } catch (e: any) {
       console.log('[Products] ❌ Network/parse error:', e.message);
@@ -360,7 +446,7 @@ const Products = () => {
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchProducts(); }, [userId]);
 
   const handleSave = async (p: Product) => {
     try {
@@ -385,7 +471,7 @@ const Products = () => {
       await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       const updated = products.filter((p) => p._id !== id);
       setProducts(updated);
-      await idbSet(updated);
+      await idbSet(cacheKey, updated);
     } finally { setDeleting(null); }
   };
 
@@ -396,16 +482,24 @@ const Products = () => {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 mb-3">
             <Package size={12} className="text-violet-500" />
-            <span className="text-[11px] font-semibold text-violet-500">Product Catalog</span>
+            <span className="text-[11px] font-semibold text-violet-500">
+              {isSaas ? "Service & Feature Catalog" : "Product Catalog"}
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-tight">Products</h1>
-          <p className="text-sm text-muted-foreground mt-1">Add your products — Velocity will use them to generate targeted ad creatives.</p>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-tight">
+            {isSaas ? "Services & Features" : "Products"}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isSaas 
+              ? "Add your services & features — Velocity will use them to generate targeted ad creatives." 
+              : "Add your products — Velocity will use them to generate targeted ad creatives."}
+          </p>
         </div>
         <Button
           onClick={() => { setEditing(null); setShowForm(true); }}
           className="rounded-2xl bg-primary gap-2 shadow-lg shadow-primary/20"
         >
-          <Plus size={16} /> Add Product
+          <Plus size={16} /> {isSaas ? "Add Service/Feature" : "Add Product"}
         </Button>
       </div>
 
@@ -419,12 +513,16 @@ const Products = () => {
           <div className="w-20 h-20 rounded-3xl bg-violet-500/10 flex items-center justify-center mb-5">
             <Package size={32} className="text-violet-400" />
           </div>
-          <h3 className="text-lg font-bold text-foreground mb-2">No products yet</h3>
+          <h3 className="text-lg font-bold text-foreground mb-2">
+            {isSaas ? "No services or features yet" : "No products yet"}
+          </h3>
           <p className="text-sm text-muted-foreground max-w-xs mb-6">
-            Add your first product and Velocity will anchor ad creatives directly to it.
+            {isSaas 
+              ? "Add your first service or feature and Velocity will anchor ad creatives directly to it." 
+              : "Add your first product and Velocity will anchor ad creatives directly to it."}
           </p>
           <Button onClick={() => setShowForm(true)} className="rounded-2xl gap-2">
-            <Plus size={16} /> Add your first product
+            <Plus size={16} /> {isSaas ? "Add your first service/feature" : "Add your first product"}
           </Button>
         </motion.div>
       )}
@@ -488,6 +586,13 @@ const Products = () => {
 
               {/* Details */}
               <div className="p-4">
+                {p.serviceProvider && (
+                  <div className="mb-1.5 flex flex-wrap gap-1">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-violet-500/10 text-violet-500 border border-violet-500/20">
+                      {p.serviceProvider}
+                    </span>
+                  </div>
+                )}
                 <h3 className="font-bold text-foreground text-sm leading-tight mb-1">{p.name}</h3>
                 {p.description && (
                   <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 mb-2">{p.description}</p>
@@ -497,14 +602,16 @@ const Products = () => {
                 {(p.price || p.offerPrice) && (
                   <div className="flex items-center gap-2 mb-2">
                     {p.offerPrice && (
-                      <span className="text-sm font-black text-primary">₹{p.offerPrice}</span>
+                      <span className="text-sm font-black text-primary">
+                        {isSaas ? p.offerPrice : `₹${p.offerPrice}`}
+                      </span>
                     )}
                     {p.price && (
                       <span className={cn('text-xs font-medium', p.offerPrice ? 'text-muted-foreground line-through' : 'text-foreground font-bold')}>
-                        ₹{p.price}
+                        {isSaas ? p.price : `₹${p.price}`}
                       </span>
                     )}
-                    {p.offerPrice && p.price && (
+                    {!isSaas && p.offerPrice && p.price && (
                       <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
                         {Math.round((1 - parseFloat(p.offerPrice) / parseFloat(p.price)) * 100)}% off
                       </span>
