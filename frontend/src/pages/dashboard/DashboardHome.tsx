@@ -35,14 +35,7 @@ const DashboardHome = () => {
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  if (profile && !profile.instagramIsConnected) {
-    return (
-      <ConnectInstagramFallback 
-        title="Connect Instagram to View Analytics" 
-        description="SyncSocio needs a connected Instagram account to analyze your profile performance and generate your dashboard summary."
-      />
-    );
-  }
+
 
   useEffect(() => {
     let isMounted = true;
@@ -194,38 +187,40 @@ const DashboardHome = () => {
       </div>
 
       {/* Social Channel Metrics */}
-      <div>
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 px-1">Social Channel Performance</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {data.metrics?.map((m: any, i: number) => {
-            const Icon = iconMap[m.icon] || TrendingUp;
-            return (
-              <motion.div
-                key={m.label}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 + i * 0.05 }}
-              >
-                <Card className="group hover-lift cursor-default border-border/50 overflow-hidden relative">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                  <CardContent className="p-4 sm:p-5 relative">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-[1.05] transition-transform duration-500">
-                        <Icon size={16} className="text-primary" />
+      {profile?.instagramIsConnected && (
+        <div>
+          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 px-1">Social Channel Performance</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {data.metrics?.map((m: any, i: number) => {
+              const Icon = iconMap[m.icon] || TrendingUp;
+              return (
+                <motion.div
+                  key={m.label}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 + i * 0.05 }}
+                >
+                  <Card className="group hover-lift cursor-default border-border/50 overflow-hidden relative">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                    <CardContent className="p-4 sm:p-5 relative">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-[1.05] transition-transform duration-500">
+                          <Icon size={16} className="text-primary" />
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-emerald-500/10">
+                          {m.change} <ArrowUpRight size={10} />
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-emerald-500/10">
-                        {m.change} <ArrowUpRight size={10} />
-                      </span>
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{m.value}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 font-medium">{m.label}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
+                      <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{m.value}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 font-medium">{m.label}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Two columns */}
       <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
