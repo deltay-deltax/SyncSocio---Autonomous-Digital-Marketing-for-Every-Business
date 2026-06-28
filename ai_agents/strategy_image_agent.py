@@ -767,7 +767,7 @@ Example output:
 
 
 def build_video_prompt(brand_doc: Dict[str, Any], idea: Optional[str], aspect: str, language: str = "english") -> str:
-    """Minimax video-01 prompt."""
+    """Minimax/Seedance video-01 prompt."""
     block = _brand_block(brand_doc)
     idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
 
@@ -776,6 +776,8 @@ def build_video_prompt(brand_doc: Dict[str, Any], idea: Optional[str], aspect: s
 Create a high-quality, aesthetic B-roll style video for Instagram Reels/TikTok.
 The video should have subtle, smooth movement (e.g. slow pan, gentle zoom).
 Lighting is cinematic and premium. No people speaking to camera.
+Subtitles/captions must be styled in a very small, minimal, neat, clean font size at the bottom of the video.
+Strictly DO NOT overlay any raw brand metadata, color hex codes (e.g. #0033ae), website URLs, or technical parameters as text on the screen.
 Any text or visual script in the video must be in {language}.
 Aspect ratio: {aspect}. Commercial advertising quality.
 """
@@ -786,10 +788,12 @@ def build_ugc_video_prompt(brand_doc: Dict[str, Any], avatar_description: str, s
     block = _brand_block(brand_doc)
     return f"""{block}
 Create a high-quality talking-head UGC (user-generated content) video ad for Instagram Reels / TikTok.
-Actor / Avatar Details: {avatar_description}
+Actor / Avatar Details: {avatar_description}. The presenter must speak in English with a professional, clear Indian accent.
 The speaker must look directly at the camera, talking naturally.
 The speaking script / voiceover topic is: "{script}"
-Ensure natural facial expressions, friendly creator-style delivery, and appropriate hand gestures.
+Ensure natural facial expressions, friendly Indian creator-style delivery, and appropriate hand gestures.
+Subtitles/captions must be styled in a very small, minimal, neat, clean font size at the bottom of the video.
+Strictly DO NOT overlay any raw brand metadata, color hex codes (e.g. #0033ae), website URLs, or technical parameters as text on the screen.
 Any subtitles or text overlays must be in {language}.
 Aspect ratio: {aspect}. Commercial advertising quality.
 """
@@ -1121,7 +1125,7 @@ Description: {prod_desc}
 Benefit: {prod_benefit}
 
 Please output a JSON object with:
-1. "avatarDescription": A description of the creator/avatar (e.g., "A friendly 20-something female creator in a bright living room"). Keep it under 200 characters.
+1. "avatarDescription": A description of a creator/avatar of Indian descent (e.g., "A friendly 20-something Indian female creator in a bright living room"). Keep it under 200 characters.
 2. "videoScript": A highly engaging 15-30 second script for the creator to say, promoting the product. Keep it under 500 characters.
 
 Output ONLY valid JSON. No markdown formatting.
@@ -1136,13 +1140,13 @@ Output ONLY valid JSON. No markdown formatting.
                     if text.endswith("```"): text = text[:-3]
                     data = json.loads(text.strip())
                     if not avatar_description:
-                        avatar_description = data.get("avatarDescription", "A friendly creator presenting the product.")
+                        avatar_description = data.get("avatarDescription", "A friendly Indian creator presenting the product.")
                     if not video_script:
                         video_script = data.get("videoScript", f"Check out this amazing {prod_name}! It is a game changer.")
                 except Exception as e:
                     print(f"[StrategyAgent] UGC generation fallback error: {e}")
                     if not avatar_description:
-                        avatar_description = "A friendly creator presenting the product."
+                        avatar_description = "A friendly Indian creator presenting the product."
                     if not video_script:
                         video_script = "Check out this amazing product! It's a total game changer."
 

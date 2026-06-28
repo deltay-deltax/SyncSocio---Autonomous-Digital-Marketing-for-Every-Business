@@ -302,7 +302,6 @@ CAROUSEL STRUCTURE:
 - Middle slides: VALUE — Break down the benefits, features, or steps of the service.
 - Last slide: CTA — Clear call to action (e.g. Book a Consultation, Learn More).
 
-Output ONLY a valid JSON array of strings (one per slide). No markdown, no labels.
 Example: ["Slide 1 text", "Slide 2 text"]
 """
     try:
@@ -326,7 +325,7 @@ def build_saas_video_prompt(
 ) -> str:
     category = brand_doc.get("businessCategory", "Services")
     block = _brand_block(brand_doc)
-    idea_str = f"Campaign idea: {idea}\\n" if idea and idea.strip() else ""
+    idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
     
     product_block = ""
     if product:
@@ -341,6 +340,8 @@ Create a high-quality, professional B-roll style video for Instagram Reels for t
 The video should feature clean shots relevant to the service category ({category}).
 Lighting is natural, bright, and professional. 
 Subtle motion only — slow pan, gentle zoom. 
+Subtitles/captions must be styled in a very small, minimal, neat, clean font size at the bottom of the video.
+Strictly DO NOT overlay any raw brand metadata, color hex codes (e.g. #0033ae), website URLs, or technical parameters as text on the screen.
 Any text or visual overlays must be in {language}. 
 Aspect ratio: {aspect}. Commercial advertising quality."""
 
@@ -357,12 +358,14 @@ def build_saas_ugc_video_prompt(
     return (
         f"{block}\n\n"
         "Create a high-quality talking-head UGC style video for Instagram Reels. "
-        f"Presenter: {avatar_description} "
+        f"Presenter: {avatar_description}. The presenter must speak in English with a professional, clear Indian accent. "
         "The presenter must look directly at the camera in a professional setting "
         "(clean home office, standing desk, or minimal branded backdrop). "
         "Natural, confident delivery — expert tone, not salesy. "
         f"Script topic: \"{script}\" "
         "No product in hand. No discount language. "
+        "Subtitles/captions must be styled in a very small, minimal, neat, clean font size at the bottom of the video. "
+        "Strictly DO NOT overlay any raw brand metadata, color hex codes (e.g. #0033ae), website URLs, or technical parameters as text on the screen. "
         f"Any subtitles or overlays must be in {language}. "
         f"Aspect ratio: {aspect}. Professional B2B quality."
     )
@@ -641,8 +644,8 @@ def generate_saas_strategy_images(
                     user_msg = (
                         f"Brand: {brand_name}\nUSP: {usp}\nCTA: {cta}\n\n"
                         "Output JSON with:\n"
-                        "1. 'avatarDescription': A professional creator (e.g., 'A confident 30-something "
-                        "professional in a clean home office with a bookshelf'). Under 200 chars.\n"
+                        "1. 'avatarDescription': A professional creator of Indian descent (e.g., 'A confident 30-something "
+                        "Indian professional in a clean home office with a bookshelf'). Under 200 chars.\n"
                         "2. 'videoScript': A 15-30 second script leading with an insight or stat, "
                         "ending with the CTA. No discount language. Under 500 chars.\n"
                         "Output ONLY valid JSON."
@@ -656,12 +659,12 @@ def generate_saas_strategy_images(
                     text = content.strip().lstrip("```json").lstrip("```").rstrip("```")
                     data = json.loads(text.strip())
                     if not avatar_description:
-                        avatar_description = data.get("avatarDescription", "A professional presenter in a clean office.")
+                        avatar_description = data.get("avatarDescription", "A professional Indian presenter in a clean office.")
                     if not video_script:
                         video_script = data.get("videoScript", f"Here's how {brand_name} helps you achieve more with less.")
                 except Exception as e:
                     print(f"[SaaSAgent] UGC fallback: {e}")
-                    avatar_description = avatar_description or "A confident professional in a clean home office."
+                    avatar_description = avatar_description or "A confident Indian professional in a clean home office."
                     video_script = video_script or f"Discover how {brand_doc.get('brandName', 'we')} can transform your workflow."
 
             video_prompt = build_saas_ugc_video_prompt(

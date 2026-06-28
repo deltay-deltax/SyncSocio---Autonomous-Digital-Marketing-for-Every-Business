@@ -118,7 +118,7 @@ const typeIcon: Record<string, any> = {
 const AssetLibrary = () => {
   const navigate = useNavigate();
   const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-  const userId = profile._id || profile.userId || profile.id || 'guest';
+  const userId = profile.user || profile._id || 'default';
   const cacheKey = `syncsocio_strategy_assets_${userId}`;
 
   const [selectionMode, setSelectionMode] = useState<boolean>(false);

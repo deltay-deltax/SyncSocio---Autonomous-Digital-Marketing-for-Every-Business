@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import waitlistRoutes from './routes/waitlistRoutes.js';
@@ -26,8 +26,6 @@ import { startPolling } from './services/commentPoller.js';
 
 import { startStrategicPoller } from './utils/strategicPoller.js';
 import { startKeepAlivePoller } from './utils/keepAlivePoller.js';
-
-dotenv.config();
 
 const app = express();
 

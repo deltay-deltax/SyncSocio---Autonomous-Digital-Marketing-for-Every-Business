@@ -1,10 +1,13 @@
 import { v2 as cloudinary } from 'cloudinary';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+export function ensureConfigured() {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key:    process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+ensureConfigured();
 
 /**
  * Upload a base64 string to Cloudinary.
@@ -14,6 +17,7 @@ cloudinary.config({
  * @returns {Promise<string>} Cloudinary HTTPS URL
  */
 export async function uploadBase64ToCloudinary(base64, folder = 'syncsocio/creatives', options = {}) {
+  ensureConfigured();
   // Ensure it has the data URI prefix Cloudinary needs
   const dataUri = base64.startsWith('data:')
     ? base64
@@ -36,6 +40,7 @@ export async function uploadBase64ToCloudinary(base64, folder = 'syncsocio/creat
  * @returns {Promise<Array<{image: string}>>} Slides with Cloudinary URLs replacing base64
  */
 export async function uploadCarouselSlidesToCloudinary(slides, folder = 'syncsocio/carousels') {
+  ensureConfigured();
   const uploaded = await Promise.all(
     slides.map(async (slide) => {
       if (!slide.image) return slide;
@@ -55,6 +60,7 @@ export async function uploadCarouselSlidesToCloudinary(slides, folder = 'syncsoc
  * @returns {Promise<string>} Cloudinary secure video URL
  */
 export async function uploadVideoUrlToCloudinary(videoUrl, folder = 'syncsocio/videos') {
+  ensureConfigured();
   if (!videoUrl) return '';
   if (videoUrl.includes('cloudinary') && videoUrl.includes('/video/')) return videoUrl; // already a cloudinary video URL
 
@@ -71,6 +77,7 @@ export async function uploadVideoUrlToCloudinary(videoUrl, folder = 'syncsocio/v
  * @param {string} url - Full Cloudinary URL
  */
 export async function deleteFromCloudinary(url) {
+  ensureConfigured();
   try {
     if (!url || !url.includes('cloudinary')) return;
     
