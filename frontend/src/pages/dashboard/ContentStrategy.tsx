@@ -1054,37 +1054,10 @@ const DashboardStrategy = () => {
 
       if (currentMode === 'all_in_one') {
         const requests = [
-          // 1. 1 image
+          // 1. 2 images
           {
             userId,
             layout: 'image',
-            count: 1,
-            aspectRatio: '1:1',
-            idea: currentIdea,
-            refImages,
-            products: currentProducts.length > 0 ? currentProducts : undefined,
-            language: currentLanguage,
-            generateImage: true,
-          },
-          // 2. 1 carousel of 2 slides
-          {
-            userId,
-            layout: 'carousel',
-            count: 1,
-            slideCount: 2,
-            aspectRatio: '1:1',
-            idea: currentIdea,
-            refImages,
-            products: currentProducts.length > 0 ? currentProducts : undefined,
-            language: currentLanguage,
-            generateImage: true,
-          }
-        ];
-
-        if (!isSaasMode) {
-          requests.push({
-            userId,
-            layout: 'ecomm',
             count: 2,
             aspectRatio: '1:1',
             idea: currentIdea,
@@ -1092,7 +1065,50 @@ const DashboardStrategy = () => {
             products: currentProducts.length > 0 ? currentProducts : undefined,
             language: currentLanguage,
             generateImage: true,
+          },
+          // 2. 2 carousels of 3 slides each
+          {
+            userId,
+            layout: 'carousel',
+            count: 2,
+            slideCount: 3,
+            aspectRatio: '1:1',
+            idea: currentIdea,
+            refImages,
+            products: currentProducts.length > 0 ? currentProducts : undefined,
+            language: currentLanguage,
+            generateImage: true,
+          },
+          // 3. 1 AI UGC Video
+          {
+            userId,
+            layout: 'video',
+            count: 1,
+            aspectRatio: '9:16',
+            idea: currentIdea,
+            refImages,
+            products: currentProducts.length > 0 ? currentProducts : undefined,
+            language: currentLanguage,
+            generateImage: true,
+            videoKind: 'ai-ugc',
+            avatarDescription: avatarDescription || '',
+            videoScript: videoScript || '',
+          }
+        ];
+
+        if (!isSaasMode) {
+          requests.push({
+            userId,
+            layout: 'ecomm',
+            count: 4,
+            aspectRatio: '1:1',
+            idea: currentIdea,
+            refImages,
+            products: currentProducts.length > 0 ? currentProducts : undefined,
+            language: currentLanguage,
+            generateImage: true,
             platform: 'Shopify',
+            imageCount: 4,
           } as any);
         }
 
@@ -1128,8 +1144,8 @@ const DashboardStrategy = () => {
         setStage('results');
 
         // ── Deduct credits ONLY after successful generation ───────────
-        const creditCost = 60;
-        const creditReason = 'All-in-One generation (1 image, 1 carousel, 2 ecomm listings)';
+        const creditCost = 140;
+        const creditReason = 'All-in-One generation (2 images, 2 carousels of 3 slides, 4 ecomm listings, 1 AI UGC Video)';
         if (creditCost > 0 && allPosts.length > 0) {
           try {
             const token = localStorage.getItem('token');

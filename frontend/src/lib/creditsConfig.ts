@@ -21,16 +21,8 @@ export const VIDEO_CREDITS = [
 
 export const ALLINONE_CREDITS = [
   {
-    feature: "Full Drop (2 Images + 2 Carousels + 1 Story + 1 Reel Thumbnail)",
-    credits: 35,
-  },
-  {
-    feature: "Full Drop + Product Video (8 sec)",
-    credits: 115,
-  },
-  {
-    feature: "Full Drop + AI UGC Video (8 sec)",
-    credits: 115,
+    feature: "Full Drop (2 Images + 2 Carousels of 3 slides + 4 E-commerce Listings + 1 AI UGC Video)",
+    credits: 140,
   },
 ];
 

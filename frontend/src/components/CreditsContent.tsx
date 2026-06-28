@@ -263,13 +263,15 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span className="font-bold text-foreground">5 Full Drops</span>
+                      <span className="font-bold text-foreground">1 Full Drop</span>
                     </li>
                     <li className="border-t border-border/40 pt-2.5 text-[11px] text-muted-foreground space-y-1">
                       <p className="font-semibold text-foreground">Includes:</p>
-                      <p>• 10 Images</p>
-                      <p>• 10 Carousels</p>
-                      <p>• 5 Stories</p>
+                      <p>• 2 Images</p>
+                      <p>• 2 Carousels (3 slides each)</p>
+                      <p>• 4 Ecomm Listings</p>
+                      <p>• 1 AI UGC Video</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-1 italic">+ 12 Static Ads with remaining credits</p>
                     </li>
                   </ul>
                 </div>
@@ -327,13 +329,14 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span className="font-bold text-foreground">20 Full Drops</span>
+                      <span className="font-bold text-foreground">5 Full Drops</span>
                     </li>
                     <li className="border-t border-border/40 pt-2.5 text-[11px] text-muted-foreground space-y-1">
                       <p className="font-semibold text-foreground">Includes:</p>
-                      <p>• 40 Images</p>
-                      <p>• 40 Carousels</p>
-                      <p>• 20 Stories</p>
+                      <p>• 10 Images</p>
+                      <p>• 10 Carousels (3 slides each)</p>
+                      <p>• 20 Ecomm Listings</p>
+                      <p>• 5 AI UGC Videos</p>
                     </li>
                   </ul>
                 </div>
