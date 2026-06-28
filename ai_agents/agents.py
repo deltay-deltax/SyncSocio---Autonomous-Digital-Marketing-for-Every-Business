@@ -19,12 +19,11 @@ from post_validator import critic_node as post_critic_node # Reuse logic if appl
 
 # ── SaaS profile injection (for non-D2C brands) ───────────────────────────────
 try:
-    from saas_agents.saas_profiles import get_saas_profile, build_saas_directive
+    from saas_agents.saas_profiles import get_saas_profile
     _SAAS_PROFILES_AVAILABLE = True
 except ImportError:
     _SAAS_PROFILES_AVAILABLE = False
     def get_saas_profile(cat): return None
-    def build_saas_directive(profile, name=""): return ""
 
 # State definition
 class GraphState(TypedDict):

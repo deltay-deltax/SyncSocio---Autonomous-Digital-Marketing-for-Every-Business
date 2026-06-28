@@ -194,7 +194,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
     
     try:
         results = []
-        actual_count = min(count, 3)  # Hard cap at 3 slides
+        actual_count = count  # Dynamic — respects user selection (3, 5, 7, etc.)
         
         # Clean base64 string once
         cleaned_image = None
@@ -418,7 +418,7 @@ def generate_fal_video_wan(prompt: str, image: str = None, aspect_ratio: str = "
         return generate_fal_video_minimax(prompt, "6s")
 
 
-def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:16"):
+def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:16", duration: str = "5"):
     """
     Video generation using ByteDance's Seedance 2.0 Image-to-Video Fast model.
     Accepts starting image and prompts for animation.
@@ -427,6 +427,7 @@ def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:
         prompt: Video description/script
         image: Base64 starting image or image URL
         aspect_ratio: Video aspect ratio ("9:16", "1:1", etc.)
+        duration: Video duration in seconds (e.g. "5" or "8")
     
     Returns:
         Dict with video URL, thumbnail, and success status
@@ -437,7 +438,7 @@ def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:
     os.environ["FAL_KEY"] = api_key
     
     try:
-        print(f"FAL ENGINE (Seedance 2.0 Image-to-Video Fast): Generating 480p video...")
+        print(f"FAL ENGINE (Seedance 2.0 Image-to-Video Fast): Generating {duration}s 480p video...")
         if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
             image_url = image
         else:
@@ -450,7 +451,7 @@ def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:
             "image_url": image_url,
             "resolution": "480p",
             "aspect_ratio": aspect_ratio,
-            "duration": "8",
+            "duration": duration,
             "generate_audio": True
         }
         

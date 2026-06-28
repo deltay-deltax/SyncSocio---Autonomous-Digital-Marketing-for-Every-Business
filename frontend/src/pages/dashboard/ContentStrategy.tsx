@@ -261,6 +261,7 @@ const DashboardStrategy = () => {
   const [selectedMotionPreset, setSelectedMotionPreset] = useState<string | null>(null);
   const [avatarDescription, setAvatarDescription] = useState<string>('');
   const [videoScript, setVideoScript] = useState<string>('');
+  const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
 
   // ── E-comm
   const [productName, setProductName] = useState('');
@@ -377,13 +378,63 @@ const DashboardStrategy = () => {
 
   // ── SaaS / Services / Consulting mode detection
   // If the brand category is one of these 3, hide E-Comm Listing tab and route to SaaS prompts
-  const SAAS_BRAND_CATEGORIES = ['SaaS & Digital', 'Services', 'Coaching & Consulting'];
+  const SAAS_BRAND_CATEGORIES = [
+    'Mobile Apps',
+    'IT & Technical Tools',
+    'Gaming & Entertainment',
+    'SaaS & Digital',
+    'Coaching & Consulting',
+    'Architecture',
+    'Financial Services',
+    'Real Estate & Property',
+    'Travel & Hospitality',
+    'Education & Training',
+    'Newsletters',
+    'Online Marketplaces',
+    'Services'
+  ];
   const isSaasMode = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
 
-  // Filter modes: SaaS brands don’t see E-Comm Listing
+  // ── AI Script Generator ───────────────────────────────────────────────────
+  const generateAiScript = async () => {
+    setIsGeneratingScript(true);
+    try {
+      // Pick first product from uploads or products list for context
+      const firstProduct = products[0] || {};
+      const payload = {
+        brandName:          profile.brandName || '',
+        brandTone:          profile.brandTone || '',
+        usp:                profile.usp || '',
+        productName:        firstProduct.name || '',
+        productDescription: firstProduct.description || '',
+        keyBenefit:         firstProduct.keyBenefit || '',
+        avatarDescription:  avatarDescription.trim(),
+        isSaas:             isSaasMode,
+      };
+      const res = await fetch(`${AI_BASE}/generate-ugc-script`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.script) setVideoScript(data.script);
+    } catch (err) {
+      console.error('[AI Script] Failed:', err);
+      toast({ title: 'Script generation failed', description: 'Please try again or write manually.', variant: 'destructive' });
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
+
+  // Filter modes: SaaS brands don’t see E-Comm Listing or All In One
   const visibleModes = isSaasMode
-    ? modes.filter((m) => m.id !== 'ecomm')
+    ? modes.filter((m) => m.id !== 'ecomm' && m.id !== 'all_in_one')
     : modes;
+
+  const visibleVideoKinds = isSaasMode
+    ? videoKinds.filter((v) => v.id !== 'img2video')
+    : videoKinds;
 
   // ── Fetch products
   React.useEffect(() => {
@@ -1027,9 +1078,11 @@ const DashboardStrategy = () => {
             products: currentProducts.length > 0 ? currentProducts : undefined,
             language: currentLanguage,
             generateImage: true,
-          },
-          // 3. 2 ecomm listing images
-          {
+          }
+        ];
+
+        if (!isSaasMode) {
+          requests.push({
             userId,
             layout: 'ecomm',
             count: 2,
@@ -1040,8 +1093,8 @@ const DashboardStrategy = () => {
             language: currentLanguage,
             generateImage: true,
             platform: 'Shopify',
-          }
-        ];
+          } as any);
+        }
 
         console.log('[Strategy] Dispatching parallel All-in-One generation requests...');
         const fetchPromises = requests.map(req =>
@@ -1240,6 +1293,14 @@ const DashboardStrategy = () => {
 
   // ── Heart — save to DB + localStorage cache
   const handleHeart = async (post: GeneratedPost, index: number) => {
+    // Optimistic UI updates
+    setSavedCount((n) => n + 1);
+    setSavedIndices((prev) => {
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+
     try {
       const token = localStorage.getItem('token');
       const thumbSrc = post.type === 'carousel' ? post.slides?.[0]?.image : post.type === 'video' ? post.thumbnail : post.image;
@@ -1287,10 +1348,12 @@ const DashboardStrategy = () => {
             console.error('[Strategy] LocalStorage save error for key:', key, e);
           }
         }
-        setSavedCount((n) => n + 1);
+      } else {
+        // Revert optimistic UI if failed
+        setSavedCount((n) => Math.max(0, n - 1));
         setSavedIndices((prev) => {
           const next = new Set(prev);
-          next.add(index);
+          next.delete(index);
           return next;
         });
       }
@@ -1378,6 +1441,7 @@ const DashboardStrategy = () => {
   const handleApplyEdit = async () => {
     if (!previewPost || previewIndex === null) return;
     setIsApplyingEdit(true);
+    setStage('generating');
     try {
       let baseMedia = '';
       if (previewPost.type === 'carousel' && previewPost.slides && previewPost.slides.length > 0) {
@@ -1436,6 +1500,16 @@ const DashboardStrategy = () => {
           return next;
         });
 
+        // Clear saved status so they can re-save the edited version
+        setSavedIndices((prev) => {
+          const next = new Set(prev);
+          if (next.has(previewIndex)) {
+            next.delete(previewIndex);
+            setSavedCount((n) => Math.max(0, n - 1));
+          }
+          return next;
+        });
+
         setEditInstruction('');
         setIsEditing(false);
       } else {
@@ -1450,6 +1524,7 @@ const DashboardStrategy = () => {
       });
     } finally {
       setIsApplyingEdit(false);
+      setStage('builder');
     }
   };
 
@@ -2138,7 +2213,7 @@ const DashboardStrategy = () => {
             <section className="mb-6">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Video style</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {videoKinds.map((v) => (
+                {visibleVideoKinds.map((v) => (
                   <button
                     key={v.id}
                     onClick={() => setVideoKind(v.id)}
@@ -2446,9 +2521,36 @@ const DashboardStrategy = () => {
               </section>
 
               <section className="mb-6">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                  Video script <span className="text-destructive">*</span>
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Video script <span className="text-destructive">*</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={generateAiScript}
+                    disabled={isGeneratingScript}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide border transition-all duration-200
+                      bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/30 text-violet-600 dark:text-violet-400
+                      hover:from-violet-500/20 hover:to-blue-500/20 hover:border-violet-400/60 hover:scale-105
+                      disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100
+                      shadow-sm"
+                  >
+                    {isGeneratingScript ? (
+                      <>
+                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Writing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={10} />
+                        AI · 8s script
+                      </>
+                    )}
+                  </button>
+                </div>
                 <Textarea
                   value={videoScript}
                   onChange={(e) => setVideoScript(e.target.value)}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
@@ -44,6 +44,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const settingsTabs = ['Brand Profile', 'Connected Accounts', 'Posting Preferences', 'Plan & Billing', 'Legal & Privacy', 'Danger Zone'];
 
@@ -103,7 +104,17 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: any; label: string; valu
 );
 
 const DashboardSettings = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('Brand Profile');
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && settingsTabs.includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
+
   const { profile, setProfile, setShowNotifications } = useOutletContext<{ 
     profile: any; 
     setProfile: (p: any) => void; 
@@ -111,6 +122,7 @@ const DashboardSettings = () => {
   }>();
   const [updating, setUpdating] = useState(false);
   const [rescraping, setRescraping] = useState(false);
+  const { toast } = useToast();
 
   const handleRescrape = async () => {
     if (!formData.website.trim()) {
@@ -231,13 +243,46 @@ const DashboardSettings = () => {
       const updatedProfile = await profileRes.json();
 
       // 7. Update UI state and local storage
-      setFormData(updatedFormData);
-      setProfile(updatedProfile);
-      localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
+      // Build a clean local profile from scraped data so the UI reflects new info immediately,
+      // without depending on the DB round-trip response shape.
+      const localProfile = {
+        ...(updatedProfile || {}),
+        brandName:         updatedFormData.brandName,
+        businessCategory:  updatedFormData.businessCategory,
+        website:           updatedFormData.website,
+        location:          { city: updatedFormData.city, country: updatedFormData.country },
+        brandTone:         updatedFormData.brandTone,
+        usp:               updatedFormData.usp,
+        mainGoal:          updatedFormData.mainGoal,
+        competitors:       updatedFormData.competitors.split(',').map((s: string) => s.trim()).filter(Boolean),
+        targetAudiences:   updatedFormData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean),
+        painPoint:         updatedFormData.painPoint,
+        primaryColor:      updatedFormData.primaryColor,
+        secondaryColor:    updatedFormData.secondaryColor,
+        logo:              updatedFormData.logo,
+        typography:        updatedFormData.typography,
+        ageRange:          updatedFormData.ageRange,
+        genderFocus:       updatedFormData.genderFocus,
+        brandKeywords:     updatedFormData.brandKeywords,
+        visualVibe:        updatedFormData.visualVibe,
+      };
 
-      alert(`✅ Website rescrape complete! Brand profile updated and ${scrapedProducts.length} products reloaded successfully.`);
+      setFormData(updatedFormData);
+      setProfile(localProfile);
+      localStorage.setItem('syncsocio_profile', JSON.stringify(localProfile));
+
+      // Also sync keywords pill state
+      const kwList = updatedFormData.brandKeywords
+        ? updatedFormData.brandKeywords.split(',').map((k: string) => k.trim()).filter(Boolean)
+        : [];
+      setKeywords(kwList);
+
+      toast({
+        title: '✅ Rescrape complete!',
+        description: `Brand profile updated · ${scrapedProducts.length} product(s) reloaded.`,
+      });
     } catch (err: any) {
-      alert('Rescrape Error: ' + err.message);
+      toast({ title: 'Rescrape failed', description: err.message, variant: 'destructive' });
     } finally {
       setRescraping(false);
     }

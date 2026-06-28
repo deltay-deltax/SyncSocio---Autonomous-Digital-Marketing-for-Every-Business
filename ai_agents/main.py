@@ -38,7 +38,6 @@ from auditors.models import AuditorInput, AuditorResponse
 # ── SaaS / Services / Consulting mode agents ───────────────────────────────
 try:
     from saas_agents.saas_profiles import is_saas_brand
-    from saas_agents.brand_verifier_agent import verify_and_enrich_brand
     from saas_agents.saas_image_agent import generate_saas_strategy_images
     _SAAS_AGENT_AVAILABLE = True
     print("[Main] ✅ SaaS agents loaded successfully")
@@ -46,7 +45,6 @@ except ImportError as _saas_err:
     _SAAS_AGENT_AVAILABLE = False
     print(f"[Main] ⚠️ SaaS agents not available: {_saas_err}")
     def is_saas_brand(cat): return False
-    def verify_and_enrich_brand(doc): return {"is_saas": False, "saas_directive": "", "saas_intelligence": "", "saas_profile": None}
     def generate_saas_strategy_images(*args, **kwargs): raise ValueError("SaaS agents not loaded")
 
 app = FastAPI(title="SyncSocio AI Strategy Service")
@@ -1549,7 +1547,7 @@ STYLE:
 Brand tone: {_brand_tone}
 Visual vibe: {_visual_vibe}
 USP context: {_usp}
-{"Brand Logo reference: " + (_logo if _logo.startswith("http") else "[Logo image is uploaded and available for branding]") + "\nIncorporate the brand logo reference cleanly on the creative." if _logo else ""}
+{"Brand Logo reference: " + (_logo if _logo.startswith("http") else "[Logo image is uploaded and available for branding]") + "\\nIncorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text." if _logo else "Do not assume or add any fake logos or text."}
 Indian D2C brand aesthetic. Commercial advertising quality.
 Clean, premium, minimal. No random props. No clutter.
 Not a stock photo. Not AI-looking.
@@ -1561,9 +1559,8 @@ Not a stock photo. Not AI-looking.
         elif request.format == "Carousel":
             # Use FAL.ai Ideogram for carousel slides (image-to-image based on user product image)
             print("Using FAL.ai Ideogram for Carousel generation...")
-            # HARD CAP: Strictly limit to 3 slides to save credits
-            requested_count = request.slides if request.slides else 3
-            count = min(requested_count, 3)
+            # Dynamic slide count — respects user selection (3, 5, 7, etc.)
+            count = request.slides if request.slides else 3
             
             # For carousels, refine each slide with memory of the previous one
             # Then inject headline + subtext into a structured Ideogram prompt via build_ideogram_slide_prompt()
@@ -1728,10 +1725,6 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
 
             print(f"[StrategyImages] 🤖 SaaS mode active for '{brand_doc.get('brandName')}' [{business_category}]")
 
-            # Run brand verifier agent to get saas_directive + intelligence
-            brand_context = verify_and_enrich_brand(brand_doc)
-            saas_directive  = brand_context["saas_directive"]
-            saas_intelligence = brand_context["saas_intelligence"]
 
             # Route to SaaS image agent
             posts = generate_saas_strategy_images(
@@ -1742,8 +1735,6 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 aspect_ratio=request.aspectRatio,
                 idea=request.idea,
                 ref_images=request.refImages or [],
-                saas_directive=saas_directive,
-                saas_intelligence=saas_intelligence,
                 ad_template=request.adTemplate,
                 language=request.language,
                 video_kind=request.videoKind,
@@ -1909,6 +1900,82 @@ async def generate_asset(request: AssetGenerateRequest):
         raise
     except Exception as e:
         print(f"[AssetGen] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── UGC SCRIPT GENERATOR ───────────────────────────────────────────────────
+
+class UGCScriptRequest(BaseModel):
+    brandName: str = ""
+    brandTone: str = ""
+    usp: str = ""
+    productName: str = ""
+    productDescription: str = ""
+    keyBenefit: str = ""
+    avatarDescription: str = ""
+    isSaas: bool = False
+
+@app.post("/generate-ugc-script")
+async def api_generate_ugc_script(request: UGCScriptRequest):
+    """
+    Generates a tight 8-second UGC talking-head video script using Gemini.
+    Takes brand info, product info, and avatar description.
+    """
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.messages import SystemMessage, HumanMessage
+
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-flash-latest",
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+            temperature=0.8,
+        )
+
+        tone_line   = f"Brand tone: {request.brandTone}." if request.brandTone else ""
+        usp_line    = f"USP: {request.usp}." if request.usp else ""
+        prod_line   = f"Product: {request.productName}." if request.productName else ""
+        desc_line   = f"Description: {request.productDescription}." if request.productDescription else ""
+        benefit_line = f"Key benefit: {request.keyBenefit}." if request.keyBenefit else ""
+        avatar_line = f"Creator/Avatar: {request.avatarDescription}." if request.avatarDescription else ""
+
+        if request.isSaas:
+            style_guide = (
+                "Write a B2B professional talking-head script. "
+                "Open with a bold insight or statistic, deliver the value proposition, end with a soft CTA. "
+                "NO discount language. NO sale urgency. Professional but personable tone."
+            )
+        else:
+            style_guide = (
+                "Write a D2C creator-style UGC talking-head script. "
+                "Open with a hook (relatable problem or wow moment), deliver the benefit, end with a CTA. "
+                "Casual, energetic, authentic Gen-Z / millennial tone. "
+                "Feel free to use light slang or emojis in the script."
+            )
+
+        sys_msg = (
+            f"You are an expert short-form video scriptwriter. {style_guide} "
+            "The script MUST be deliverable in exactly 8 seconds when spoken naturally "
+            "(roughly 20-30 words maximum). Output ONLY the script text — no labels, "
+            "no stage directions, no quotation marks, no markdown."
+        )
+
+        user_msg = (
+            f"Brand: {request.brandName}\n"
+            f"{tone_line}\n{usp_line}\n{prod_line}\n{desc_line}\n{benefit_line}\n{avatar_line}\n\n"
+            "Write the 8-second UGC script now."
+        ).strip()
+
+        response = llm.invoke([SystemMessage(content=sys_msg), HumanMessage(content=user_msg)])
+        content = response.content
+        if isinstance(content, list):
+            content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+
+        script = content.strip().strip('"').strip("'")
+        print(f"[UGCScript] ✅ Generated: {script[:80]}...")
+        return {"status": "success", "script": script}
+
+    except Exception as e:
+        print(f"[UGCScript] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -161,18 +161,29 @@ const AssetLibrary = () => {
 
   const fetchAssets = useCallback(async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/strategy-assets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        const rawCreatives = data.creatives || [];
-        // Deduplicate creatives on id only to prevent hiding distinct ones
-        const uniqueCreatives = rawCreatives.filter(
+        const serverCreatives = data.creatives || [];
+        
+        // Fetch current cache to merge, preventing race conditions where the server 
+        // GET response is lagging behind a very recent POST /heart from ContentStrategy.
+        const currentCache = await getCache(cacheKey) || [];
+        
+        // Combine server and cache, deduplicating by _id (keeping server version if both exist)
+        const combined = [...serverCreatives, ...currentCache];
+        const uniqueCreatives = combined.filter(
           (item: any, index: number, self: any[]) =>
             self.findIndex((t) => t._id === item._id) === index
         );
+        
+        // Sort by createdAt descending
+        uniqueCreatives.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
         setAssets(uniqueCreatives);
         await setCache(cacheKey, uniqueCreatives);
       }
@@ -298,20 +309,21 @@ const AssetLibrary = () => {
   };
 
   const handleDelete = async (id: string) => {
-    setDeleting(id);
+    const originalAssets = [...assets];
+    const updated = assets.filter((a) => a._id !== id);
+    setAssets(updated);
+
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API_BASE}/strategy-assets/${id}`, {
+      const res = await fetch(`${API_BASE}/strategy-assets/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const updated = assets.filter((a) => a._id !== id);
-      setAssets(updated);
+      if (!res.ok) throw new Error('Delete failed');
       await setCache(cacheKey, updated);
     } catch (err) {
       console.error('[Assets] Delete error:', err);
-    } finally {
-      setDeleting(null);
+      setAssets(originalAssets);
     }
   };
 
@@ -423,6 +435,10 @@ const AssetLibrary = () => {
         {assets.length > 0 && (
           <Button
             onClick={() => {
+              if (!profile?.instagramIsConnected && !selectionMode) {
+                navigate('/setup?step=1');
+                return;
+              }
               setSelectionMode(!selectionMode);
               setSelectedAssetIds([]);
             }}
@@ -438,10 +454,11 @@ const AssetLibrary = () => {
         )}
         <button
           onClick={fetchAssets}
-          className={cn("p-2 rounded-xl text-muted-foreground hover:bg-muted transition", assets.length === 0 && "ml-auto")}
+          disabled={loading}
+          className={cn("p-2 rounded-xl text-muted-foreground hover:bg-muted transition", assets.length === 0 && "ml-auto", loading && "opacity-50 cursor-not-allowed")}
           title="Refresh"
         >
-          <RefreshCw size={14} />
+          <RefreshCw size={14} className={cn(loading && "animate-spin text-primary")} />
         </button>
       </div>
 

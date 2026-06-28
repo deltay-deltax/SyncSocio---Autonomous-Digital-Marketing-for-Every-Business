@@ -1,19 +1,38 @@
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 
 /**
- * Decodes base64 data and writes it to a temporary file in uploads/
- * @param {string} base64Data - Base64 encoded file data
+ * Decodes base64 data (or downloads http URL) and writes it to a temporary file in uploads/
+ * @param {string} base64Data - Base64 encoded file data or HTTP URL
  * @param {string} fileName - Destination file name
- * @returns {string} Path to the created file
+ * @returns {Promise<string|null>} Path to the created file
  */
-export function writeBase64ToFile(base64Data, fileName) {
+export async function writeBase64ToFile(base64Data, fileName) {
   if (!base64Data) return null;
 
   // Ensure uploads directory exists
   const uploadDir = 'uploads';
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  // Handle http URLs by downloading the file
+  if (base64Data.startsWith('http')) {
+    try {
+      const response = await axios.get(base64Data, { responseType: 'arraybuffer' });
+      let extension = '.jpg';
+      if (base64Data.includes('.png')) extension = '.png';
+      else if (base64Data.includes('.webp')) extension = '.webp';
+      else if (base64Data.includes('.mp4')) extension = '.mp4';
+
+      const filePath = path.join(uploadDir, `${fileName}${extension}`);
+      fs.writeFileSync(filePath, response.data);
+      return path.resolve(filePath);
+    } catch (err) {
+      console.error('[tempWriter] Error downloading image from URL:', err.message);
+      return null;
+    }
   }
 
   // Strip prefix like "data:image/jpeg;base64," if present
@@ -45,23 +64,24 @@ export function writeBase64ToFile(base64Data, fileName) {
 /**
  * Writes a StrategyCreative's media assets to files on disk.
  * @param {Object} creative - StrategyCreative document
- * @returns {string[]} Array of file paths
+ * @returns {Promise<string[]>} Array of file paths
  */
-export function writeCreativeToFiles(creative) {
+export async function writeCreativeToFiles(creative) {
   const filePaths = [];
   const creativeId = creative._id.toString();
 
   if (creative.type === 'carousel' && creative.slides && creative.slides.length > 0) {
-    creative.slides.forEach((slide, idx) => {
-      const filePath = writeBase64ToFile(slide.image, `temp_carousel_${creativeId}_${idx}`);
+    for (let idx = 0; idx < creative.slides.length; idx++) {
+      const slide = creative.slides[idx];
+      const filePath = await writeBase64ToFile(slide.image, `temp_carousel_${creativeId}_${idx}`);
       if (filePath) filePaths.push(filePath);
-    });
+    }
   } else if (creative.type === 'video' && creative.videoUrl && !creative.videoUrl.startsWith('http') && fs.existsSync(creative.videoUrl)) {
     // If it's a local video file path, use it directly!
     filePaths.push(path.resolve(creative.videoUrl));
   } else {
     // For images, or video fallback (thumbnail)
-    const filePath = writeBase64ToFile(creative.thumbnailBase64, `temp_image_${creativeId}`);
+    const filePath = await writeBase64ToFile(creative.thumbnailBase64, `temp_image_${creativeId}`);
     if (filePath) filePaths.push(filePath);
   }
 

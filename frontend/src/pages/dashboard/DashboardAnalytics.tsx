@@ -93,7 +93,7 @@ const DashboardAnalytics = () => {
           Please re-connect to fix this.
         </p>
         <Button 
-          onClick={() => window.location.href = '/dashboard/settings'}
+          onClick={() => window.location.href = '/setup?step=1'}
           className="h-14 px-10 rounded-2xl bg-primary text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20"
         >
           Reconnect Instagram

@@ -1,6 +1,12 @@
 import express from 'express';
 import StrategyCreative from '../models/StrategyCreative.js';
 import { protect } from '../middleware/authMiddleware.js';
+import {
+  uploadBase64ToCloudinary,
+  uploadCarouselSlidesToCloudinary,
+  uploadVideoUrlToCloudinary,
+  deleteFromCloudinary,
+} from '../utils/cloudinaryUpload.js';
 
 const router = express.Router();
 
@@ -9,12 +15,49 @@ router.post('/', protect, async (req, res) => {
   try {
     const { type, thumbnailBase64, slides, videoUrl, caption, idea, aspectRatio } = req.body;
 
+    let thumbnailUrl = '';
+    let savedSlides = slides || [];
+    let savedVideoUrl = videoUrl || '';
+
+    // Upload thumbnail to Cloudinary (skip if already a URL)
+    if (thumbnailBase64 && !thumbnailBase64.startsWith('http')) {
+      try {
+        thumbnailUrl = await uploadBase64ToCloudinary(thumbnailBase64, 'syncsocio/creatives');
+      } catch (uploadErr) {
+        console.error('[StrategyAssets] Cloudinary thumb upload failed:', uploadErr.message);
+        thumbnailUrl = thumbnailBase64; // fallback
+      }
+    } else {
+      thumbnailUrl = thumbnailBase64 || '';
+    }
+
+    // Upload carousel slides to Cloudinary
+    if (type === 'carousel' && Array.isArray(slides) && slides.length > 0) {
+      try {
+        savedSlides = await uploadCarouselSlidesToCloudinary(slides, 'syncsocio/carousels');
+      } catch (uploadErr) {
+        console.error('[StrategyAssets] Cloudinary slides upload failed:', uploadErr.message);
+        savedSlides = slides; // fallback
+      }
+    }
+
+    // Upload video file to Cloudinary for permanent storage
+    if (type === 'video' && videoUrl && videoUrl.startsWith('http')) {
+      try {
+        console.log('[StrategyAssets] Uploading generated video to Cloudinary for permanent storage:', videoUrl);
+        savedVideoUrl = await uploadVideoUrlToCloudinary(videoUrl, 'syncsocio/videos');
+      } catch (uploadErr) {
+        console.error('[StrategyAssets] Cloudinary video upload failed:', uploadErr.message);
+        savedVideoUrl = videoUrl; // fallback
+      }
+    }
+
     const creative = await StrategyCreative.create({
       user: req.user._id,
       type,
-      thumbnailBase64: thumbnailBase64 || '',
-      slides: slides || [],
-      videoUrl: videoUrl || '',
+      thumbnailBase64: thumbnailUrl,
+      slides: savedSlides,
+      videoUrl: savedVideoUrl,
       caption: caption || '',
       idea: idea || '',
       aspectRatio: aspectRatio || '1:1',
@@ -46,7 +89,26 @@ router.get('/', protect, async (req, res) => {
 // DELETE /api/strategy-assets/:id — remove from library
 router.delete('/:id', protect, async (req, res) => {
   try {
-    await StrategyCreative.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const creative = await StrategyCreative.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+
+    // Clean up Cloudinary assets (non-critical — don't fail request if this errors)
+    if (creative) {
+      if (creative.thumbnailBase64 && creative.thumbnailBase64.startsWith('http')) {
+        deleteFromCloudinary(creative.thumbnailBase64).catch(() => {});
+      }
+      if (creative.videoUrl && creative.videoUrl.startsWith('http')) {
+        deleteFromCloudinary(creative.videoUrl).catch(() => {});
+      }
+      if (creative.slides?.length) {
+        creative.slides.forEach(s => {
+          if (s.image?.startsWith('http')) deleteFromCloudinary(s.image).catch(() => {});
+        });
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -54,3 +116,4 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 export default router;
+

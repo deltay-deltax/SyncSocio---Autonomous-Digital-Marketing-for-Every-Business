@@ -56,7 +56,7 @@ const ConnectInstagramFallback: React.FC<ConnectInstagramFallbackProps> = ({
 
           {/* Call to action */}
           <Button
-            onClick={() => window.location.href = '/setup'}
+            onClick={() => window.location.href = '/setup?step=1'}
             className="w-full h-12 text-xs font-black uppercase tracking-widest gradient-bg text-white shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
           >
             <Sparkles size={14} className="mr-2 animate-pulse" />

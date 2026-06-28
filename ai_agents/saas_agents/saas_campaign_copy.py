@@ -29,8 +29,6 @@ def generate_saas_campaign_copy(
     brand_doc: Dict[str, Any],
     layout: str,
     idea: Optional[str],
-    saas_directive: str,
-    saas_intelligence: str = "",
     language: str = "english",
 ) -> Dict[str, str]:
     """
@@ -62,8 +60,6 @@ You MUST write the campaign (subject line, headline, email body topic/body copy,
 DO NOT write a generic brand overview. Focus the message context exclusively on executing this idea: "{idea}".
 """
 
-    intel_info = f"\nBrand Intelligence: {saas_intelligence}" if saas_intelligence else ""
-
     if layout == "whatsapp":
         sys_msg = (
             f"You are a B2B WhatsApp copywriter writing in {language}. "
@@ -81,7 +77,7 @@ DO NOT write a generic brand overview. Focus the message context exclusively on 
         )
         user_msg = (
             f"Brand: {brand_name}\nUSP: {usp}\n"
-            f"{idea_focus_instruction}{intel_info}\n\n"
+            f"{idea_focus_instruction}\n\n"
             "Write the WhatsApp message now."
         )
 
@@ -104,7 +100,7 @@ DO NOT write a generic brand overview. Focus the message context exclusively on 
         )
         user_msg = (
             f"Brand: {brand_name}\nUSP: {usp}\n"
-            f"{idea_focus_instruction}{intel_info}\n\n"
+            f"{idea_focus_instruction}\n\n"
             "Write the email campaign now."
         )
 

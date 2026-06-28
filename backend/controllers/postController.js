@@ -354,7 +354,7 @@ export const smartSchedulePosts = async (req, res) => {
       if (!creative) continue;
 
       // Decode base64 images and save to temp files
-      const filePaths = writeCreativeToFiles(creative);
+      const filePaths = await writeCreativeToFiles(creative);
 
       // Create new PostAnalysis record
       const postAnalysis = await PostAnalysis.create({

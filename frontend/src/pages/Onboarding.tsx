@@ -6,7 +6,7 @@ import {
   Shirt, Cpu, GraduationCap, Sparkle, Layers, Repeat, AtSign, Heart, Box, Palette, Diamond,
   Clock, TrendingUp
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 interface LogoProps {
   active: boolean;
@@ -73,7 +73,20 @@ interface LeftPanelContent {
 }
 
 const Onboarding = () => {
-  const [step, setStep] = useState(0);
+  const location = useLocation();
+  const [step, setStep] = useState(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const stepParam = searchParams.get('step');
+    return stepParam ? parseInt(stepParam, 10) : 0;
+  });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const stepParam = searchParams.get('step');
+    if (stepParam !== null) {
+      setStep(parseInt(stepParam, 10));
+    }
+  }, [location.search]);
   const totalSteps = 11;
   const [analyzingProgress, setAnalyzingProgress] = useState(0);
   const [extractedProducts, setExtractedProducts] = useState<any[]>([]);
@@ -886,6 +899,17 @@ const Onboarding = () => {
                         </div>
                       </div>
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Brand Logo (Optional)</label>
+                      <div className="border-2 border-dashed border-border/80 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer group">
+                        <div className="w-12 h-12 rounded-full bg-background border border-border flex items-center justify-center mb-3 group-hover:scale-105 transition-transform shadow-sm">
+                          <Camera size={18} className="text-muted-foreground/60 group-hover:text-primary" />
+                        </div>
+                        <p className="text-xs font-bold text-foreground">Upload Logo</p>
+                        <p className="text-[10px] font-medium text-muted-foreground mt-1">SVG, PNG, or JPG (max 2MB)</p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-10">
@@ -1061,16 +1085,37 @@ const Onboarding = () => {
 
                           <div className="bg-primary/5 rounded-[1.5rem] p-6 border border-primary/15 relative">
                             <div className="flex items-center justify-between mb-4">
-                              <p className="text-[10px] font-black text-primary uppercase tracking-widest">Creative Performance</p>
-                              <Sparkles size={14} className="text-primary animate-pulse" />
+                              <p className="text-[10px] font-black text-primary uppercase tracking-widest">Brand Blueprint Context</p>
+                              <Target size={14} className="text-primary" />
                             </div>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-5xl font-black text-foreground tracking-tighter">4.2x</span>
-                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">efficiency boost</span>
+                            <div className="space-y-4">
+                              <div>
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Target Audiences</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {formData.targetAudiences.length > 0 ? formData.targetAudiences.map(ta => (
+                                    <span key={ta} className="px-2 py-1 rounded-md bg-background border border-border text-[10px] font-bold text-foreground shadow-sm">{ta}</span>
+                                  )) : <span className="text-[10px] font-bold text-muted-foreground">None selected</span>}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Content Formats</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {formData.contentTypes.length > 0 ? formData.contentTypes.map(ct => (
+                                    <span key={ct} className="px-2 py-1 rounded-md bg-background border border-border text-[10px] font-bold text-foreground shadow-sm">{ct}</span>
+                                  )) : <span className="text-[10px] font-bold text-muted-foreground">None selected</span>}
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 pt-1 border-t border-primary/10">
+                                <div>
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Baseline Followers</p>
+                                  <p className="text-xs font-bold text-foreground">{formData.analytics.followers || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Brand Keywords</p>
+                                  <p className="text-xs font-bold text-foreground truncate">{formData.brandKeywords || 'N/A'}</p>
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-[11px] font-medium text-muted-foreground mt-4 leading-relaxed">
-                              Initial pipeline setup targets <span className="text-foreground font-bold">120+ high-fidelity assets</span> generated in your first 30 days using our AI content pipeline.
-                            </p>
                           </div>
 
                           <div className="mt-8 pt-8 border-t border-border/50 flex items-center justify-between gap-4">

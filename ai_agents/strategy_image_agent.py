@@ -422,7 +422,7 @@ Anchor the visual to this exact product.
 """
 
     idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
-    logo_inst = " Incorporate the brand logo reference cleanly on the creative." if brand_doc.get("logo") else ""
+    logo_inst = " Incorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text." if brand_doc.get("logo") else " Do not assume or add any fake logos or text."
 
     # If it is whatsapp or email campaign, we follow the exact requested structure in request 4
     if campaign_mode == "whatsapp":
@@ -1195,11 +1195,12 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                     
                     # Stage 2: Take the generated hero image and send it to Seedance Image-to-Video
                     print(f"[StrategyAgent] UGC Stage 2: Animating starting image with Seedance Fast Image-to-Video...")
-                    result = generate_fal_video_seedance(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio)
+                    result = generate_fal_video_seedance(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio, duration="8")
                 else:
-                    # Standard img2video uses Wan Image-to-Video
+                    # Standard img2video uses Seedance Fast Image-to-Video
                     caption = pick_caption(index)
-                    result = generate_fal_video_wan(prompt, image=ref, aspect_ratio=aspect_ratio)
+                    print(f"[StrategyAgent] Animating starting image with Seedance Fast Image-to-Video...")
+                    result = generate_fal_video_seedance(prompt=prompt, image=ref, aspect_ratio=aspect_ratio)
 
                 return {
                     "url":       result.get("url"),

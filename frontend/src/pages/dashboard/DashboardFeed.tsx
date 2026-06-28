@@ -126,14 +126,14 @@ const DashboardFeed = () => {
               </div>
               <button
                 id="reconnect-instagram-btn"
-                onClick={() => navigate('/dashboard/settings?tab=Connected+Accounts')}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-md shadow-primary/20 hover:bg-primary/90 transition-all duration-200"
+                onClick={() => navigate('/setup?step=1')}
+                className="w-full sm:w-auto h-12 rounded-xl text-sm font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 transition shadow-xl"
               >
-                <RefreshCw size={14} />
+                <Sparkles className="mr-2" size={16} />
                 Reconnect Instagram
               </button>
-              <p className="text-[10px] text-slate-400">
-                Go to Settings → Connected Accounts and click "Connect Instagram"
+              <p className="text-xs text-slate-500 font-semibold mt-4">
+                You will be taken to the secure Meta connection page.
               </p>
             </CardContent>
           </Card>

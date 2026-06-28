@@ -25,6 +25,7 @@ from typing import List, Optional, Dict, Any
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 import json
+from strategy_image_agent import AD_TEMPLATE_DIRECTIVES, _brand_block
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -39,7 +40,7 @@ from fal_visual_engine import (
     generate_fal_video_wan,
     generate_fal_video_seedance,
 )
-from saas_agents.saas_profiles import get_saas_profile, build_saas_directive
+from saas_agents.saas_profiles import get_saas_profile
 
 
 # ─── Caption bank (B2B / SaaS feel) ─────────────────────────────────────────
@@ -66,7 +67,7 @@ ASPECT_TO_FAL_SIZE: Dict[str, str] = {
 }
 
 # ── SaaS Ad composition templates (no D2C urgency/product templates) ─────────
-SAAS_AD_TEMPLATE_DIRECTIVES: Dict[int, Dict[str, str]] = {
+AD_TEMPLATE_DIRECTIVES: Dict[int, Dict[str, str]] = {
     1: {
         "label":     "Dashboard Hero + Metric Bar",
         "directive": (
@@ -206,176 +207,113 @@ def _select_ref_images(ref_images: List[str], count: int) -> List[Optional[str]]
     return out
 
 
-def _brand_block(bd: Dict[str, Any]) -> str:
-    """Shared brand DNA block for SaaS brands."""
-    brand_name      = bd.get("brandName", "Brand")
-    category        = bd.get("businessCategory", "SaaS & Digital")
-    brand_tone      = bd.get("brandTone", "Professional & Direct")
-    visual_vibe     = bd.get("visualVibe", "Clean Minimal")
-    primary_color   = bd.get("primaryColor", "#2563EB")
-    secondary_color = bd.get("secondaryColor", "#60A5FA")
-    target_audience = ", ".join(bd.get("targetAudiences", [])) or "Business professionals"
-    usp             = bd.get("usp", "")
-    main_goal       = bd.get("mainGoal", "Get leads / enquiries")
-    website         = bd.get("website", "")
-    logo            = bd.get("logo", "")
-
-    logo_ref = ""
-    if logo:
-        logo_ref = f"Brand Logo Reference: {logo if logo.startswith('http') else '[Logo image is uploaded and available for branding]'}\n"
-
-    return (
-        f"{brand_name} — {category} company.\n"
-        f"Brand tone: {brand_tone}.\n"
-        f"Visual style: {visual_vibe}.\n"
-        f"Primary color: {primary_color}. Secondary: {secondary_color}.\n"
-        f"Target audience: {target_audience}.\n"
-        f"Core goal: {main_goal}.\n"
-        f"USP: {usp}.\n"
-        + logo_ref
-        + (f"Website: {website}\n" if website else "")
-    )
-
-
-# ─── Prompt builders ─────────────────────────────────────────────────────────
-
 def build_saas_image_prompt(
     brand_doc: Dict[str, Any],
     idea: Optional[str],
     aspect: str,
-    saas_directive: str,
+    product: Optional[Dict[str, Any]] = None,
     ad_template: Optional[int] = None,
     custom_directive: Optional[str] = None,
     language: str = "english",
     campaign_mode: Optional[str] = None,
 ) -> str:
-    """
-    SaaS-adapted static image prompt for gpt-image-2.
-    Replaces D2C product photography with UI/workspace/data-driven visuals.
-    """
+    category = brand_doc.get("businessCategory", "Services")
     block = _brand_block(brand_doc)
-    idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
-    logo_inst = " Incorporate the brand logo reference cleanly on the creative." if brand_doc.get("logo") else ""
+    
+    product_block = ""
+    if product:
+        product_block = f"""
+Service Business: {category}
+Featured Service: {product.get('name', '')}
+Pricing: {product.get('offerPrice', '') or product.get('price', '')}
+Key Benefit: {product.get('keyBenefit', '')}
+Description: {product.get('description', '')}
+
+Make this specific service the **hero** of the ad.
+Anchor the visual to this exact service.
+"""
+
+    idea_str = f"Campaign idea: {idea}\\n" if idea and idea.strip() else ""
+    logo_inst = " Incorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text." if brand_doc.get("logo") else " Do not assume or add any fake logos or text."
 
     if campaign_mode == "whatsapp":
-        return (
-            f"{block}\n{idea_str}{saas_directive}\n\n"
-            f"Create a professional B2B WhatsApp campaign visual.{logo_inst} "
-            "Clean, minimal, trust-building. Use workspace or UI imagery. "
-            f"Aspect ratio: {aspect}. "
-            f"Any text must be in {language}."
-        )
+        return f"""{block}
+{product_block}
+{idea_str}Create a high-converting service business whatsapp ad creative. Make it feel native to whtsapp msg .{logo_inst} Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
+Any text overlays, labels, or copy displayed in the image must be in {language}."""
 
     if campaign_mode == "email":
-        return (
-            f"{block}\n{idea_str}{saas_directive}\n\n"
-            f"Create a professional B2B email campaign header image.{logo_inst} "
-            "Clean corporate aesthetic, data-driven visual, no product packaging. "
-            f"Aspect ratio: {aspect}. "
-            f"Any text must be in {language}."
-        )
+        return f"""{block}
+{product_block}
+{idea_str}Create a high-converting service business email campaign creative. Make it feel native to an email newsletter.{logo_inst} Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
+Any text overlays, labels, or copy displayed in the image must be in {language}."""
 
-    # ── Pick composition template ──
     template_block = ""
     if custom_directive:
-        template_block = f"\nCOMPOSITION VARIATION: {custom_directive}\n"
-    elif ad_template and ad_template in SAAS_AD_TEMPLATE_DIRECTIVES:
-        t = SAAS_AD_TEMPLATE_DIRECTIVES[ad_template]
-        template_block = f"\n{t['directive']}\n"
-        print(f"[SaaSImageAgent] 🔲 Template #{ad_template}: {t['label']}")
+        template_block = f"\\nCOMPOSITION VARIATION: {custom_directive}\\n"
+    elif ad_template and ad_template in AD_TEMPLATE_DIRECTIVES:
+        t = AD_TEMPLATE_DIRECTIVES[ad_template]
+        template_block = f"\\n{t['directive']}\\n"
     else:
-        # Random SaaS-appropriate composition
-        saas_compositions = [
-            "Use a dramatic overhead flat-lay of a laptop/dashboard in a clean workspace.",
-            "Use an extreme close-up of a UI metric card or KPI widget.",
-            "Use an asymmetrical split layout — UI left, bold copy right.",
-            "Use a straight-on eye-level shot of a clean, lit desk workspace.",
-            "Use a bold typographic-first layout with a supporting UI visual below.",
-            "Use a dynamic data visualization (chart/graph) as the hero element.",
+        camera_angles = [
+            "Use a dramatic low-angle shot.", "Use an overhead flat-lay composition.", 
+            "Use an extreme close-up macro shot.", "Use an asymmetrical framing.", 
+            "Use a straight-on eye-level composition.", "Use dynamic tilted framing."
         ]
-        angle = random.choice(saas_compositions)
-        template_block = f"\nCOMPOSITION VARIATION: {angle}\n"
-        print(f"[SaaSImageAgent] 🤖 Free composition: {angle}")
+        angle = random.choice(camera_angles)
+        template_block = f"\\nCOMPOSITION VARIATION: {angle}\\n"
 
-    return (
-        f"{block}\n{idea_str}{saas_directive}\n{template_block}\n"
-        f"Create a high-converting B2B/SaaS ad creative for Instagram feed.{logo_inst} "
-        "Use UI screenshots, dashboards, charts, or clean workspace photography as hero visual. "
-        "NO product packaging. NO lifestyle stock photos. NO discount/sale elements. "
-        f"Aspect ratio: {aspect}. Premium, professional, commercial quality. "
-        f"Any text overlays must be in {language}."
-    )
+    platform_instruction = "Make it feel native to Instagram feed."
+
+    return f"""{block}
+{product_block}
+{idea_str}{template_block}
+Create a high-converting service business ad creative.
+{platform_instruction}
+{logo_inst}
+Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
+Any text overlays, labels, or copy displayed in the image must be in {language}."""
 
 
 def build_saas_carousel_slide_prompts(
     brand_doc: Dict[str, Any],
     idea: Optional[str],
     slide_count: int,
-    saas_directive: str,
-    saas_intelligence: str = "",
-    language: str = "english",
+    product: Optional[Dict[str, Any]] = None,
+    language: str = "english"
 ) -> List[str]:
-    """
-    Generates carousel slide texts using SaaS ad frameworks.
-    Slide structure: Hook → Insight/Framework → Proof → CTA
-    """
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-flash-latest",
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
-        temperature=0.7,
-    )
-
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+    category = brand_doc.get("businessCategory", "Services")
     block = _brand_block(brand_doc)
-    profile = get_saas_profile(brand_doc.get("businessCategory", ""))
-    pillars = ", ".join(profile["content_pillars"]) if profile else "thought leadership, insights, frameworks"
-    frameworks = ", ".join(profile["ad_frameworks"]) if profile else "Problem → Solution, Stat-led"
-    intelligence_block = f"\nBrand Intelligence: {saas_intelligence}" if saas_intelligence else ""
+    prod_info = ""
+    if product:
+        prod_info = f"Featured Service: {product.get('name','')}\\nBenefit: {product.get('keyBenefit','')}\\n"
+    
+    idea_info = f"\\nCampaign Idea/Topic: {idea}" if idea else ""
+    
+    prompt = f"""{block}
+{prod_info}{idea_info}
 
-    idea_info = f"\nCampaign Idea/Topic: {idea}" if idea else ""
-
-    prompt = f"""{block}{intelligence_block}
-{saas_directive}
-
-Content pillars: {pillars}
-Ad frameworks: {frameworks}
-{idea_info}
-
-Write the text for a professional B2B/SaaS Instagram Carousel with EXACTLY {slide_count} slides.
+Write the text for an engaging Instagram Carousel with EXACTLY {slide_count} slides for this service business.
 Output the text in {language}.
 
-CAROUSEL STRUCTURE (follow exactly):
-- Slide 1: HOOK — A bold stat, provocative question, or surprising insight that stops the scroll
-- Middle slides: VALUE — Frameworks, tips, case study data, or feature explanations. Each slide is a standalone insight.
-- Last slide: CTA — Clear next step aligned to the brand's CTA style: {profile['cta_style'] if profile else 'Book a Call | Learn More'}
-
-RULES:
-- NO discount/sale language
-- NO festival/seasonal urgency
-- NO product names unless it's a software feature
-- Each slide must be concise (under 15 words of copy text)
-- Speak directly to business decision-makers
+CAROUSEL STRUCTURE:
+- Slide 1: HOOK — A strong hook that grabs attention (question, bold statement, or related to the service).
+- Middle slides: VALUE — Break down the benefits, features, or steps of the service.
+- Last slide: CTA — Clear call to action (e.g. Book a Consultation, Learn More).
 
 Output ONLY a valid JSON array of strings (one per slide). No markdown, no labels.
 Example: ["Slide 1 text", "Slide 2 text"]
 """
-
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
-        content = response.content
-        if isinstance(content, list):
-            content = "".join(
-                p.get("text", "") if isinstance(p, dict) else str(p) for p in content
-            )
-        text = content.strip()
-        if text.startswith("```json"):
-            text = text[7:]
-        if text.startswith("```"):
-            text = text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
+        text = response.content.strip()
+        if text.startswith("```json"): text = text[7:]
+        if text.startswith("```"): text = text[3:]
+        if text.endswith("```"): text = text[:-3]
         return json.loads(text.strip())
     except Exception as e:
-        print(f"[SaaSCarouselAgent] ❌ LLM failed: {e}")
+        print(f"[SaaSCarousel] LLM failed: {e}")
         return [f"Slide {i+1}" for i in range(slide_count)]
 
 
@@ -383,24 +321,28 @@ def build_saas_video_prompt(
     brand_doc: Dict[str, Any],
     idea: Optional[str],
     aspect: str,
-    saas_directive: str,
+    product: Optional[Dict[str, Any]] = None,
     language: str = "english",
 ) -> str:
-    """B-roll style SaaS video prompt — workspace, UI, no consumer products."""
+    category = brand_doc.get("businessCategory", "Services")
     block = _brand_block(brand_doc)
-    idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
-
-    return (
-        f"{block}\n{idea_str}{saas_directive}\n\n"
-        "Create a high-quality, professional B-roll style video for Instagram Reels. "
-        "The video should feature: clean workspace shots, UI screen recordings, "
-        "or smooth camera pans across data dashboards and analytics visuals. "
-        "Lighting is natural, bright, and professional. Colour grade is clean and minimal. "
-        "No people speaking to camera. No product packaging. No consumer lifestyle shots. "
-        "Subtle motion only — slow pan, gentle zoom, or cursor interaction on screen. "
-        f"Any text or visual overlays must be in {language}. "
-        f"Aspect ratio: {aspect}. Commercial B2B advertising quality."
-    )
+    idea_str = f"Campaign idea: {idea}\\n" if idea and idea.strip() else ""
+    
+    product_block = ""
+    if product:
+        product_block = f"""
+Featured Service: {product.get('name', '')}
+Pricing: {product.get('offerPrice', '') or product.get('price', '')}
+"""
+    return f"""{block}
+{product_block}
+{idea_str}
+Create a high-quality, professional B-roll style video for Instagram Reels for this service business.
+The video should feature clean shots relevant to the service category ({category}).
+Lighting is natural, bright, and professional. 
+Subtle motion only — slow pan, gentle zoom. 
+Any text or visual overlays must be in {language}. 
+Aspect ratio: {aspect}. Commercial advertising quality."""
 
 
 def build_saas_ugc_video_prompt(
@@ -408,13 +350,12 @@ def build_saas_ugc_video_prompt(
     avatar_description: str,
     script: str,
     aspect: str,
-    saas_directive: str,
     language: str = "english",
 ) -> str:
     """SaaS UGC video — professional talking-head, no consumer products."""
     block = _brand_block(brand_doc)
     return (
-        f"{block}\n{saas_directive}\n\n"
+        f"{block}\n\n"
         "Create a high-quality talking-head UGC style video for Instagram Reels. "
         f"Presenter: {avatar_description} "
         "The presenter must look directly at the camera in a professional setting "
@@ -431,8 +372,6 @@ def generate_saas_instagram_caption(
     brand_doc: Dict[str, Any],
     layout: str,
     idea: Optional[str],
-    saas_directive: str,
-    saas_intelligence: str = "",
     language: str = "english",
     index: int = 0,
 ) -> str:
@@ -448,8 +387,6 @@ def generate_saas_instagram_caption(
         profile = get_saas_profile(brand_doc.get("businessCategory", ""))
         cta = profile["cta_style"] if profile else "Book a Call | Learn More"
         idea_info = f"Campaign Topic/Idea: {idea}\n" if idea and idea.strip() else ""
-        intelligence_block = f"Brand Intelligence: {saas_intelligence}\n" if saas_intelligence else ""
-
         sys_msg = (
             f"You are a B2B copywriter and Instagram content expert. "
             f"Write a professional Instagram caption in {language} for a {layout} post "
@@ -465,7 +402,7 @@ def generate_saas_instagram_caption(
 
         user_msg = (
             f"Brand: {block}\n"
-            f"{intelligence_block}"
+            f""
             f"{idea_info}"
             f"Post type: {layout}\n"
             f"Post index: {index + 1}\n\n"
@@ -499,8 +436,6 @@ def generate_saas_strategy_images(
     aspect_ratio: str,
     idea: Optional[str],
     ref_images: List[str],
-    saas_directive: str,
-    saas_intelligence: str = "",
     ad_template: Optional[int] = None,
     language: str = "english",
     video_kind: Optional[str] = "img2video",
@@ -556,7 +491,7 @@ def generate_saas_strategy_images(
 
         def _template_for(i: int) -> Optional[int]:
             if ad_template == -1:
-                return (i % len(SAAS_AD_TEMPLATE_DIRECTIVES)) + 1
+                return (i % len(AD_TEMPLATE_DIRECTIVES)) + 1
             return ad_template
 
         tasks = []
@@ -571,7 +506,6 @@ def generate_saas_strategy_images(
 
             prompt = build_saas_image_prompt(
                 brand_doc, idea, aspect_ratio,
-                saas_directive=saas_directive,
                 ad_template=t_id,
                 custom_directive=c_dir,
                 language=language,
@@ -581,19 +515,17 @@ def generate_saas_strategy_images(
         def run_image_task(task):
             prompt, ref, index, t_id, c_dir = task
             template_label = None
-            if t_id and t_id in SAAS_AD_TEMPLATE_DIRECTIVES:
-                template_label = SAAS_AD_TEMPLATE_DIRECTIVES[t_id]["label"]
+            if t_id and t_id in AD_TEMPLATE_DIRECTIVES:
+                template_label = AD_TEMPLATE_DIRECTIVES[t_id]["label"]
             elif c_dir:
                 template_label = c_dir[:60]
 
             print(f"\n[SaaSAgent] 🖼  Image {index+1}/{count} | ref={'YES' if ref else 'NO'} | template={template_label or 'free'}")
-
+            print(f"[SaaSAgent] 📝 Image Prompt:\n{prompt}\n")
             caption = generate_saas_instagram_caption(
                 brand_doc=brand_doc,
                 layout="image",
                 idea=idea,
-                saas_directive=saas_directive,
-                saas_intelligence=saas_intelligence,
                 language=language,
                 index=index,
             )
@@ -633,8 +565,6 @@ def generate_saas_strategy_images(
             brand_doc=brand_doc,
             layout=layout,
             idea=idea,
-            saas_directive=saas_directive,
-            saas_intelligence=saas_intelligence,
             language=language,
         )
         results.append({
@@ -655,18 +585,14 @@ def generate_saas_strategy_images(
             print(f"[SaaSAgent] ✍️ Drafting {slide_count} slides for carousel {index+1}...")
             slide_texts = build_saas_carousel_slide_prompts(
                 brand_doc, idea, slide_count,
-                saas_directive=saas_directive,
-                saas_intelligence=saas_intelligence,
                 language=language,
             )
             print(f"\n[SaaSAgent] 🎠 Carousel {index+1}/{count} | ref={'YES' if ref else 'NO'}")
-
+            print(f"[SaaSAgent] 📝 Carousel Slide Prompts:\n{json.dumps(slide_texts, indent=2)}\n")
             caption = generate_saas_instagram_caption(
                 brand_doc=brand_doc,
                 layout="carousel",
                 idea=idea,
-                saas_directive=saas_directive,
-                saas_intelligence=saas_intelligence,
                 language=language,
                 index=index,
             )
@@ -739,11 +665,11 @@ def generate_saas_strategy_images(
                     video_script = video_script or f"Discover how {brand_doc.get('brandName', 'we')} can transform your workflow."
 
             video_prompt = build_saas_ugc_video_prompt(
-                brand_doc, avatar_description, video_script, aspect_ratio, saas_directive, language
+                brand_doc, avatar_description, video_script, aspect_ratio, language
             )
         else:
             video_prompt = build_saas_video_prompt(
-                brand_doc, idea, aspect_ratio, saas_directive, language
+                brand_doc, idea, aspect_ratio, language
             )
 
         print(f"\n[SaaSAgent] 🎥 Video ({video_kind}) | Prompt length: {len(video_prompt)}")
@@ -751,6 +677,7 @@ def generate_saas_strategy_images(
         def run_video_task(index):
             ref = assigned_refs[index] if index < len(assigned_refs) else None
             print(f"\n[SaaSAgent] 🎬 Video {index+1}/{count}...")
+            print(f"[SaaSAgent] 📝 Video Prompt:\n{video_prompt}\n")
             try:
                 if ref and not ref.startswith("http") and not ref.startswith("data:"):
                     ref = "data:image/jpeg;base64," + ref
@@ -759,13 +686,14 @@ def generate_saas_strategy_images(
                     # Stage 1: Brand DNA + avatar + directive + the script is passed to GPT Image
                     brand_info = _brand_block(brand_doc)
                     stage1_prompt = f"""{brand_info}
-{saas_directive}
+
 Avatar Description: {avatar_description}
 Video Script: {video_script}
 
 Create a high-quality, photorealistic portrait image of this UGC creator/presenter in a professional office environment, which will be used to generate a UGC video. The scene is bright and clean. No text overlays, letters, or characters on the image. Aspect ratio: {aspect_ratio}."""
                     
                     print(f"[SaaSAgent] UGC Stage 1: Generating starting image with GPT-Image-2...")
+                    print(f"[SaaSAgent] 📝 UGC Stage 1 Prompt:\n{stage1_prompt}\n")
                     gpt_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "portrait_16_9")
                     gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=ref, image_size=gpt_size)
                     generated_img = gpt_res.get("image")
@@ -777,19 +705,18 @@ Create a high-quality, photorealistic portrait image of this UGC creator/present
                         brand_doc=brand_doc,
                         layout="video",
                         idea=f"UGC Video post with script: {video_script}",
-                        saas_directive=saas_directive,
-                        saas_intelligence=saas_intelligence,
                         language=language,
                         index=index,
                     )
                     
                     # Stage 2: Take the generated hero image and send it to Seedance Image-to-Video
                     print(f"[SaaSAgent] UGC Stage 2: Animating starting image with Seedance Fast Image-to-Video...")
-                    result = generate_fal_video_seedance(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio)
+                    result = generate_fal_video_seedance(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio, duration="8")
                 else:
-                    # Standard img2video uses Wan Image-to-Video
+                    # Standard img2video uses Seedance Fast Image-to-Video
                     caption = pick_caption(index)
-                    result = generate_fal_video_wan(video_prompt, image=ref, aspect_ratio=aspect_ratio)
+                    print(f"[SaaSAgent] Animating starting image with Seedance Fast Image-to-Video...")
+                    result = generate_fal_video_seedance(prompt=video_prompt, image=ref, aspect_ratio=aspect_ratio)
 
                 return {"url": result.get("url"), "thumbnail": result.get("thumbnail"),
                         "caption": caption, "type": "video", "index": index}
@@ -816,8 +743,6 @@ Create a high-quality, photorealistic portrait image of this UGC creator/present
             aspect_ratio=aspect_ratio,
             idea=idea,
             ref_images=ref_images,
-            saas_directive=saas_directive,
-            saas_intelligence=saas_intelligence,
             language=language,
         )
 

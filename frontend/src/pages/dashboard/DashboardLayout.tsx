@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation, Outlet } from 'react-router-dom';
+import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -24,10 +24,14 @@ const navItems = [
 
 const DashboardLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(() => {
+    const stored = localStorage.getItem('syncsocio_profile');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [loading, setLoading] = useState(() => !localStorage.getItem('syncsocio_profile'));
   const [showRelinkSuccess, setShowRelinkSuccess] = useState(false);
   const [nextScheduled, setNextScheduled] = useState<any>(null);
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } = useNotifications();
@@ -386,10 +390,10 @@ const DashboardLayout = () => {
 
             <div className="h-8 w-px bg-border/50 mx-2" />
 
-            <button onClick={() => window.location.href = '/dashboard/settings'}>
+            <button onClick={() => navigate('/dashboard/settings')}>
               <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-primary/20 ring-offset-1 shadow-sm hover:ring-primary/60 transition-all">
-                {profile?.instagramProfilePicture ? (
-                  <img src={profile.instagramProfilePicture} alt={brandName} className="object-cover w-full h-full" />
+                {(profile?.logo || profile?.instagramProfilePicture) ? (
+                  <img src={profile.logo || profile.instagramProfilePicture} alt={brandName} className="object-contain p-0.5 w-full h-full bg-white" />
                 ) : (
                   <AvatarFallback className="gradient-bg text-white text-[10px] font-black">{initials}</AvatarFallback>
                 )}

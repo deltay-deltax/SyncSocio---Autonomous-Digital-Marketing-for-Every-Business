@@ -175,11 +175,9 @@ SAAS_CONTENT_PROFILES = {
 
 # PRIMARY triggers
 SAAS_TRIGGER_CATEGORIES = {
-    "health & wellness",
     "mobile apps",
     "it & technical tools",
     "gaming & entertainment",
-    "digital products",
     "saas & digital",
     "coaching & consulting",
     "architecture",
@@ -193,11 +191,9 @@ SAAS_TRIGGER_CATEGORIES = {
 }
 
 CATEGORY_TO_PROFILE_KEY = {
-    "health & wellness":      "consulting",
     "mobile apps":            "tech",
     "it & technical tools":    "tech",
     "gaming & entertainment": "tech",
-    "digital products":      "tech",
     "saas & digital":        "saas",
     "coaching & consulting": "consulting",
     "architecture":          "agency",
@@ -230,27 +226,3 @@ def is_saas_brand(business_category: str) -> bool:
     return business_category.strip().lower() in CATEGORY_TO_PROFILE_KEY
 
 
-def build_saas_directive(profile: dict, brand_name: str = "") -> str:
-    """
-    Builds the injected directive string that gets prepended to every
-    image/carousel/video/festival prompt for SaaS/Services/Consulting brands.
-    """
-    name_line = f"Brand: {brand_name}. " if brand_name else ""
-    return f"""
-[SaaS/Services Brand Content Directive — OVERRIDE ALL D2C DEFAULTS]
-{name_line}
-Visual Style: {profile['visual_style']}
-Copy Tone: {profile['copy_tone']}
-Content Pillars (choose from): {', '.join(profile['content_pillars'])}
-Ad Framework to apply: {profile['ad_frameworks'][0]}
-CTA Style: {profile['cta_style']}
-
-STRICT RULES — MUST FOLLOW:
-- NO physical product packaging photography
-- NO discount, sale, or urgency language (e.g., "40% OFF", "Limited stock")
-- NO festival discount posts — transform festivals into brand-milestone moments
-- NO lifestyle stock photos of people shopping or using consumer products
-- USE UI screenshots, dashboards, data visualizations, or workspace imagery as hero visuals
-- Headlines MUST lead with outcomes, metrics, or frameworks (not features alone)
-- AVOID: {profile['avoid']}
-""".strip()

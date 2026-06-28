@@ -85,51 +85,36 @@ def _build_saas_festival_image_prompt(
     brand_doc: Dict[str, Any],
     festival_name: str,
     idea: Optional[str],
-    saas_directive: str,
-    saas_intelligence: str,
     aspect: str,
     index: int,
     total: int,
     language: str,
 ) -> tuple:
-    """
-    Builds the image generation prompt and the Instagram caption for a festival post.
-    Returns (image_prompt, caption_prompt_for_llm)
-    """
     brand_name = brand_doc.get("brandName", "Brand")
     category   = brand_doc.get("businessCategory", "Services")
     primary_color  = brand_doc.get("primaryColor", "#2563EB")
     secondary_color = brand_doc.get("secondaryColor", "#60A5FA")
     brand_tone = brand_doc.get("brandTone", "Professional")
+    logo = brand_doc.get("logo", "")
 
     reframe = _get_festival_reframe(festival_name)
     idea_line = f"Campaign idea: {idea}" if idea and idea.strip() else ""
-    intelligence_block = f"Brand Intelligence: {saas_intelligence}" if saas_intelligence else ""
+    logo_inst = " Incorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text." if logo else " Do not assume or add any fake logos or text."
 
     image_prompt = f"""
-Brand: {brand_name} — {category} company.
-Brand tone: {brand_tone}.
-Primary color: {primary_color}. Secondary: {secondary_color}.
+BRAND: {brand_name} — {category} company.
+Tone: {brand_tone}.
+Colors: {primary_color} / {secondary_color}.
 
-{saas_directive}
+FESTIVAL / SEASONAL EVENT: {festival_name}
 {idea_line}
-{intelligence_block}
 
-FESTIVAL: {festival_name}
-POST ANGLE: {reframe}
-
-Create a professional, premium brand celebration post for {festival_name}.
-Visual theme: Abstract, editorial, typographic. Clean brand colors.
-NO discount badges. NO sale language. NO product packaging.
-Use: Elegant typography over a minimal gradient background, 
-or an abstract geometric celebration visual in brand colors,
-or a cinematic dark workspace with subtle festive light accents.
-The image should feel like a premium agency or SaaS company wishing their community well — 
-NOT a consumer brand running a sale.
-Aspect ratio: {aspect}. Premium, commercial quality.
+Create a premium, highly aesthetic festival celebration post for this service business.
+{logo_inst}
+Aspect ratio: {aspect}. Commercial photography quality.
+Make the visual thematic to the festival but modern and professional.
 Any text on the image must be in {language}.
 """.strip()
-
     return image_prompt, reframe
 
 
@@ -138,9 +123,7 @@ def _generate_festival_caption(
     festival_name: str,
     reframe: str,
     idea: Optional[str],
-    saas_directive: str,
     profile: Optional[dict],
-    saas_intelligence: str,
     language: str,
 ) -> str:
     """Generates a thought-leadership festival caption using Gemini."""
@@ -152,8 +135,6 @@ def _generate_festival_caption(
         )
         brand_name = brand_doc.get("brandName", "Brand")
         cta = profile["cta_style"] if profile else "Book a Call | Learn More"
-        intelligence_block = f"\nBrand context: {saas_intelligence}" if saas_intelligence else ""
-
         sys_msg = (
             f"You are a B2B brand strategist writing Instagram captions in {language}. "
             f"Write a professional {festival_name} post for a SaaS/Consulting brand. "
@@ -169,7 +150,7 @@ def _generate_festival_caption(
             f"Brand: {brand_name}\n"
             f"Festival: {festival_name}\n"
             f"Post angle: {reframe}\n"
-            f"{intelligence_block}\n\n"
+            f"\n\n"
             "Write the caption now."
         )
 
@@ -195,8 +176,6 @@ def generate_saas_festival_images(
     aspect_ratio: str,
     idea: Optional[str],
     ref_images: List[str],
-    saas_directive: str,
-    saas_intelligence: str = "",
     language: str = "english",
 ) -> List[Dict[str, Any]]:
     """
@@ -224,8 +203,6 @@ def generate_saas_festival_images(
             brand_doc=brand_doc,
             festival_name=festival_name,
             idea=idea,
-            saas_directive=saas_directive,
-            saas_intelligence=saas_intelligence,
             aspect=aspect_ratio,
             index=i,
             total=count,
@@ -248,9 +225,7 @@ def generate_saas_festival_images(
             festival_name=festival_name,
             reframe=reframe,
             idea=idea,
-            saas_directive=saas_directive,
             profile=profile,
-            saas_intelligence=saas_intelligence,
             language=language,
         )
 

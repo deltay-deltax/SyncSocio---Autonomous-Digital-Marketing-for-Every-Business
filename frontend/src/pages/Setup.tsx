@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare, Zap } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -142,7 +142,20 @@ const Wrapper = ({ children, maxW = 'max-w-xl', screenKey }: { children: React.R
 // ─── Main Component ──────────────────────────────────────────────────
 const Setup = () => {
   const navigate = useNavigate();
-  const [screen, setScreen] = useState<Screen>('checklist');
+  const location = useLocation();
+  const [screen, setScreen] = useState<Screen>(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const stepParam = searchParams.get('step');
+    return stepParam === '1' ? 'instagram' : 'checklist';
+  });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const stepParam = searchParams.get('step');
+    if (stepParam === '1') {
+      setScreen('instagram');
+    }
+  }, [location.search]);
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
     'SyncSocio Starter': localStorage.getItem('syncsocio_dm_automation') === 'true',
     'SyncSocio PRO': localStorage.getItem('syncsocio_dm_automation') === 'true',
@@ -164,7 +177,11 @@ const Setup = () => {
 
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true') {
-      setScreen('plan');
+      if (localStorage.getItem('syncsocio_setup_done') === 'true') {
+        navigate('/dashboard/feed');
+      } else {
+        setScreen('plan');
+      }
     }
     if (params.get('error')) {
       setError(params.get('error'));
@@ -504,7 +521,13 @@ const Setup = () => {
 
           <Button
             variant="ghost"
-            onClick={() => setScreen('plan')}
+            onClick={() => {
+              if (localStorage.getItem('syncsocio_setup_done') === 'true') {
+                navigate('/dashboard/feed');
+              } else {
+                setScreen('plan');
+              }
+            }}
             className="w-full h-11 mt-3 text-xs font-semibold text-muted-foreground hover:text-foreground border border-border"
           >
             Skip for Now

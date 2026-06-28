@@ -9,6 +9,7 @@ import Notification from '../models/Notification.js';
 import PostAnalysis from '../models/PostAnalysis.js';
 import { sendSignupWelcomeEmail } from '../utils/sendWelcomeEmail.js';
 import { createNotification } from '../utils/notificationHelper.js';
+import { uploadBase64ToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload.js';
 
 const inferAuthProvider = (user) => {
   if (user?.googleId) return 'google';
@@ -29,6 +30,18 @@ export const createOrUpdateProfile = async (req, res) => {
     const previousSelectedPlan = profile?.selectedPlan?.trim() || '';
     const wasGmailConnected = profile ? profile.gmailIsConnected : false;
     const wasWhatsappConnected = profile ? profile.whatsappIsConnected : false;
+
+    // Upload logo to Cloudinary if it's base64
+    if (profileData.logo && !profileData.logo.startsWith('http')) {
+      try {
+        if (profile && profile.logo && profile.logo.startsWith('http')) {
+          await deleteFromCloudinary(profile.logo).catch(() => {});
+        }
+        profileData.logo = await uploadBase64ToCloudinary(profileData.logo, 'syncsocio/logos');
+      } catch (uploadErr) {
+        console.error('[Profile] Cloudinary logo upload failed:', uploadErr.message);
+      }
+    }
     
     if (profile) {
       profile = await BrandProfile.findOneAndUpdate(
@@ -100,10 +113,42 @@ export const getProfile = async (req, res) => {
   }
 };
 
+import StrategyCreative from '../models/StrategyCreative.js';
+import Product from '../models/Product.js';
+
 export const terminateAccount = async (req, res) => {
   try {
     const userId = req.user._id;
     console.log(`[TERMINATE] ⚠️ Wiping all data for user ${userId}...`);
+
+    // Clean up Cloudinary assets
+    try {
+      const brand = await BrandProfile.findOne({ user: userId });
+      if (brand && brand.logo && brand.logo.startsWith('http')) {
+        await deleteFromCloudinary(brand.logo).catch(() => {});
+      }
+      
+      const creatives = await StrategyCreative.find({ user: userId });
+      for (const creative of creatives) {
+        if (creative.thumbnailBase64 && creative.thumbnailBase64.startsWith('http')) {
+          await deleteFromCloudinary(creative.thumbnailBase64).catch(() => {});
+        }
+        if (creative.slides?.length) {
+          creative.slides.forEach(s => {
+            if (s.image?.startsWith('http')) deleteFromCloudinary(s.image).catch(() => {});
+          });
+        }
+      }
+
+      const products = await Product.find({ user: userId });
+      for (const prod of products) {
+        if (prod.imageBase64 && prod.imageBase64.startsWith('http')) {
+          await deleteFromCloudinary(prod.imageBase64).catch(() => {});
+        }
+      }
+    } catch (cleanErr) {
+      console.warn('[TERMINATE] Cloudinary cleanup warning:', cleanErr.message);
+    }
 
     // Delete everything in parallel
     await Promise.all([
@@ -115,6 +160,8 @@ export const terminateAccount = async (req, res) => {
       DMFlowFollowUp.deleteMany({ user: userId }),
       Notification.deleteMany({ userId: userId }),
       PostAnalysis.deleteMany({ userId: userId }),
+      StrategyCreative.deleteMany({ user: userId }),
+      Product.deleteMany({ user: userId }),
       User.findByIdAndDelete(userId)
     ]);
 

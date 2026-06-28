@@ -89,7 +89,21 @@ const ProductForm: React.FC<{
   onClose: () => void;
 }> = ({ initial, onSave, onClose }) => {
   const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-  const SAAS_BRAND_CATEGORIES = ['SaaS & Digital', 'Services', 'Coaching & Consulting'];
+  const SAAS_BRAND_CATEGORIES = [
+    'Mobile Apps',
+    'IT & Technical Tools',
+    'Gaming & Entertainment',
+    'SaaS & Digital',
+    'Coaching & Consulting',
+    'Architecture',
+    'Financial Services',
+    'Real Estate & Property',
+    'Travel & Hospitality',
+    'Education & Training',
+    'Newsletters',
+    'Online Marketplaces',
+    'Services'
+  ];
   const isSaas = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
 
   const [form, setForm] = useState<Product>(initial ?? emptyProduct());
@@ -380,15 +394,33 @@ const ProductForm: React.FC<{
 
 // ── Main Products Page ────────────────────────────────────────────────────────
 const Products = () => {
-  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-  const SAAS_BRAND_CATEGORIES = ['SaaS & Digital', 'Services', 'Coaching & Consulting'];
-  const isSaas = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
-
-  const userId = profile.user || profile._id || 'default';
-  const cacheKey = `${CACHE_KEY}_${userId}`;
+  const { userId, cacheKey, isSaas } = React.useMemo(() => {
+    const p = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+    const SAAS_CATS = [
+      'Mobile Apps',
+      'IT & Technical Tools',
+      'Gaming & Entertainment',
+      'SaaS & Digital',
+      'Coaching & Consulting',
+      'Architecture',
+      'Financial Services',
+      'Real Estate & Property',
+      'Travel & Hospitality',
+      'Education & Training',
+      'Newsletters',
+      'Online Marketplaces',
+      'Services'
+    ];
+    const uid = p.user || p._id || 'default';
+    return {
+      userId:   uid,
+      cacheKey: `${CACHE_KEY}_${uid}`,
+      isSaas:   SAAS_CATS.includes(p.businessCategory || ''),
+    };
+  }, []);
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -397,56 +429,57 @@ const Products = () => {
   const token = localStorage.getItem('token');
 
   const fetchProducts = async () => {
-    setLoading(true);
-    // Load from IndexedDB cache first for instant display
+    // ── Step 1: Try cache first (IDB → localStorage fallback) ──────────────
+    let hasCached = false;
     try {
       const cached = await idbGet(cacheKey);
       if (Array.isArray(cached) && cached.length > 0) {
         setProducts(cached);
-        console.log('[Products] Cache hit:', cached.length, 'products');
-      } else {
-        // Clear products if no cache exists to prevent leakage from previous user
-        setProducts([]);
+        hasCached = true;
+        console.log('[Products] ⚡ Cache hit:', cached.length, 'products (instant)');
       }
-    } catch (e) {
-      // Also try legacy localStorage as fallback (read-only, won't write)
+    } catch {
       try {
         const ls = localStorage.getItem(cacheKey);
-        if (ls) setProducts(JSON.parse(ls));
-        else setProducts([]);
-      } catch {
-        setProducts([]);
-      }
+        if (ls) {
+          const parsed = JSON.parse(ls);
+          if (parsed.length > 0) {
+            setProducts(parsed);
+            hasCached = true;
+            console.log('[Products] ⚡ localStorage cache hit:', parsed.length, 'products');
+          }
+        }
+      } catch {}
     }
 
+    // Only show skeleton when there's nothing to display yet
+    if (!hasCached) setLoading(true);
+
+    // ── Step 2: Background API refresh ─────────────────────────────────────
     try {
-      console.log('[Products] Token present:', !!token, '| API_BASE:', API_BASE);
       console.log('[Products] Fetching →', `${API_BASE}/products`);
       const res = await fetch(`${API_BASE}/products`, { headers: { Authorization: `Bearer ${token}` } });
-      console.log('[Products] Response status:', res.status, res.statusText);
       if (res.ok) {
         const data = await res.json();
         const list = data.products || [];
-        console.log('[Products] Received:', list.length, 'products');
+        console.log('[Products] ✅ API:', list.length, 'products');
         setProducts(list);
-        // Persist to IndexedDB (no size limit unlike localStorage)
         await idbSet(cacheKey, list);
-        // Clean up old localStorage entry to free quota
         try { localStorage.removeItem(cacheKey); } catch {}
       } else {
-        // If unauthorized or error, empty products
-        if (res.status === 401 || res.status === 403) {
+        if (!hasCached && (res.status === 401 || res.status === 403)) {
           setProducts([]);
         }
       }
     } catch (e: any) {
-      console.log('[Products] ❌ Network/parse error:', e.message);
+      console.log('[Products] ❌ Network error:', e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchProducts(); }, [userId]);
+  // Run once on mount — userId is stable for the lifetime of the session
+  useEffect(() => { fetchProducts(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async (p: Product) => {
     try {
@@ -466,13 +499,18 @@ const Products = () => {
   };
 
   const handleDelete = async (id: string) => {
-    setDeleting(id);
+    const originalProducts = [...products];
+    const updated = products.filter((p) => p._id !== id);
+    setProducts(updated);
+
     try {
-      await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-      const updated = products.filter((p) => p._id !== id);
-      setProducts(updated);
+      const res = await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('Delete failed');
       await idbSet(cacheKey, updated);
-    } finally { setDeleting(null); }
+    } catch (e) {
+      setProducts(originalProducts);
+      console.error(e);
+    }
   };
 
   return (
@@ -503,6 +541,41 @@ const Products = () => {
         </Button>
       </div>
 
+      {/* ── Loading skeleton ── */}
+      {loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
+              {/* Image skeleton */}
+              <div className="h-44 bg-muted animate-pulse relative overflow-hidden">
+                <div
+                  className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]"
+                  style={{
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)',
+                    animationDelay: `${i * 0.15}s`,
+                  }}
+                />
+              </div>
+              {/* Text skeleton */}
+              <div className="p-4 space-y-2.5">
+                <div className="h-4 w-3/4 rounded-lg bg-muted animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
+                <div className="h-3 w-full rounded-lg bg-muted animate-pulse" style={{ animationDelay: `${i * 0.1 + 0.05}s` }} />
+                <div className="h-3 w-2/3 rounded-lg bg-muted animate-pulse" style={{ animationDelay: `${i * 0.1 + 0.1}s` }} />
+                <div className="flex gap-2 pt-1">
+                  <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
+                  <div className="h-5 w-12 rounded-full bg-muted animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      )}
+
       {/* Empty state */}
       {!loading && products.length === 0 && (
         <motion.div
@@ -528,6 +601,7 @@ const Products = () => {
       )}
 
       {/* Product grid */}
+      {!loading && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <AnimatePresence>
           {products.map((p, i) => (
@@ -630,6 +704,7 @@ const Products = () => {
           ))}
         </AnimatePresence>
       </div>
+      )} {/* end !loading grid */}
 
       {/* Form Modal */}
       <AnimatePresence>
