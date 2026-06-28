@@ -187,6 +187,48 @@ const Setup = () => {
   const [pendingSync, setPendingSync] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Coupon Checkout State
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercentage: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  // Validate Coupon handler
+  const handleApplyCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCouponError(null);
+    if (!couponCodeInput.trim()) return;
+
+    setCouponLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const res = await fetch(`${API_BASE}/coupons/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ code: couponCodeInput.toUpperCase().trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Invalid coupon code');
+      }
+      setAppliedCoupon({
+        code: data.code,
+        discountPercentage: data.discountPercentage
+      });
+      localStorage.setItem('velocity_applied_coupon', data.code);
+      setCouponCodeInput('');
+    } catch (err: any) {
+      console.error(err);
+      setCouponError(err.message || 'Failed to validate coupon.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
   // Handle OAuth callback parameters and fragment cleanup
   useEffect(() => {
     // Meta/Facebook appends #_=_ to the redirect URI after OAuth
@@ -363,17 +405,30 @@ const Setup = () => {
           // Assign credits for chosen plan
           if (selectedPlan) {
             try {
+              const isDmEnabled = localStorage.getItem('velocity_dm_automation') === 'true';
+              const couponCode = localStorage.getItem('velocity_applied_coupon') || undefined;
+
               const credRes = await fetch(`${API_BASE}/credits/assign`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ plan: selectedPlan })
+                body: JSON.stringify({ 
+                  plan: selectedPlan,
+                  isDmEnabled,
+                  couponCode
+                })
               });
               if (credRes.ok) {
                 const credData = await credRes.json();
+<<<<<<< Updated upstream
                 localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+=======
+                localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+                // Clean up applied coupon from storage
+                localStorage.removeItem('velocity_applied_coupon');
+>>>>>>> Stashed changes
               }
             } catch (credErr) {
               console.error('[Setup] Failed to assign credits:', credErr);
@@ -553,18 +608,67 @@ const Setup = () => {
   // SCREEN 3 — CHOOSE PLAN
   // ════════════════════════════════════════════════════════════════════
   if (screen === 'plan') {
+    const discount = appliedCoupon ? appliedCoupon.discountPercentage : 0;
+
     return (
       <Wrapper maxW="max-w-7xl" screenKey={screen}>
         <div className="text-center mb-10">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Choose how active your agent is</h1>
           <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
+
+          {/* Coupon Input Box */}
+          <div className="max-w-md mx-auto mt-6 bg-card/40 border border-border/80 backdrop-blur rounded-2xl p-4 shadow-sm">
+            <form onSubmit={handleApplyCoupon} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="PROMO CODE (e.g. WELCOME10)"
+                value={couponCodeInput}
+                onChange={(e) => setCouponCodeInput(e.target.value)}
+                className="flex-1 bg-background/50 border border-border rounded-xl px-4 py-2 text-foreground focus:border-blue-500 focus:outline-none text-xs uppercase font-mono"
+                disabled={couponLoading || !!appliedCoupon}
+              />
+              <Button 
+                type="submit" 
+                size="sm" 
+                variant={appliedCoupon ? "outline" : "default"}
+                disabled={couponLoading || !couponCodeInput.trim() || !!appliedCoupon}
+                className="rounded-xl text-xs h-9"
+              >
+                {couponLoading ? 'Checking...' : appliedCoupon ? 'Applied' : 'Apply'}
+              </Button>
+            </form>
+            {couponError && (
+              <p className="text-[11px] text-red-500 text-left mt-2 pl-1 font-semibold">{couponError}</p>
+            )}
+            {appliedCoupon && (
+              <div className="flex items-center justify-between mt-2 pl-1">
+                <p className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1">
+                  ✓ Code {appliedCoupon.code} applied: {appliedCoupon.discountPercentage}% OFF!
+                </p>
+                <button 
+                  onClick={() => {
+                    setAppliedCoupon(null);
+                    localStorage.removeItem('velocity_applied_coupon');
+                  }} 
+                  className="text-[10px] text-muted-foreground hover:text-destructive underline"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {plans.map((plan, i) => {
             const isDmEnabled = dmToggles[plan.name];
             const basePrice = parseInt(plan.price.replace('₹', ''));
-            const currentPrice = basePrice + (isDmEnabled ? 399 : 0);
+            let currentPrice = basePrice + (isDmEnabled ? 399 : 0);
+            
+            if (discount > 0) {
+              currentPrice = Math.round(currentPrice * (1 - discount / 100));
+            }
+
             const credInfo = PLAN_CREDITS_DISPLAY[plan.name];
 
             return (

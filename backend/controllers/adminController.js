@@ -1,0 +1,613 @@
+import User from '../models/User.js';
+import BrandProfile from '../models/BrandProfile.js';
+import DMFlow from '../models/DMFlow.js';
+import Asset from '../models/Asset.js';
+import Coupon from '../models/Coupon.js';
+import Transaction from '../models/Transaction.js';
+import ApiLog from '../models/ApiLog.js';
+import DeletedUserLog from '../models/DeletedUserLog.js';
+import StrategyCreative from '../models/StrategyCreative.js';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@velocity.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'velocityAdmin123!';
+
+// Admin login
+export const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      const token = jwt.sign(
+        { email: ADMIN_EMAIL, role: 'admin' },
+        process.env.JWT_SECRET || 'fallback_secret',
+        { expiresIn: '1d' }
+      );
+      return res.status(200).json({ success: true, token });
+    } else {
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+    }
+  } catch (error) {
+    console.error('Admin login error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Middleware to verify admin token
+export const verifyAdmin = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized as admin' });
+    }
+    req.admin = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Invalid token' });
+  }
+};
+
+// Get all users
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, users });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch users' });
+  }
+};
+
+// Get platform metrics
+export const getMetrics = async (req, res) => {
+  try {
+    // 1. Auto-seed coupons if none exist
+    const couponCount = await Coupon.countDocuments();
+    if (couponCount === 0) {
+      await Coupon.create([
+        { code: 'WELCOME10', discountPercentage: 10, isActive: true },
+        { code: 'VELOCITY20', discountPercentage: 20, isActive: true },
+        { code: 'MEGA50', discountPercentage: 50, isActive: true }
+      ]);
+    }
+
+    // 2. Auto-seed transactions for existing users if none exist
+    const transactionCount = await Transaction.countDocuments();
+    if (transactionCount === 0) {
+      const users = await User.find();
+      for (const user of users) {
+        if (user.plan && user.plan !== 'Free' && user.plan !== '') {
+          // Determine base price
+          let basePrice = 999;
+          if (user.plan.includes('PRO')) basePrice = 1999;
+          if (user.plan.includes('Elite')) basePrice = 3999;
+
+          // Check if DM is enabled
+          const brandProfile = await BrandProfile.findOne({ user: user._id });
+          const hasDM = brandProfile?.DM_Automation_Service || false;
+          let amount = basePrice + (hasDM ? 399 : 0);
+
+          // Apply a random discount to some users to show discount metrics
+          let discountPercentage = 0;
+          let discountAmount = 0;
+          let couponCode = '';
+          if (Math.random() > 0.6) {
+            const discountOpts = [10, 20, 50];
+            discountPercentage = discountOpts[Math.floor(Math.random() * discountOpts.length)];
+            couponCode = discountPercentage === 50 ? 'MEGA50' : (discountPercentage === 20 ? 'VELOCITY20' : 'WELCOME10');
+            discountAmount = Math.floor((amount * discountPercentage) / 100);
+            amount = amount - discountAmount;
+          }
+
+          await Transaction.create({
+            user: user._id,
+            plan: user.plan,
+            amount,
+            discountPercentage,
+            discountAmount,
+            couponCode,
+            status: 'completed',
+            createdAt: user.createdAt || new Date()
+          });
+        }
+      }
+    }
+
+    // 3. Calculate metrics
+    const now = new Date();
+    const todayStart = new Date(now.setHours(0, 0, 0, 0));
+    const weekStart = new Date(now.setDate(now.getDate() - 7));
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const totalUsers = await User.countDocuments();
+    const verifiedUsers = await User.countDocuments({ isVerified: true });
+    
+    // Active users today (last active)
+    const activeUsersToday = await User.countDocuments({ updatedAt: { $gte: todayStart } });
+    
+    // New signups this week
+    const newSignupsThisWeek = await User.countDocuments({ createdAt: { $gte: weekStart } });
+
+    // Creatives Generated
+    const assetsGeneratedToday = await Asset.countDocuments({ createdAt: { $gte: todayStart } });
+    const assetsGeneratedMonth = await Asset.countDocuments({ createdAt: { $gte: monthStart } });
+    
+    // Calculate total credits in the system
+    const allUsers = await User.find().select('credits totalCreditsPurchased totalCreditsConsumed');
+    const totalCredits = allUsers.reduce((acc, u) => acc + (u.credits || 0), 0);
+    const totalCreditsConsumed = allUsers.reduce((acc, u) => acc + (u.totalCreditsConsumed || 0), 0);
+
+    // Calculate total revenue and discounts from transactions
+    const transactions = await Transaction.find();
+    const totalRevenue = transactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+    const totalDiscounts = transactions.reduce((acc, t) => acc + (t.discountAmount || 0), 0);
+    
+    // MRR (Monthly Recurring Revenue) estimation
+    const activePaidUsers = await User.find({ plan: { $nin: ['', 'Free'] } });
+    let mrr = 0;
+    activePaidUsers.forEach(u => {
+      if (u.plan.includes('PRO')) mrr += 1999;
+      else if (u.plan.includes('Elite')) mrr += 3999;
+      else mrr += 999;
+    });
+
+    const activeCoupons = await Coupon.countDocuments({ isActive: true });
+
+    // API Cost tracking
+    const apiLogsToday = await ApiLog.find({ createdAt: { $gte: todayStart } });
+    const apiCostToday = apiLogsToday.reduce((acc, log) => acc + (log.costInCents || 0), 0) / 100;
+    const failedGenerations = apiLogsToday.filter(log => log.isError).length;
+
+    // Top 5 Brands
+    const topBrands = await BrandProfile.find()
+      .populate('user', 'email name')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Fetch last 5 transactions with user emails populated
+    const recentTransactions = await Transaction.find()
+      .populate('user', 'email name')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    return res.status(200).json({
+      success: true,
+      metrics: {
+        totalUsers,
+        verifiedUsers,
+        activeUsersToday,
+        newSignupsThisWeek,
+        assetsGeneratedToday,
+        assetsGeneratedMonth,
+        totalCredits,
+        totalCreditsConsumed,
+        totalRevenue,
+        mrr,
+        totalDiscounts,
+        activeCoupons,
+        apiCostToday,
+        failedGenerations,
+        topBrands,
+        recentTransactions
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching metrics:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch metrics' });
+  }
+};
+
+// Update user credits
+export const updateUserCredits = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { credits } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.credits = credits;
+    await user.save();
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error('Error updating user credits:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update credits' });
+  }
+};
+
+// Update user plan
+export const updateUserPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { plan } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.plan = plan;
+    await user.save();
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error('Error updating user plan:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update plan' });
+  }
+};
+
+// Get deep user details (User, BrandProfile, Flows, Assets)
+export const getUserDeepDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const brandProfile = await BrandProfile.findOne({ user: id });
+    const flows = await DMFlow.find({ user: id }).sort({ createdAt: -1 });
+    const assets = await Asset.find({ user: id }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user,
+        brandProfile: brandProfile || null,
+        flows,
+        assets
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching deep user details:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch deep user details' });
+  }
+};
+
+// Update user deep profile details
+export const updateUserDeepProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, plan, credits, isVerified, isBlocked } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (name !== undefined) user.name = name;
+    if (email !== undefined) user.email = email;
+    if (plan !== undefined) user.plan = plan;
+    if (credits !== undefined) user.credits = Number(credits);
+    if (isVerified !== undefined) user.isVerified = Boolean(isVerified);
+    if (isBlocked !== undefined) user.isBlocked = Boolean(isBlocked);
+
+    await user.save();
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update user profile' });
+  }
+};
+
+// Update user brand profile
+export const updateUserBrandProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    let brandProfile = await BrandProfile.findOne({ user: id });
+    if (!brandProfile) {
+      brandProfile = new BrandProfile({ user: id, ...updateData });
+    } else {
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] !== undefined) {
+          brandProfile[key] = updateData[key];
+        }
+      });
+    }
+
+    await brandProfile.save();
+    return res.status(200).json({ success: true, brandProfile });
+  } catch (error) {
+    console.error('Error updating brand profile:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update brand profile' });
+  }
+};
+
+// Update user flow
+export const updateUserFlow = async (req, res) => {
+  try {
+    const { id, flowId } = req.params;
+    const updateData = req.body;
+
+    const flow = await DMFlow.findOne({ _id: flowId, user: id });
+    if (!flow) {
+      return res.status(404).json({ success: false, message: 'Flow not found for this user' });
+    }
+
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined) {
+        flow[key] = updateData[key];
+      }
+    });
+
+    await flow.save();
+    return res.status(200).json({ success: true, flow });
+  } catch (error) {
+    console.error('Error updating flow:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update flow' });
+  }
+};
+
+// Delete user flow
+export const deleteUserFlow = async (req, res) => {
+  try {
+    const { id, flowId } = req.params;
+
+    const flow = await DMFlow.findOneAndDelete({ _id: flowId, user: id });
+    if (!flow) {
+      return res.status(404).json({ success: false, message: 'Flow not found for this user' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Flow deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting flow:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete flow' });
+  }
+};
+
+// Update user asset
+export const updateUserAsset = async (req, res) => {
+  try {
+    const { id, assetId } = req.params;
+    const updateData = req.body;
+
+    const asset = await Asset.findOne({ _id: assetId, user: id });
+    if (!asset) {
+      return res.status(404).json({ success: false, message: 'Asset not found for this user' });
+    }
+
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined) {
+        asset[key] = updateData[key];
+      }
+    });
+
+    await asset.save();
+    return res.status(200).json({ success: true, asset });
+  } catch (error) {
+    console.error('Error updating asset:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update asset' });
+  }
+};
+
+// Delete user asset
+export const deleteUserAsset = async (req, res) => {
+  try {
+    const { id, assetId } = req.params;
+
+    const asset = await Asset.findOneAndDelete({ _id: assetId, user: id });
+    if (!asset) {
+      return res.status(404).json({ success: false, message: 'Asset not found for this user' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Asset deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting asset:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete asset' });
+  }
+};
+
+// Toggle user block status
+export const toggleUserBlock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isBlocked } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.isBlocked = isBlocked;
+    await user.save();
+
+    // Create system notification for block event
+    import('../utils/notificationHelper.js').then(m => {
+      m.createNotification(
+        id, 
+        isBlocked ? 'alert' : 'info', 
+        isBlocked ? 'Account Blocked' : 'Account Restored', 
+        isBlocked 
+          ? 'Your account has been temporarily restricted by the administrator.' 
+          : 'Your account access has been restored.'
+      );
+    });
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error('Error toggling block status:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update block status' });
+  }
+};
+
+// Get all coupons
+export const getAllCoupons = async (req, res) => {
+  try {
+    const coupons = await Coupon.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, coupons });
+  } catch (error) {
+    console.error('Error fetching coupons:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch coupons' });
+  }
+};
+
+// Create a new coupon
+export const createCoupon = async (req, res) => {
+  try {
+    const { code, discountPercentage, expiryDate } = req.body;
+
+    if (!code || discountPercentage === undefined) {
+      return res.status(400).json({ success: false, message: 'Code and discount percentage are required' });
+    }
+
+    const existingCoupon = await Coupon.findOne({ code: code.toUpperCase().trim() });
+    if (existingCoupon) {
+      return res.status(400).json({ success: false, message: 'Coupon with this code already exists' });
+    }
+
+    const coupon = await Coupon.create({
+      code: code.toUpperCase().trim(),
+      discountPercentage: Number(discountPercentage),
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+      isActive: true
+    });
+
+    return res.status(201).json({ success: true, coupon });
+  } catch (error) {
+    console.error('Error creating coupon:', error);
+    return res.status(500).json({ success: false, message: 'Failed to create coupon' });
+  }
+};
+
+// Delete a coupon
+export const deleteCoupon = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const coupon = await Coupon.findByIdAndDelete(id);
+
+    if (!coupon) {
+      return res.status(404).json({ success: false, message: 'Coupon not found' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Coupon deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting coupon:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete coupon' });
+  }
+};
+
+// Impersonate a user
+export const impersonateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || 'fallback_secret',
+      { expiresIn: '1h' }
+    );
+
+    return res.status(200).json({ success: true, token, user });
+  } catch (error) {
+    console.error('Error impersonating user:', error);
+    return res.status(500).json({ success: false, message: 'Failed to impersonate user' });
+  }
+};
+
+// Send manual email
+export const sendManualEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, message } = req.body;
+    
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Usually we would use the nodemailer setup from utils here.
+    // For now we will mock it or try to import it dynamically
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: process.env.SMTP_PORT || 587,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `Velocity Admin <${process.env.SMTP_USER}>`,
+      to: user.email,
+      subject: subject || 'Message from Admin',
+      text: message,
+    });
+
+    return res.status(200).json({ success: true, message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return res.status(500).json({ success: false, message: 'Failed to send email. Check SMTP settings.' });
+  }
+};
+
+// Delete user account (GDPR)
+export const deleteUserAccount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({ success: false, message: 'Deletion reason is mandatory for GDPR tracking' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // 1. Log the deletion event
+    await DeletedUserLog.create({
+      originalUserId: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      deletedByAdminId: req.admin.id || user._id, // Assume admin id is decoded if present
+      reason: reason
+    });
+
+    // 2. Hard cascade delete all user data
+    await BrandProfile.deleteMany({ user: user._id });
+    await DMFlow.deleteMany({ user: user._id });
+    await Asset.deleteMany({ user: user._id });
+    await StrategyCreative.deleteMany({ user: user._id });
+    await Transaction.deleteMany({ user: user._id });
+    
+    // Delete user last
+    await User.findByIdAndDelete(id);
+
+    return res.status(200).json({ success: true, message: 'User and all associated data permanently deleted' });
+  } catch (error) {
+    console.error('Error deleting user account:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete account' });
+  }
+};
+
+// Get all brands
+export const getAllBrands = async (req, res) => {
+  try {
+    const brands = await BrandProfile.find()
+      .populate('user', 'email name')
+      .sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, brands });
+  } catch (error) {
+    console.error('Error fetching brands:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch brands' });
+  }
+};

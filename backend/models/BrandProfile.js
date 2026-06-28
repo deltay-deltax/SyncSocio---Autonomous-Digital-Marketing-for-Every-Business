@@ -81,6 +81,14 @@ const brandProfileSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  whatsappPhoneId: {
+    type: String,
+    default: ""
+  },
+  whatsappAccessToken: {
+    type: String,
+    default: ""
+  },
   selectedPlan: {
     type: String,
     default: 'Free'
