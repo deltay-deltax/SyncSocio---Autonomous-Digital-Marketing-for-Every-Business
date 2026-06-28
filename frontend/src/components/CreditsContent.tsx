@@ -120,16 +120,6 @@ export const CreditsContent = () => {
           {ALLINONE_CREDITS.map((item, idx) => (
             <div key={item.feature} className="rounded-2xl p-5 border border-border/60 bg-card hover:border-amber-500/30 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600">
-                    Saves 15%
-                  </span>
-                  {idx > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-violet-500/10 text-violet-600">
-                      With Video
-                    </span>
-                  )}
-                </div>
                 <p className="text-xs font-bold text-foreground max-w-xl leading-relaxed">{item.feature}</p>
               </div>
               <div className="flex items-baseline gap-1 sm:justify-end shrink-0">

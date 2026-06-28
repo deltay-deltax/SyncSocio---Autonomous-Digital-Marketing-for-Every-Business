@@ -1218,15 +1218,15 @@ const DashboardStrategy = () => {
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
       let creditCost = 0;
       if (currentMode === 'video') {
-        creditCost = currentCount * 30;
+        creditCost = currentCount * 80;
       } else if (currentMode === 'carousel') {
-        creditCost = currentCount * slideCount * 12;
+        creditCost = currentCount * slideCount * 5;
       } else if (currentMode === 'ecomm') {
-        creditCost = ecommTotal * 12;
+        creditCost = ecommTotal * 5;
       } else if (currentMode === 'whatsapp' || currentMode === 'email') {
         creditCost = 0;  // campaigns are free
       } else {
-        creditCost = currentCount * 12;  // image / festival
+        creditCost = currentCount * 5;  // image / festival
       }
       const creditReason = `${currentMode} generation (${
         currentMode === 'ecomm' ? ecommTotal
