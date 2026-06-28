@@ -6,6 +6,9 @@
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
 import AgentActivity from '../models/AgentActivity.js';
+import StrategyCreative from '../models/StrategyCreative.js';
+import Product from '../models/Product.js';
+import DMFlow from '../models/DMFlow.js';
 
 const formatTimeAgo = (date) => {
   const seconds = Math.floor((new Date() - date) / 1000);
@@ -215,7 +218,20 @@ export const getDashboardSummary = async (req, res) => {
           { message: 'Neural Pulse: Monitoring strategy trends', status: 'active', time: 'Just now' }
         ];
 
-    res.json({ metrics, activities, topPost, contentMix, predictedMix, agentRecommendation });
+    // Fetch workspace stats
+    const totalCreatives = await StrategyCreative.countDocuments({ user: userId });
+    const totalPosted = await StrategyCreative.countDocuments({ user: userId, status: { $in: ['posted', 'published'] } });
+    const totalProducts = await Product.countDocuments({ user: userId });
+    const totalFlows = await DMFlow.countDocuments({ user: userId });
+
+    const workspaceStats = {
+      totalCreatives,
+      totalPosted,
+      totalProducts,
+      totalFlows
+    };
+
+    res.json({ metrics, activities, topPost, workspaceStats });
   } catch (error) {
     console.error("Summary error:", error);
     res.status(500).json({ message: 'Error fetching dashboard summary' });

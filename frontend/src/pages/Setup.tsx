@@ -25,46 +25,65 @@ interface Plan {
 // ─── Plan Data ───────────────────────────────────────────────────────
 const plans: Plan[] = [
   {
-    name: 'SyncSocio Starter',
-    price: '₹999',
+    name: 'Brand',
+    price: '₹799',
     period: '/month',
-    frequency: '3 times a week',
-    formats: 'Static + Carousels',
-    postsPerMonth: '12 posts/month',
-    features: ['Deep DNA brand synthesis', '3 active agents', 'Daily sync', 'Cross platform posting', 'Priority support'],
+    frequency: 'Schedule up to 30 posts',
+    formats: 'All image generation types',
+    postsPerMonth: '200 credits/month',
+    features: [
+      "200 credits/month",
+      "1 active brand profile",
+      "All image generation types",
+      "Festival calendar",
+      "Hinglish + 5 languages",
+      "Caption + hashtags — free",
+      "Schedule up to 30 posts",
+      "Post scheduling — free",
+      "Analytics dashboard — free",
+      "Email support",
+    ],
     cta: 'Get Started',
     ctaStyle: 'primary',
   },
   {
-    name: 'SyncSocio PRO',
-    price: '₹1999',
+    name: 'Growth',
+    price: '₹2199',
     period: '/month',
-    frequency: 'Daily',
-    formats: 'Static + Carousel + Reels',
-    postsPerMonth: '30 posts/month',
-    features: ['Deep DNA brand synthesis', '3 active agents', 'Daily sync', 'Cross platform posting', 'Priority support'],
+    frequency: 'Best time to post analysis',
+    formats: 'Reels + Video + UGC + DMs',
+    postsPerMonth: '700 credits/month',
+    features: [
+      "700 credits/month",
+      "3 brand profiles",
+      "Everything in Brand",
+      "All-in-One Drop feature",
+      "AI Mode (Auto Generate)",
+      "E-commerce listing generator",
+      "UGC video generation",
+      "Product video generation",
+      "DM Automation",
+      "WhatsApp campaign generator",
+      "Best time to post analysis",
+      "Priority generation",
+      "WhatsApp support",
+    ],
     popular: true,
-    cta: 'Go Pro',
+    cta: 'Get Started',
     ctaStyle: 'inverted',
   },
-  {
-    name: 'SyncSocio Elite',
-    price: '₹3999',
-    period: '/month',
-    frequency: 'Daily + Stories',
-    formats: 'All Formats + Videos',
-    postsPerMonth: '60 posts/month',
-    features: ['Deep DNA brand synthesis', '5 active agents', 'Real-time sync', 'All platform posting', 'Dedicated account manager', 'Custom AI personas'],
-    cta: 'Go Elite',
-    ctaStyle: 'primary',
-  },
+];
+
+const TOPUPS = [
+  { credits: 100, price: 299, per_credit: 2.99 },
+  { credits: 300, price: 799, per_credit: 2.66 },
+  { credits: 700, price: 1699, per_credit: 2.42 },
 ];
 
 // Credits awarded per plan (shown in UI — actual amount is random within range)
 const PLAN_CREDITS_DISPLAY: Record<string, { label: string; color: string; glow: string }> = {
-  'SyncSocio Starter': { label: '~1,200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
-  'SyncSocio PRO':     { label: '~3,000 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
-  'SyncSocio Elite':   { label: '~6,000 Credits', color: 'from-amber-400 to-orange-600', glow: 'shadow-amber-500/40' },
+  'Brand':  { label: '200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
+  'Growth': { label: '700 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
 };
 
 // ─── Checklist Steps ─────────────────────────────────────────────────
@@ -157,8 +176,8 @@ const Setup = () => {
     }
   }, [location.search]);
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
-    'SyncSocio Starter': localStorage.getItem('syncsocio_dm_automation') === 'true',
-    'SyncSocio PRO': localStorage.getItem('syncsocio_dm_automation') === 'true',
+    'Brand': localStorage.getItem('syncsocio_dm_automation') === 'true',
+    'Growth': localStorage.getItem('syncsocio_dm_automation') === 'true',
   });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null);
@@ -245,13 +264,13 @@ const Setup = () => {
       const hasReels = types.includes('Reels');
       
       if (freq === 'Once / wk' && !hasReels) {
-        setRecommendedPlan('Bootstrapper');
+        setRecommendedPlan('Brand');
       } else if (freq === '3-4x / wk' && !hasReels) {
-        setRecommendedPlan('SyncSocio Starter');
+        setRecommendedPlan('Brand');
       } else if (freq === 'Daily' || hasReels) {
-        setRecommendedPlan('SyncSocio Pro');
+        setRecommendedPlan('Growth');
       } else {
-        setRecommendedPlan('SyncSocio Pro');
+        setRecommendedPlan('Growth');
       }
     }
   }, []);
@@ -269,16 +288,7 @@ const Setup = () => {
     let issues = [];
     let sync: any = {};
 
-    if (plan.name === 'Bootstrapper') {
-      if (currentFreq !== 'Once / wk') {
-        issues.push('Frequency will be reduced to Weekly');
-        sync.postingFrequency = 'Once / wk';
-      }
-      if (currentTypes.length > 1 || (currentTypes.length === 1 && !currentTypes.includes('Static Posts'))) {
-        issues.push('Reels & Carousels will be disabled');
-        sync.contentTypes = ['Static Posts'];
-      }
-    } else if (plan.name === 'SyncSocio Starter') {
+    if (plan.name === 'Brand') {
       if (currentFreq === 'Daily') {
         issues.push('Frequency will be reduced to 3-4x/wk');
         sync.postingFrequency = '3-4x / wk';
@@ -550,7 +560,7 @@ const Setup = () => {
           <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {plans.map((plan, i) => {
             const isDmEnabled = dmToggles[plan.name];
             const basePrice = parseInt(plan.price.replace('₹', ''));
@@ -606,29 +616,31 @@ const Setup = () => {
                 </p>
 
                 {/* DM Automation Toggle */}
-                <div className={`flex items-center justify-between p-4 rounded-xl mb-6 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
-                  <div className="flex items-center gap-3">
-                    <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
-                    <div className="text-left">
-                      <p className={`text-sm font-bold ${plan.popular ? "text-white" : "text-foreground"}`}>DM Automation</p>
-                      <p className={`text-xs ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>+₹399 / month</p>
+                {plan.name === 'Brand' && (
+                  <div className={`flex items-center justify-between p-4 rounded-xl mb-6 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
+                    <div className="flex items-center gap-3">
+                      <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
+                      <div className="text-left">
+                        <p className={`text-sm font-bold ${plan.popular ? "text-white" : "text-foreground"}`}>DM Automation</p>
+                        <p className={`text-xs ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>+₹399 / month</p>
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => handleToggle(plan.name)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                      isDmEnabled 
-                        ? (plan.popular ? 'bg-white' : 'bg-primary') 
-                        : (plan.popular ? 'bg-primary-foreground/30' : 'bg-input')
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                        isDmEnabled ? 'translate-x-5' : 'translate-x-0'
+                    <button
+                      onClick={() => handleToggle(plan.name)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                        isDmEnabled 
+                          ? (plan.popular ? 'bg-white' : 'bg-primary') 
+                          : (plan.popular ? 'bg-primary-foreground/30' : 'bg-input')
                       }`}
-                    />
-                  </button>
-                </div>
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                          isDmEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
 
                 <ul className="space-y-2 mb-6 flex-1 text-left">
                   {plan.features.map((f) => (

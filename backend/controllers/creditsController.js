@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import { logActivity } from '../utils/activityLogger.js';
 
 // Credit amounts per plan tier (random within range)
 const PLAN_CREDITS = {
@@ -73,6 +74,13 @@ export const deductCredits = async (req, res) => {
       { $inc: { credits: -cost } },
       { new: true, select: 'credits plan' }
     );
+
+    // Log agent activity
+    const isVideo = reason && reason.toLowerCase().includes('video');
+    const isAllInOne = reason && reason.toLowerCase().includes('all-in-one');
+    const agentName = isVideo ? 'Video Agent' : isAllInOne ? 'Drop Agent' : 'Creative Agent';
+    const activityMsg = `Asset generation complete. Spent ${cost} credits on ${reason || 'AI generation'}.`;
+    await logActivity(req.user._id, agentName, activityMsg, 'done');
 
     return res.json({
       credits: updated.credits,

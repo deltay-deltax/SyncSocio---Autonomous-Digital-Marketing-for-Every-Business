@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap, X } from 'lucide-react';
+import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap, X, Send, Package, MessageSquare, Plus, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
+
+interface IconProps {
+  size?: number;
+  className?: string;
+}
+
+const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
 
 const iconMap: Record<string, any> = {
   TrendingUp: TrendingUp,
@@ -18,6 +29,7 @@ let cachedSummaryData: any = null;
 
 const DashboardHome = () => {
   const { profile } = useOutletContext<{ profile: any }>() || {};
+  const navigate = useNavigate();
   const [data, setData] = useState<any>(cachedSummaryData);
   const [loading, setLoading] = useState(!cachedSummaryData);
   const [error, setError] = useState<string | null>(null);
@@ -103,46 +115,123 @@ const DashboardHome = () => {
     );
   }
 
-  const contentMix = data?.contentMix || { reels: 40, static: 35, carousel: 25 };
+  const workspaceStats = data?.workspaceStats || { totalCreatives: 0, totalPosted: 0, totalProducts: 0, totalFlows: 0 };
+
+  const workspaceMetrics = [
+    {
+      label: 'AI Creatives',
+      value: workspaceStats.totalCreatives.toString(),
+      desc: 'Saved & Draft assets',
+      icon: Sparkles,
+      gradient: 'from-violet-500/15 to-violet-500/5',
+      iconColor: 'text-violet-500',
+      bgColor: 'bg-violet-500/10'
+    },
+    {
+      label: 'Posted to Socials',
+      value: workspaceStats.totalPosted.toString(),
+      desc: 'Published campaigns',
+      icon: Send,
+      gradient: 'from-emerald-500/15 to-emerald-500/5',
+      iconColor: 'text-emerald-500',
+      bgColor: 'bg-emerald-500/10'
+    },
+    {
+      label: 'Total Products',
+      value: workspaceStats.totalProducts.toString(),
+      desc: 'Total registered products',
+      icon: Package,
+      gradient: 'from-teal-500/15 to-teal-500/5',
+      iconColor: 'text-teal-500',
+      bgColor: 'bg-teal-500/10'
+    },
+    {
+      label: 'Active DM Flows',
+      value: workspaceStats.totalFlows.toString(),
+      desc: 'Automated comment flows',
+      icon: MessageSquare,
+      gradient: 'from-blue-500/15 to-blue-500/5',
+      iconColor: 'text-blue-500',
+      bgColor: 'bg-blue-500/10'
+    }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {data.metrics?.map((m: any, i: number) => {
-          const Icon = iconMap[m.icon] || TrendingUp;
-          return (
-            <motion.div
-              key={m.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-            >
-              <Card className="group hover-lift cursor-default border-border/50 overflow-hidden relative">
-                <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                <CardContent className="p-4 sm:p-5 relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-[1.05] transition-transform duration-500">
-                      <Icon size={18} className="text-primary" />
+      {/* Workspace Operational Stats */}
+      <div>
+        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 px-1">Workspace Operations</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {workspaceMetrics.map((m, i) => {
+            const Icon = m.icon;
+            return (
+              <motion.div
+                key={m.label}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <Card className="group hover-lift cursor-default border-border/50 overflow-hidden relative bg-card">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                  <CardContent className="p-4 sm:p-5 relative">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-500 group-hover:scale-105", m.bgColor)}>
+                        <Icon size={16} className={m.iconColor} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-muted/60 px-2 py-0.5 rounded-md border border-border/30">
+                        Operational
+                      </span>
                     </div>
-                    <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-0.5 px-2 py-1 rounded-full bg-emerald-500/10">
-                      {m.change} <ArrowUpRight size={11} />
-                    </span>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{m.value}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1 font-medium">{m.label}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
+                    <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{m.value}</p>
+                    <p className="text-[11px] text-foreground font-semibold mt-1.5">{m.label}</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5 leading-none opacity-80">{m.desc}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Social Channel Metrics */}
+      <div>
+        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 px-1">Social Channel Performance</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {data.metrics?.map((m: any, i: number) => {
+            const Icon = iconMap[m.icon] || TrendingUp;
+            return (
+              <motion.div
+                key={m.label}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + i * 0.05 }}
+              >
+                <Card className="group hover-lift cursor-default border-border/50 overflow-hidden relative">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                  <CardContent className="p-4 sm:p-5 relative">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-[1.05] transition-transform duration-500">
+                        <Icon size={16} className="text-primary" />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-emerald-500/10">
+                        {m.change} <ArrowUpRight size={10} />
+                      </span>
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{m.value}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 font-medium">{m.label}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Two columns */}
       <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
         {/* Agent Activity */}
         <motion.div className="lg:col-span-3" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="border-border/50">
+          <Card className="border-border/50 h-full flex flex-col">
             <CardHeader className="pb-3 px-6 pt-6">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -151,14 +240,14 @@ const DashboardHome = () => {
                 <CardTitle className="text-base">Recent Agent Activity</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="px-6 pb-6 space-y-1 max-h-[380px] overflow-y-auto pr-2 scrollbar-hide">
+            <CardContent className="px-6 pb-6 space-y-1 overflow-y-auto pr-2 scrollbar-hide flex-1 max-h-[380px]">
               {data.activities?.map((a: any, i: number) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 + i * 0.08 }}
-                  className="flex items-start gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-4 p-3.5 rounded-xl hover:bg-muted/50 transition-colors"
                 >
                   <div className="relative mt-1">
                     <span className={`block w-2.5 h-2.5 rounded-full ${
@@ -178,72 +267,106 @@ const DashboardHome = () => {
           </Card>
         </motion.div>
 
-        {/* Quick Stats */}
-        <motion.div className="lg:col-span-2 space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          {/* Content Mix - Current */}
-          <Card className="border-border/50">
-            <CardHeader className="p-6 pb-2">
-              <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Content Mix This Week</CardTitle>
-            </CardHeader>
-            <CardContent className="px-6 pb-4">
-              <div className="flex items-center gap-1.5 mb-3">
-                <div className="flex-1 h-3 rounded-full bg-slate-50 overflow-hidden flex gap-1 border border-slate-100">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.reels}%` }} transition={{ delay: 0.6, duration: 0.8 }} className="bg-rose-500 h-full border-r border-white/40" />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.static}%` }} transition={{ delay: 0.8, duration: 0.8 }} className="bg-sky-500 h-full border-r border-white/40" />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${contentMix.carousel}%` }} transition={{ delay: 1, duration: 0.8 }} className="bg-amber-500 h-full" />
+        {/* Quick Actions & Platform Connections */}
+        <motion.div className="lg:col-span-2 space-y-4 sm:space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          {/* Quick Actions */}
+          <Card className="border-border/50 overflow-hidden relative">
+            <CardHeader className="pb-3 px-6 pt-6">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Sparkles size={14} />
                 </div>
+                <CardTitle className="text-base">Quick Actions</CardTitle>
               </div>
-              <div className="flex justify-between text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Reels {Math.round(contentMix.reels)}%</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-500" /> Static {Math.round(contentMix.static)}%</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Carousel {Math.round(contentMix.carousel)}%</span>
-              </div>
+            </CardHeader>
+            <CardContent className="px-6 pb-6 grid grid-cols-1 gap-2.5">
+              <Button 
+                onClick={() => navigate('/dashboard/strategy')} 
+                className="w-full justify-start rounded-xl py-5 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md shadow-primary/25 border-0"
+              >
+                <Plus size={14} className="mr-2" /> Create SaaS Strategy Creative
+              </Button>
+              <Button 
+                onClick={() => navigate('/dashboard/dms')} 
+                variant="outline"
+                className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
+              >
+                <MessageSquare size={14} className="mr-2 text-primary" /> Configure DM Automations
+              </Button>
+              <Button 
+                onClick={() => navigate('/dashboard/strategy')} 
+                variant="outline"
+                className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
+              >
+                <Send size={14} className="mr-2 text-primary" /> Manage Campaign Recipients
+              </Button>
             </CardContent>
           </Card>
 
-          {/* Content Mix - Predicted Agent Pulse */}
-          {data.predictedMix && (data.predictedMix.reels > 0 || data.predictedMix.static > 0) && (
-            <Card className="border-primary/20 bg-primary/[0.02]">
-              <CardHeader className="p-6 pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">Predicted Agent Pulse</CardTitle>
-                  <div className="px-2 py-0.5 bg-primary/10 rounded-md text-[8px] font-black uppercase tracking-widest text-primary border border-primary/10">Neural Optimal</div>
+          {/* Platform Status */}
+          <Card className="border-border/50 overflow-hidden relative">
+            <CardHeader className="pb-3 px-6 pt-6">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                  <Globe size={14} />
                 </div>
-              </CardHeader>
-              <CardContent className="px-6 pb-4">
-                <div className="flex items-center gap-1.5 mb-3">
-                  <div className="flex-1 h-3 rounded-full bg-white overflow-hidden flex gap-1 border border-primary/10">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${data.predictedMix.reels}%` }} transition={{ delay: 1.2, duration: 1 }} className="bg-rose-500 h-full border-r border-white/30" />
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${data.predictedMix.static}%` }} transition={{ delay: 1.4, duration: 1 }} className="bg-sky-500 h-full border-r border-white/30" />
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${data.predictedMix.carousel}%` }} transition={{ delay: 1.6, duration: 1 }} className="bg-amber-500 h-full" />
+                <CardTitle className="text-base">Platform Connections</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="px-6 pb-6 space-y-3">
+              {/* Instagram API */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center text-white">
+                    <InstagramIcon size={14} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Instagram Graph API</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">@{profile?.instagramUsername || 'connected'}</p>
                   </div>
                 </div>
-                <div className="flex justify-between text-[9px] text-violet-500/70 font-black uppercase tracking-tighter">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Reels {Math.round(data.predictedMix.reels)}%</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-500" /> Static {Math.round(data.predictedMix.static)}%</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Carousel {Math.round(data.predictedMix.carousel)}%</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Agent Recommendation */}
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/8 to-primary/3 overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-full blur-2xl" />
-            <CardContent className="p-6 relative">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={14} className="text-primary" />
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Agent Recommendation</p>
+                <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Active
+                </span>
               </div>
-              <p className="text-[11px] text-foreground leading-relaxed italic font-medium">
-                {data.agentRecommendation || "Analyze your profile to receive a custom performance recommendation."}
-              </p>
+
+              {/* WhatsApp sandbox gateway */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-xs">
+                    WA
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">WhatsApp Sandbox</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">Sandbox Campaign Gateway</p>
+                  </div>
+                </div>
+                <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Ready
+                </span>
+              </div>
+
+              {/* Email SMTP relay */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                    @
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Email SMTP Server</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">smtp.gmail.com</p>
+                  </div>
+                </div>
+                <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Connected
+                </span>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Top Post - Moved Down */}
+          {/* Top Post */}
           {data.topPost && (
-            <Card className="border-border/50 overflow-hidden">
+            <Card className="border-border/50 overflow-hidden bg-card">
               <CardHeader className="p-6 pb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">🔥</span>

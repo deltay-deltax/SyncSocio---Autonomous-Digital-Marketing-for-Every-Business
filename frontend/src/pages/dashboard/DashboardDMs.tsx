@@ -185,7 +185,7 @@ const DashboardDMs = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
   const [wizardStep, setWizardStep] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'paused' | 'ai_suggested'>('all');
+  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'paused'>('all');
   const [previewFlow, setPreviewFlow] = useState<Flow | null>(null);
   const [media, setMedia] = useState<any[]>([]);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
@@ -204,23 +204,7 @@ const DashboardDMs = () => {
     message: string;
   }>({ type: null, message: '' });
 
-  // Asset generation state
-  const [isGeneratingAsset, setIsGeneratingAsset] = useState(false);
-  const [generatedAsset, setGeneratedAsset] = useState<{
-    _id: string;
-    title: string;
-    description: string;
-    ctaText: string;
-    assetUrl: string;
-    sections: any[];
-    brandName: string;
-    mainContent?: string;
-    keyTakeaways?: string[];
-    needsVisuals?: boolean;
-    visualSuggestions?: string;
-    ctaDescription?: string;
-  } | null>(null);
-  const [showAssetPreview, setShowAssetPreview] = useState(false);
+
 
   // Fetch media + flow data on mount
   React.useEffect(() => {
@@ -254,7 +238,7 @@ const DashboardDMs = () => {
           throw new Error(data?.message || 'Failed to fetch flows');
         }
 
-        const mapped = Array.isArray(data?.data) ? data.data.map((item: ApiFlow) => toUIFlow(item)) : [];
+        const mapped = Array.isArray(data?.data) ? data.data.map((item: ApiFlow) => toUIFlow(item)).filter(f => f.source !== 'ai_suggested') : [];
         setFlows(mapped);
       } catch (err) {
         console.error('Failed to fetch flows:', err);
@@ -425,115 +409,6 @@ const DashboardDMs = () => {
     setView('create');
   };
 
-  // ─── GENERATE AI ASSET ───
-  const handleGenerateAsset = async () => {
-    console.log('[AssetGen] 🟢 Button clicked! Starting asset generation...');
-    console.log('[AssetGen] AI_BASE =', AI_BASE);
-    setIsGeneratingAsset(true);
-    setFlowError(null);
-    try {
-      // Safely extract userId from JWT
-      let userId = '';
-      try {
-        const token = localStorage.getItem('token');
-        console.log('[AssetGen] Token exists:', !!token);
-        if (token) {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('[AssetGen] JWT payload:', payload);
-          userId = payload?.id || payload?._id || payload?.userId || '';
-        }
-      } catch (jwtErr) {
-        console.error('[AssetGen] JWT decode failed:', jwtErr);
-      }
-      if (!userId) {
-        throw new Error('Not authenticated — could not extract userId from token');
-      }
-      console.log('[AssetGen] userId =', userId);
-
-      const requestBody = {
-        userId,
-        postTopic: newFlow.name || 'DM Automation Asset',
-        flowId: newFlow.id || undefined,
-        flowName: newFlow.name,
-        flowKeyword: newFlow.keyword,
-      };
-      console.log('[AssetGen] Request body:', requestBody);
-      console.log('[AssetGen] Calling:', `${AI_BASE}/generate-asset`);
-
-      const res = await fetch(`${AI_BASE}/generate-asset`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-      console.log('[AssetGen] Response status:', res.status);
-      const data = await res.json();
-      console.log('[AssetGen] Response data:', data);
-
-      if (!res.ok) throw new Error(data?.detail || 'Failed to generate asset');
-
-      // Save the full asset payload so the preview can render all fields
-      setGeneratedAsset({
-        ...data.asset,
-        sections: data.asset.sections || [],
-        assetUrl: data.assetUrl,
-      });
-      console.log('[AssetGen] ✅ Asset generated! Showing preview modal...');
-      setShowAssetPreview(true);
-    } catch (err) {
-      console.error('[AssetGen] ❌ Asset generation failed:', err);
-      setFlowError(err instanceof Error ? err.message : 'Failed to generate asset');
-    } finally {
-      setIsGeneratingAsset(false);
-    }
-  };
-
-  const handleInsertAssetUrl = async () => {
-    if (!generatedAsset) return;
-    // Publish the asset
-    try {
-      await fetch(`${API_BASE}/assets/${generatedAsset._id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(true),
-        body: JSON.stringify({ isPublished: true }),
-      });
-    } catch (e) {
-      console.error('Failed to publish asset:', e);
-    }
-
-    // Find the last message with a URL button and insert the asset URL
-    const updatedMessages = newFlow.messages.map(m => {
-      let text = m.text;
-      if (text) {
-        text = text.replace(/\{\{asset_url\}\}/gi, generatedAsset.assetUrl);
-        text = text.replace(/\{asset_url\}/gi, generatedAsset.assetUrl);
-      }
-      return { ...m, text };
-    });
-
-    let inserted = false;
-    for (let i = updatedMessages.length - 1; i >= 0; i--) {
-      const urlBtn = updatedMessages[i].buttons.find(b => b.type === 'url');
-      if (urlBtn) {
-        urlBtn.url = generatedAsset.assetUrl;
-        inserted = true;
-        break;
-      }
-    }
-    // If no URL button found, add one to the last message
-    if (!inserted && updatedMessages.length > 0) {
-      const lastMsg = updatedMessages[updatedMessages.length - 1];
-      lastMsg.buttons.push({
-        id: uid(),
-        label: generatedAsset.ctaText || 'Open Link',
-        type: 'url' as ButtonType,
-        url: generatedAsset.assetUrl,
-      });
-    }
-    setNewFlow(f => ({ ...f, messages: updatedMessages }));
-    setShowAssetPreview(false);
-    setGeneratedAsset(null);
-  };
-
   const toggleFlow = async (id: string) => {
     const flow = flows.find((item) => item.id === id);
     if (!flow) return;
@@ -626,12 +501,9 @@ const DashboardDMs = () => {
     const matchSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase()) || f.keyword.toLowerCase().includes(searchQuery.toLowerCase());
     const matchFilter = filterActive === 'all'
       || (filterActive === 'active' && f.active)
-      || (filterActive === 'paused' && !f.active && f.source !== 'ai_suggested')
-      || (filterActive === 'ai_suggested' && f.source === 'ai_suggested');
+      || (filterActive === 'paused' && !f.active);
     return matchSearch && matchFilter;
   });
-
-  const aiSuggestedCount = flows.filter(f => f.source === 'ai_suggested' && !f.active).length;
 
   const canProceed = () => {
     switch (wizardStep) {
@@ -997,34 +869,6 @@ const DashboardDMs = () => {
                       <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
                       Add Another Message
                     </button>
-
-                    {/* Generate AI Asset */}
-                    <div className="relative">
-                      <div className="absolute inset-x-0 top-1/2 h-px bg-border/40" />
-                      <p className="relative mx-auto w-fit px-3 bg-background text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
-                        or generate a landing page
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => { console.log('[AssetGen] 🔥 Button onClick fired!'); handleGenerateAsset(); }}
-                      disabled={isGeneratingAsset}
-                      className="w-full p-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 transition-all flex items-center justify-center gap-2.5 text-sm font-bold text-amber-600 group disabled:opacity-50 disabled:cursor-wait"
-                    >
-                      {isGeneratingAsset ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
-                          Generating AI Asset...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
-                          🪄 Generate AI Landing Page
-                        </>
-                      )}
-                    </button>
-                    <p className="text-[10px] text-muted-foreground text-center italic -mt-1">
-                      AI will create a branded micro landing page and auto-insert the link into your DM flow
-                    </p>
                   </div>
                 )}
               </motion.div>
@@ -1189,150 +1033,9 @@ const DashboardDMs = () => {
                 </motion.div>
               )}
             </div>
+          </div>
         </div>
       </div>
-
-      {/* Asset Preview Modal */}
-      <AnimatePresence>
-        {showAssetPreview && generatedAsset && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-              onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-4 md:inset-x-[15%] md:inset-y-[5%] z-50 bg-card border border-border/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
-            >
-              {/* Header */}
-              <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between bg-muted/20">
-                <div>
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <Sparkles size={16} className="text-amber-500" /> AI Generated Landing Page
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Review the content below, then confirm to publish & insert link</p>
-                </div>
-                <button onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }} className="p-2 rounded-xl hover:bg-muted transition-colors">
-                  <X size={16} className="text-muted-foreground" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <div className="bg-slate-950 text-white rounded-2xl p-8 space-y-6">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-semibold text-white/60">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                    Preview
-                  </div>
-                  
-                  {/* Title */}
-                  <h1 className="text-3xl md:text-4xl font-black leading-tight">{generatedAsset.title}</h1>
-                  
-                  {/* Description / Intro */}
-                  <p className="text-base text-slate-300 leading-relaxed whitespace-pre-line">{generatedAsset.description}</p>
-                  
-                  {/* Main Content (Rich) */}
-                  {generatedAsset.mainContent && (
-                    <div className="border-t border-white/10 pt-6">
-                      <div className="prose prose-invert max-w-none text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
-                        {generatedAsset.mainContent}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Sections / Structured Content */}
-                  {generatedAsset.sections && generatedAsset.sections.length > 0 && (
-                    <div className="border-t border-white/10 pt-6 space-y-4">
-                      {generatedAsset.sections.map((sec: any, i: number) => (
-                        <div key={i}>
-                          {sec.heading && <h3 className="text-lg font-bold mb-3 text-white/90">{sec.heading}</h3>}
-                          {sec.body && <p className="text-sm text-slate-400 mb-4">{sec.body}</p>}
-                          {sec.items && sec.items.length > 0 && (
-                            <div className="space-y-3">
-                              {sec.items.map((item: any, j: number) => (
-                                <div key={j} className="bg-white/5 rounded-xl p-4 border border-white/10 flex items-start gap-3">
-                                  <div className="text-2xl shrink-0">{item.icon || '✨'}</div>
-                                  <div className="flex-1">
-                                    <p className="text-sm font-bold text-white">{item.title}</p>
-                                    <p className="text-xs text-slate-300 mt-2 leading-relaxed">{item.description}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Key Takeaways */}
-                  {generatedAsset.keyTakeaways && generatedAsset.keyTakeaways.length > 0 && (
-                    <div className="border-t border-white/10 pt-6">
-                      <h3 className="text-lg font-bold mb-3 text-white/90">Key Takeaways</h3>
-                      <ul className="space-y-2">
-                        {generatedAsset.keyTakeaways.map((takeaway: string, i: number) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
-                            <span>{takeaway}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Visual Suggestions */}
-                  {generatedAsset.needsVisuals && generatedAsset.visualSuggestions && (
-                    <div className="border-t border-white/10 pt-6 bg-white/5 rounded-xl p-4 border border-white/10">
-                      <h4 className="text-sm font-bold text-white/80 mb-2 flex items-center gap-2">
-                        🎨 Recommended Visuals
-                      </h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">{generatedAsset.visualSuggestions}</p>
-                    </div>
-                  )}
-
-                  {/* CTA */}
-                  <div className="border-t border-white/10 pt-6 flex flex-col gap-2">
-                    <span className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-bold text-white w-full justify-center">
-                      {generatedAsset.ctaText}
-                    </span>
-                    {generatedAsset.ctaDescription && (
-                      <p className="text-xs text-slate-400 text-center">{generatedAsset.ctaDescription}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
-                  <p className="text-[11px] text-muted-foreground font-medium mb-1">Asset URL (will be auto-inserted into your DM flow):</p>
-                  <p className="text-xs font-mono text-primary break-all">{generatedAsset.assetUrl}</p>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }}
-                  className="flex-1 rounded-xl h-11 text-sm font-bold"
-                >
-                  Discard
-                </Button>
-                <Button
-                  onClick={handleInsertAssetUrl}
-                  className="flex-1 rounded-xl h-11 text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/20"
-                >
-                  <Zap size={14} /> Publish & Insert Link
-                </Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
   );
 }
 
@@ -1471,21 +1174,11 @@ const DashboardDMs = () => {
           <Input placeholder="Search flows by name or keyword..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 rounded-xl bg-card/60 border-border/40" />
         </div>
         <div className="flex gap-2">
-          {(['all', 'active', 'paused', 'ai_suggested'] as const).map(f => (
+          {(['all', 'active', 'paused'] as const).map(f => (
             <button key={f} onClick={() => setFilterActive(f)}
               className={cn('px-4 py-2 rounded-xl text-xs font-semibold transition-all relative',
                 filterActive === f ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-card/60 text-muted-foreground border border-border/40 hover:bg-muted/60')}>
-              {f === 'ai_suggested' ? (
-                <span className="flex items-center gap-1.5">
-                  <Bot size={12} />
-                  AI Suggested
-                  {aiSuggestedCount > 0 && (
-                    <span className="ml-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">{aiSuggestedCount}</span>
-                  )}
-                </span>
-              ) : (
-                <span className="capitalize">{f}</span>
-              )}
+              <span className="capitalize">{f}</span>
             </button>
           ))}
         </div>
@@ -1507,41 +1200,19 @@ const DashboardDMs = () => {
               </motion.div>
             ) : filtered.map((flow, i) => (
               <motion.div key={flow.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ delay: i * 0.03 }}
-                className={cn(
-                  "group bg-card/60 backdrop-blur-sm border rounded-2xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300",
-                  flow.source === 'ai_suggested' && !flow.active
-                    ? 'border-primary/30 hover:border-primary/50 hover:shadow-primary/10 ring-1 ring-primary/10'
-                    : 'border-border/40 hover:border-primary/20 hover:shadow-primary/5'
-                )}>
-                {/* AI Suggested Banner */}
-                {flow.source === 'ai_suggested' && !flow.active && (
-                  <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
-                    <Bot size={14} className="text-primary shrink-0" />
-                    <p className="text-[11px] text-primary font-semibold">AI Suggested — Add your asset link and enable to go live</p>
-                    {flow.linkedPostTopic && (
-                      <span className="ml-auto text-[10px] text-muted-foreground font-mono truncate max-w-[200px]">for: "{flow.linkedPostTopic}"</span>
-                    )}
-                  </div>
-                )}
-
+                className="group bg-card/60 backdrop-blur-sm border border-border/40 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 rounded-2xl p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <div className={cn(
                         'w-10 h-10 rounded-xl flex items-center justify-center',
-                        flow.source === 'ai_suggested' && !flow.active ? 'bg-primary/15' : flow.active ? 'bg-primary/10' : 'bg-muted'
+                        flow.active ? 'bg-primary/10' : 'bg-muted'
                       )}>
-                        {flow.source === 'ai_suggested' && !flow.active
-                          ? <Bot size={18} className="text-primary" />
-                          : React.createElement(triggerLabels[flow.trigger].icon, { size: 18, className: flow.active ? triggerLabels[flow.trigger].color : 'text-muted-foreground' })
-                        }
+                        {React.createElement(triggerLabels[flow.trigger].icon, { size: 18, className: flow.active ? triggerLabels[flow.trigger].color : 'text-muted-foreground' })}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-sm font-bold text-foreground">{flow.name}</h3>
-                          {flow.source === 'ai_suggested' && (
-                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wider">AI</span>
-                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <span className={cn(
@@ -1576,18 +1247,9 @@ const DashboardDMs = () => {
                   </div>
                   <div className="flex items-center gap-2 sm:ml-auto shrink-0">
                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setPreviewFlow(flow)}><Eye size={16} className="text-muted-foreground" /></Button>
-                    {flow.source === 'ai_suggested' && !flow.active ? (
-                      <Button
-                        onClick={() => setupAndEditFlow(flow)}
-                        className="h-9 rounded-xl gap-1.5 px-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30"
-                      >
-                        <Zap size={13} /> Setup & Enable
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => toggleFlow(flow.id)}>
-                        {flow.active ? <ToggleRight size={18} className="text-emerald-500" /> : <ToggleLeft size={18} className="text-muted-foreground" />}
-                      </Button>
-                    )}
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => toggleFlow(flow.id)}>
+                      {flow.active ? <ToggleRight size={18} className="text-emerald-500" /> : <ToggleLeft size={18} className="text-muted-foreground" />}
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => deleteFlow(flow.id)}><Trash2 size={15} className="text-muted-foreground hover:text-destructive" /></Button>
                   </div>
                 </div>
@@ -1745,147 +1407,6 @@ const DashboardDMs = () => {
                   className="flex-1 rounded-2xl h-11 text-sm font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                 >
                   Save Changes
-                </Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Asset Preview Modal */}
-      <AnimatePresence>
-        {showAssetPreview && generatedAsset && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-              onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-4 md:inset-x-[15%] md:inset-y-[5%] z-50 bg-card border border-border/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
-            >
-              {/* Header */}
-              <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between bg-muted/20">
-                <div>
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <Sparkles size={16} className="text-amber-500" /> AI Generated Landing Page
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Review the content below, then confirm to publish & insert link</p>
-                </div>
-                <button onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }} className="p-2 rounded-xl hover:bg-muted transition-colors">
-                  <X size={16} className="text-muted-foreground" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <div className="bg-slate-950 text-white rounded-2xl p-8 space-y-6">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-semibold text-white/60">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                    Preview
-                  </div>
-                  
-                  {/* Title */}
-                  <h1 className="text-3xl md:text-4xl font-black leading-tight">{generatedAsset.title}</h1>
-                  
-                  {/* Description / Intro */}
-                  <p className="text-base text-slate-300 leading-relaxed whitespace-pre-line">{generatedAsset.description}</p>
-                  
-                  {/* Main Content (Rich) */}
-                  {generatedAsset.mainContent && (
-                    <div className="border-t border-white/10 pt-6">
-                      <div className="prose prose-invert max-w-none text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
-                        {generatedAsset.mainContent}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Sections / Structured Content */}
-                  {generatedAsset.sections && generatedAsset.sections.length > 0 && (
-                    <div className="border-t border-white/10 pt-6 space-y-4">
-                      {generatedAsset.sections.map((sec: any, i: number) => (
-                        <div key={i}>
-                          {sec.heading && <h3 className="text-lg font-bold mb-3 text-white/90">{sec.heading}</h3>}
-                          {sec.body && <p className="text-sm text-slate-400 mb-4">{sec.body}</p>}
-                          {sec.items && sec.items.length > 0 && (
-                            <div className="space-y-3">
-                              {sec.items.map((item: any, j: number) => (
-                                <div key={j} className="bg-white/5 rounded-xl p-4 border border-white/10 flex items-start gap-3">
-                                  <div className="text-2xl shrink-0">{item.icon || '✨'}</div>
-                                  <div className="flex-1">
-                                    <p className="text-sm font-bold text-white">{item.title}</p>
-                                    <p className="text-xs text-slate-300 mt-2 leading-relaxed">{item.description}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Key Takeaways */}
-                  {generatedAsset.keyTakeaways && generatedAsset.keyTakeaways.length > 0 && (
-                    <div className="border-t border-white/10 pt-6">
-                      <h3 className="text-lg font-bold mb-3 text-white/90">Key Takeaways</h3>
-                      <ul className="space-y-2">
-                        {generatedAsset.keyTakeaways.map((takeaway: string, i: number) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                            <span className="text-amber-400 font-bold mt-0.5">✓</span>
-                            <span>{takeaway}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Visual Suggestions */}
-                  {generatedAsset.needsVisuals && generatedAsset.visualSuggestions && (
-                    <div className="border-t border-white/10 pt-6 bg-white/5 rounded-xl p-4 border border-white/10">
-                      <h4 className="text-sm font-bold text-white/80 mb-2 flex items-center gap-2">
-                        🎨 Recommended Visuals
-                      </h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">{generatedAsset.visualSuggestions}</p>
-                    </div>
-                  )}
-
-                  {/* CTA */}
-                  <div className="border-t border-white/10 pt-6 flex flex-col gap-2">
-                    <span className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-bold text-white w-full justify-center">
-                      {generatedAsset.ctaText}
-                    </span>
-                    {generatedAsset.ctaDescription && (
-                      <p className="text-xs text-slate-400 text-center">{generatedAsset.ctaDescription}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
-                  <p className="text-[11px] text-muted-foreground font-medium mb-1">Asset URL (will be auto-inserted into your DM flow):</p>
-                  <p className="text-xs font-mono text-primary break-all">{generatedAsset.assetUrl}</p>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => { setShowAssetPreview(false); setGeneratedAsset(null); }}
-                  className="flex-1 rounded-xl h-11 text-sm font-bold"
-                >
-                  Discard
-                </Button>
-                <Button
-                  onClick={handleInsertAssetUrl}
-                  className="flex-1 rounded-xl h-11 text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/20"
-                >
-                  <Zap size={14} /> Publish & Insert Link
                 </Button>
               </div>
             </motion.div>

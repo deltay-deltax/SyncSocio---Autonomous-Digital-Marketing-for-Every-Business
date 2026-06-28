@@ -30,6 +30,7 @@ import DashboardFAQ from './pages/dashboard/DashboardFAQ';
 import History from './pages/dashboard/History';
 import AssetLibrary from './pages/dashboard/AssetLibrary';
 import Products from './pages/dashboard/Products';
+import CreditsExplainer from './pages/CreditsExplainer';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
         <Route path="/instagram-setup" element={<InstagramInstructions />} />
         <Route path="/terms" element={<TermsOfUse />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/credits" element={<CreditsExplainer />} />
         <Route path="/forgotpassword" element={<ForgotPassword />} />
         <Route path="/resetpassword/:resetToken" element={<ResetPassword />} />
         
@@ -65,6 +67,7 @@ function App() {
             <Route path="assets" element={<AssetLibrary />} />
             <Route path="products" element={<Products />} />
             <Route path="faq" element={<DashboardFAQ />} />
+            <Route path="credits" element={<CreditsExplainer />} />
           </Route>
         </Route>
 

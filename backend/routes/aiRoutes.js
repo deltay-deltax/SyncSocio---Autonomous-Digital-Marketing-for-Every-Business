@@ -1,7 +1,6 @@
 import express from 'express';
 import { generateStrategy, getCalendar, regenerateStrategy, deployStrategy, toggleHeart, updateCalendarPosts } from '../controllers/aiController.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { generateContentMix } from '../utils/contentMixAgentService.js';
 import { generateContentPlan } from '../utils/contentPlanService.js';
 import { generateCaptionsAndHashtags } from '../utils/contentCaptionService.js';
 import BrandProfile from '../models/BrandProfile.js';
@@ -42,15 +41,6 @@ router.post('/scrape-product', async (req, res) => {
         
         const data = await response.json();
         res.json(data);
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-router.post('/mix', async (req, res) => {
-    try {
-        const result = await generateContentMix(req.user.id);
-        res.json(result);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

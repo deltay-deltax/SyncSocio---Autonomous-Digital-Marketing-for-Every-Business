@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
+import { CreditsModal } from '@/components/CreditsModal';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/dashboard' },
@@ -16,7 +17,7 @@ const navItems = [
   { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
   { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
   { label: 'Creatives', icon: Library, path: '/dashboard/assets' },
-  { label: 'DMs', icon: MessageCircle, path: '/dashboard/dms' },
+  { label: 'DM Automation', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'History', icon: Clock, path: '/dashboard/history' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
   { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
@@ -39,7 +40,26 @@ const DashboardLayout = () => {
     const cached = localStorage.getItem('syncsocio_credits');
     return cached ? parseInt(cached, 10) : null;
   });
+  const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
   const [creditsAnim, setCreditsAnim] = useState(false);
+
+  useEffect(() => {
+    const handleOpenModal = () => setIsCreditsModalOpen(true);
+    window.addEventListener('open-credits-modal', handleOpenModal);
+    
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.textContent && target.textContent.trim().toLowerCase() === 'what are credits?') {
+        setIsCreditsModalOpen(true);
+      }
+    };
+    document.addEventListener('click', handleGlobalClick);
+
+    return () => {
+      window.removeEventListener('open-credits-modal', handleOpenModal);
+      document.removeEventListener('click', handleGlobalClick);
+    };
+  }, []);
 
   useEffect(() => {
     if (showNotifications) {
@@ -240,8 +260,6 @@ const DashboardLayout = () => {
       {/* Nav Items */}
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
         {navItems.map((item) => {
-          if (item.label === 'DMs' && !profile?.DM_Automation_Service) return null;
-
           let itemPath = item.path;
           
           const isHome = item.path === '/dashboard';
@@ -439,8 +457,6 @@ const DashboardLayout = () => {
       {/* MOBILE BOTTOM NAV */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-border/50 px-8 py-4 flex justify-between items-center z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
         {navItems.map((item) => {
-          if (item.label === 'DMs' && !profile?.DM_Automation_Service) return null;
-
           let itemPath = item.path;
           const isActive = itemPath === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(itemPath);
           return (
@@ -546,6 +562,8 @@ const DashboardLayout = () => {
           </>
         )}
       </AnimatePresence>
+
+      <CreditsModal isOpen={isCreditsModalOpen} onClose={() => setIsCreditsModalOpen(false)} />
     </div>
   );
 };

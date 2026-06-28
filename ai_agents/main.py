@@ -25,7 +25,6 @@ from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
 from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
-from mix_agent import predict_brand_mix
 from plan_agent import generate_weekly_plan
 from caption_agent import generate_captions_and_hashtags
 from strategy_image_agent import generate_strategy_images
@@ -974,17 +973,6 @@ async def api_regenerate_strategy(brand_info: BrandInfo):
         print(f"DEBUG: Exception in regenerate strategy: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/predict-mix")
-async def api_predict_mix(payload: Dict[str, Any]):
-    try:
-        brand_data = payload.get('brand_info', payload)
-        brand_name = brand_data.get('brandName', 'Unknown')
-        print(f"DEBUG: Predicting mix for {brand_name}")
-        result = predict_brand_mix(payload)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.post("/generate-plan")
 async def api_generate_plan(payload: Dict[str, Any]):
     try:
@@ -1801,105 +1789,6 @@ async def ads_recommendations(request: Request):
         return {"recommendations": recommendations}
     except Exception as e:
         print(f"Ads Agent Route Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ─── ASSET GENERATION ENDPOINT ───
-class AssetGenerateRequest(BaseModel):
-    userId: str
-    postTopic: str = ""
-    flowId: Optional[str] = None
-    flowName: Optional[str] = None
-    flowKeyword: Optional[str] = None
-
-@app.post("/generate-asset")
-async def generate_asset(request: AssetGenerateRequest):
-    """Generate a landing page asset using AI and save it to the database."""
-    try:
-        # Fetch brand profile
-        brand_doc = await brand_collection.find_one({"user": ObjectId(request.userId)})
-        if not brand_doc:
-            raise HTTPException(status_code=404, detail="Brand profile not found")
-
-        brand_profile = {
-            "brandName": brand_doc.get("brandName", ""),
-            "businessCategory": brand_doc.get("businessCategory", "General"),
-            "website": brand_doc.get("website", ""),
-            "usp": brand_doc.get("usp", ""),
-            "painPoint": brand_doc.get("painPoint", ""),
-            "brandTone": brand_doc.get("brandTone", "Professional"),
-            "primaryColor": brand_doc.get("primaryColor", "#2563EB"),
-            "secondaryColor": brand_doc.get("secondaryColor", "#60A5FA"),
-            "instagramUsername": brand_doc.get("instagramUsername", ""),
-            "socialHandle": brand_doc.get("socialHandle", ""),
-        }
-
-        flow_context = {
-            "name": request.flowName or "",
-            "keyword": request.flowKeyword or "",
-        }
-
-        # Generate content via AI
-        asset_content = generate_asset_content(brand_profile, request.postTopic, flow_context)
-
-        # Build slug
-        import hashlib, time
-        topic_slug = re.sub(r'[^a-z0-9]+', '-', (request.postTopic or 'asset').lower()).strip('-')[:30]
-        suffix = hashlib.md5(f"{time.time()}".encode()).hexdigest()[:6]
-        slug = f"{topic_slug}-{suffix}"
-
-        username = brand_profile.get("instagramUsername") or brand_profile.get("socialHandle") or str(request.userId)
-
-        # Save to MongoDB
-        asset_doc = {
-            "user": ObjectId(request.userId),
-            "username": username,
-            "slug": slug,
-            "title": asset_content.get("title", "Untitled"),
-            "description": asset_content.get("description", ""),
-            "heroImageUrl": "",
-            "ctaText": asset_content.get("ctaText", "Learn More"),
-            "ctaUrl": brand_profile.get("website", ""),
-            # Preserve full generated fields so frontend can render complete preview
-            "mainContent": asset_content.get("mainContent", ""),
-            "keyTakeaways": asset_content.get("keyTakeaways", []),
-            "visualSuggestions": asset_content.get("visualSuggestions", ""),
-            "needsVisuals": asset_content.get("needsVisuals", False),
-            "ctaDescription": asset_content.get("ctaDescription", ""),
-            "contentType": asset_content.get("contentType", ""),
-            "ogTitle": asset_content.get("ogTitle", ""),
-            "ogDescription": asset_content.get("ogDescription", ""),
-            "ogImage": "",
-            "brandName": brand_profile.get("brandName", username),
-            "brandColor": brand_profile.get("primaryColor", "#2563EB"),
-            "brandSecondaryColor": brand_profile.get("secondaryColor", "#60A5FA"),
-            "linkedFlowId": ObjectId(request.flowId) if request.flowId else None,
-            "linkedPostTopic": request.postTopic,
-            "sections": asset_content.get("sections", []),
-            "isPublished": False,
-            "stats": {"views": 0, "ctaClicks": 0},
-            "createdAt": datetime.now(timezone.utc),
-            "updatedAt": datetime.now(timezone.utc),
-        }
-
-        result = await assets_collection.insert_one(asset_doc)
-        asset_doc["_id"] = str(result.inserted_id)
-        asset_doc["user"] = str(asset_doc["user"])
-        if asset_doc.get("linkedFlowId"):
-            asset_doc["linkedFlowId"] = str(asset_doc["linkedFlowId"])
-
-        frontend_url_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        asset_url = f"{frontend_url_base}/{username}/{slug}"
-
-        return {
-            "success": True,
-            "asset": asset_doc,
-            "assetUrl": asset_url,
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[AssetGen] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

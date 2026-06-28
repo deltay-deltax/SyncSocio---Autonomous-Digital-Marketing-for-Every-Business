@@ -1,46 +1,59 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useState } from "react";
-import { Check, BotMessageSquare } from "lucide-react";
+import { Check, BotMessageSquare, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const plans = [
   {
-    name: "SyncSocio Starter",
-    basePrice: 999,
+    name: "Brand",
+    basePrice: 799,
     period: "/month",
-    description: "For creators ready to scale at speed.",
+    description: "Ideal for businesses getting started with visual marketing.",
     features: [
-      "3 times a week posting",
-      "Static + Carousels",
-      "12 posts/month",
-      "Deep DNA brand synthesis",
-      "3 active agents",
-      "Daily sync",
-      "Cross platform posting",
-      "Priority support",
+      "200 credits/month",
+      "1 active brand profile",
+      "All image generation types",
+      "Festival calendar",
+      "Hinglish + 5 languages",
+      "Caption + hashtags — free",
+      "Schedule up to 30 posts",
+      "Post scheduling — free",
+      "Analytics dashboard — free",
+      "Email support",
     ],
     popular: false,
     cta: "Get Started",
   },
   {
-    name: "SyncSocio PRO",
-    basePrice: 1999,
+    name: "Growth",
+    basePrice: 2199,
     period: "/month",
-    description: "Maximum efficiency for power creators.",
+    description: "For brands ready to automate and dominate socials.",
     features: [
-      "Daily posting",
-      "Static + Carousel + Reels",
-      "30 posts/month",
-      "Deep DNA brand synthesis",
-      "3 active agents",
-      "Daily sync",
-      "Cross platform posting",
-      "Priority support",
+      "700 credits/month",
+      "3 brand profiles",
+      "Everything in Brand",
+      "All-in-One Drop feature",
+      "AI Mode (Auto Generate)",
+      "E-commerce listing generator",
+      "UGC video generation",
+      "Product video generation",
+      "DM Automation",
+      "WhatsApp campaign generator",
+      "Best time to post analysis",
+      "Priority generation",
+      "WhatsApp support",
     ],
     popular: true,
-    cta: "Go Pro",
+    cta: "Get Started",
   }
+];
+
+const topups = [
+  { credits: 100, price: 299, per_credit: 2.99 },
+  { credits: 300, price: 799, per_credit: 2.66 },
+  { credits: 700, price: 1699, per_credit: 2.42 },
 ];
 
 const Pricing = () => {
@@ -49,8 +62,8 @@ const Pricing = () => {
   const navigate = useNavigate();
 
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
-    "SyncSocio Starter": false,
-    "SyncSocio PRO": false,
+    "Brand": false,
+    "Growth": false,
   });
 
   const handleToggle = (planName: string) => {
@@ -113,29 +126,31 @@ const Pricing = () => {
                 </div>
 
                 {/* DM Automation Toggle */}
-                <div className={`flex items-center justify-between p-4 rounded-xl mb-8 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
-                  <div className="flex items-center gap-3">
-                    <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
-                    <div>
-                      <p className={`text-sm font-bold ${plan.popular ? "text-white" : "text-foreground"}`}>DM Automation</p>
-                      <p className={`text-xs ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>+₹399 / month</p>
+                {plan.name === 'Brand' && (
+                  <div className={`flex items-center justify-between p-4 rounded-xl mb-8 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
+                    <div className="flex items-center gap-3">
+                      <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
+                      <div>
+                        <p className={`text-sm font-bold ${plan.popular ? "text-white" : "text-foreground"}`}>DM Automation</p>
+                        <p className={`text-xs ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>+₹399 / month</p>
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => handleToggle(plan.name)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                      isDmEnabled 
-                        ? (plan.popular ? 'bg-white' : 'bg-primary') 
-                        : (plan.popular ? 'bg-primary-foreground/30' : 'bg-input')
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                        isDmEnabled ? 'translate-x-5' : 'translate-x-0'
+                    <button
+                      onClick={() => handleToggle(plan.name)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                        isDmEnabled 
+                          ? (plan.popular ? 'bg-white' : 'bg-primary') 
+                          : (plan.popular ? 'bg-primary-foreground/30' : 'bg-input')
                       }`}
-                    />
-                  </button>
-                </div>
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                          isDmEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
 
                 <ul className="space-y-4 mb-8 flex-1">
                   {plan.features.map((feature) => (
@@ -144,7 +159,7 @@ const Pricing = () => {
                       <span>{feature}</span>
                     </li>
                   ))}
-                  {isDmEnabled && (
+                  {isDmEnabled && plan.name === 'Brand' && (
                     <li className="flex items-start gap-3 text-sm font-bold">
                       <Check size={18} className={`shrink-0 mt-0.5 ${plan.popular ? "text-primary-foreground" : "text-primary"}`} />
                       <span>Automated DM Replies & Lead Capture</span>
@@ -166,6 +181,50 @@ const Pricing = () => {
             );
           })}
         </div>
+
+        {/* Credits Explained Link */}
+        <div className="flex flex-col items-center justify-center mt-10 mb-2">
+          <Link
+            to="/credits"
+            className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 hover:underline cursor-pointer group"
+          >
+            <HelpCircle size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            Credits explained
+          </Link>
+        </div>
+
+        {/* Credit Topups */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mt-24 max-w-4xl mx-auto text-center border-t border-border/50 pt-16"
+        >
+          <h3 className="text-2xl font-bold mb-2">Need extra credits?</h3>
+          <p className="text-sm text-muted-foreground mb-10">Get instant top-ups to power your creative campaigns without upgrading your monthly plan.</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            {topups.map((topup) => (
+              <div key={topup.credits} className="glass-card rounded-2xl p-6 flex flex-col justify-between hover-lift transition-all text-center">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-2 block">Value Pack</span>
+                  <h4 className="text-2xl font-black text-foreground mb-1">{topup.credits} Credits</h4>
+                  <p className="text-xs text-muted-foreground mb-4">₹{topup.per_credit} / credit</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-foreground mb-4">₹{topup.price}</p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center"
+                    onClick={() => navigate('/login')}
+                  >
+                    Buy Top-up
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </section>
   );
