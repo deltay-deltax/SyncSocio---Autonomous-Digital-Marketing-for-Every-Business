@@ -422,13 +422,9 @@ const Setup = () => {
               });
               if (credRes.ok) {
                 const credData = await credRes.json();
-<<<<<<< Updated upstream
                 localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
-=======
-                localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
                 // Clean up applied coupon from storage
                 localStorage.removeItem('velocity_applied_coupon');
->>>>>>> Stashed changes
               }
             } catch (credErr) {
               console.error('[Setup] Failed to assign credits:', credErr);
