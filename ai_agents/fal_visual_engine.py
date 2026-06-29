@@ -369,7 +369,7 @@ def generate_fal_video_wan(prompt: str, image: str = None, aspect_ratio: str = "
     
     try:
         if image:
-            print(f"FAL ENGINE (Wan-2.1 Image-to-Video): Generating 480p video...")
+            print(f"FAL ENGINE (Wan-2.1 Image-to-Video): Generating 720p video...")
             if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
                 image_url = image
             else:
@@ -380,15 +380,15 @@ def generate_fal_video_wan(prompt: str, image: str = None, aspect_ratio: str = "
             arguments = {
                 "prompt": prompt,
                 "image_url": image_url,
-                "resolution": "480p",
+                "resolution": "720p",
                 "aspect_ratio": aspect_ratio
             }
             model_id = "fal-ai/wan-i2v"
         else:
-            print(f"FAL ENGINE (Wan-2.1 Text-to-Video): Generating 480p video...")
+            print(f"FAL ENGINE (Wan-2.1 Text-to-Video): Generating 720p video...")
             arguments = {
                 "prompt": prompt,
-                "resolution": "480p",
+                "resolution": "720p",
                 "aspect_ratio": aspect_ratio
             }
             model_id = "fal-ai/wan-t2v"
@@ -449,7 +449,7 @@ def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:
     os.environ["FAL_KEY"] = api_key
     
     try:
-        print(f"FAL ENGINE (Seedance 2.0 Image-to-Video Fast): Generating {duration}s 480p video...")
+        print(f"FAL ENGINE (Seedance 2.0 Image-to-Video Fast): Generating {duration}s 720p video...")
         if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
             image_url = image
         else:
@@ -460,7 +460,7 @@ def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:
         arguments = {
             "prompt": prompt,
             "image_url": image_url,
-            "resolution": "480p",
+            "resolution": "720p",
             "aspect_ratio": aspect_ratio,
             "duration": duration,
             "generate_audio": True
