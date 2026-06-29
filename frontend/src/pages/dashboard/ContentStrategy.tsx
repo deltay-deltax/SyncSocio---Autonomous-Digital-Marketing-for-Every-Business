@@ -246,7 +246,19 @@ async function getProductCache(key: string): Promise<any> {
 const DashboardStrategy = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setShowNotifications } = useOutletContext<{ setShowNotifications?: (show: boolean) => void }>() || {};
+  const { 
+    setShowNotifications,
+    activeGeneration,
+    startBackgroundGeneration,
+    startBackgroundAllInOne,
+    clearActiveGeneration
+  } = useOutletContext<{ 
+    setShowNotifications?: (show: boolean) => void;
+    activeGeneration?: any;
+    startBackgroundGeneration?: (payload: any, creditCost: number, creditReason: string, mode: any) => Promise<void>;
+    startBackgroundAllInOne?: (requests: any[], creditCost: number, creditReason: string) => Promise<void>;
+    clearActiveGeneration?: () => void;
+  }>() || {};
   const { toast } = useToast();
 
   // ── Stage / Mode
@@ -271,36 +283,37 @@ const DashboardStrategy = () => {
     }
   }, [location.search]);
 
-  // Block navigation during creative generation
-  const blocker = useBlocker(
-    ({ currentValue, nextValue }) =>
-      stage === 'generating' && currentValue.location.pathname !== nextValue.location.pathname
-  );
-
+  // Sync with background generation
   React.useEffect(() => {
-    if (blocker.state === 'blocked') {
-      const confirmLeave = window.confirm(
-        'Creative generation is currently in progress. Navigating away will disrupt the tracking and prevent credit setup. Are you sure you want to leave?'
-      );
-      if (confirmLeave) {
-        blocker.proceed();
-      } else {
-        blocker.reset();
+    if (!activeGeneration) return;
+
+    if (activeGeneration.status === 'generating') {
+      setStage('generating');
+      if (activeGeneration.mode !== 'all_in_one') {
+        setMode(activeGeneration.mode);
       }
+    } else if (activeGeneration.status === 'success') {
+      const posts = activeGeneration.posts || [];
+      setGenerated(posts);
+      setSavedIndices(new Set());
+      setShowHeartPop({});
+      setStage('results');
+      
+      if (mode === 'whatsapp' || mode === 'email') {
+        const first = posts[0] || {};
+        setCampaignImage(imgSrc(first.image) || '');
+        setCampaignBody(first.caption || '');
+        if (mode === 'email') setCampaignSubject(first.subject || '');
+      }
+      
+      if (clearActiveGeneration) clearActiveGeneration();
+    } else if (activeGeneration.status === 'error') {
+      setGenError(activeGeneration.error || 'Something went wrong');
+      setStage('builder');
+      
+      if (clearActiveGeneration) clearActiveGeneration();
     }
-  }, [blocker]);
-
-  React.useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (stage === 'generating') {
-        e.preventDefault();
-        e.returnValue = 'Creative generation is in progress. Are you sure you want to leave?';
-        return e.returnValue;
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [stage]);
+  }, [activeGeneration, mode]);
 
   // ── Custom Import List Modal
   const [showListNameModal, setShowListNameModal] = useState(false);
@@ -1115,6 +1128,7 @@ const DashboardStrategy = () => {
           // 1. 2 images
           {
             userId,
+            brandId: profile?._id,
             layout: 'image',
             count: 2,
             aspectRatio: '1:1',
@@ -1127,6 +1141,7 @@ const DashboardStrategy = () => {
           // 2. 2 carousels of 3 slides each
           {
             userId,
+            brandId: profile?._id,
             layout: 'carousel',
             count: 2,
             slideCount: 3,
@@ -1140,6 +1155,7 @@ const DashboardStrategy = () => {
           // 3. 1 AI UGC Video
           {
             userId,
+            brandId: profile?._id,
             layout: 'video',
             count: 1,
             aspectRatio: '9:16',
@@ -1157,6 +1173,7 @@ const DashboardStrategy = () => {
         if (!isSaasMode) {
           requests.push({
             userId,
+            brandId: profile?._id,
             layout: 'ecomm',
             count: 4,
             aspectRatio: '1:1',
@@ -1170,79 +1187,11 @@ const DashboardStrategy = () => {
           } as any);
         }
 
-        console.log('[Strategy] Dispatching parallel All-in-One generation requests...');
-        const fetchPromises = requests.map(req =>
-          fetch(`${AI_BASE}/generate-strategy-images`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req),
-          }).then(async (res) => {
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({ detail: res.statusText }));
-              throw new Error(err.detail || 'Generation failed');
-            }
-            return res.json();
-          })
-        );
-
-        const resultsArray = await Promise.all(fetchPromises);
-        let allPosts: any[] = [];
-        resultsArray.forEach((data, reqIndex) => {
-          const req = requests[reqIndex];
-          const posts = (data.posts || []).map((post: any) => ({
-            ...post,
-            sectionType: req.layout,
-          }));
-          allPosts = [...allPosts, ...posts];
-        });
-
-        // Verify if any post failed (image/video missing or contains error message)
-        const failedPost = allPosts.find((p: any) => 
-          p.error || 
-          (p.type === 'video' && !p.url) || 
-          (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
-          (p.type !== 'video' && p.type !== 'carousel' && !p.image)
-        );
-        if (failedPost) {
-          throw new Error(failedPost.error || 'One or more creative generations failed in the All-in-One package.');
-        }
-
-        setGenerated(allPosts);
-        setSavedIndices(new Set());
-        setShowHeartPop({});
-        setStage('results');
-
-        // ── Deduct credits ONLY after successful generation ───────────
         const creditCost = 140;
         const creditReason = 'All-in-One generation (2 images, 2 carousels of 3 slides, 4 ecomm listings, 1 AI UGC Video)';
-        if (creditCost > 0 && allPosts.length > 0) {
-          try {
-            const token = localStorage.getItem('token');
-            const deductRes = await fetch(`${NODE_BASE}/credits/deduct`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ amount: creditCost, reason: creditReason }),
-            });
-
-            if (deductRes.ok) {
-              const credData = await deductRes.json();
-              localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
-              window.dispatchEvent(new StorageEvent('storage', {
-                key: 'syncsocio_credits',
-                newValue: String(credData.credits ?? 0),
-              }));
-            } else {
-              console.warn('[Credits] Deduction failed after All-in-One generation:', await deductRes.text());
-            }
-          } catch (creditErr) {
-            console.warn('[Credits] Deduction error (non-blocking):', creditErr);
-          }
+        if (startBackgroundAllInOne) {
+          await startBackgroundAllInOne(requests, creditCost, creditReason);
         }
-        // ─────────────────────────────────────────────────────────────
-
         return;
       }
 
@@ -1305,72 +1254,9 @@ const DashboardStrategy = () => {
       } items)`;
       // ─────────────────────────────────────────────────────────────────
 
-      const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }));
-        throw new Error(err.detail || 'Generation failed');
+      if (startBackgroundGeneration) {
+        await startBackgroundGeneration(payload, creditCost, creditReason, currentMode);
       }
-
-      const data = await res.json();
-      const posts = data.posts || [];
-
-      // Verify if any post failed (image/video missing or contains error message)
-      const failedPost = posts.find((p: any) => 
-        p.error || 
-        (p.type === 'video' && !p.url) || 
-        (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
-        (p.type !== 'video' && p.type !== 'carousel' && !p.image)
-      );
-      if (failedPost) {
-        throw new Error(failedPost.error || 'One or more creative generations failed.');
-      }
-
-      setGenerated(posts);
-      setSavedIndices(new Set());
-      setShowHeartPop({});
-
-      if (mode === 'whatsapp' || mode === 'email') {
-        const first = posts[0] || {};
-        setCampaignImage(imgSrc(first.image) || '');
-        setCampaignBody(first.caption || '');
-        if (mode === 'email') setCampaignSubject(first.subject || '');
-      }
-
-      // ── Deduct credits ONLY after successful generation ───────────
-      if (creditCost > 0 && posts.length > 0) {
-        try {
-          const token = localStorage.getItem('token');
-          const deductRes = await fetch(`${NODE_BASE}/credits/deduct`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ amount: creditCost, reason: creditReason }),
-          });
-
-          if (deductRes.ok) {
-            const credData = await deductRes.json();
-            localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
-            window.dispatchEvent(new StorageEvent('storage', {
-              key: 'syncsocio_credits',
-              newValue: String(credData.credits ?? 0),
-            }));
-          } else {
-            console.warn('[Credits] Deduction failed after generation:', await deductRes.text());
-          }
-        } catch (creditErr) {
-          console.warn('[Credits] Deduction error (non-blocking):', creditErr);
-        }
-      }
-      // ─────────────────────────────────────────────────────────────
-
-      setStage('results');
     } catch (err: any) {
       console.error('[Strategy] Generation setup error:', err);
       setGenError(err.message || 'Something went wrong');

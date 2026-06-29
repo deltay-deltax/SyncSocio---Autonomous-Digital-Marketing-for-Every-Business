@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { CreditsModal } from '@/components/CreditsModal';
+import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/dashboard' },
@@ -43,6 +44,219 @@ const DashboardLayout = () => {
   const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
   const [creditsAnim, setCreditsAnim] = useState(false);
   const [brands, setBrands] = useState<any[]>([]);
+  const { toast } = useToast();
+
+  const [activeGeneration, setActiveGeneration] = useState<{
+    status: 'idle' | 'generating' | 'success' | 'error';
+    mode: any;
+    posts: any[];
+    error: any;
+    creditCost: number;
+    creditReason: string;
+  }>({
+    status: 'idle',
+    mode: null,
+    posts: [],
+    error: null,
+    creditCost: 0,
+    creditReason: '',
+  });
+
+  const startBackgroundGeneration = async (payload: any, creditCost: number, creditReason: string, mode: any) => {
+    setActiveGeneration({
+      status: 'generating',
+      mode,
+      posts: [],
+      error: null,
+      creditCost,
+      creditReason,
+    });
+
+    try {
+      const AI_BASE = 'http://localhost:8000';
+      const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || 'Generation failed');
+      }
+
+      const data = await res.json();
+      const posts = data.posts || [];
+
+      // Verify if any post failed (image/video missing or contains error message)
+      const failedPost = posts.find((p: any) => 
+        p.error || 
+        (p.type === 'video' && !p.url) || 
+        (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
+        (p.type !== 'video' && p.type !== 'carousel' && !p.image)
+      );
+      if (failedPost) {
+        throw new Error(failedPost.error || 'One or more creative generations failed.');
+      }
+
+      // Deduct credits
+      if (creditCost > 0 && posts.length > 0) {
+        const token = localStorage.getItem('token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ amount: creditCost, reason: creditReason }),
+        });
+        if (deductRes.ok) {
+          const credData = await deductRes.json();
+          localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'syncsocio_credits',
+            newValue: String(credData.credits ?? 0),
+          }));
+          setCredits(credData.credits ?? 0);
+          setCreditsAnim(true);
+          setTimeout(() => setCreditsAnim(false), 1000);
+        }
+      }
+
+      setActiveGeneration(prev => ({
+        ...prev,
+        status: 'success',
+        posts,
+      }));
+
+      toast({
+        title: 'Creative synthesis complete! 🎉',
+        description: `Successfully generated ${posts.length} dynamic ${mode || 'custom'} creative(s).`,
+      });
+    } catch (err: any) {
+      console.error('[BgGeneration] failed:', err);
+      setActiveGeneration(prev => ({
+        ...prev,
+        status: 'error',
+        error: err.message || 'Something went wrong',
+      }));
+      toast({
+        variant: 'destructive',
+        title: 'Creative generation failed ❌',
+        description: err.message || 'Something went wrong during assets synthesis.',
+      });
+    }
+  };
+
+  const startBackgroundAllInOne = async (requests: any[], creditCost: number, creditReason: string) => {
+    setActiveGeneration({
+      status: 'generating',
+      mode: 'all_in_one',
+      posts: [],
+      error: null,
+      creditCost,
+      creditReason,
+    });
+
+    try {
+      const AI_BASE = 'http://localhost:8000';
+      const fetchPromises = requests.map(req =>
+        fetch(`${AI_BASE}/generate-strategy-images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(req),
+        }).then(async (res) => {
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: res.statusText }));
+            throw new Error(err.detail || 'Generation failed');
+          }
+          return res.json();
+        })
+      );
+
+      const resultsArray = await Promise.all(fetchPromises);
+      let allPosts: any[] = [];
+      resultsArray.forEach((data, reqIndex) => {
+        const req = requests[reqIndex];
+        const posts = (data.posts || []).map((post: any) => ({
+          ...post,
+          sectionType: req.layout,
+        }));
+        allPosts = [...allPosts, ...posts];
+      });
+
+      // Verify if any post failed
+      const failedPost = allPosts.find((p: any) => 
+        p.error || 
+        (p.type === 'video' && !p.url) || 
+        (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
+        (p.type !== 'video' && p.type !== 'carousel' && !p.image)
+      );
+      if (failedPost) {
+        throw new Error(failedPost.error || 'One or more creative generations failed in the All-in-One package.');
+      }
+
+      // Deduct credits
+      if (creditCost > 0 && allPosts.length > 0) {
+        const token = localStorage.getItem('token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ amount: creditCost, reason: creditReason }),
+        });
+        if (deductRes.ok) {
+          const credData = await deductRes.json();
+          localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'syncsocio_credits',
+            newValue: String(credData.credits ?? 0),
+          }));
+          setCredits(credData.credits ?? 0);
+          setCreditsAnim(true);
+          setTimeout(() => setCreditsAnim(false), 1000);
+        }
+      }
+
+      setActiveGeneration(prev => ({
+        ...prev,
+        status: 'success',
+        posts: allPosts,
+      }));
+
+      toast({
+        title: 'All-in-One creative package synthesized! 🎁',
+        description: `Generated all 11 marketing-strategy assets successfully.`,
+      });
+    } catch (err: any) {
+      console.error('[BgAllInOne] failed:', err);
+      setActiveGeneration(prev => ({
+        ...prev,
+        status: 'error',
+        error: err.message || 'Something went wrong',
+      }));
+      toast({
+        variant: 'destructive',
+        title: 'All-in-One generation failed ❌',
+        description: err.message || 'Something went wrong during packages synthesis.',
+      });
+    }
+  };
+
+  const clearActiveGeneration = () => {
+    setActiveGeneration({
+      status: 'idle',
+      mode: null,
+      posts: [],
+      error: null,
+      creditCost: 0,
+      creditReason: '',
+    });
+  };
 
   useEffect(() => {
     const fetchBrands = async () => {
@@ -509,7 +723,15 @@ const DashboardLayout = () => {
               )}
             </AnimatePresence>
 
-            <Outlet context={{ profile, setProfile, setShowNotifications }} />
+            <Outlet context={{ 
+              profile, 
+              setProfile, 
+              setShowNotifications,
+              activeGeneration,
+              startBackgroundGeneration,
+              startBackgroundAllInOne,
+              clearActiveGeneration
+            }} />
           </div>
         </section>
       </main>
