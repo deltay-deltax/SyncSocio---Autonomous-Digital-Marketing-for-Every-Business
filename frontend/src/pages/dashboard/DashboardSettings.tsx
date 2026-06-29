@@ -35,7 +35,7 @@ const GoogleIcon = ({ size = 20, className = "" }: { size?: number; className?: 
 
 const WhatsAppIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12.004 2c-5.518 0-10 4.482-10 10 0 1.767.46 3.427 1.263 4.887L2 22l5.286-1.39A9.957 9.957 0 0 0 12.004 22c5.518 0 10-4.482 10-10s-4.482-10-10-10zm0 1.636c4.613 0 8.364 3.75 8.364 8.364 0 4.613-3.75 8.364-8.364 8.364a8.315 8.315 0 0 1-4.267-1.17l-.307-.183-3.167.832.846-3.087-.202-.32a8.32 8.32 0 0 1-1.269-4.436c0-4.613 3.75-8.364 8.364-8.364zm-3.52 3.393c-.198 0-.523.074-.796.371-.272.296-1.042 1.018-1.042 2.48 0 1.463 1.066 2.877 1.215 3.076.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.695.626.713.226 1.36.194 1.872.118.572-.085 1.603-.656 1.83-1.262.228-.605.228-1.123.16-1.233-.07-.11-.25-.181-.522-.317-.272-.136-1.61-.795-1.859-.885-.25-.09-.431-.136-.613.136-.182.273-.703.885-.862 1.068-.16.182-.318.204-.59.068-.272-.136-1.15-.424-2.19-1.353-.809-.722-1.355-1.616-1.514-1.888-.159-.272-.017-.42.12-.556.121-.122.27-.318.407-.477.136-.159.18-.273.272-.455.09-.182.045-.34-.023-.477-.07-.136-.613-1.477-.84-2.023-.223-.534-.488-.46-.67-.47l-.57-.01z"/>
+    <path d="M12.004 2c-5.518 0-10 4.482-10 10 0 1.767.46 3.427 1.263 4.887L2 22l5.286-1.39A9.957 9.957 0 0 0 12.004 22c5.518 0 10-4.482 10-10s-4.482-10-10-10zm0 1.636c4.613 0 8.364 3.75 8.364 8.364 0 4.613-3.75 8.364-8.364 8.364a8.315 8.315 0 0 1-4.267-1.17l-.307-.183-3.167.832.846-3.087-.202-.32a8.32 8.32 0 0 1-1.269-4.436c0-4.613 3.75-8.364 8.364-8.364zm-3.52 3.393c-.198 0-.523.074-.796.371-.272.296-1.042 1.018-1.042 2.48 0 1.463 1.066 2.877 1.215 3.076.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.695.626.713.226 1.36.194 1.872.118.572-.085 1.603-.656 1.83-1.262.228-.605.228-1.123.16-1.233-.07-.11-.25-.181-.522-.317-.272-.136-1.61-.795-1.859-.885-.25-.09-.431-.136-.613.136-.182.273-.703.885-.862 1.068-.16.182-.318.204-.59.068-.272-.136-1.15-.424-2.19-1.353-.809-.722-1.355-1.616-1.514-1.888-.159-.272-.017-.42.12-.556.121-.122.27-.318.407-.477.136-.159.18-.273.272-.455.09-.182.045-.34-.023-.477-.07-.136-.613-1.477-.84-2.023-.223-.534-.488-.46-.67-.47l-.57-.01z" />
   </svg>
 );
 
@@ -146,12 +146,12 @@ const DashboardSettings = () => {
         const data = await res.json();
         localStorage.setItem('syncsocio_profile', JSON.stringify(data.activeBrand));
         setProfile(data.activeBrand);
-        
+
         toast({
           title: "Switched Brand",
           description: `Successfully switched context to ${data.activeBrand.brandName}.`,
         });
-        
+
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -169,9 +169,9 @@ const DashboardSettings = () => {
     }
   }, [location.search]);
 
-  const { profile, setProfile, setShowNotifications } = useOutletContext<{ 
-    profile: any; 
-    setProfile: (p: any) => void; 
+  const { profile, setProfile, setShowNotifications } = useOutletContext<{
+    profile: any;
+    setProfile: (p: any) => void;
     setShowNotifications?: (show: boolean) => void;
   }>();
   const [updating, setUpdating] = useState(false);
@@ -301,24 +301,24 @@ const DashboardSettings = () => {
       // without depending on the DB round-trip response shape.
       const localProfile = {
         ...(updatedProfile || {}),
-        brandName:         updatedFormData.brandName,
-        businessCategory:  updatedFormData.businessCategory,
-        website:           updatedFormData.website,
-        location:          { city: updatedFormData.city, country: updatedFormData.country },
-        brandTone:         updatedFormData.brandTone,
-        usp:               updatedFormData.usp,
-        mainGoal:          updatedFormData.mainGoal,
-        competitors:       updatedFormData.competitors.split(',').map((s: string) => s.trim()).filter(Boolean),
-        targetAudiences:   updatedFormData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean),
-        painPoint:         updatedFormData.painPoint,
-        primaryColor:      updatedFormData.primaryColor,
-        secondaryColor:    updatedFormData.secondaryColor,
-        logo:              updatedFormData.logo,
-        typography:        updatedFormData.typography,
-        ageRange:          updatedFormData.ageRange,
-        genderFocus:       updatedFormData.genderFocus,
-        brandKeywords:     updatedFormData.brandKeywords,
-        visualVibe:        updatedFormData.visualVibe,
+        brandName: updatedFormData.brandName,
+        businessCategory: updatedFormData.businessCategory,
+        website: updatedFormData.website,
+        location: { city: updatedFormData.city, country: updatedFormData.country },
+        brandTone: updatedFormData.brandTone,
+        usp: updatedFormData.usp,
+        mainGoal: updatedFormData.mainGoal,
+        competitors: updatedFormData.competitors.split(',').map((s: string) => s.trim()).filter(Boolean),
+        targetAudiences: updatedFormData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean),
+        painPoint: updatedFormData.painPoint,
+        primaryColor: updatedFormData.primaryColor,
+        secondaryColor: updatedFormData.secondaryColor,
+        logo: updatedFormData.logo,
+        typography: updatedFormData.typography,
+        ageRange: updatedFormData.ageRange,
+        genderFocus: updatedFormData.genderFocus,
+        brandKeywords: updatedFormData.brandKeywords,
+        visualVibe: updatedFormData.visualVibe,
       };
 
       setFormData(updatedFormData);
@@ -437,7 +437,7 @@ const DashboardSettings = () => {
         brandKeywords: profile.brandKeywords || '',
         visualVibe: profile.visualVibe || ''
       });
-      
+
       const kwList = profile.brandKeywords ? profile.brandKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [];
       setKeywords(kwList);
     }
@@ -501,7 +501,7 @@ const DashboardSettings = () => {
     try {
       const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      
+
       const payload = {
         ...formData,
         location: { city: formData.city, country: formData.country },
@@ -511,7 +511,7 @@ const DashboardSettings = () => {
 
       const res = await fetch(`${apiBase}/profile`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -585,14 +585,14 @@ const DashboardSettings = () => {
                     const maxBrands = hasStarter ? 1 : 2; // Elite allows 2 brands, Starter allows 1
                     return brands.length < maxBrands;
                   })()) && (
-                    <button
-                      onClick={() => navigate('/onboarding?new_brand=true')}
-                      className="h-10 w-10 flex items-center justify-center rounded-xl bg-primary text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10 cursor-pointer text-base font-bold"
-                      title="Add a new brand profile"
-                    >
-                      +
-                    </button>
-                  )}
+                      <button
+                        onClick={() => navigate('/onboarding?new_brand=true')}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-primary text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10 cursor-pointer text-base font-bold"
+                        title="Add a new brand profile"
+                      >
+                        +
+                      </button>
+                    )}
                 </div>
               </div>
               {/* Hero header */}
@@ -800,7 +800,7 @@ const DashboardSettings = () => {
                     <p className="text-[10px] text-muted-foreground truncate">Changes apply to all future generations</p>
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={handleUpdate}
                   disabled={updating}
                   className="bg-primary text-primary-foreground border-0 text-xs shrink-0 font-black uppercase tracking-widest h-10 px-5 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all"
@@ -822,10 +822,10 @@ const DashboardSettings = () => {
                   {/* Instagram Connection */}
                   {profile.instagramIsConnected ? (
                     <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden" 
-                           style={{ 
-                              background: profile.instagramProfilePicture ? 'none' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)' 
-                           }}>
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden"
+                        style={{
+                          background: profile.instagramProfilePicture ? 'none' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)'
+                        }}>
                         {profile.instagramProfilePicture ? (
                           <img src={profile.instagramProfilePicture} className="w-full h-full object-cover" />
                         ) : (
@@ -839,9 +839,9 @@ const DashboardSettings = () => {
                           <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
                         </div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
                         onClick={async () => {
                           console.log('🔄 Relink Instagram clicked. Fetching auth URL...');
@@ -879,10 +879,10 @@ const DashboardSettings = () => {
                           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
                         </div>
                       </div>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
-                        onClick={() => window.location.href='/setup'}
+                        onClick={() => window.location.href = '/setup'}
                       >
                         Connect
                       </Button>
@@ -902,9 +902,9 @@ const DashboardSettings = () => {
                           <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
                         </div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
                         onClick={() => handleConnectGmail()}
                       >
@@ -923,8 +923,8 @@ const DashboardSettings = () => {
                           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
                         </div>
                       </div>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
                         onClick={() => handleConnectGmail()}
                       >
@@ -946,36 +946,13 @@ const DashboardSettings = () => {
                           <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
                         </div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
                         onClick={async () => {
                           const num = prompt("Step 1/3: Enter your WhatsApp Business Number to reconnect:", profile.whatsappNumber || '');
                           if (num) {
-<<<<<<< Updated upstream
-                            try {
-                              const token = localStorage.getItem('token');
-                              const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                              const profileRes = await fetch(`${apiBase}/profile`, {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  'Authorization': `Bearer ${token}`
-                                },
-                                body: JSON.stringify({
-                                  whatsappIsConnected: true,
-                                  whatsappNumber: num
-                                })
-                              });
-                              if (!profileRes.ok) throw new Error('Failed to reconnect WhatsApp');
-                              const updatedProfile = await profileRes.json();
-                              setProfile(updatedProfile);
-                              localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
-                              alert('WhatsApp account reconnected successfully.');
-                            } catch (err: any) {
-                              alert('Error: ' + err.message);
-=======
                             const phoneId = prompt("Step 2/3: Enter your Meta WhatsApp Phone ID:", profile.whatsappPhoneId || '');
                             if (phoneId !== null) {
                               const accessToken = prompt("Step 3/3: Enter your Meta Permanent Access Token:", profile.whatsappAccessToken || '');
@@ -999,13 +976,12 @@ const DashboardSettings = () => {
                                   if (!profileRes.ok) throw new Error('Failed to reconnect WhatsApp');
                                   const updatedProfile = await profileRes.json();
                                   setProfile(updatedProfile);
-                                  localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+                                  localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
                                   alert('WhatsApp account reconnected successfully.');
                                 } catch (err: any) {
                                   alert('Error: ' + err.message);
                                 }
                               }
->>>>>>> Stashed changes
                             }
                           }
                         }}
@@ -1025,35 +1001,12 @@ const DashboardSettings = () => {
                           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
                         </div>
                       </div>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
                         onClick={async () => {
                           const num = prompt("Step 1/3: Enter your WhatsApp Business Number to connect:");
                           if (num) {
-<<<<<<< Updated upstream
-                            try {
-                              const token = localStorage.getItem('token');
-                              const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                              const profileRes = await fetch(`${apiBase}/profile`, {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  'Authorization': `Bearer ${token}`
-                                },
-                                body: JSON.stringify({
-                                  whatsappIsConnected: true,
-                                  whatsappNumber: num
-                                })
-                              });
-                              if (!profileRes.ok) throw new Error('Failed to connect WhatsApp');
-                              const updatedProfile = await profileRes.json();
-                              setProfile(updatedProfile);
-                              localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
-                              alert('WhatsApp account connected successfully.');
-                              if (setShowNotifications) {
-                                setShowNotifications(true);
-=======
                             const phoneId = prompt("Step 2/3: Enter your Meta WhatsApp Phone ID:");
                             if (phoneId !== null) {
                               const accessToken = prompt("Step 3/3: Enter your Meta Permanent Access Token:");
@@ -1077,7 +1030,7 @@ const DashboardSettings = () => {
                                   if (!profileRes.ok) throw new Error('Failed to connect WhatsApp');
                                   const updatedProfile = await profileRes.json();
                                   setProfile(updatedProfile);
-                                  localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+                                  localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
                                   alert('WhatsApp account connected successfully.');
                                   if (setShowNotifications) {
                                     setShowNotifications(true);
@@ -1085,7 +1038,6 @@ const DashboardSettings = () => {
                                 } catch (err: any) {
                                   alert('Error: ' + err.message);
                                 }
->>>>>>> Stashed changes
                               }
                             }
                           }
@@ -1095,215 +1047,215 @@ const DashboardSettings = () => {
                       </Button>
                     </div>
                   )}
-                </div>
-              </CardContent>
+              </div>
+            </CardContent>
             </Card>
           )}
 
-          {activeTab === 'Posting Preferences' && (
-            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="p-8 pb-2">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-600">Posting Preferences</CardTitle>
-                <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-emerald-500/10 rounded-full w-fit">
-                  <CheckCircle2 size={12} className="text-emerald-600" />
-                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider italic">Synchronized from Onboarding</span>
-                </div>
-              </CardHeader>
-              <CardContent className="p-8 space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InfoItem icon={Clock} label="Posting Frequency" value={profile.postingFrequency || 'Daily'} />
-                  <InfoItem icon={Layers} label="Content Formats" value={profile.contentTypes || []} />
-                  <InfoItem icon={Globe} label="Target Platforms" value={profile.socialPlatforms || ['Instagram', 'Facebook']} />
-                  <InfoItem icon={Target} label="Primary Call-to-Action" value={profile.primaryCTA || 'Visit Link'} />
-                </div>
-                
-                <div className="p-5 rounded-2xl bg-muted/20 border border-border/40 mt-4">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Topic Constraints</p>
-                  <p className="text-sm font-bold text-foreground opacity-60">
-                    {profile.painPoint ? `Addressing: ${profile.painPoint}` : 'No specific constraints set.'}
-                  </p>
-                </div>
+        {activeTab === 'Posting Preferences' && (
+          <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+            <CardHeader className="p-8 pb-2">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-600">Posting Preferences</CardTitle>
+              <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-emerald-500/10 rounded-full w-fit">
+                <CheckCircle2 size={12} className="text-emerald-600" />
+                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider italic">Synchronized from Onboarding</span>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                <InfoItem icon={Clock} label="Posting Frequency" value={profile.postingFrequency || 'Daily'} />
+                <InfoItem icon={Layers} label="Content Formats" value={profile.contentTypes || []} />
+                <InfoItem icon={Globe} label="Target Platforms" value={profile.socialPlatforms || ['Instagram', 'Facebook']} />
+                <InfoItem icon={Target} label="Primary Call-to-Action" value={profile.primaryCTA || 'Visit Link'} />
+              </div>
 
-                <div className="p-5 rounded-2xl bg-muted/30 border border-emerald-500/20 text-emerald-700/60 text-[11px] font-medium leading-relaxed italic">
-                  Note: These settings are locked based on your initial agent training. To modify your posting DNA, please contact support for a profile reset.
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              <div className="p-5 rounded-2xl bg-muted/20 border border-border/40 mt-4">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Topic Constraints</p>
+                <p className="text-sm font-bold text-foreground opacity-60">
+                  {profile.painPoint ? `Addressing: ${profile.painPoint}` : 'No specific constraints set.'}
+                </p>
+              </div>
 
-          {activeTab === 'Plan & Billing' && (
-            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="p-8 pb-2">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Membership Status</CardTitle>
-              </CardHeader>
-              <CardContent className="p-8 space-y-8">
-                <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white relative overflow-hidden shadow-xl shadow-primary/20">
-                  <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 pointer-events-none">
-                    <Zap size={120} fill="currentColor" />
+              <div className="p-5 rounded-2xl bg-muted/30 border border-emerald-500/20 text-emerald-700/60 text-[11px] font-medium leading-relaxed italic">
+                Note: These settings are locked based on your initial agent training. To modify your posting DNA, please contact support for a profile reset.
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'Plan & Billing' && (
+          <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+            <CardHeader className="p-8 pb-2">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Membership Status</CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white relative overflow-hidden shadow-xl shadow-primary/20">
+                <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 pointer-events-none">
+                  <Zap size={120} fill="currentColor" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-2 opacity-70">Active Strategy Plan</p>
+                <h3 className="text-3xl font-black tracking-tighter mb-4">SyncSocio {profile.selectedPlan || 'Pro'}</h3>
+                <div className="flex gap-4">
+                  <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md">
+                    <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Status</p>
+                    <p className="text-xs font-black">ACTIVE</p>
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-2 opacity-70">Active Strategy Plan</p>
-                  <h3 className="text-3xl font-black tracking-tighter mb-4">SyncSocio {profile.selectedPlan || 'Pro'}</h3>
-                  <div className="flex gap-4">
-                    <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md">
-                      <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Status</p>
-                      <p className="text-xs font-black">ACTIVE</p>
-                    </div>
-                    <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md">
-                      <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Next Bill</p>
-                      <p className="text-xs font-black">MAY 14, 2026</p>
-                    </div>
+                  <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md">
+                    <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Next Bill</p>
+                    <p className="text-xs font-black">MAY 14, 2026</p>
                   </div>
                 </div>
-                
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 ml-1">Automated Billing Record</p>
-                  {['Apr 2026', 'Mar 2026', 'Feb 2026'].map((month, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600"><CheckCircle2 size={18} /></div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-black text-foreground">{month} Statement</p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">Processed</p>
-                        </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 ml-1">Automated Billing Record</p>
+                {['Apr 2026', 'Mar 2026', 'Feb 2026'].map((month, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600"><CheckCircle2 size={18} /></div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-foreground">{month} Statement</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">Processed</p>
                       </div>
-                      <span className="text-xs font-black text-muted-foreground">₹499.00</span>
                     </div>
-                  ))}
-                </div>
-                
-                <Button disabled className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-muted text-muted-foreground border-border/50 cursor-not-allowed">
-                  Subscription Managed via Onboarding Flow
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === 'Legal & Privacy' && (
-            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="p-8 pb-2">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Legal & Privacy</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">Review legal terms and data practices before using automations.</p>
-              </CardHeader>
-              <CardContent className="p-8 space-y-5">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Link
-                    to="/terms"
-                    state={{ from: 'settings' }}
-                    className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                          <FileText size={18} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-foreground">Terms of Use</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">Service scope, rights, responsibilities, limits.</p>
-                        </div>
-                      </div>
-                      <ExternalLink size={16} className="text-muted-foreground" />
-                    </div>
-                  </Link>
-
-                  <Link
-                    to="/privacy"
-                    state={{ from: 'settings' }}
-                    className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                          <ShieldCheck size={18} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-foreground">Privacy Policy</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">Data collection, usage, retention, and rights.</p>
-                        </div>
-                      </div>
-                      <ExternalLink size={16} className="text-muted-foreground" />
-                    </div>
-                  </Link>
-                </div>
-
-                <div className="rounded-2xl border border-border/40 bg-muted/5 p-5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Compliance Note</p>
-                  <p className="mt-2 text-[12px] text-muted-foreground leading-relaxed">
-                    Automation features such as Instagram comment triggers, story mention replies, and DM responses rely on connected Meta permissions and platform policies.
-                    Review these documents before enabling campaigns for production use.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === 'Danger Zone' && (
-            <Card className="rounded-[2rem] border-destructive/20 overflow-hidden shadow-sm">
-              <CardHeader className="p-8 pb-2"><CardTitle className="text-sm font-black uppercase tracking-widest text-destructive">Danger Zone</CardTitle></CardHeader>
-              <CardContent className="p-8 space-y-4">
-
-                <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Trash2 size={18} className="text-destructive" />
-                    <p className="text-sm font-black text-foreground">Terminate Account</p>
+                    <span className="text-xs font-black text-muted-foreground">₹499.00</span>
                   </div>
-                  <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently erase your digital entity, synthesis weights, and all associated analytics. This action cannot be reversed.</p>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
-                    onClick={async () => {
-                      if (confirm("⚠️ CRITICAL ACTION: This will permanently delete your account, your brand identity, and ALL metrics. This cannot be undone. Are you absolutely sure?")) {
-                        try {
-                          const token = localStorage.getItem('token');
-                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                          const res = await fetch(`${apiBase}/profile/terminate`, {
-                            method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}` }
-                          });
-                          if (res.ok) {
-                            localStorage.clear();
-                            window.location.href = '/';
-                          } else {
-                            alert("Failed to terminate account. Please try again.");
-                          }
-                        } catch (err) {
-                          console.error("Termination failed:", err);
+                ))}
+              </div>
+
+              <Button disabled className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-muted text-muted-foreground border-border/50 cursor-not-allowed">
+                Subscription Managed via Onboarding Flow
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'Legal & Privacy' && (
+          <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+            <CardHeader className="p-8 pb-2">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Legal & Privacy</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">Review legal terms and data practices before using automations.</p>
+            </CardHeader>
+            <CardContent className="p-8 space-y-5">
+              <div className="grid md:grid-cols-2 gap-4">
+                <Link
+                  to="/terms"
+                  state={{ from: 'settings' }}
+                  className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                        <FileText size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-foreground">Terms of Use</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Service scope, rights, responsibilities, limits.</p>
+                      </div>
+                    </div>
+                    <ExternalLink size={16} className="text-muted-foreground" />
+                  </div>
+                </Link>
+
+                <Link
+                  to="/privacy"
+                  state={{ from: 'settings' }}
+                  className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                        <ShieldCheck size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-foreground">Privacy Policy</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Data collection, usage, retention, and rights.</p>
+                      </div>
+                    </div>
+                    <ExternalLink size={16} className="text-muted-foreground" />
+                  </div>
+                </Link>
+              </div>
+
+              <div className="rounded-2xl border border-border/40 bg-muted/5 p-5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Compliance Note</p>
+                <p className="mt-2 text-[12px] text-muted-foreground leading-relaxed">
+                  Automation features such as Instagram comment triggers, story mention replies, and DM responses rely on connected Meta permissions and platform policies.
+                  Review these documents before enabling campaigns for production use.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'Danger Zone' && (
+          <Card className="rounded-[2rem] border-destructive/20 overflow-hidden shadow-sm">
+            <CardHeader className="p-8 pb-2"><CardTitle className="text-sm font-black uppercase tracking-widest text-destructive">Danger Zone</CardTitle></CardHeader>
+            <CardContent className="p-8 space-y-4">
+
+              <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
+                <div className="flex items-center gap-3">
+                  <Trash2 size={18} className="text-destructive" />
+                  <p className="text-sm font-black text-foreground">Terminate Account</p>
+                </div>
+                <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently erase your digital entity, synthesis weights, and all associated analytics. This action cannot be reversed.</p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
+                  onClick={async () => {
+                    if (confirm("⚠️ CRITICAL ACTION: This will permanently delete your account, your brand identity, and ALL metrics. This cannot be undone. Are you absolutely sure?")) {
+                      try {
+                        const token = localStorage.getItem('token');
+                        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                        const res = await fetch(`${apiBase}/profile/terminate`, {
+                          method: 'DELETE',
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                          localStorage.clear();
+                          window.location.href = '/';
+                        } else {
+                          alert("Failed to terminate account. Please try again.");
                         }
+                      } catch (err) {
+                        console.error("Termination failed:", err);
                       }
-                    }}
-                  >
-                    Erase My Entity
-                  </Button>
-                </div>
+                    }
+                  }}
+                >
+                  Erase My Entity
+                </Button>
+              </div>
 
-                <div className="p-6 rounded-2xl border border-border space-y-3 group hover:border-primary/20 transition-all">
-                  <div className="flex items-center gap-3">
-                    <RefreshCw size={18} className="text-muted-foreground" />
-                    <p className="text-sm font-black text-foreground">Sign Out</p>
-                  </div>
-                  <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">
-                    Safely log out of your current session. You will need to re-authenticate to access Mission Control.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-muted"
-                    onClick={() => {
-                      localStorage.removeItem('token');
-                      localStorage.removeItem('syncsocio_profile');
-                      localStorage.removeItem('syncsocio_setup_done');
-                      window.location.href = '/login';
-                    }}
-                  >
-                    Secure Logout
-                  </Button>
+              <div className="p-6 rounded-2xl border border-border space-y-3 group hover:border-primary/20 transition-all">
+                <div className="flex items-center gap-3">
+                  <RefreshCw size={18} className="text-muted-foreground" />
+                  <p className="text-sm font-black text-foreground">Sign Out</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">
+                  Safely log out of your current session. You will need to re-authenticate to access Mission Control.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-muted"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('syncsocio_profile');
+                    localStorage.removeItem('syncsocio_setup_done');
+                    window.location.href = '/login';
+                  }}
+                >
+                  Secure Logout
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
+    </div >
   );
 };
 
