@@ -71,9 +71,7 @@ export const assignCredits = async (req, res) => {
       status: 'completed'
     });
 
-    // Log agent activity and create billing notification
-    await logActivity(req.user._id, 'Billing Agent', `Subscribed to ${plan}. Assigned ${creditsToAdd} credits.`, 'done');
-
+    // Create billing notification
     const { createNotification } = await import('../utils/notificationHelper.js');
     await createNotification(
       req.user._id,
@@ -151,8 +149,6 @@ export const topupCredits = async (req, res) => {
     );
 
     if (!user) return res.status(404).json({ message: 'User not found.' });
-
-    await logActivity(req.user._id, 'Billing Agent', `Purchased ${creditsToAdd} top-up credits.`, 'done');
 
     const { createNotification } = await import('../utils/notificationHelper.js');
     await createNotification(
