@@ -23,7 +23,7 @@ interface IconProps {
 
 const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
   </svg>
 );
 
@@ -38,7 +38,7 @@ const GoogleIcon = ({ size = 20, className = "" }: { size?: number; className?: 
 
 const WhatsAppIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12.004 2c-5.518 0-10 4.482-10 10 0 1.767.46 3.427 1.263 4.887L2 22l5.286-1.39A9.957 9.957 0 0 0 12.004 22c5.518 0 10-4.482 10-10s-4.482-10-10-10zm0 1.636c4.613 0 8.364 3.75 8.364 8.364 0 4.613-3.75 8.364-8.364 8.364a8.315 8.315 0 0 1-4.267-1.17l-.307-.183-3.167.832.846-3.087-.202-.32a8.32 8.32 0 0 1-1.269-4.436c0-4.613 3.75-8.364 8.364-8.364zm-3.52 3.393c-.198 0-.523.074-.796.371-.272.296-1.042 1.018-1.042 2.48 0 1.463 1.066 2.877 1.215 3.076.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.695.626.713.226 1.36.194 1.872.118.572-.085 1.603-.656 1.83-1.262.228-.605.228-1.123.16-1.233-.07-.11-.25-.181-.522-.317-.272-.136-1.61-.795-1.859-.885-.25-.09-.431-.136-.613.136-.182.273-.703.885-.862 1.068-.16.182-.318.204-.59.068-.272-.136-1.15-.424-2.19-1.353-.809-.722-1.355-1.616-1.514-1.888-.159-.272-.017-.42.12-.556.121-.122.27-.318.407-.477.136-.159.18-.273.272-.455.09-.182.045-.34-.023-.477-.07-.136-.613-1.477-.84-2.023-.223-.534-.488-.46-.67-.47l-.57-.01z"/>
+    <path d="M12.004 2c-5.518 0-10 4.482-10 10 0 1.767.46 3.427 1.263 4.887L2 22l5.286-1.39A9.957 9.957 0 0 0 12.004 22c5.518 0 10-4.482 10-10s-4.482-10-10-10zm0 1.636c4.613 0 8.364 3.75 8.364 8.364 0 4.613-3.75 8.364-8.364 8.364a8.315 8.315 0 0 1-4.267-1.17l-.307-.183-3.167.832.846-3.087-.202-.32a8.32 8.32 0 0 1-1.269-4.436c0-4.613 3.75-8.364 8.364-8.364zm-3.52 3.393c-.198 0-.523.074-.796.371-.272.296-1.042 1.018-1.042 2.48 0 1.463 1.066 2.877 1.215 3.076.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.695.626.713.226 1.36.194 1.872.118.572-.085 1.603-.656 1.83-1.262.228-.605.228-1.123.16-1.233-.07-.11-.25-.181-.522-.317-.272-.136-1.61-.795-1.859-.885-.25-.09-.431-.136-.613.136-.182.273-.703.885-.862 1.068-.16.182-.318.204-.59.068-.272-.136-1.15-.424-2.19-1.353-.809-.722-1.355-1.616-1.514-1.888-.159-.272-.017-.42.12-.556.121-.122.27-.318.407-.477.136-.159.18-.273.272-.455.09-.182.045-.34-.023-.477-.07-.136-.613-1.477-.84-2.023-.223-.534-.488-.46-.67-.47l-.57-.01z" />
   </svg>
 );
 
@@ -112,17 +112,17 @@ const DashboardHome = () => {
 
 
   if (loading && !data) {
-     return (
-        <div className="h-[70vh] flex items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-            <div className="text-center space-y-2">
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse">Initializing Dashboard</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waking up Agent Operations...</p>
-            </div>
+    return (
+      <div className="h-[70vh] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <div className="text-center space-y-2">
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse">Initializing Dashboard</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waking up Agent Operations...</p>
           </div>
         </div>
-      );
+      </div>
+    );
   }
 
   if (error || !data) {
@@ -277,11 +277,10 @@ const DashboardHome = () => {
                   className="flex items-start gap-4 p-3.5 rounded-xl hover:bg-muted/50 transition-colors"
                 >
                   <div className="relative mt-1">
-                    <span className={`block w-2.5 h-2.5 rounded-full ${
-                      a.status === 'done' ? 'bg-emerald-500' :
+                    <span className={`block w-2.5 h-2.5 rounded-full ${a.status === 'done' ? 'bg-emerald-500' :
                       a.status === 'active' ? 'bg-primary' :
-                      'bg-muted-foreground/20'
-                    }`} />
+                        'bg-muted-foreground/20'
+                      }`} />
                     {a.status === 'active' && <span className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-primary animate-ping opacity-40" />}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -307,21 +306,21 @@ const DashboardHome = () => {
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-6 grid grid-cols-1 gap-2.5">
-              <Button 
-                onClick={() => navigate('/dashboard/strategy')} 
+              <Button
+                onClick={() => navigate('/dashboard/strategy')}
                 className="w-full justify-start rounded-xl py-5 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md shadow-primary/25 border-0"
               >
                 <Plus size={14} className="mr-2" /> Create SaaS Strategy Creative
               </Button>
-              <Button 
-                onClick={() => navigate('/dashboard/dms')} 
+              <Button
+                onClick={() => navigate('/dashboard/dms')}
                 variant="outline"
                 className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
               >
                 <MessageSquare size={14} className="mr-2 text-primary" /> Configure DM Automations
               </Button>
-              <Button 
-                onClick={() => navigate('/dashboard/strategy')} 
+              <Button
+                onClick={() => navigate('/dashboard/strategy')}
                 variant="outline"
                 className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
               >
@@ -342,7 +341,7 @@ const DashboardHome = () => {
             </CardHeader>
             <CardContent className="px-6 pb-6 space-y-3">
               {/* Row 1: Connected Accounts */}
-              <div 
+              <div
                 onClick={() => navigate('/dashboard/settings?tab=Connected%20Accounts')}
                 className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/40 hover-lift transition-all cursor-pointer"
               >
@@ -354,9 +353,9 @@ const DashboardHome = () => {
                   {/* Instagram Icon */}
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all",
-                    profile?.instagramIsConnected 
-                      ? "bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 shadow-md shadow-pink-500/25" 
-                      : "bg-slate-200 text-slate-400 grayscale opacity-40"
+                    profile?.instagramIsConnected
+                      ? "bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 shadow-md shadow-pink-500/25"
+                      : "bg-slate-200 text-slate-400 grayscale opacity-800"
                   )}>
                     <InstagramIcon size={13} />
                   </div>
@@ -364,9 +363,9 @@ const DashboardHome = () => {
                   {/* WhatsApp Icon */}
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all",
-                    profile?.whatsappIsConnected 
-                      ? "bg-emerald-600 shadow-md shadow-emerald-600/25" 
-                      : "bg-slate-200 text-slate-400 grayscale opacity-40"
+                    profile?.whatsappIsConnected
+                      ? "bg-emerald-600 shadow-md shadow-emerald-600/25"
+                      : "bg-slate-200 text-slate-400 grayscale opacity-400"
                   )}>
                     <WhatsAppIcon size={13} />
                   </div>
@@ -374,9 +373,9 @@ const DashboardHome = () => {
                   {/* Google Icon */}
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center bg-white border transition-all",
-                    profile?.gmailIsConnected 
-                      ? "border-border shadow-sm" 
-                      : "grayscale opacity-40 bg-slate-100 border-slate-200"
+                    profile?.gmailIsConnected
+                      ? "border-border shadow-sm"
+                      : "grayscale opacity-400 bg-slate-100 border-slate-200"
                   )}>
                     <GoogleIcon size={13} />
                   </div>
@@ -403,7 +402,7 @@ const DashboardHome = () => {
               {(() => {
                 const nextFest = getNextFestival();
                 return (
-                  <div 
+                  <div
                     onClick={() => navigate('/dashboard/strategy?mode=festival')}
                     className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/40 hover-lift transition-all cursor-pointer"
                   >
@@ -440,7 +439,7 @@ const DashboardHome = () => {
                 </div>
               </CardHeader>
               <CardContent className="px-6 pb-6">
-                <div 
+                <div
                   onClick={() => {
                     if (data.topPost.image) setPreviewUrl(data.topPost.image);
                   }}

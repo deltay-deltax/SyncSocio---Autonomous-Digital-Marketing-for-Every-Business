@@ -65,6 +65,14 @@ router.post('/', protect, async (req, res) => {
       status: 'hearted',
     });
 
+    const { createNotification } = await import('../utils/notificationHelper.js');
+    await createNotification(
+      req.user._id,
+      'success',
+      'Creative Saved to Library',
+      `A new ${type} creative has been successfully added to your Asset Library.`
+    );
+
     res.status(201).json({ success: true, creative });
   } catch (err) {
     console.error('[StrategyAssets] Save error:', err);

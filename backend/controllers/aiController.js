@@ -34,6 +34,14 @@ export const generateStrategy = async (req, res) => {
 
     // Strategy is already saved to Mongo by the Python service
     // We just return it to the frontend
+    const { createNotification } = await import('../utils/notificationHelper.js');
+    await createNotification(
+      req.user._id,
+      'success',
+      'Strategy Synthesis Complete',
+      `Your custom strategy for ${profile.brandName} has been generated successfully by the agent.`
+    );
+
     res.status(200).json(response.data);
   } catch (error) {
     console.error('AI Strategy Error:', error);
@@ -68,6 +76,14 @@ export const regenerateStrategy = async (req, res) => {
       brandKeywords: profile.brandKeywords,
       selectedPlan: profile.selectedPlan || 'SyncSocio Starter'
     });
+
+    const { createNotification } = await import('../utils/notificationHelper.js');
+    await createNotification(
+      req.user._id,
+      'success',
+      'Strategy Regenerated',
+      `Your strategy for ${profile.brandName} has been regenerated with new options.`
+    );
 
     res.status(200).json(response.data);
   } catch (error) {
