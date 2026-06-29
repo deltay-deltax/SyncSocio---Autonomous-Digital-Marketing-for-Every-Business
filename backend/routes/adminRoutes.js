@@ -1,0 +1,60 @@
+import express from 'express';
+import {
+  adminLogin,
+  verifyAdmin,
+  getAllUsers,
+  getMetrics,
+  updateUserCredits,
+  updateUserPlan,
+  getUserDeepDetails,
+  updateUserDeepProfile,
+  updateUserBrandProfile,
+  updateUserFlow,
+  deleteUserFlow,
+  updateUserAsset,
+  deleteUserAsset,
+  toggleUserBlock,
+  getAllCoupons,
+  createCoupon,
+  deleteCoupon,
+  impersonateUser,
+  sendManualEmail,
+  deleteUserAccount,
+  getAllBrands
+} from '../controllers/adminController.js';
+
+const router = express.Router();
+
+// Public route for admin login
+router.post('/login', adminLogin);
+
+// Protected routes (require admin token)
+router.use(verifyAdmin);
+
+router.get('/users', getAllUsers);
+router.get('/metrics', getMetrics);
+router.put('/users/:id/credits', updateUserCredits);
+router.put('/users/:id/plan', updateUserPlan);
+router.put('/users/:id/block', toggleUserBlock);
+router.post('/users/:id/impersonate', impersonateUser);
+router.post('/users/:id/email', sendManualEmail);
+router.post('/users/:id/delete', deleteUserAccount);
+
+// Coupon management
+router.get('/coupons', getAllCoupons);
+router.post('/coupons', createCoupon);
+router.delete('/coupons/:id', deleteCoupon);
+
+// Brands
+router.get('/brands', getAllBrands);
+
+// Deep User Details and Controls
+router.get('/users/:id/deep', getUserDeepDetails);
+router.put('/users/:id/profile', updateUserDeepProfile);
+router.put('/users/:id/brand', updateUserBrandProfile);
+router.put('/users/:id/flows/:flowId', updateUserFlow);
+router.delete('/users/:id/flows/:flowId', deleteUserFlow);
+router.put('/users/:id/assets/:assetId', updateUserAsset);
+router.delete('/users/:id/assets/:assetId', deleteUserAsset);
+
+export default router;

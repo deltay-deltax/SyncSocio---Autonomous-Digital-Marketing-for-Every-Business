@@ -857,8 +857,9 @@ const DashboardSettings = () => {
                         size="sm" 
                         className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
                         onClick={async () => {
-                          const num = prompt("Enter your WhatsApp Business Number to reconnect:", profile.whatsappNumber || '');
+                          const num = prompt("Step 1/3: Enter your WhatsApp Business Number to reconnect:", profile.whatsappNumber || '');
                           if (num) {
+<<<<<<< Updated upstream
                             try {
                               const token = localStorage.getItem('token');
                               const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
@@ -880,6 +881,37 @@ const DashboardSettings = () => {
                               alert('WhatsApp account reconnected successfully.');
                             } catch (err: any) {
                               alert('Error: ' + err.message);
+=======
+                            const phoneId = prompt("Step 2/3: Enter your Meta WhatsApp Phone ID:", profile.whatsappPhoneId || '');
+                            if (phoneId !== null) {
+                              const accessToken = prompt("Step 3/3: Enter your Meta Permanent Access Token:", profile.whatsappAccessToken || '');
+                              if (accessToken !== null) {
+                                try {
+                                  const token = localStorage.getItem('token');
+                                  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                                  const profileRes = await fetch(`${apiBase}/profile`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({
+                                      whatsappIsConnected: true,
+                                      whatsappNumber: num,
+                                      whatsappPhoneId: phoneId,
+                                      whatsappAccessToken: accessToken
+                                    })
+                                  });
+                                  if (!profileRes.ok) throw new Error('Failed to reconnect WhatsApp');
+                                  const updatedProfile = await profileRes.json();
+                                  setProfile(updatedProfile);
+                                  localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+                                  alert('WhatsApp account reconnected successfully.');
+                                } catch (err: any) {
+                                  alert('Error: ' + err.message);
+                                }
+                              }
+>>>>>>> Stashed changes
                             }
                           }
                         }}
@@ -903,8 +935,9 @@ const DashboardSettings = () => {
                         size="sm" 
                         className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
                         onClick={async () => {
-                          const num = prompt("Enter your WhatsApp Business Number to connect:");
+                          const num = prompt("Step 1/3: Enter your WhatsApp Business Number to connect:");
                           if (num) {
+<<<<<<< Updated upstream
                             try {
                               const token = localStorage.getItem('token');
                               const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
@@ -926,9 +959,40 @@ const DashboardSettings = () => {
                               alert('WhatsApp account connected successfully.');
                               if (setShowNotifications) {
                                 setShowNotifications(true);
+=======
+                            const phoneId = prompt("Step 2/3: Enter your Meta WhatsApp Phone ID:");
+                            if (phoneId !== null) {
+                              const accessToken = prompt("Step 3/3: Enter your Meta Permanent Access Token:");
+                              if (accessToken !== null) {
+                                try {
+                                  const token = localStorage.getItem('token');
+                                  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                                  const profileRes = await fetch(`${apiBase}/profile`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({
+                                      whatsappIsConnected: true,
+                                      whatsappNumber: num,
+                                      whatsappPhoneId: phoneId,
+                                      whatsappAccessToken: accessToken
+                                    })
+                                  });
+                                  if (!profileRes.ok) throw new Error('Failed to connect WhatsApp');
+                                  const updatedProfile = await profileRes.json();
+                                  setProfile(updatedProfile);
+                                  localStorage.setItem('velocity_profile', JSON.stringify(updatedProfile));
+                                  alert('WhatsApp account connected successfully.');
+                                  if (setShowNotifications) {
+                                    setShowNotifications(true);
+                                  }
+                                } catch (err: any) {
+                                  alert('Error: ' + err.message);
+                                }
+>>>>>>> Stashed changes
                               }
-                            } catch (err: any) {
-                              alert('Error: ' + err.message);
                             }
                           }
                         }}
