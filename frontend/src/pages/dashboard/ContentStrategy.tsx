@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn, safeSetItem } from '@/lib/utils';
-import { useNavigate, useOutletContext, useLocation } from 'react-router-dom';
+import { useNavigate, useOutletContext, useLocation, useBlocker } from 'react-router-dom';
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
 import Masonry from 'react-masonry-css';
 import * as XLSX from 'xlsx';
@@ -270,6 +270,37 @@ const DashboardStrategy = () => {
       setStage('pick');
     }
   }, [location.search]);
+
+  // Block navigation during creative generation
+  const blocker = useBlocker(
+    ({ currentValue, nextValue }) =>
+      stage === 'generating' && currentValue.location.pathname !== nextValue.location.pathname
+  );
+
+  React.useEffect(() => {
+    if (blocker.state === 'blocked') {
+      const confirmLeave = window.confirm(
+        'Creative generation is currently in progress. Navigating away will disrupt the tracking and prevent credit setup. Are you sure you want to leave?'
+      );
+      if (confirmLeave) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker]);
+
+  React.useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (stage === 'generating') {
+        e.preventDefault();
+        e.returnValue = 'Creative generation is in progress. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [stage]);
 
   // ── Custom Import List Modal
   const [showListNameModal, setShowListNameModal] = useState(false);

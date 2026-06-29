@@ -1204,7 +1204,7 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                     # Standard img2video uses Seedance Fast Image-to-Video
                     caption = pick_caption(index)
                     print(f"[StrategyAgent] Animating starting image with Seedance Fast Image-to-Video...")
-                    result = generate_fal_video_seedance(prompt=prompt, image=ref, aspect_ratio=aspect_ratio, duration="5")
+                    result = generate_fal_video_seedance(prompt=prompt, image=ref, aspect_ratio=aspect_ratio, duration="8")
 
                 return {
                     "url":       result.get("url"),
