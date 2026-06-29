@@ -45,9 +45,12 @@ def generate_fal_image_flux_legacy(prompt: str, image: str = None, aspect_ratio:
 
         model_endpoint = "fal-ai/flux/dev"
         if image:
-            if "base64," in image:
-                image = image.split("base64,")[1]
-            image_url = f"data:image/jpeg;base64,{image}"
+            if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
+                image_url = image
+            else:
+                if "base64," in image:
+                    image = image.split("base64,")[1]
+                image_url = f"data:image/jpeg;base64,{image}"
             arguments["image_url"] = image_url
             arguments["strength"] = 0.65
             model_endpoint = "fal-ai/flux/dev/image-to-image"
@@ -84,10 +87,13 @@ def generate_fal_image_gpt2(prompt: str, image: str = None, image_size: str = "p
 
     try:
         if image:
-            if "base64," in image:
-                image = image.split("base64,")[1]
-            data_url = f"data:image/jpeg;base64,{image}"
-            size_kb = len(image) * 3 // 4 // 1024
+            if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
+                data_url = image
+            else:
+                if "base64," in image:
+                    image = image.split("base64,")[1]
+                data_url = f"data:image/jpeg;base64,{image}"
+            size_kb = len(image) * 3 // 4 // 1024 if not image.startswith("http") else 0
             
             # Image-to-image flow using GPT-Image-2 Edit endpoint
             print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image...")
@@ -198,11 +204,16 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
         
         # Clean base64 string once
         cleaned_image = None
+        is_url = False
         if image:
-            if "base64," in image:
-                cleaned_image = image.split("base64,")[1]
-            else:
+            if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
                 cleaned_image = image
+                is_url = True
+            else:
+                if "base64," in image:
+                    cleaned_image = image.split("base64,")[1]
+                else:
+                    cleaned_image = image
         
         for i in range(actual_count):
             if slide_prompts and i < len(slide_prompts):
@@ -214,7 +225,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
             
             if cleaned_image:
                 # Use GPT-Image-2 edit (image-to-image)
-                data_url = f"data:image/jpeg;base64,{cleaned_image}"
+                data_url = cleaned_image if is_url else f"data:image/jpeg;base64,{cleaned_image}"
                 arguments = {
                     "prompt": slide_prompt,
                     "image_urls": [data_url],
