@@ -239,7 +239,7 @@ async function getProductCache(key: string): Promise<any> {
 const DashboardStrategy = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, setShowNotifications } = useOutletContext<{ profile?: any; setShowNotifications?: (show: boolean) => void }>() || {};
+  const { setShowNotifications } = useOutletContext<{ setShowNotifications?: (show: boolean) => void }>() || {};
   const { toast } = useToast();
 
   // ── Stage / Mode
