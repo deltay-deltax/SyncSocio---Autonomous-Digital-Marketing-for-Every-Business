@@ -5,6 +5,8 @@ import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTri
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useRazorpay } from '../hooks/useRazorpay';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type Screen = 'checklist' | 'instagram' | 'plan' | 'activation';
@@ -167,6 +169,10 @@ const Setup = () => {
     const stepParam = searchParams.get('step');
     return stepParam === '1' ? 'instagram' : 'checklist';
   });
+  const { toast } = useToast();
+  const isRazorpayLoaded = useRazorpay();
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -317,10 +323,94 @@ const Setup = () => {
     }
   }, []);
 
+  const processPayment = async (planName: string, syncDataToApply: any = null) => {
+    if (!isRazorpayLoaded) {
+      toast({ title: "Error", description: "Payment gateway is loading. Please try again.", variant: "destructive" });
+      return;
+    }
+
+    const planData = plans.find(p => p.name === planName);
+    if (!planData) return;
+
+    const isDmEnabled = dmToggles[planName];
+    const basePrice = parseInt(planData.price.replace('₹', ''));
+    let currentPrice = basePrice + (isDmEnabled ? 399 : 0);
+    const discount = appliedCoupon ? appliedCoupon.discountPercentage : 0;
+    if (discount > 0) {
+      currentPrice = Math.round(currentPrice * (1 - discount / 100));
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      
+      const orderRes = await fetch(`${API_BASE}/payment/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ amount: currentPrice })
+      });
+      
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.message || 'Failed to create order');
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: "SyncSocio",
+        description: `Subscription: ${planName} Plan`,
+        order_id: orderData.order.id,
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch(`${API_BASE}/payment/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) throw new Error(verifyData.message || 'Payment verification failed');
+
+            localStorage.setItem('syncsocio_dm_automation', isDmEnabled ? 'true' : 'false');
+            if (syncDataToApply) setSyncData(syncDataToApply);
+            setSelectedPlan(planName);
+            setScreen('activation');
+          } catch (err: any) {
+             toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
+          } finally {
+             setIsProcessingPayment(false);
+          }
+        },
+        prefill: { name: "User", email: "user@example.com" },
+        theme: { color: "#4f46e5" },
+        modal: {
+          ondismiss: () => {
+            setIsProcessingPayment(false);
+            toast({ title: "Payment Cancelled", description: "You closed the payment modal." });
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', (response: any) => {
+        setIsProcessingPayment(false);
+        toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" });
+      });
+      rzp.open();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      setIsProcessingPayment(false);
+    }
+  };
+
   const handleSelectPlan = (plan: Plan) => {
     if (!onboardingData) {
-      setSelectedPlan(plan.name);
-      setScreen('activation');
+      processPayment(plan.name);
       return;
     }
     const currentFreq = onboardingData.postingFrequency;
@@ -345,9 +435,7 @@ const Setup = () => {
       setSyncData(sync);
       setWarningPlan(plan.name);
     } else {
-      localStorage.setItem('syncsocio_dm_automation', dmToggles[plan.name] ? 'true' : 'false');
-      setSelectedPlan(plan.name);
-      setScreen('activation');
+      processPayment(plan.name);
     }
   };
 
@@ -799,12 +887,14 @@ const Setup = () => {
                   <Button 
                     className="w-full gradient-bg text-white h-12 rounded-xl text-xs font-bold"
                     onClick={() => {
-                      setSelectedPlan(warningPlan);
-                      setWarningPlan(null);
-                      setScreen('activation');
+                      if (warningPlan) {
+                        processPayment(warningPlan, syncData);
+                        setWarningPlan(null);
+                      }
                     }}
+                    disabled={isProcessingPayment}
                   >
-                    Auto-Sync & Activate
+                    {isProcessingPayment ? 'Processing...' : 'Auto-Sync & Activate'}
                   </Button>
                   <Button 
                     variant="ghost" 
