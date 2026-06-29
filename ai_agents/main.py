@@ -1514,6 +1514,12 @@ async def api_generate_visuals(request: VisualGenRequest):
                     f"Dominant palette: {_primary_words} and {_secondary_words}."
                 )
 
+            if _logo:
+                _logo_ref = _logo if _logo.startswith("http") else "[Logo image is uploaded and available for branding]"
+                _logo_instruction = f"Brand Logo reference: {_logo_ref}\nIncorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text."
+            else:
+                _logo_instruction = "Do not assume or add any fake logos or text."
+
             static_prompt = f"""
 You are generating a premium Indian D2C brand advertisement image.
 
@@ -1535,7 +1541,7 @@ STYLE:
 Brand tone: {_brand_tone}
 Visual vibe: {_visual_vibe}
 USP context: {_usp}
-{"Brand Logo reference: " + (_logo if _logo.startswith("http") else "[Logo image is uploaded and available for branding]") + "\\nIncorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text." if _logo else "Do not assume or add any fake logos or text."}
+{_logo_instruction}
 Indian D2C brand aesthetic. Commercial advertising quality.
 Clean, premium, minimal. No random props. No clutter.
 Not a stock photo. Not AI-looking.
