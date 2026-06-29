@@ -2049,7 +2049,7 @@ const DashboardStrategy = () => {
                       </div>
                     ) : (
                       <div className="flex gap-2">
-                        {['all_in_one', 'image', 'carousel', 'video', 'ecomm', 'festival'].includes(mode || '') ? (
+                        {['image', 'carousel', 'video', 'ecomm'].includes(previewPost.type || previewPost.sectionType || '') ? (
                           <>
                             <button
                               onClick={() => setIsEditing(true)}
