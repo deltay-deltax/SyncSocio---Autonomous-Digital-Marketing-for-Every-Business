@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Pencil, Check, X, Eye, Ban, ShieldCheck, Mail, LogIn, Trash2, Search, Filter } from 'lucide-react';
+import { Pencil, Check, X, Eye, Ban, ShieldCheck, Mail, LogIn, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface User {
   _id: string;
@@ -24,6 +24,10 @@ export default function Users() {
   const [searchQuery, setSearchQuery] = useState('');
   const [planFilter, setPlanFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [verifiedFilter, setVerifiedFilter] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt_desc');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   // Modals
   const [emailModalOpen, setEmailModalOpen] = useState<{open: boolean, user: User | null}>({open: false, user: null});
@@ -154,16 +158,36 @@ export default function Users() {
   };
 
   const filteredUsers = useMemo(() => {
-    return users.filter(u => {
-      const matchSearch = (u.email.toLowerCase().includes(searchQuery.toLowerCase())) || 
+    let result = users.filter(u => {
+      const matchSearch = (u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
                           (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchPlan = planFilter ? u.plan?.toLowerCase() === planFilter.toLowerCase() : true;
       let matchStatus = true;
       if (statusFilter === 'blocked') matchStatus = !!u.isBlocked;
       if (statusFilter === 'active') matchStatus = !u.isBlocked;
-      return matchSearch && matchPlan && matchStatus;
+      let matchVerified = true;
+      if (verifiedFilter === 'verified') matchVerified = !!u.isVerified;
+      if (verifiedFilter === 'unverified') matchVerified = !u.isVerified;
+      return matchSearch && matchPlan && matchStatus && matchVerified;
     });
-  }, [users, searchQuery, planFilter, statusFilter]);
+
+    // Sort
+    result.sort((a, b) => {
+      if (sortBy === 'createdAt_desc') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sortBy === 'createdAt_asc') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (sortBy === 'credits_desc') return (b.credits || 0) - (a.credits || 0);
+      if (sortBy === 'credits_asc') return (a.credits || 0) - (b.credits || 0);
+      return 0;
+    });
+
+    return result;
+  }, [users, searchQuery, planFilter, statusFilter, verifiedFilter, sortBy]);
+
+  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
+  const pagedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset page when filters change
+  useMemo(() => setPage(1), [searchQuery, planFilter, statusFilter, verifiedFilter, sortBy]);
 
   if (loading) {
     return <div className="text-muted-foreground animate-pulse">Loading users...</div>;
@@ -171,42 +195,65 @@ export default function Users() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">User Management</h2>
-        <p className="text-muted-foreground mt-1">View and manage platform users, adjust credits/plans, and restrict access.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">User Management</h2>
+          <p className="text-muted-foreground mt-1">View and manage platform users, adjust credits/plans, and restrict access.</p>
+        </div>
+        <span className="px-3 py-1.5 bg-blue-500/10 text-blue-400 text-sm font-semibold rounded-full border border-blue-500/20">
+          {filteredUsers.length} users
+        </span>
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center bg-card p-4 rounded-xl border border-border shadow-sm">
+      <div className="flex flex-col md:flex-row gap-3 items-center bg-card p-4 rounded-xl border border-border shadow-sm">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input 
             type="text"
             placeholder="Search by email or name..."
-            className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-4 w-full md:w-auto">
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <select 
-            className="bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none w-full md:w-40"
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
             value={planFilter}
             onChange={(e) => setPlanFilter(e.target.value)}
           >
             <option value="">All Plans</option>
-            <option value="free">Free</option>
-            <option value="pro">Pro</option>
-            <option value="elite">Elite</option>
+            <option value="brand">Brand</option>
+            <option value="growth">Growth</option>
           </select>
           <select 
-            className="bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none w-full md:w-40"
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="">All Statuses</option>
             <option value="active">Active</option>
             <option value="blocked">Blocked</option>
+          </select>
+          <select 
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+            value={verifiedFilter}
+            onChange={(e) => setVerifiedFilter(e.target.value)}
+          >
+            <option value="">All Verified</option>
+            <option value="verified">Verified</option>
+            <option value="unverified">Unverified</option>
+          </select>
+          <select 
+            className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="createdAt_desc">Newest First</option>
+            <option value="createdAt_asc">Oldest First</option>
+            <option value="credits_desc">Most Credits</option>
+            <option value="credits_asc">Least Credits</option>
           </select>
         </div>
       </div>
@@ -226,22 +273,25 @@ export default function Users() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredUsers.map((user) => (
+              {pagedUsers.map((user) => (
                 <tr key={user._id} className={`hover:bg-muted/20 transition-colors ${user.isBlocked ? 'bg-red-500/5' : ''}`}>
                   <td className="px-6 py-4">
                     <div className="font-medium text-foreground">{user.email}</div>
                     <div className="text-muted-foreground text-xs">{user.name || 'No name'}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      {user.isBlocked && (
-                        <span className="px-2.5 py-1 bg-red-500/15 text-red-400 text-xs rounded-full font-medium">Blocked</span>
-                      )}
-                      {user.isVerified ? (
-                        <span className="px-2.5 py-1 bg-green-500/10 text-green-500 text-xs rounded-full font-medium">Verified</span>
-                      ) : (
-                        <span className="px-2.5 py-1 bg-yellow-500/10 text-yellow-500 text-xs rounded-full font-medium">Pending</span>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${user.isBlocked ? 'bg-red-500' : user.isVerified ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
+                      <div className="flex gap-1.5">
+                        {user.isBlocked && (
+                          <span className="px-2 py-0.5 bg-red-500/15 text-red-400 text-xs rounded-full font-medium">Blocked</span>
+                        )}
+                        {user.isVerified ? (
+                          <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs rounded-full font-medium">Verified</span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-500 text-xs rounded-full font-medium">Pending</span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   
@@ -344,7 +394,7 @@ export default function Users() {
                 </tr>
               ))}
               
-              {filteredUsers.length === 0 && (
+              {pagedUsers.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
                     No users match your filters.
@@ -354,10 +404,36 @@ export default function Users() {
             </tbody>
           </table>
         </div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-border flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Page <span className="font-medium text-foreground">{page}</span> of{' '}
+              <span className="font-medium text-foreground">{totalPages}</span> — {filteredUsers.length} users
+            </p>
+            <div className="flex gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+                className="p-2 rounded-lg border border-border hover:bg-muted/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+                className="p-2 rounded-lg border border-border hover:bg-muted/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Email Modal */}
       {emailModalOpen.open && (
+
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-6 relative">
             <button onClick={() => setEmailModalOpen({open: false, user: null})} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">

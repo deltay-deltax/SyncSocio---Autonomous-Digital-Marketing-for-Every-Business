@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Index from './pages/LandingPage';
 import Onboarding from './pages/Onboarding';
@@ -35,6 +36,25 @@ import CreditTopup from './pages/dashboard/CreditTopup';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
+  useEffect(() => {
+    // Only track once per session
+    if (!sessionStorage.getItem('velocity_visit_tracked')) {
+      const sessionToken = Math.random().toString(36).substring(2, 15);
+      sessionStorage.setItem('velocity_visit_tracked', 'true');
+      
+      fetch('http://localhost:5050/api/analytics/visit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          sessionToken,
+          path: window.location.pathname
+        }),
+      }).catch(err => console.error('Failed to track visit:', err));
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
