@@ -5,7 +5,7 @@ import { logActivity } from '../utils/activityLogger.js';
 
 export const generateStrategy = async (req, res) => {
   try {
-    const profile = await BrandProfile.findOne({ user: req.user._id });
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     if (!profile) return res.status(404).json({ message: 'Brand profile not found' });
 
     // 1. Send data to Python AI service
@@ -59,7 +59,7 @@ export const generateStrategy = async (req, res) => {
 
 export const regenerateStrategy = async (req, res) => {
   try {
-    const profile = await BrandProfile.findOne({ user: req.user._id });
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     if (!profile) return res.status(404).json({ message: 'Brand profile not found' });
 
     const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';

@@ -45,6 +45,7 @@ class StrategyResponse(BaseModel):
 
 class StrategyImageRequest(BaseModel):
     userId: str
+    brandId: Optional[str] = None
     layout: str                          # "image" | "carousel" | "video" | "ecomm"
     count: int = 4                       # number of posts / carousels / videos
     slideCount: int = 5                  # slides per carousel (carousel only)

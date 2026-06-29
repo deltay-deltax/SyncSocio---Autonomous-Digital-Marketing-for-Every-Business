@@ -1684,12 +1684,19 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
         print(f"\n[StrategyImages] 📥 Request: userId={request.userId} layout={request.layout} count={request.count}")
 
         # 1. Fetch brand profile from MongoDB
-        brand_doc = await brand_collection.find_one({
-            "$or": [
-                {"_id": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId},
-                {"user": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId},
-            ]
-        })
+        brand_doc = None
+        if request.brandId:
+            brand_doc = await brand_collection.find_one({
+                "_id": ObjectId(request.brandId) if ObjectId.is_valid(request.brandId) else request.brandId
+            })
+            
+        if not brand_doc:
+            brand_doc = await brand_collection.find_one({
+                "$or": [
+                    {"_id": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId},
+                    {"user": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId},
+                ]
+            })
 
         if not brand_doc:
             raise HTTPException(status_code=404, detail="Brand profile not found")
