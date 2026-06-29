@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { useOutletContext, Link, useLocation } from 'react-router-dom';
+import { useOutletContext, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
@@ -59,6 +59,7 @@ const industries = [
   'IT & Technical Tools',
   'Gaming & Entertainment',
   'Fashion & Apparel',
+  'Jewellery',
   'Beauty & Personal Care',
   'Health & Wellness',
   'Coaching & Consulting',
@@ -105,7 +106,60 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: any; label: string; valu
 
 const DashboardSettings = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Brand Profile');
+  const [brands, setBrands] = useState<any[]>([]);
+
+  const fetchBrands = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const res = await fetch(`${apiBase}/profile/list`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBrands(data.brands || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch brands list:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBrands();
+  }, []);
+
+  const handleSwitchBrand = async (brandId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const res = await fetch(`${apiBase}/profile/switch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ brandId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('syncsocio_profile', JSON.stringify(data.activeBrand));
+        setProfile(data.activeBrand);
+        
+        toast({
+          title: "Switched Brand",
+          description: `Successfully switched context to ${data.activeBrand.brandName}.`,
+        });
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    } catch (err) {
+      console.error('Failed to switch brand:', err);
+    }
+  };
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -504,6 +558,43 @@ const DashboardSettings = () => {
         <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-right-4 duration-500">
           {activeTab === 'Brand Profile' && (
             <div className="space-y-5">
+              {/* Brand Selector dropdown */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-[2rem] border border-border/50 bg-card shadow-sm">
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">Active Brand Profile</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">Select a brand to manage its creatives, products, settings, and campaigns.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={profile._id}
+                    onChange={(e) => handleSwitchBrand(e.target.value)}
+                    className="h-10 rounded-xl px-4 text-xs font-semibold border border-border/60 bg-background hover:border-primary transition-all cursor-pointer outline-none min-w-[180px]"
+                  >
+                    {brands.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.brandName || 'Untitled Brand'} (@{b.instagramUsername || b.socialHandle || 'no-handle'})
+                      </option>
+                    ))}
+                  </select>
+
+                  {((() => {
+                    const hasStarter = brands.length > 0 && brands.every(b => {
+                      const plan = (b.selectedPlan || '').toLowerCase();
+                      return plan.includes('starter') || plan.includes('brand');
+                    });
+                    const maxBrands = hasStarter ? 1 : 2; // Elite allows 2 brands, Starter allows 1
+                    return brands.length < maxBrands;
+                  })()) && (
+                    <button
+                      onClick={() => navigate('/onboarding?new_brand=true')}
+                      className="h-10 w-10 flex items-center justify-center rounded-xl bg-primary text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10 cursor-pointer text-base font-bold"
+                      title="Add a new brand profile"
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
+              </div>
               {/* Hero header */}
               <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-primary/10 via-background to-purple-500/5 p-6 shadow-sm">
                 <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/10 blur-3xl -z-0" />

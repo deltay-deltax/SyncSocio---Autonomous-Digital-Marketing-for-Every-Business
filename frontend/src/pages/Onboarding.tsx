@@ -513,7 +513,9 @@ const Onboarding = () => {
                           { id: 'IT & Technical Tools', icon: Cpu },
                           { id: 'Gaming & Entertainment', icon: Sparkles },
                           { id: 'Fashion & Apparel', icon: Shirt },
+                          { id: 'Jewellery', icon: Diamond },
                           { id: 'Beauty & Personal Care', icon: Sparkles },
+
                           { id: 'Health & Wellness', icon: Dumbbell },
                           { id: 'Coaching & Consulting', icon: Users },
                           { id: 'Architecture', icon: Building2 },
@@ -1126,6 +1128,9 @@ const Onboarding = () => {
                             <button
                               onClick={async () => {
                                 try {
+                                  const searchParams = new URLSearchParams(window.location.search);
+                                  const isNewBrand = searchParams.get('new_brand') === 'true';
+
                                   const token = localStorage.getItem('token');
                                   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
                                   const res = await fetch(`${BASE_URL}/profile`, {
@@ -1134,7 +1139,7 @@ const Onboarding = () => {
                                       'Content-Type': 'application/json',
                                       'Authorization': `Bearer ${token}`
                                     },
-                                    body: JSON.stringify(formData)
+                                    body: JSON.stringify({ ...formData, createNewBrand: isNewBrand })
                                   });
                                   if (!res.ok) throw new Error('Failed to save profile');
 
@@ -1164,11 +1169,13 @@ const Onboarding = () => {
                                   }
 
                                   localStorage.setItem('syncsocio_profile', JSON.stringify(formData));
-                                  window.location.href = "/setup";
+                                  window.location.href = isNewBrand ? "/dashboard" : "/setup";
                                 } catch (err) {
                                   console.error(err);
                                   localStorage.setItem('syncsocio_profile', JSON.stringify(formData));
-                                  window.location.href = "/setup";
+                                  const searchParams = new URLSearchParams(window.location.search);
+                                  const isNewBrand = searchParams.get('new_brand') === 'true';
+                                  window.location.href = isNewBrand ? "/dashboard" : "/setup";
                                 }
                               }}
                               className="gradient-bg text-white px-8 py-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"

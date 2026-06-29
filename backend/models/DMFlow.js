@@ -91,6 +91,11 @@ const dmFlowSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    brandId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'BrandProfile',
+      index: true,
+    },
     name: {
       type: String,
       trim: true,

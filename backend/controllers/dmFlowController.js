@@ -46,7 +46,11 @@ const handleControllerError = (res, error, fallbackMessage) => {
 
 export const listDMFlows = async (req, res) => {
   try {
-    const query = {}; // Bypassing user check for hackathon to share flows among teammates
+    const brandId = req.user.activeBrandId;
+    const query = {
+      user: req.user._id,
+      $or: [{ brandId }, { brandId: { $exists: false } }]
+    };
 
     if (req.query.active === 'true' || req.query.active === 'false') {
       query.active = req.query.active === 'true';
@@ -85,6 +89,7 @@ export const createDMFlow = async (req, res) => {
     const payload = buildFlowPayload(req.body);
     const flow = await DMFlow.create({
       user: req.user._id,
+      brandId: req.user.activeBrandId,
       ...payload,
     });
 
@@ -160,8 +165,10 @@ export const matchDMFlowByKeyword = async (req, res) => {
     }
 
     const normalizedIncomingText = normalizeKeywordInput(incomingText);
+    const brandId = req.user.activeBrandId;
     const query = {
       user: req.user._id,
+      $or: [{ brandId }, { brandId: { $exists: false } }],
       active: true,
       trigger,
       keywordNormalized: normalizedIncomingText,

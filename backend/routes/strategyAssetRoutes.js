@@ -54,6 +54,7 @@ router.post('/', protect, async (req, res) => {
 
     const creative = await StrategyCreative.create({
       user: req.user._id,
+      brandId: req.user.activeBrandId,
       type,
       thumbnailBase64: thumbnailUrl,
       slides: savedSlides,
@@ -74,8 +75,10 @@ router.post('/', protect, async (req, res) => {
 // GET /api/strategy-assets — list all hearted creatives for the authed user
 router.get('/', protect, async (req, res) => {
   try {
+    const brandId = req.user.activeBrandId;
     const creatives = await StrategyCreative.find({
       user: req.user._id,
+      $or: [{ brandId }, { brandId: { $exists: false } }],
       status: { $in: ['hearted', 'scheduled', 'posted'] },
     }).sort({ createdAt: -1 });
 

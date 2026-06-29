@@ -7,6 +7,11 @@ const productSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  brandId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BrandProfile',
+    index: true,
+  },
   // Image stored as base64 string
   imageBase64: {
     type: String,

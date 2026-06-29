@@ -78,8 +78,11 @@ export const regenerateStrategy = async (req, res) => {
 
 export const getCalendar = async (req, res) => {
   try {
-    const calendars = await ContentCalendar.find({ userId: req.user._id })
-      .sort({ createdAt: -1 });
+    const brandId = req.user.activeBrandId;
+    const calendars = await ContentCalendar.find({
+      userId: req.user._id,
+      $or: [{ brandId }, { brandId: { $exists: false } }]
+    }).sort({ createdAt: -1 });
     
     if (!calendars || calendars.length === 0) {
       return res.status(404).json({ message: 'No strategy found' });
@@ -94,7 +97,11 @@ export const getCalendar = async (req, res) => {
 export const toggleHeart = async (req, res) => {
   try {
     const { postId } = req.body;
-    const latestCalendar = await ContentCalendar.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
+    const brandId = req.user.activeBrandId;
+    const latestCalendar = await ContentCalendar.findOne({
+      userId: req.user._id,
+      $or: [{ brandId }, { brandId: { $exists: false } }]
+    }).sort({ createdAt: -1 });
     
     if (!latestCalendar) {
       return res.status(404).json({ message: 'Calendar not found' });
@@ -122,7 +129,7 @@ export const toggleHeart = async (req, res) => {
 export const deployStrategy = async (req, res) => {
   try {
     const { durationWeeks, posts, heartedPostIds } = req.body;
-    const profile = await BrandProfile.findOne({ user: req.user._id });
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     
     if (!profile) {
       return res.status(404).json({ message: 'Brand profile not found' });
@@ -137,7 +144,11 @@ export const deployStrategy = async (req, res) => {
     await profile.save();
     
     if (posts && posts.length > 0) {
-      const latestCalendar = await ContentCalendar.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
+      const brandId = req.user.activeBrandId;
+      const latestCalendar = await ContentCalendar.findOne({
+        userId: req.user._id,
+        $or: [{ brandId }, { brandId: { $exists: false } }]
+      }).sort({ createdAt: -1 });
       if (latestCalendar) {
         latestCalendar.posts = posts;
         latestCalendar.status = 'deployed';
@@ -148,6 +159,7 @@ export const deployStrategy = async (req, res) => {
       } else {
         await ContentCalendar.create({
           userId: req.user._id,
+          brandId: req.user.activeBrandId,
           posts: posts,
           heartedPostIds: heartedPostIds || [],
           status: 'deployed'
@@ -168,7 +180,11 @@ export const deployStrategy = async (req, res) => {
 export const updateCalendarPosts = async (req, res) => {
   try {
     const { posts } = req.body;
-    const latestCalendar = await ContentCalendar.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
+    const brandId = req.user.activeBrandId;
+    const latestCalendar = await ContentCalendar.findOne({
+      userId: req.user._id,
+      $or: [{ brandId }, { brandId: { $exists: false } }]
+    }).sort({ createdAt: -1 });
     
     if (!latestCalendar) {
       return res.status(404).json({ message: 'Calendar not found' });

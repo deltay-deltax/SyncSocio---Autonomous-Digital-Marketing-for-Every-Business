@@ -33,7 +33,11 @@ export async function generateContentPlan(userId, mix) {
     }
 
     // Fetch recent topics to avoid repetition
-    const pastCalendars = await ContentCalendar.find({ userId }).sort({ createdAt: -1 }).limit(3);
+    const brandId = brandProfile?._id;
+    const pastCalendars = await ContentCalendar.find({
+      userId,
+      $or: [{ brandId }, { brandId: { $exists: false } }]
+    }).sort({ createdAt: -1 }).limit(3);
     const recentTopics = pastCalendars.flatMap(cal => cal.posts.map(p => p.topic));
     
     const payload = {
@@ -67,6 +71,7 @@ export async function generateContentPlan(userId, mix) {
     if (data.plan && data.plan.length > 0) {
       await ContentCalendar.create({
         userId,
+        brandId: brandProfile?._id,
         posts: data.plan
       });
     }

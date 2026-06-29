@@ -7,6 +7,7 @@ import {
   Image as ImageIcon, Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -181,6 +182,12 @@ const triggerLabels = {
 };
 
 const DashboardDMs = () => {
+  const [profile] = useState<any>(() => {
+    const stored = localStorage.getItem('syncsocio_profile');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const isInstagramConnected = !!profile?.instagramIsConnected && !!profile?.instagramBusinessAccountId && !!profile?.instagramAccessToken;
+
   const [flows, setFlows] = useState<Flow[]>([]);
   const [view, setView] = useState<'list' | 'create'>('list');
   const [wizardStep, setWizardStep] = useState(0);
@@ -514,6 +521,15 @@ const DashboardDMs = () => {
       default: return false;
     }
   };
+
+  if (!isInstagramConnected) {
+    return (
+      <ConnectInstagramFallback 
+        title={`Connect Instagram for ${profile?.brandName || 'this Brand'}`}
+        description="To build auto-replies, keyword triggers, and comment campaigns, you need to connect your Instagram Business account to this specific brand profile."
+      />
+    );
+  }
 
   // ─── FULL PAGE CREATE VIEW ───
   if (view === 'create') {

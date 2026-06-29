@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema({
   plan: {
     type: String,
     default: ''
+  },
+  activeBrandId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BrandProfile'
   }
 }, { timestamps: true });
 

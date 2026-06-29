@@ -168,8 +168,11 @@ export const getPostHistory = async (req, res) => {
   try {
     const userId = req.user._id;
     
-    // Just get the last 50 posts, let the frontend find the nearest scheduled one
-    const history = await PostAnalysis.find({ userId })
+    const brandId = req.user.activeBrandId;
+    const history = await PostAnalysis.find({
+      userId,
+      $or: [{ brandId }, { brandId: { $exists: false } }]
+    })
       .sort({ createdAt: -1 })
       .limit(50);
     
@@ -359,6 +362,7 @@ export const smartSchedulePosts = async (req, res) => {
       // Create new PostAnalysis record
       const postAnalysis = await PostAnalysis.create({
         userId: userId,
+        brandId: req.user.activeBrandId,
         mediaUrl: filePaths[0] || '',
         mediaUrls: filePaths,
         contentType: creative.type === 'image' ? 'static' : (creative.type === 'video' ? 'reel' : 'carousel'),

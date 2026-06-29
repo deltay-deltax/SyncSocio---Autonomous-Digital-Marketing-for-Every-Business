@@ -6,6 +6,11 @@ const postAnalysisSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  brandId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BrandProfile',
+    index: true
+  },
   mediaUrl: {
     type: String, // Local path or Cloudinary URL
     required: false

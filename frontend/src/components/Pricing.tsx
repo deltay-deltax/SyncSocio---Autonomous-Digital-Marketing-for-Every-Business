@@ -6,7 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 
 const plans = [
   {
-    name: "Brand",
+    name: "Starter",
     basePrice: 799,
     period: "/month",
     description: "Ideal for businesses getting started with visual marketing.",
@@ -26,14 +26,14 @@ const plans = [
     cta: "Get Started",
   },
   {
-    name: "Growth",
+    name: "Elite",
     basePrice: 2199,
     period: "/month",
     description: "For brands ready to automate and dominate socials.",
     features: [
       "700 credits/month",
-      "3 brand profiles",
-      "Everything in Brand",
+      "2 brand profiles",
+      "Everything in Starter",
       "All-in-One Drop feature",
       "AI Mode (Auto Generate)",
       "E-commerce listing generator",

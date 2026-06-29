@@ -25,7 +25,15 @@ export const createOrUpdateProfile = async (req, res) => {
       ? req.body.selectedPlan.trim()
       : '';
     
-    let profile = await BrandProfile.findOne({ user: req.user._id });
+    let profile = null;
+    if (req.body.createNewBrand === true) {
+      profile = null;
+    } else if (req.body.brandId) {
+      profile = await BrandProfile.findOne({ user: req.user._id, _id: req.body.brandId });
+    } else {
+      profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
+    }
+    
     const hadExistingProfile = Boolean(profile);
     const previousSelectedPlan = profile?.selectedPlan?.trim() || '';
     const wasGmailConnected = profile ? profile.gmailIsConnected : false;
@@ -45,12 +53,15 @@ export const createOrUpdateProfile = async (req, res) => {
     
     if (profile) {
       profile = await BrandProfile.findOneAndUpdate(
-        { user: req.user._id },
+        { _id: profile._id },
         profileData,
         { returnDocument: 'after', runValidators: true }
       );
     } else {
       profile = await BrandProfile.create(profileData);
+      // Automatically set this brand as active
+      await User.findByIdAndUpdate(req.user._id, { activeBrandId: profile._id });
+      req.user.activeBrandId = profile._id;
     }
 
     if (req.body.gmailIsConnected === true) {
@@ -105,11 +116,43 @@ export const createOrUpdateProfile = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    const profile = await BrandProfile.findOne({ user: req.user._id });
+    let profile = null;
+    if (req.user.activeBrandId) {
+      profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId });
+    }
+    if (!profile) {
+      profile = await BrandProfile.findOne({ user: req.user._id });
+    }
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     res.status(200).json(profile);
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching profile' });
+  }
+};
+
+export const listBrands = async (req, res) => {
+  try {
+    const brands = await BrandProfile.find({ user: req.user._id }).select('brandName socialHandle instagramUsername selectedPlan logo _id');
+    res.json({ brands });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error listing brands' });
+  }
+};
+
+export const switchBrand = async (req, res) => {
+  try {
+    const { brandId } = req.body;
+    if (!brandId) return res.status(400).json({ message: 'Brand ID is required' });
+
+    const brand = await BrandProfile.findOne({ user: req.user._id, _id: brandId });
+    if (!brand) return res.status(404).json({ message: 'Brand profile not found' });
+
+    // Update active brand ID on user
+    await User.findByIdAndUpdate(req.user._id, { activeBrandId: brandId });
+
+    res.json({ success: true, activeBrand: brand });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error switching brands' });
   }
 };
 

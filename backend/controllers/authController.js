@@ -215,7 +215,8 @@ export const googleLogin = async (req, res) => {
     } else {
       const ticket = await googleClient.verifyIdToken({
         idToken,
-        audience: process.env.GOOGLE_CLIENT_ID
+        audience: process.env.GOOGLE_CLIENT_ID,
+        clockTolerance: 86400
       });
       const payload = ticket.getPayload();
       email = payload.email;

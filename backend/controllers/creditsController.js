@@ -93,3 +93,30 @@ export const deductCredits = async (req, res) => {
     return res.status(500).json({ message: 'Server error.' });
   }
 };
+
+// ─── TOPUP credits (called from purchasing top-ups) ──────────────────
+export const topupCredits = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const creditsToAdd = parseInt(amount, 10);
+    if (!creditsToAdd || creditsToAdd <= 0) return res.status(400).json({ message: 'Invalid credit amount.' });
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $inc: { credits: creditsToAdd } },
+      { new: true, select: 'credits plan' }
+    );
+
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    await logActivity(req.user._id, 'Billing Agent', `Purchased ${creditsToAdd} top-up credits.`, 'done');
+
+    return res.json({
+      credits: user.credits,
+      message: `✅ Successfully added ${creditsToAdd} top-up credits.`,
+    });
+  } catch (err) {
+    console.error('[Credits] topupCredits error:', err);
+    return res.status(500).json({ message: 'Server error.' });
+  }
+};

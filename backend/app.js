@@ -24,7 +24,7 @@ import {
 } from './controllers/instagramWebhookController.js';
 import { startPolling } from './services/commentPoller.js';
 
-import { startStrategicPoller } from './utils/strategicPoller.js';
+// import { startStrategicPoller } from './utils/strategicPoller.js';
 import { startKeepAlivePoller } from './utils/keepAlivePoller.js';
 
 const app = express();
@@ -78,12 +78,20 @@ if (process.env.MONGO_URI) {
   mongoose.connect(process.env.MONGO_URI)
     .then(() => {
       console.log('Connected to MongoDB');
+      
+      // Drop the unique user_1 index on brandprofiles dynamically if it exists
+      mongoose.connection.db.collection('brandprofiles').dropIndex('user_1').then(() => {
+        console.log('Successfully dropped unique user_1 index on brandprofiles');
+      }).catch((err) => {
+        // Safe to ignore if index does not exist or has already been dropped
+      });
+
       app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
         // Start polling for Instagram comments (bypasses webhook delivery issues)
         startPolling();
         // Start autonomous strategic audit agent
-        startStrategicPoller();
+        // startStrategicPoller();
         // Start keep-alive pingers for Render free tier
         startKeepAlivePoller();
       });

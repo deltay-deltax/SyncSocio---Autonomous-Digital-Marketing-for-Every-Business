@@ -321,7 +321,7 @@ export const instagramCallback = async (req, res) => {
 
 export const resubscribeInstagramWebhooks = async (req, res) => {
   try {
-    const profile = await BrandProfile.findOne({ user: req.user._id })
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id })
       .select('instagramAccessToken instagramBusinessAccountId instagramPageId instagramIsConnected')
       .lean();
 
@@ -360,7 +360,7 @@ export const resubscribeInstagramWebhooks = async (req, res) => {
  */
 export const getAutomations = async (req, res) => {
   try {
-    const profile = await BrandProfile.findOne({ user: req.user._id });
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     if (!profile) return res.status(404).json({ success: false, message: 'Brand profile not found' });
     
     res.json({
@@ -383,7 +383,7 @@ export const updateAutomation = async (req, res) => {
   const { active, message } = req.body;
 
   try {
-    const profile = await BrandProfile.findOne({ user: req.user._id });
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     if (!profile) return res.status(404).json({ success: false, message: 'Brand profile not found' });
 
     if (!profile.automations) profile.automations = {};

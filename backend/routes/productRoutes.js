@@ -11,7 +11,11 @@ const router = express.Router();
 // GET /api/products — list all products for authed user
 router.get('/', protect, async (req, res) => {
   try {
-    const products = await Product.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const brandId = req.user.activeBrandId;
+    const products = await Product.find({
+      user: req.user._id,
+      $or: [{ brandId }, { brandId: { $exists: false } }]
+    }).sort({ createdAt: -1 });
     res.json({ success: true, products });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -38,6 +42,7 @@ router.post('/', protect, async (req, res) => {
 
     const product = await Product.create({
       user: req.user._id,
+      brandId: req.user.activeBrandId,
       imageBase64: imageUrl, // field kept for backward compatibility, now stores url
       name,
       description: description || '',

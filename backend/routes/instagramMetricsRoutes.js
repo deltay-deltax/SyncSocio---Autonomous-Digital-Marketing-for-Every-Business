@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/metrics', protect, async (req, res) => {
     try {
         const userId = req.user.id;
-        const brandProfile = await BrandProfile.findOne({ user: userId });
+        const brandProfile = await BrandProfile.findOne({ user: userId, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: userId });
 
         if (!brandProfile || !brandProfile.instagramAccessToken || !brandProfile.instagramBusinessAccountId) {
             return res.status(400).json({ 
@@ -581,7 +581,7 @@ router.get('/metrics', protect, async (req, res) => {
 router.get('/feed', protect, async (req, res) => {
     try {
         const userId = req.user.id;
-        const brandProfile = await BrandProfile.findOne({ user: userId });
+        const brandProfile = await BrandProfile.findOne({ user: userId, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: userId });
 
         if (!brandProfile || !brandProfile.instagramAccessToken || !brandProfile.instagramBusinessAccountId) {
             return res.status(400).json({ message: 'Instagram not connected' });

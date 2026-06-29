@@ -50,8 +50,10 @@ const getWebhookVerifyToken = () => {
   return process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || process.env.JWT_SECRET || '';
 };
 
-const createFlowQuery = ({ userId, mediaId }) => {
+const createFlowQuery = ({ userId, brandId, mediaId }) => {
   const query = {
+    user: userId,
+    $or: [{ brandId }, { brandId: { $exists: false } }],
     active: true,
     trigger: 'comment',
   };
@@ -61,6 +63,13 @@ const createFlowQuery = ({ userId, mediaId }) => {
       { targetType: 'all' },
       { targetType: 'specific', targetMediaId: safeTrim(mediaId) },
     ];
+    // Need to preserve user/brand filter context inside $or group
+    if (brandId) {
+      query.$and = [
+        { user: userId },
+        { $or: [{ brandId }, { brandId: { $exists: false } }] }
+      ];
+    }
   } else {
     query.targetType = 'all';
   }
@@ -96,8 +105,8 @@ const keywordMatchScore = (incomingText, configuredKeyword) => {
   return 0;
 };
 
-const findBestFlowMatch = async ({ userId, incomingText, mediaId }) => {
-  const query = createFlowQuery({ userId, mediaId });
+const findBestFlowMatch = async ({ userId, brandId, incomingText, mediaId }) => {
+  const query = createFlowQuery({ userId, brandId, mediaId });
   const candidates = await DMFlow.find(query).sort({ updatedAt: -1 }).limit(50);
 
   let bestFlow = null;
@@ -487,6 +496,7 @@ const processCommentEventForProfile = async (profile, event) => {
 
   const matchResult = await findBestFlowMatch({
     userId: profile.user,
+    brandId: profile._id,
     incomingText: event.text,
     mediaId: event.mediaId,
   });
@@ -1089,6 +1099,7 @@ export const testWebhook = async (req, res) => {
   // Find matching flow
   const matchResult = await findBestFlowMatch({
     userId: profile.user,
+    brandId: profile._id,
     incomingText: commentText,
     mediaId: '',
   });

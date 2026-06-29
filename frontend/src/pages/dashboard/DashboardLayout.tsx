@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -42,6 +42,49 @@ const DashboardLayout = () => {
   });
   const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
   const [creditsAnim, setCreditsAnim] = useState(false);
+  const [brands, setBrands] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const res = await fetch(`${apiBase}/profile/list`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setBrands(data.brands || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch brands list:', err);
+      }
+    };
+    fetchBrands();
+  }, []);
+
+  const handleSwitchBrand = async (brandId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const res = await fetch(`${apiBase}/profile/switch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ brandId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('syncsocio_profile', JSON.stringify(data.activeBrand));
+        setProfile(data.activeBrand);
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Failed to switch brand:', err);
+    }
+  };
 
   useEffect(() => {
     const handleOpenModal = () => setIsCreditsModalOpen(true);
@@ -367,10 +410,27 @@ const DashboardLayout = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2 bg-primary/5 border border-primary/10 px-3 py-1.5 rounded-full mr-2">
-              <Sparkles size={13} className="text-primary" />
-              <span className="text-[10px] font-black text-primary uppercase tracking-widest">Strategy v2.1</span>
-            </div>
+            {brands.length > 0 && (
+              <select
+                value={profile?._id || ''}
+                onChange={(e) => handleSwitchBrand(e.target.value)}
+                className="hidden sm:inline-block h-8 rounded-full px-3 text-[10px] font-black uppercase tracking-widest border border-border bg-card hover:border-primary transition-all cursor-pointer outline-none mr-2 max-w-[150px] truncate"
+              >
+                {brands.map((b) => (
+                  <option key={b._id} value={b._id}>
+                    {b.brandName || 'Untitled Brand'}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <button
+              onClick={() => navigate('/dashboard/buy-credits')}
+              className="hidden sm:flex items-center gap-2 bg-primary/5 border border-primary/10 px-3 py-1.5 rounded-full mr-2 hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+            >
+              <Coins size={13} className="text-primary" />
+              <span className="text-[10px] font-black text-primary uppercase tracking-widest">Buy Credit</span>
+            </button>
 
             {/* ── Credits Badge ──────────────────────────────── */}
             {credits !== null && (

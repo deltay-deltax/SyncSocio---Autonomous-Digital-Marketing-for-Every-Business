@@ -16,6 +16,17 @@ export const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
     req.user = await User.findById(decoded.id).select('-password');
     if (!req.user) return res.status(401).json({ message: 'User not found' });
+
+    // Populate activeBrandId fallback if not set
+    if (!req.user.activeBrandId) {
+      const BrandProfile = (await import('../models/BrandProfile.js')).default;
+      const defaultBrand = await BrandProfile.findOne({ user: req.user._id });
+      if (defaultBrand) {
+        req.user.activeBrandId = defaultBrand._id;
+        await req.user.save();
+      }
+    }
+
     return next();
   } catch (error) {
     if (error?.name === 'TokenExpiredError') {

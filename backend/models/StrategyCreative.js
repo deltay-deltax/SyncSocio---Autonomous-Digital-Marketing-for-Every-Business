@@ -7,6 +7,11 @@ const strategyCreativeSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  brandId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BrandProfile',
+    index: true,
+  },
   // What was generated
   type: {
     type: String,

@@ -66,13 +66,24 @@ const keywordMatchScore = (incomingText, configuredKeyword) => {
   return 0;
 };
 
-const findBestFlowMatch = async ({ userId, incomingText, mediaId }) => {
-  const query = { active: true, trigger: 'comment' };
+const findBestFlowMatch = async ({ userId, brandId, incomingText, mediaId }) => {
+  const query = {
+    user: userId,
+    $or: [{ brandId }, { brandId: { $exists: false } }],
+    active: true,
+    trigger: 'comment'
+  };
   if (safeTrim(mediaId)) {
     query.$or = [
       { targetType: 'all' },
       { targetType: 'specific', targetMediaId: safeTrim(mediaId) },
     ];
+    if (brandId) {
+      query.$and = [
+        { user: userId },
+        { $or: [{ brandId }, { brandId: { $exists: false } }] }
+      ];
+    }
   } else {
     query.targetType = 'all';
   }
@@ -276,6 +287,7 @@ const pollProfileComments = async (profile) => {
         // 3. Match against DM flows
         const matchResult = await findBestFlowMatch({
           userId: profile.user,
+          brandId: profile._id,
           incomingText: comment.text,
           mediaId: media.id,
         });
