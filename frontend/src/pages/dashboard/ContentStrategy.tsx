@@ -92,9 +92,16 @@ const MOTION_PRESETS = [
 const languages = [
   { id: 'english', label: 'English', flag: '🇬🇧' },
   { id: 'hinglish', label: 'Hinglish', flag: '🅷' },
-  { id: 'hindi', label: 'Hindi', flag: '🇮🇳' },
-  { id: 'tamil', label: 'Tamil', flag: '🪔' },
-  { id: 'kannada', label: 'Kannada', flag: '🌺' },
+  { id: 'hindi', label: 'Hindi (हिन्दी)', flag: '🇮🇳' },
+  { id: 'marathi', label: 'Marathi (मराठी)', flag: '🌾' },
+  { id: 'bengali', label: 'Bengali (বাংলা)', flag: '🌸' },
+  { id: 'gujarati', label: 'Gujarati (ગુજરાતી)', flag: '🪁' },
+  { id: 'punjabi', label: 'Punjabi (ਪੰਜਾਬੀ)', flag: '🌾' },
+  { id: 'tamil', label: 'Tamil (தமிழ்)', flag: '🪔' },
+  { id: 'telugu', label: 'Telugu (தெలుగు)', flag: '🌟' },
+  { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
+  { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
+  { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
 ];
 
 // ── Ad composition templates ─────────────────────────────────────────────────
