@@ -1158,8 +1158,13 @@ const DashboardStrategy = () => {
           allPosts = [...allPosts, ...posts];
         });
 
-        // Verify if any post failed (image missing or contains error message)
-        const failedPost = allPosts.find((p: any) => (!p.image && p.type !== 'video') || p.error);
+        // Verify if any post failed (image/video missing or contains error message)
+        const failedPost = allPosts.find((p: any) => 
+          p.error || 
+          (p.type === 'video' && !p.url) || 
+          (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
+          (p.type !== 'video' && p.type !== 'carousel' && !p.image)
+        );
         if (failedPost) {
           throw new Error(failedPost.error || 'One or more creative generations failed in the All-in-One package.');
         }
@@ -1276,8 +1281,13 @@ const DashboardStrategy = () => {
       const data = await res.json();
       const posts = data.posts || [];
 
-      // Verify if any post failed (image missing or contains error message)
-      const failedPost = posts.find((p: any) => (!p.image && p.type !== 'video') || p.error);
+      // Verify if any post failed (image/video missing or contains error message)
+      const failedPost = posts.find((p: any) => 
+        p.error || 
+        (p.type === 'video' && !p.url) || 
+        (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
+        (p.type !== 'video' && p.type !== 'carousel' && !p.image)
+      );
       if (failedPost) {
         throw new Error(failedPost.error || 'One or more creative generations failed.');
       }
