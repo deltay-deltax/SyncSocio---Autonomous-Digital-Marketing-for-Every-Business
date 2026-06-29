@@ -1158,6 +1158,12 @@ const DashboardStrategy = () => {
           allPosts = [...allPosts, ...posts];
         });
 
+        // Verify if any post failed (image missing or contains error message)
+        const failedPost = allPosts.find((p: any) => (!p.image && p.type !== 'video') || p.error);
+        if (failedPost) {
+          throw new Error(failedPost.error || 'One or more creative generations failed in the All-in-One package.');
+        }
+
         setGenerated(allPosts);
         setSavedIndices(new Set());
         setShowHeartPop({});
@@ -1269,6 +1275,13 @@ const DashboardStrategy = () => {
 
       const data = await res.json();
       const posts = data.posts || [];
+
+      // Verify if any post failed (image missing or contains error message)
+      const failedPost = posts.find((p: any) => (!p.image && p.type !== 'video') || p.error);
+      if (failedPost) {
+        throw new Error(failedPost.error || 'One or more creative generations failed.');
+      }
+
       setGenerated(posts);
       setSavedIndices(new Set());
       setShowHeartPop({});
