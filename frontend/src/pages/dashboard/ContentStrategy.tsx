@@ -44,7 +44,7 @@ interface GeneratedPost {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const AI_BASE = 'http://localhost:8000';
+const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
 const NODE_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const ASSET_CACHE_KEY = 'syncsocio_strategy_assets';
 

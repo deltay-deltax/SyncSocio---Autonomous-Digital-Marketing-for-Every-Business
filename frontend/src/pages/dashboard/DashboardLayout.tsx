@@ -73,7 +73,7 @@ const DashboardLayout = () => {
     });
 
     try {
-      const AI_BASE = 'http://localhost:8000';
+      const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
       const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,7 +160,7 @@ const DashboardLayout = () => {
     });
 
     try {
-      const AI_BASE = 'http://localhost:8000';
+      const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
       const fetchPromises = requests.map(req =>
         fetch(`${AI_BASE}/generate-strategy-images`, {
           method: 'POST',
