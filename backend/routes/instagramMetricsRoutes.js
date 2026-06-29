@@ -23,16 +23,8 @@ router.get('/metrics', protect, async (req, res) => {
         const igId = brandProfile.instagramBusinessAccountId;
         console.log(`🚀 FETCHING METRICS FOR INSTA ID: ${igId} (v25.0 Path)`);
 
-        // 1. Basic User Info (Follower Count & Profile Detail)
-        const userUrl = `https://graph.facebook.com/v25.0/${igId}`;
-        const userRes = await axios.get(userUrl, {
-            params: { 
-                fields: 'followers_count,media_count,username,name,biography', 
-                access_token: accessToken 
-            }
-        });
-        
-        const currentFollowersCount = userRes.data.followers_count || 0;
+        const userStats = brandProfile.cachedMetrics?.userStats || {};
+        const currentFollowersCount = userStats.followers_count || 0;
         const todaySnapStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
         if (brandProfile) {
@@ -68,61 +60,11 @@ router.get('/metrics', protect, async (req, res) => {
         }
 
         // 2. Account-Level Insights
-        const insightsUrl = `https://graph.facebook.com/v25.0/${igId}/insights`;
-        
-        const dateNow = Math.floor(Date.now() / 1000);
-        let periodDays = 7;
-        let datePreset = 'last_7_days';
-        const range = req.query.range || 'This Week';
-        if (range === 'This Month') { datePreset = 'last_28_days'; periodDays = 28; }
-        if (range === 'All Time') { datePreset = 'last_90_days'; periodDays = 90; }
+        let insightsData = brandProfile.cachedMetrics?.currentInsightsData || [];
+        let prevInsightsData = brandProfile.cachedMetrics?.prevInsightsData || [];
 
-        const previousUntil = dateNow - (periodDays * 86400);
-        const previousSince = previousUntil - (periodDays * 86400);
-
-        const insightsParams = {
-            metric: 'views,reach',
-            metric_type: 'total_value',
-            period: 'day',
-            date_preset: datePreset,
-            access_token: accessToken
-        };
-
-        const prevInsightsParams = {
-            metric: 'views,reach',
-            metric_type: 'total_value',
-            period: 'day',
-            since: previousSince,
-            until: previousUntil,
-            access_token: accessToken
-        };
-
-        let insightsData = [];
-        let prevInsightsData = [];
-        try {
-            const insightsRes = await axios.get(insightsUrl, { params: insightsParams });
-            insightsData = insightsRes.data.data;
-            const prevInsightsRes = await axios.get(insightsUrl, { params: prevInsightsParams });
-            prevInsightsData = prevInsightsRes.data.data;
-        } catch (e) {
-            const insightError = e.response?.data?.error;
-            console.warn('IG v25.0 Insights warning:', insightError?.message || e.message);
-            if (insightError?.code === 10 || insightError?.code === 190) {
-                throw e; 
-            }
-        }
-
-        // 3. Post Counts (v25.0 Critical Rule: Append &summary=true)
-        const mediaUrl = `https://graph.facebook.com/v25.0/${igId}/media`;
-        const mediaRes = await axios.get(mediaUrl, {
-            params: { 
-                fields: 'id,caption,media_type,timestamp,like_count,comments_count',
-                summary: 'true', // New v25.0 requirement
-                limit: 5,
-                access_token: accessToken 
-            }
-        });
-
+        // 3. Post Counts
+        const posts = brandProfile.cachedMedia || [];
         let postBreakdown = [];
         const formatTimeAgo = (timestamp) => {
             const diff = Date.now() - new Date(timestamp).getTime();
@@ -133,24 +75,18 @@ router.get('/metrics', protect, async (req, res) => {
             return 'Just now';
         };
 
-        const posts = mediaRes.data.data || [];
         if (posts.length > 0) {
-            postBreakdown = await Promise.all(posts.map(async (p) => {
+            postBreakdown = await Promise.all(posts.slice(0, 5).map(async (p) => {
                 let reach = 0;
                 let saved = 0;
-                try {
-                    const insRes = await axios.get(`https://graph.facebook.com/v25.0/${p.id}/insights`, {
-                        params: { metric: 'reach,saved', access_token: accessToken }
-                    });
-                    const getInsight = (name) => {
-                        const m = insRes.data.data.find(x => x.name === name);
-                        return m && m.values && m.values.length > 0 ? m.values[0].value : 0;
-                    };
-                    reach = getInsight('reach');
-                    saved = getInsight('saved');
-                } catch (e) {
-                    // Ignore insight errors for older/incompatible posts
-                }
+                
+                const insData = p.insightsData || [];
+                const getInsight = (name) => {
+                    const m = insData.find(x => x.name === name);
+                    return m && m.values && m.values.length > 0 ? m.values[0].value : 0;
+                };
+                reach = getInsight('reach');
+                saved = getInsight('saved');
                 
                 const likes = p.like_count || 0;
                 const comments = p.comments_count || 0;

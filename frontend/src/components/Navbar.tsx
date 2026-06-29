@@ -1,20 +1,17 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, User, Globe, Target, Palette, BarChart3, MapPin, Megaphone, Users, Layers, Clock } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
 const NAV_LINKS = [
+  { label: "Home", href: "#" },
   { label: "Features", href: "#features" },
+  { label: "Creatives", href: "#creatives" },
   { label: "How it Works", href: "#how-it-works" },
+  { label: "Auto DM", href: "#auto-dm" },
+  { label: "Channels", href: "#channels" },
   { label: "Pricing", href: "#pricing" },
 ];
 
@@ -41,26 +38,53 @@ const Navbar = () => {
     window.location.href = "/login";
   };
 
+  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    setMobileOpen(false);
+    if (href === "#") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      const element = document.querySelector(href);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
   return (
     <motion.nav
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="fixed top-0 left-0 right-0 z-50 glass-card"
+      className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4"
     >
-      <div className="container mx-auto flex items-center justify-between px-6 py-4">
-        <Link to="/" className="font-display text-xl font-bold tracking-tight">
-          <span className="gradient-text">SyncSocio</span>
+      <div className="w-full max-w-5xl bg-white/95 backdrop-blur-md border border-white/60 rounded-full px-6 py-2.5 flex items-center justify-between shadow-lg relative">
+        
+        {/* Brand Logo & Name */}
+        <Link to="/" className="flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-foreground">
+          <img
+            src="/SyncSocioLogo.png"
+            alt="SyncSocio Logo"
+            className="w-6 h-6 object-contain shrink-0"
+          />
+          <span>SyncSocio</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
+        {/* Desktop Links */}
+        <div className="hidden md:flex items-center gap-6">
           {NAV_LINKS.map((link) => (
-            <a key={link.label} href={link.href} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              key={link.label}
+              href={link.href}
+              onClick={(e) => handleScroll(e, link.href)}
+              className="text-xs lg:text-sm font-semibold text-gray-600 hover:text-black transition-colors"
+            >
               {link.label}
             </a>
           ))}
         </div>
 
+        {/* Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
           {isLoggedIn ? (
             <div className="flex items-center gap-4">
@@ -74,62 +98,90 @@ const Navbar = () => {
                   <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background" />
                 </button>
               </Link>
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-xs text-muted-foreground hover:text-destructive">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-xs text-gray-500 hover:text-destructive font-semibold hover:bg-transparent"
+              >
                 Logout
               </Button>
             </div>
           ) : (
             <>
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" asChild className="font-semibold text-gray-500 hover:text-black hover:bg-transparent">
                 <Link to="/login">Login</Link>
               </Button>
-              <Button size="sm" className="gradient-bg text-primary-foreground border-0" asChild>
-                <Link to="/signup">Sign Up</Link>
-              </Button>
+              <Link
+                to="/signup"
+                className="rounded-full px-5 py-2 bg-[#0046C7] hover:bg-[#003B9E] text-white text-xs font-bold transition-all shadow-sm"
+              >
+                Signup
+              </Link>
             </>
           )}
         </div>
 
-        <button className="md:hidden text-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
-          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        {/* Mobile menu toggle */}
+        <button
+          className="md:hidden text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
-      </div>
 
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="md:hidden overflow-hidden border-t border-border bg-card"
-          >
-            <div className="flex flex-col gap-4 px-6 py-6">
-              {NAV_LINKS.map((link) => (
-                <a key={link.label} href={link.href} className="text-sm font-medium text-muted-foreground" onClick={() => setMobileOpen(false)}>
-                  {link.label}
-                </a>
-              ))}
-              <div className="flex gap-3 pt-2">
+        {/* Floating Mobile Dropdown Menu */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-full left-0 right-0 mt-3 md:hidden overflow-hidden border border-gray-200 bg-white/95 backdrop-blur-md rounded-3xl p-5 shadow-xl flex flex-col gap-4 z-50"
+            >
+              <div className="flex flex-col gap-3">
+                {NAV_LINKS.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    onClick={(e) => handleScroll(e, link.href)}
+                    className="text-sm font-semibold text-gray-600 hover:text-black py-2 px-3 rounded-xl hover:bg-gray-50 transition-all"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+              <div className="border-t border-gray-100 pt-3 flex flex-col gap-2">
                 {isLoggedIn ? (
-                  <div className="flex flex-col w-full gap-3">
-                    <Button variant="outline" className="w-full" asChild onClick={() => setMobileOpen(false)}>
+                  <>
+                    <Button variant="outline" className="w-full rounded-full border-gray-200 text-gray-700" asChild onClick={() => setMobileOpen(false)}>
                       <Link to="/dashboard">Dashboard</Link>
                     </Button>
-                    <Button variant="ghost" className="w-full text-destructive" onClick={handleLogout}>
+                    <Button variant="ghost" className="w-full rounded-full text-destructive hover:bg-transparent" onClick={handleLogout}>
                       Logout
                     </Button>
-                  </div>
+                  </>
                 ) : (
                   <>
-                    <Button variant="ghost" size="sm" className="flex-1" asChild><Link to="/login">Login</Link></Button>
-                    <Button size="sm" className="flex-1 gradient-bg text-primary-foreground border-0" asChild><Link to="/signup">Sign Up</Link></Button>
+                    <Button variant="ghost" className="w-full rounded-full font-semibold text-gray-600 hover:text-black hover:bg-transparent" asChild onClick={() => setMobileOpen(false)}>
+                      <Link to="/login">Login</Link>
+                    </Button>
+                    <Link
+                      to="/signup"
+                      onClick={() => setMobileOpen(false)}
+                      className="w-full text-center rounded-full py-2.5 bg-[#0046C7] hover:bg-[#003B9E] text-white text-xs font-bold transition-all shadow-sm"
+                    >
+                      Signup
+                    </Link>
                   </>
                 )}
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.nav>
   );
 };

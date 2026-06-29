@@ -56,7 +56,7 @@ const DMAutomation = () => {
   }, []);
 
   return (
-    <section className="relative py-24 overflow-hidden">
+    <section id="auto-dm" className="relative py-24 overflow-hidden">
       <div className="absolute top-1/2 left-0 w-72 h-72 rounded-full opacity-10 blur-3xl bg-primary -translate-y-1/2" />
       <div className="absolute top-1/4 right-0 w-96 h-96 rounded-full opacity-10 blur-3xl bg-primary" />
 

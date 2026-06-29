@@ -328,7 +328,10 @@ const Onboarding = () => {
                 <ChevronLeft size={14} className="mr-1 group-hover:-translate-x-0.5 transition-transform" /> BACK
               </button>
             ) : (
-              <Link to="/" className="md:hidden text-lg font-black tracking-tight text-primary">SyncSocio</Link>
+              <Link to="/" className="md:hidden flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-foreground">
+                <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-6 h-6 object-contain shrink-0" />
+                <span>SyncSocio</span>
+              </Link>
             )}
             
             <div className="hidden md:block"></div>

@@ -42,30 +42,18 @@ export const getDashboardSummary = async (req, res) => {
       if (brandProfile && brandProfile.instagramAccessToken && brandProfile.instagramBusinessAccountId) {
         fallbackToMock = false;
         try {
-          const accessToken = brandProfile.instagramAccessToken;
-          const igId = brandProfile.instagramBusinessAccountId;
-
-          // 1. Fetch Media (Posts) for this month & this week calculation
-          const mediaUrl = `https://graph.facebook.com/v25.0/${igId}/media`;
-          const mediaRes = await axios.get(mediaUrl, {
-            params: { fields: 'id,caption,media_url,thumbnail_url,media_type,timestamp,like_count,comments_count', limit: 50, access_token: accessToken }
-          });
-
-          // 2. Fetch Weekly Reach
-          const insightsUrl = `https://graph.facebook.com/v25.0/${igId}/insights`;
-          const insightsRes = await axios.get(insightsUrl, {
-            params: { metric: 'reach', period: 'days_28', access_token: accessToken }
-          });
-
+          // Read from cache populated by metricsPoller
+          const posts = brandProfile.cachedMedia || [];
+          const reachThisWeekRaw = brandProfile.cachedMetrics?.dashboardReachData || [];
+          
           let reachThisWeek = 0;
-          if (insightsRes.data && insightsRes.data.data && insightsRes.data.data.length > 0) {
-            const reachMetric = insightsRes.data.data.find(m => m.name === 'reach');
+          if (reachThisWeekRaw && reachThisWeekRaw.length > 0) {
+            const reachMetric = reachThisWeekRaw.find(m => m.name === 'reach');
             if (reachMetric && reachMetric.values && reachMetric.values.length > 0) {
                reachThisWeek = reachMetric.values[reachMetric.values.length - 1].value || 0;
             }
           }
 
-          const posts = mediaRes.data.data || [];
           let postsThisMonth = 0;
           let likesThisWeek = 0;
           let commentsThisWeek = 0;
@@ -95,23 +83,14 @@ export const getDashboardSummary = async (req, res) => {
             let totalPostReach = 0;
             let totalPostSaves = 0;
 
-            const postsWithInsights = await Promise.all(
-              postsFromLast7Days.slice(0, 10).map(async (post) => {
-                try {
-                  const insRes = await axios.get(`https://graph.facebook.com/v25.0/${post.id}/insights`, {
-                    params: { metric: 'views,reach,saved', access_token: accessToken }
-                  });
-                  const insData = insRes.data.data;
-                  const getInsight = (name) => {
-                    const m = insData.find(x => x.name === name);
-                    return m && m.values && m.values.length > 0 ? m.values[0].value : 0;
-                  };
-                  return { ...post, views: getInsight('views'), reach: getInsight('reach'), saved: getInsight('saved') };
-                } catch (e) {
-                  return { ...post, views: 0, reach: 0, saved: 0 };
-                }
-              })
-            );
+            const postsWithInsights = postsFromLast7Days.slice(0, 10).map((post) => {
+                const insData = post.insightsData || [];
+                const getInsight = (name) => {
+                  const m = insData.find(x => x.name === name);
+                  return m && m.values && m.values.length > 0 ? m.values[0].value : 0;
+                };
+                return { ...post, views: getInsight('views'), reach: getInsight('reach'), saved: getInsight('saved') };
+            });
 
             const scored = postsWithInsights.map(p => {
               totalPostReach += p.reach;
@@ -128,17 +107,19 @@ export const getDashboardSummary = async (req, res) => {
 
             const topPostData = scored.sort((a, b) => b.score - a.score)[0];
             let engRateStr = "0.0";
-            if (topPostData.reach > 0) {
+            if (topPostData && topPostData.reach > 0) {
               engRateStr = (((topPostData.like_count || 0) + (topPostData.comments_count || 0) + topPostData.saved) / topPostData.reach * 100).toFixed(1);
             }
 
-            topPostInfo = {
-              image: topPostData.media_url || topPostData.thumbnail_url,
-              caption: topPostData.caption || 'Top Post',
-              views: topPostData.views,
-              likes: topPostData.like_count || 0,
-              engagement: engRateStr + '%'
-            };
+            if (topPostData) {
+                topPostInfo = {
+                  image: topPostData.media_url || topPostData.thumbnail_url,
+                  caption: topPostData.caption || 'Top Post',
+                  views: topPostData.views,
+                  likes: topPostData.like_count || 0,
+                  engagement: engRateStr + '%'
+                };
+            }
           }
 
           let reelCount = 0;
@@ -169,11 +150,8 @@ export const getDashboardSummary = async (req, res) => {
           };
 
         } catch (apiError) {
-          const errorData = apiError.response?.data?.error || apiError.response?.data || {};
-          console.error("Dashboard API fetch error:", {
+          console.error("Dashboard cache read error:", {
             message: apiError.message,
-            metaError: errorData,
-            path: apiError.config?.url
           });
           fallbackToMock = true;
         }
