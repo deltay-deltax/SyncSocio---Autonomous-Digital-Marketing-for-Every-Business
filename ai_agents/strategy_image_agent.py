@@ -1199,7 +1199,7 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                     
                     # Stage 2: Take the generated hero image and send it to Seedance Image-to-Video
                     print(f"[StrategyAgent] UGC Stage 2: Animating starting image with Seedance Fast Image-to-Video...")
-                    result = generate_fal_video_seedance(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio, duration="5")
+                    result = generate_fal_video_seedance(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio, duration="8")
                 else:
                     # Standard img2video uses Seedance Fast Image-to-Video
                     caption = pick_caption(index)
