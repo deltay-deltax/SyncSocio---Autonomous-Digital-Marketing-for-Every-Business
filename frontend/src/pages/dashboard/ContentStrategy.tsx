@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn, safeSetItem } from '@/lib/utils';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
 import Masonry from 'react-masonry-css';
 import * as XLSX from 'xlsx';
@@ -238,12 +238,31 @@ async function getProductCache(key: string): Promise<any> {
 
 const DashboardStrategy = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setShowNotifications } = useOutletContext<{ setShowNotifications?: (show: boolean) => void }>() || {};
   const { toast } = useToast();
 
   // ── Stage / Mode
-  const [stage, setStage] = useState<'pick' | 'builder' | 'generating' | 'results'>('pick');
-  const [mode, setMode] = useState<Mode | null>(null);
+  const [stage, setStage] = useState<'pick' | 'builder' | 'generating' | 'results'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('mode') ? 'builder' : 'pick';
+  });
+  const [mode, setMode] = useState<Mode | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('mode') as Mode) || null;
+  });
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const m = params.get('mode') as Mode;
+    if (m) {
+      setMode(m);
+      setStage('builder');
+    } else {
+      setMode(null);
+      setStage('pick');
+    }
+  }, [location.search]);
 
   // ── Custom Import List Modal
   const [showListNameModal, setShowListNameModal] = useState(false);

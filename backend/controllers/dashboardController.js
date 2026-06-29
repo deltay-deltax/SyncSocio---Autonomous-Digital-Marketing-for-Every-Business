@@ -267,7 +267,24 @@ export const getDashboardSummary = async (req, res) => {
       totalFlows
     };
 
-    res.json({ metrics, activities, topPost, workspaceStats });
+    // Calculate credits used in the last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentActivities = await AgentActivity.find({
+      user: userId,
+      timestamp: { $gte: sevenDaysAgo },
+      message: /Spent \d+ credits/
+    });
+
+    let creditsUsedLast7Days = 0;
+    recentActivities.forEach(a => {
+      const match = a.message.match(/Spent (\d+) credits/);
+      if (match) {
+        creditsUsedLast7Days += parseInt(match[1], 10);
+      }
+    });
+
+    res.json({ metrics, activities, topPost, workspaceStats, creditsUsedLast7Days });
   } catch (error) {
     console.error("Summary error:", error);
     res.status(500).json({ message: 'Error fetching dashboard summary' });

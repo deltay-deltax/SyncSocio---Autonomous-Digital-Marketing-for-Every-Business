@@ -6,6 +6,15 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
+import { FESTIVALS_2026 } from '@/components/FestivalCalendar';
+
+const getNextFestival = () => {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const sorted = [...FESTIVALS_2026].sort((a, b) => a.date.localeCompare(b.date));
+  let next = sorted.find(f => f.date >= todayStr);
+  if (!next) next = sorted[0];
+  return next;
+};
 
 interface IconProps {
   size?: number;
@@ -321,104 +330,104 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
 
-          {/* Platform Status */}
-          <Card className="border-border/50 overflow-hidden relative">
+          {/* Workspace Status */}
+          <Card className="border-border/50 overflow-hidden relative bg-card">
             <CardHeader className="pb-3 px-6 pt-6">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                   <Globe size={14} />
                 </div>
-                <CardTitle className="text-base">Platform Connections</CardTitle>
+                <CardTitle className="text-base">Workspace Status</CardTitle>
               </div>
             </CardHeader>
-             <CardContent className="px-6 pb-6 space-y-3">
-               {/* Instagram API */}
-               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
-                 <div className="flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center text-white">
-                     <InstagramIcon size={14} />
-                   </div>
-                   <div>
-                     <p className="text-xs font-bold text-foreground">Instagram Graph API</p>
-                     <p className="text-[9px] text-muted-foreground mt-0.5">
-                       {profile?.instagramIsConnected ? `@${profile.instagramUsername}` : 'Not Linked'}
-                     </p>
-                   </div>
-                 </div>
-                 {profile?.instagramIsConnected ? (
-                   <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
-                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Active
-                   </span>
-                 ) : (
-                   <Button 
-                     onClick={() => navigate('/dashboard/settings?tab=Connected%20Accounts')} 
-                     variant="outline" 
-                     size="sm" 
-                     className="h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-lg border-primary/20 text-primary hover:bg-primary/5"
-                   >
-                     Connect
-                   </Button>
-                 )}
-               </div>
+            <CardContent className="px-6 pb-6 space-y-3">
+              {/* Row 1: Connected Accounts */}
+              <div 
+                onClick={() => navigate('/dashboard/settings?tab=Connected%20Accounts')}
+                className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/40 hover-lift transition-all cursor-pointer"
+              >
+                <div>
+                  <p className="text-xs font-bold text-foreground">Connected Channels</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Click to configure integrations</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Instagram Icon */}
+                  <div className={cn(
+                    "w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all",
+                    profile?.instagramIsConnected 
+                      ? "bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 shadow-md shadow-pink-500/25" 
+                      : "bg-slate-200 text-slate-400 grayscale opacity-40"
+                  )}>
+                    <InstagramIcon size={13} />
+                  </div>
 
-               {/* WhatsApp sandbox gateway */}
-               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
-                 <div className="flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
-                     <WhatsAppIcon size={14} />
-                   </div>
-                   <div>
-                     <p className="text-xs font-bold text-foreground">WhatsApp Business API</p>
-                     <p className="text-[9px] text-muted-foreground mt-0.5">
-                       {profile?.whatsappIsConnected ? (profile.whatsappNumber || 'Connected') : 'Not Connected'}
-                     </p>
-                   </div>
-                 </div>
-                 {profile?.whatsappIsConnected ? (
-                   <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
-                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Ready
-                   </span>
-                 ) : (
-                   <Button 
-                     onClick={() => navigate('/dashboard/settings?tab=Connected%20Accounts')} 
-                     variant="outline" 
-                     size="sm" 
-                     className="h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-lg border-primary/20 text-primary hover:bg-primary/5"
-                   >
-                     Connect
-                   </Button>
-                 )}
-               </div>
+                  {/* WhatsApp Icon */}
+                  <div className={cn(
+                    "w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all",
+                    profile?.whatsappIsConnected 
+                      ? "bg-emerald-600 shadow-md shadow-emerald-600/25" 
+                      : "bg-slate-200 text-slate-400 grayscale opacity-40"
+                  )}>
+                    <WhatsAppIcon size={13} />
+                  </div>
 
-               {/* Email SMTP relay */}
-               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
-                 <div className="flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-white">
-                     <GoogleIcon size={14} />
-                   </div>
-                   <div>
-                     <p className="text-xs font-bold text-foreground">Gmail SMTP Relay</p>
-                     <p className="text-[9px] text-muted-foreground mt-0.5">
-                       {profile?.gmailIsConnected ? (profile.gmailEmail || 'Connected') : 'Not Connected'}
-                     </p>
-                   </div>
-                 </div>
-                 {profile?.gmailIsConnected ? (
-                   <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
-                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Connected
-                   </span>
-                 ) : (
-                   <Button 
-                     onClick={() => navigate('/dashboard/settings?tab=Connected%20Accounts')} 
-                     variant="outline" 
-                     size="sm" 
-                     className="h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-lg border-primary/20 text-primary hover:bg-primary/5"
-                   >
-                     Connect
-                   </Button>
-                 )}
-               </div>
-             </CardContent>
+                  {/* Google Icon */}
+                  <div className={cn(
+                    "w-7 h-7 rounded-lg flex items-center justify-center bg-white border transition-all",
+                    profile?.gmailIsConnected 
+                      ? "border-border shadow-sm" 
+                      : "grayscale opacity-40 bg-slate-100 border-slate-200"
+                  )}>
+                    <GoogleIcon size={13} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Number of credits used in last 7 days */}
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 cursor-default">
+                <div>
+                  <p className="text-xs font-bold text-foreground">Credits Consumed</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Used in the last 7 days</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-black text-primary tracking-tight">
+                    {data?.creditsUsedLast7Days ?? 0}
+                  </span>
+                  <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-wider">
+                    credits
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 3: Coming up festival */}
+              {(() => {
+                const nextFest = getNextFestival();
+                return (
+                  <div 
+                    onClick={() => navigate('/dashboard/strategy?mode=festival')}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/40 hover-lift transition-all cursor-pointer"
+                  >
+                    <div>
+                      <p className="text-xs font-bold text-foreground">Upcoming Festival</p>
+                      <p className="text-[9px] text-muted-foreground mt-0.5">Tap to generate festival campaigns</p>
+                    </div>
+                    {nextFest ? (
+                      <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-xl px-3 py-1.5">
+                        <span className="text-sm">{nextFest.emoji}</span>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-primary leading-tight">{nextFest.name}</p>
+                          <p className="text-[8px] font-semibold text-muted-foreground leading-none mt-0.5">
+                            {new Date(nextFest.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground font-medium">None scheduled</span>
+                    )}
+                  </div>
+                );
+              })()}
+            </CardContent>
           </Card>
 
           {/* Top Post */}
