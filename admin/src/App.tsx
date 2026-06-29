@@ -6,6 +6,10 @@ import UserDetails from './pages/UserDetails';
 import Coupons from './pages/Coupons';
 import Brands from './pages/Brands';
 import Layout from './pages/Layout';
+import Analytics from './pages/Analytics';
+import Transactions from './pages/Transactions';
+import SystemHealth from './pages/SystemHealth';
+import Waitlist from './pages/Waitlist';
 import './App.css';
 
 // Protected Route for Admin
@@ -31,6 +35,10 @@ function App() {
             <Route path="users/:id" element={<UserDetails />} />
             <Route path="brands" element={<Brands />} />
             <Route path="coupons" element={<Coupons />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="transactions" element={<Transactions />} />
+            <Route path="system-health" element={<SystemHealth />} />
+            <Route path="waitlist" element={<Waitlist />} />
           </Route>
         </Route>
 

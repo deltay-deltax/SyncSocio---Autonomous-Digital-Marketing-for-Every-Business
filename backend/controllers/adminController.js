@@ -7,6 +7,7 @@ import Transaction from '../models/Transaction.js';
 import ApiLog from '../models/ApiLog.js';
 import DeletedUserLog from '../models/DeletedUserLog.js';
 import StrategyCreative from '../models/StrategyCreative.js';
+import VisitorLog from '../models/VisitorLog.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -84,11 +85,10 @@ export const getMetrics = async (req, res) => {
     if (transactionCount === 0) {
       const users = await User.find();
       for (const user of users) {
-        if (user.plan && user.plan !== 'Free' && user.plan !== '') {
-          // Determine base price
-          let basePrice = 999;
-          if (user.plan.includes('PRO')) basePrice = 1999;
-          if (user.plan.includes('Elite')) basePrice = 3999;
+        if (user.plan && user.plan !== '') {
+          // Determine base price — Brand=799, Growth=2199
+          let basePrice = 799;
+          if (user.plan.toLowerCase().includes('growth')) basePrice = 2199;
 
           // Check if DM is enabled
           const brandProfile = await BrandProfile.findOne({ user: user._id });
@@ -151,12 +151,12 @@ export const getMetrics = async (req, res) => {
     const totalDiscounts = transactions.reduce((acc, t) => acc + (t.discountAmount || 0), 0);
     
     // MRR (Monthly Recurring Revenue) estimation
-    const activePaidUsers = await User.find({ plan: { $nin: ['', 'Free'] } });
+    const activePaidUsers = await User.find({ plan: { $nin: ['', null] } });
     let mrr = 0;
     activePaidUsers.forEach(u => {
-      if (u.plan.includes('PRO')) mrr += 1999;
-      else if (u.plan.includes('Elite')) mrr += 3999;
-      else mrr += 999;
+      if (!u.plan) return;
+      if (u.plan.toLowerCase().includes('growth')) mrr += 2199;
+      else mrr += 799; // Brand plan
     });
 
     const activeCoupons = await Coupon.countDocuments({ isActive: true });
@@ -171,6 +171,12 @@ export const getMetrics = async (req, res) => {
       .populate('user', 'email name')
       .sort({ createdAt: -1 })
       .limit(5);
+
+    // Visitor traffic metrics
+    const visitorsToday = await VisitorLog.countDocuments({ createdAt: { $gte: todayStart } });
+    const visitorsWeek = await VisitorLog.countDocuments({ createdAt: { $gte: weekStart } });
+    const visitorsMonth = await VisitorLog.countDocuments({ createdAt: { $gte: monthStart } });
+    const visitorsTotal = await VisitorLog.countDocuments();
 
     // Fetch last 5 transactions with user emails populated
     const recentTransactions = await Transaction.find()
@@ -196,7 +202,11 @@ export const getMetrics = async (req, res) => {
         apiCostToday,
         failedGenerations,
         topBrands,
-        recentTransactions
+        recentTransactions,
+        visitorsToday,
+        visitorsWeek,
+        visitorsMonth,
+        visitorsTotal
       }
     });
   } catch (error) {
@@ -611,3 +621,266 @@ export const getAllBrands = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to fetch brands' });
   }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REVENUE ANALYTICS
+// ─────────────────────────────────────────────────────────────────────────────
+export const getRevenueAnalytics = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Last 6 months of revenue grouped by month
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const revenueByMonth = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo }, status: 'completed' } },
+      {
+        $group: {
+          _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+          revenue: { $sum: '$amount' },
+          transactions: { $sum: 1 },
+          discounts: { $sum: '$discountAmount' }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    // Last 6 months of user signups
+    const signupsByMonth = await User.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    // Plan distribution — Brand vs Growth (no free plan)
+    const brandCount = await User.countDocuments({
+      plan: { $regex: /brand/i, $ne: null },
+      $and: [{ plan: { $ne: '' } }]
+    });
+    const growthCount = await User.countDocuments({
+      plan: { $regex: /growth/i }
+    });
+    const noPlanCount = await User.countDocuments({
+      $or: [{ plan: '' }, { plan: null }]
+    });
+
+    // Top 10 spenders
+    const topSpenders = await Transaction.aggregate([
+      { $match: { status: 'completed' } },
+      { $group: { _id: '$user', totalSpent: { $sum: '$amount' }, transactions: { $sum: 1 } } },
+      { $sort: { totalSpent: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          totalSpent: 1,
+          transactions: 1,
+          'user.email': 1,
+          'user.name': 1,
+          'user.plan': 1
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        revenueByMonth,
+        signupsByMonth,
+        planDistribution: [
+          { name: 'Brand (₹799)', value: brandCount, color: '#6366f1' },
+          { name: 'Growth (₹2199)', value: growthCount, color: '#8b5cf6' },
+          { name: 'No Plan', value: noPlanCount, color: '#374151' }
+        ],
+        topSpenders
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching revenue analytics:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch analytics' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALL TRANSACTIONS (paginated)
+// ─────────────────────────────────────────────────────────────────────────────
+export const getTransactions = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || '';
+    const status = req.query.status || '';
+
+    const skip = (page - 1) * limit;
+
+    let matchStage = {};
+    if (status) matchStage.status = status;
+    if (search) matchStage.couponCode = { $regex: search, $options: 'i' };
+
+    // If searching by email we need a two-step approach
+    let userIds = [];
+    if (search && !search.startsWith('VEL') && !search.startsWith('WEL') && !search.startsWith('MEGA')) {
+      const matchedUsers = await User.find({
+        $or: [
+          { email: { $regex: search, $options: 'i' } },
+          { name: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id');
+      userIds = matchedUsers.map(u => u._id);
+      if (userIds.length > 0) {
+        matchStage = { ...matchStage, $or: [{ user: { $in: userIds } }, { couponCode: { $regex: search, $options: 'i' } }] };
+        delete matchStage.couponCode;
+      }
+    }
+
+    const total = await Transaction.countDocuments(matchStage);
+    const transactions = await Transaction.find(matchStage)
+      .populate('user', 'email name plan')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      success: true,
+      transactions,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    });
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch transactions' });
+  }
+};
+
+// Refund a transaction
+export const refundTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const txn = await Transaction.findById(id);
+    if (!txn) return res.status(404).json({ success: false, message: 'Transaction not found' });
+    txn.status = 'refunded';
+    await txn.save();
+    return res.status(200).json({ success: true, transaction: txn });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to refund transaction' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSTEM HEALTH
+// ─────────────────────────────────────────────────────────────────────────────
+export const getSystemHealth = async (req, res) => {
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.setHours(0, 0, 0, 0));
+    const weekStart = new Date(now.setDate(now.getDate() - 7));
+
+    // Total API calls today
+    const logsToday = await ApiLog.find({ createdAt: { $gte: todayStart } });
+    const totalCallsToday = logsToday.length;
+    const errorsToday = logsToday.filter(l => l.isError).length;
+    const errorRate = totalCallsToday > 0 ? ((errorsToday / totalCallsToday) * 100).toFixed(1) : '0.0';
+    const costToday = logsToday.reduce((acc, l) => acc + (l.costInCents || 0), 0) / 100;
+
+    // Provider breakdown
+    const providers = ['FAL', 'OPENAI', 'GOOGLE'];
+    const providerStats = {};
+    for (const p of providers) {
+      const pLogs = logsToday.filter(l => l.provider === p);
+      providerStats[p] = {
+        calls: pLogs.length,
+        errors: pLogs.filter(l => l.isError).length,
+        cost: (pLogs.reduce((a, l) => a + (l.costInCents || 0), 0) / 100).toFixed(2)
+      };
+    }
+
+    // Recent errors (last 10)
+    const recentErrors = await ApiLog.find({ isError: true })
+      .populate('user', 'email')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // All-time totals
+    const allLogsWeek = await ApiLog.find({ createdAt: { $gte: weekStart } });
+    const weekCost = allLogsWeek.reduce((acc, l) => acc + (l.costInCents || 0), 0) / 100;
+    const allTimeCalls = await ApiLog.countDocuments();
+    const allTimeErrors = await ApiLog.countDocuments({ isError: true });
+
+    return res.status(200).json({
+      success: true,
+      health: {
+        totalCallsToday,
+        errorsToday,
+        errorRate,
+        costToday,
+        weekCost,
+        allTimeCalls,
+        allTimeErrors,
+        providerStats,
+        recentErrors
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching system health:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch system health' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WAITLIST
+// ─────────────────────────────────────────────────────────────────────────────
+import Waitlist from '../models/Waitlist.js';
+
+export const getWaitlist = async (req, res) => {
+  try {
+    const search = req.query.search || '';
+    const query = search
+      ? { $or: [{ email: { $regex: search, $options: 'i' } }, { name: { $regex: search, $options: 'i' } }] }
+      : {};
+    const entries = await Waitlist.find(query).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, entries, total: entries.length });
+  } catch (error) {
+    console.error('Error fetching waitlist:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch waitlist' });
+  }
+};
+
+export const deleteWaitlistEntry = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const entry = await Waitlist.findByIdAndDelete(id);
+    if (!entry) return res.status(404).json({ success: false, message: 'Entry not found' });
+    return res.status(200).json({ success: true, message: 'Waitlist entry removed' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to delete entry' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOGGLE COUPON
+// ─────────────────────────────────────────────────────────────────────────────
+export const toggleCouponStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const coupon = await Coupon.findById(id);
+    if (!coupon) return res.status(404).json({ success: false, message: 'Coupon not found' });
+    coupon.isActive = !coupon.isActive;
+    await coupon.save();
+    return res.status(200).json({ success: true, coupon });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to toggle coupon' });
+  }
+};
+
