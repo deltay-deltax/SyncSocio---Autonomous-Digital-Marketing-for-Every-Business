@@ -267,7 +267,7 @@ const DashboardHome = () => {
                 <CardTitle className="text-base">Recent Agent Activity</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="px-6 pb-6 space-y-1 overflow-y-auto pr-2 scrollbar-hide flex-1 max-h-[380px]">
+            <CardContent className="px-6 pb-6 space-y-1 overflow-y-auto pr-2 scrollbar-hide flex-1">
               {data.activities?.map((a: any, i: number) => (
                 <motion.div
                   key={i}
