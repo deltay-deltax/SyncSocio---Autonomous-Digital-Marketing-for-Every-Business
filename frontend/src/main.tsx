@@ -5,18 +5,14 @@ import './index.css'
 import App from './App'
 import { GlobalErrorProvider } from './contexts/GlobalErrorContext'
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "1000000000000-placeholderid.apps.googleusercontent.com";
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <GlobalErrorProvider>
-      {googleClientId ? (
-        <GoogleOAuthProvider clientId={googleClientId}>
-          <App />
-        </GoogleOAuthProvider>
-      ) : (
+      <GoogleOAuthProvider clientId={googleClientId}>
         <App />
-      )}
+      </GoogleOAuthProvider>
     </GlobalErrorProvider>
   </StrictMode>,
 )
