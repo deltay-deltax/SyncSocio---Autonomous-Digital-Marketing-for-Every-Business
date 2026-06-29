@@ -510,7 +510,7 @@ const DashboardLayout = () => {
             className="w-9 h-9 object-contain shrink-0"
           />
           <div className="flex flex-col">
-            <span className="font-black text-lg tracking-tighter uppercase text-foreground leading-none">SyncSocio</span>
+            <span className="font-display text-2xl font-bold tracking-tight text-foreground leading-none">SyncSocio</span>
             <span className="text-[8px] font-bold text-primary tracking-[0.2em] leading-none uppercase mt-1">Agent as a Service</span>
           </div>
         </div>

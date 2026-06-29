@@ -8,9 +8,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const NAV_LINKS = [
   { label: "Home", href: "#" },
   { label: "Features", href: "#features" },
+  { label: "Creatives", href: "#creatives" },
   { label: "How it Works", href: "#how-it-works" },
   { label: "Auto DM", href: "#auto-dm" },
-  { label: "Creatives", href: "#creatives" },
   { label: "Channels", href: "#channels" },
   { label: "Pricing", href: "#pricing" },
 ];
@@ -61,15 +61,13 @@ const Navbar = () => {
       <div className="w-full max-w-5xl bg-white/95 backdrop-blur-md border border-white/60 rounded-full px-6 py-2.5 flex items-center justify-between shadow-lg relative">
         
         {/* Brand Logo & Name */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-foreground">
           <img
             src="/SyncSocioLogo.png"
             alt="SyncSocio Logo"
             className="w-6 h-6 object-contain shrink-0"
           />
-          <span className="font-display font-black tracking-wider text-[#0046C7] text-base">
-            SYNCSOCIO
-          </span>
+          <span>SyncSocio</span>
         </Link>
 
         {/* Desktop Links */}
