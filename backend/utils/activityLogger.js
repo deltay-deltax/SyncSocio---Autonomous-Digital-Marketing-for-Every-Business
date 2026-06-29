@@ -10,8 +10,13 @@ import AgentActivity from '../models/AgentActivity.js';
  */
 export const logActivity = async (userId, agentName, message, status = 'done', duration = null) => {
   try {
+    const User = (await import('../models/User.js')).default;
+    const userObj = await User.findById(userId).select('activeBrandId');
+    const brandId = userObj?.activeBrandId;
+
     await AgentActivity.create({
       user: userId,
+      brandId,
       agentName,
       message,
       status,

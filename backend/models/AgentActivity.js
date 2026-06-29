@@ -6,6 +6,11 @@ const agentActivitySchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  brandId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BrandProfile',
+    index: true
+  },
   agentName: {
     type: String,
     required: true // e.g., 'Engine', 'Strategist', 'Neural Pulse', 'G-Factor'

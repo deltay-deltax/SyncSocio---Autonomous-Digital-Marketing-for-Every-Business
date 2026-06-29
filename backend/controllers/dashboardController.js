@@ -206,8 +206,20 @@ export const getDashboardSummary = async (req, res) => {
       agentRecommendation = realMetrics.agentRecommendation || "Your strategic audit is running in the background. Check back soon for neural insights.";
     }
 
-    // Fetch real activities from DB
-    const dbActivities = await AgentActivity.find({ user: userId })
+    const defaultBrand = await BrandProfile.findOne({ user: userId }).sort({ createdAt: 1 });
+    const isDefaultBrand = defaultBrand && String(defaultBrand._id) === String(brandId);
+
+    // Fetch real activities from DB - scoped to active brand
+    let activityQuery = { user: userId };
+    if (brandId) {
+      if (isDefaultBrand) {
+        activityQuery.$or = [{ brandId }, { brandId: { $exists: false } }, { brandId: null }];
+      } else {
+        activityQuery.brandId = brandId;
+      }
+    }
+
+    const dbActivities = await AgentActivity.find(activityQuery)
       .sort({ timestamp: -1 })
       .limit(6);
     
@@ -221,10 +233,6 @@ export const getDashboardSummary = async (req, res) => {
           { message: 'Engine: Ready for content synthesis', status: 'done', time: 'Just now' },
           { message: 'Neural Pulse: Monitoring strategy trends', status: 'active', time: 'Just now' }
         ];
-
-    // Fetch workspace stats — scoped to the active brand
-    const defaultBrand = await BrandProfile.findOne({ user: userId }).sort({ createdAt: 1 });
-    const isDefaultBrand = defaultBrand && String(defaultBrand._id) === String(brandId);
 
     // Creatives: legacy records without brandId belong to default brand
     let creativesQuery = { user: userId };
