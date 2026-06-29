@@ -504,9 +504,11 @@ const DashboardLayout = () => {
       {/* Logo */}
       <div className="p-6">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <Zap size={18} fill="currentColor" className="text-white" />
-          </div>
+          <img
+            src="/SyncSocioLogo.png"
+            alt="SyncSocio Logo"
+            className="w-9 h-9 object-contain shrink-0"
+          />
           <div className="flex flex-col">
             <span className="font-black text-lg tracking-tighter uppercase text-foreground leading-none">SyncSocio</span>
             <span className="text-[8px] font-bold text-primary tracking-[0.2em] leading-none uppercase mt-1">Agent as a Service</span>

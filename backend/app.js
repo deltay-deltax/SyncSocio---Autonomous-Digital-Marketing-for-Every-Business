@@ -28,6 +28,8 @@ import { startPolling } from './services/commentPoller.js';
 
 // import { startStrategicPoller } from './utils/strategicPoller.js';
 import { startKeepAlivePoller } from './utils/keepAlivePoller.js';
+import { startMetricsPoller } from './services/metricsPoller.js';
+import { startInstagramScheduler } from './services/instagramScheduler.js';
 
 const app = express();
 
@@ -98,6 +100,10 @@ if (process.env.MONGO_URI) {
         // startStrategicPoller();
         // Start keep-alive pingers for Render free tier
         startKeepAlivePoller();
+        // Start Meta metrics background caching
+        startMetricsPoller();
+        // Start Instagram native scheduler background queue
+        startInstagramScheduler();
       });
     })
     .catch((err) => {

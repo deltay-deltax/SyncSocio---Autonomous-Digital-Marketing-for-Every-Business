@@ -621,108 +621,88 @@ def publisher_node(state: PostState) -> PostState:
             public_ids.append((upload_result["public_id"], resource_type))
             print(f"Cloudinary upload success: {upload_result['secure_url']}")
 
-        # 3. Create Media Containers
-        container_url = f"https://graph.facebook.com/v25.0/{ig_id}/media"
-        
-        if content_type == "carousel":
-            # Create individual items
-            item_ids = []
-            for url in asset_urls:
-                res = requests.post(container_url, data={
-                    "image_url": url,
-                    "is_carousel_item": "true",
+        # 3. Instagram Publishing
+        platforms = state.get("platforms", {})
+        if platforms.get("instagram", True):
+            if scheduled_time_unix:
+                print("[PUBLISHER] ⚠️ Instagram does not support native scheduling. Skipping IG publish here; the backend cron job will handle it.")
+            else:
+                container_url = f"https://graph.facebook.com/v25.0/{ig_id}/media"
+                
+                if content_type == "carousel":
+                    # Create individual items
+                    item_ids = []
+                    for url in asset_urls:
+                        res = requests.post(container_url, data={
+                            "image_url": url,
+                            "is_carousel_item": "true",
+                            "access_token": access_token
+                        }, timeout=30).json()
+                        if not res.get("id"):
+                            print(f"FAILED Carousel Item Response: {res}")
+                            raise ValueError(f"Carousel item failed: {res.get('error', {}).get('message', 'Unknown error')}")
+                        item_ids.append(res["id"])
+                    
+                    # Create Carousel Container
+                    carousel_data = {
+                        "media_type": "CAROUSEL",
+                        "children": ",".join(item_ids),
+                        "caption": caption,
+                        "access_token": access_token
+                    }
+                    carousel_res = requests.post(container_url, data=carousel_data, timeout=30).json()
+                    creation_id = carousel_res.get("id")
+                elif content_type == "reel":
+                    container_params = {
+                        "media_type": "REELS",
+                        "video_url": asset_urls[0],
+                        "caption": caption,
+                        "access_token": access_token
+                    }
+                    res = requests.post(container_url, data=container_params, timeout=30).json()
+                    creation_id = res.get("id")
+                else: # static
+                    container_params = {
+                        "image_url": asset_urls[0],
+                        "caption": caption,
+                        "access_token": access_token
+                    }
+                    res = requests.post(container_url, data=container_params, timeout=30).json()
+                    creation_id = res.get("id")
+
+                if not creation_id:
+                    raise ValueError(f"Failed to create main container: {res.get('error', {}).get('message', 'Unknown error')}")
+
+                print(f"Media container created: {creation_id}")
+
+                # 4. Wait for processing if Reel
+                if content_type == "reel":
+                    import time
+                    for _ in range(12): # Wait up to 60s
+                        time.sleep(5)
+                        status_res = requests.get(f"https://graph.facebook.com/v25.0/{creation_id}", params={
+                            "fields": "status_code",
+                            "access_token": access_token
+                        }, timeout=10).json()
+                        if status_res.get("status_code") == "FINISHED":
+                            break
+                        print(f"Processing Reel... {status_res.get('status_code')}")
+
+                # 5. Publish
+                publish_res = requests.post(f"https://graph.facebook.com/v25.0/{ig_id}/media_publish", data={
+                    "creation_id": creation_id,
                     "access_token": access_token
                 }, timeout=30).json()
-                if not res.get("id"):
-                    print(f"FAILED Carousel Item Response: {res}")
-                    raise ValueError(f"Carousel item failed: {res.get('error', {}).get('message', 'Unknown error')}")
-                item_ids.append(res["id"])
-            
-            # Create Carousel Container
-            carousel_data = {
-                "media_type": "CAROUSEL",
-                "children": ",".join(item_ids),
-                "caption": caption,
-                "access_token": access_token
-            }
-            if scheduled_time_unix:
-                carousel_data["scheduled_publish_time"] = scheduled_time_unix
-                
-            carousel_res = requests.post(container_url, data=carousel_data, timeout=30).json()
-            creation_id = carousel_res.get("id")
-        elif content_type == "reel":
-            container_params = {
-                "media_type": "REELS",
-                "video_url": asset_urls[0],
-                "caption": caption,
-                "access_token": access_token
-            }
-            if scheduled_time_unix:
-                container_params["scheduled_publish_time"] = scheduled_time_unix
-                
-            res = requests.post(container_url, data=container_params, timeout=30).json()
-            creation_id = res.get("id")
-        else: # static
-            container_params = {
-                "image_url": asset_urls[0],
-                "caption": caption,
-                "access_token": access_token
-            }
-            if scheduled_time_unix:
-                container_params["scheduled_publish_time"] = scheduled_time_unix
-                
-            res = requests.post(container_url, data=container_params, timeout=30).json()
-            creation_id = res.get("id")
 
-        if not creation_id:
-            print(f"FAILED Response from Meta: {res}")
-            # Fallback Logic: If scheduling is blocked (Whitelist error), retry as immediate post
-            if scheduled_time_unix and "whitelist" in str(res.get('error', {}).get('message', '')).lower():
-                print("[PUBLISHER] ⚠️ Scheduling blocked by whitelist. Falling back to immediate post...")
-                # Remove scheduling param and retry
-                if content_type == "carousel":
-                    carousel_data.pop("scheduled_publish_time", None)
-                    res = requests.post(container_url, data=carousel_data, timeout=30).json()
-                elif content_type == "reel":
-                    container_params.pop("scheduled_publish_time", None)
-                    res = requests.post(container_url, data=container_params, timeout=30).json()
-                else: # static
-                    container_params.pop("scheduled_publish_time", None)
-                    res = requests.post(container_url, data=container_params, timeout=30).json()
-                
-                creation_id = res.get("id")
-            
-            if not creation_id:
-                raise ValueError(f"Failed to create main container: {res.get('error', {}).get('message', 'Unknown error')}")
-
-        print(f"Media container created: {creation_id}")
-
-        # 4. Wait for processing if Reel
-        if content_type == "reel":
-            import time
-            for _ in range(12): # Wait up to 60s
-                time.sleep(5)
-                status_res = requests.get(f"https://graph.facebook.com/v25.0/{creation_id}", params={
-                    "fields": "status_code",
-                    "access_token": access_token
-                }, timeout=10).json()
-                if status_res.get("status_code") == "FINISHED":
-                    break
-                print(f"Processing Reel... {status_res.get('status_code')}")
-
-        # 5. Publish
-        publish_res = requests.post(f"https://graph.facebook.com/v25.0/{ig_id}/media_publish", data={
-            "creation_id": creation_id,
-            "access_token": access_token
-        }, timeout=30).json()
-
-        if publish_res.get("id"):
-            print(f"🚀 Published successfully! Post ID: {publish_res['id']}")
-            # Update state with IG info
-            state["ig_media_id"] = publish_res["id"]
-            state["permanent_url"] = asset_urls[0]
+                if publish_res.get("id"):
+                    print(f"🚀 Published successfully! Post ID: {publish_res['id']}")
+                    # Update state with IG info
+                    state["ig_media_id"] = publish_res["id"]
+                    state["permanent_url"] = asset_urls[0]
+                else:
+                    raise ValueError(f"Publish failed: {publish_res}")
         else:
-            raise ValueError(f"Publish failed: {publish_res}")
+            print("[PUBLISHER] Skipping Instagram publish based on platform preference.")
 
     except Exception as e:
         print(f"Publisher error: {str(e)}")

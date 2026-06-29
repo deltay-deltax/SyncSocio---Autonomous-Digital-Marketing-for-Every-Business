@@ -91,7 +91,7 @@ const CreativeShowcase = () => {
   const current = formats.find((f) => f.id === active)!;
 
   return (
-    <section className="relative py-28 sm:py-36 overflow-hidden">
+    <section id="creatives" className="relative py-28 sm:py-36 overflow-hidden">
       {/* Ambient gradients */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-32 left-1/3 w-[700px] h-[700px] rounded-full opacity-[0.10] blur-[160px] bg-primary" />

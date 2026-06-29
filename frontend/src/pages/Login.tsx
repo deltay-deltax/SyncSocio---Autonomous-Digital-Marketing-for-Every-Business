@@ -97,8 +97,9 @@ const Login = () => {
         <div className="absolute bottom-32 left-16 w-48 h-48 rounded-full opacity-[0.06] blur-3xl bg-primary" />
 
         <div className="relative z-10 max-w-md px-12">
-          <Link to="/" className="font-display text-2xl font-bold tracking-tight mb-10 block">
-            <span className="gradient-text">SyncSocio</span>
+          <Link to="/" className="flex items-center gap-2 font-display text-2xl font-bold tracking-tight mb-10">
+            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
+            <span className="text-foreground">SyncSocio</span>
           </Link>
 
           <h2 className="text-3xl font-extrabold leading-tight text-foreground mb-3">
@@ -171,8 +172,9 @@ const Login = () => {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <Link to="/" className="lg:hidden font-display text-2xl font-bold tracking-tight mb-8 block">
-            <span className="gradient-text">SyncSocio</span>
+          <Link to="/" className="lg:hidden flex items-center gap-2 font-display text-2xl font-bold tracking-tight mb-8">
+            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
+            <span className="text-foreground">SyncSocio</span>
           </Link>
 
           <h1 className="text-3xl font-bold mb-2">Sign in</h1>
