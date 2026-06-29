@@ -73,6 +73,16 @@ router.post('/', protect, async (req, res) => {
       `A new ${type} creative has been successfully added to your Asset Library.`
     );
 
+    const { logActivity } = await import('../utils/activityLogger.js');
+    const isVideo = type === 'video';
+    const agentName = isVideo ? 'Video Agent' : 'Creative Agent';
+    await logActivity(
+      req.user._id,
+      agentName,
+      `Saved new ${type} creative to Asset Library.`,
+      'done'
+    );
+
     res.status(201).json({ success: true, creative });
   } catch (err) {
     console.error('[StrategyAssets] Save error:', err);

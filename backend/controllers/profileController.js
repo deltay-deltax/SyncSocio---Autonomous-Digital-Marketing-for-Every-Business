@@ -62,6 +62,14 @@ export const createOrUpdateProfile = async (req, res) => {
       // Automatically set this brand as active
       await User.findByIdAndUpdate(req.user._id, { activeBrandId: profile._id });
       req.user.activeBrandId = profile._id;
+
+      // Create notification in the Notification Center
+      await createNotification(
+        req.user._id,
+        'success',
+        'Brand Profile Created',
+        `A new brand profile for ${profile.brandName} has been successfully added.`
+      );
     }
 
     if (req.body.gmailIsConnected === true) {

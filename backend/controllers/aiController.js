@@ -1,6 +1,7 @@
 import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
 import ContentCalendar from '../models/ContentCalendar.js';
+import { logActivity } from '../utils/activityLogger.js';
 
 export const generateStrategy = async (req, res) => {
   try {
@@ -40,6 +41,13 @@ export const generateStrategy = async (req, res) => {
       'success',
       'Strategy Synthesis Complete',
       `Your custom strategy for ${profile.brandName} has been generated successfully by the agent.`
+    );
+
+    await logActivity(
+      req.user._id,
+      'Creative Agent',
+      `Generated content strategy recommendations for ${profile.brandName}.`,
+      'done'
     );
 
     res.status(200).json(response.data);
@@ -83,6 +91,13 @@ export const regenerateStrategy = async (req, res) => {
       'success',
       'Strategy Regenerated',
       `Your strategy for ${profile.brandName} has been regenerated with new options.`
+    );
+
+    await logActivity(
+      req.user._id,
+      'Creative Agent',
+      `Regenerated custom content strategy for ${profile.brandName}.`,
+      'done'
     );
 
     res.status(200).json(response.data);
