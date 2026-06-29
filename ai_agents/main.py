@@ -1749,6 +1749,34 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_script=request.videoScript,
             )
 
+        # 3. Log the FAL API Cost to MongoDB (apilogs collection)
+        try:
+            apilogs_collection = db["apilogs"]
+            cost_in_cents = 0
+            endpoint = "fal-ai/gpt-image-2"
+            
+            if request.layout == "image":
+                cost_in_cents = len(posts) * 2  # Approx 2 cents per image
+            elif request.layout == "carousel":
+                cost_in_cents = len(posts) * request.slideCount * 1 # Approx 1 cent per slide
+            elif request.layout == "video":
+                cost_in_cents = len(posts) * 15 # Approx 15 cents per video
+                endpoint = "fal-ai/minimax/video-01"
+
+            apilog_doc = {
+                "user": ObjectId(request.userId),
+                "provider": "FAL",
+                "endpoint": endpoint,
+                "costInCents": cost_in_cents,
+                "isError": False,
+                "errorMessage": "",
+                "createdAt": datetime.now()
+            }
+            await apilogs_collection.insert_one(apilog_doc)
+            print(f"[StrategyImages] 💰 Logged API cost: {cost_in_cents} cents for {len(posts)} posts")
+        except Exception as log_err:
+            print(f"[StrategyImages] ⚠️ Failed to log API cost: {log_err}")
+
         return {"status": "success", "posts": posts, "count": len(posts)}
 
     except HTTPException:

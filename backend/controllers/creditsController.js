@@ -1,5 +1,10 @@
 import User from '../models/User.js';
+<<<<<<< Updated upstream
 import { logActivity } from '../utils/activityLogger.js';
+=======
+import Transaction from '../models/Transaction.js';
+import Coupon from '../models/Coupon.js';
+>>>>>>> Stashed changes
 
 // Credit amounts per plan tier (random within range)
 const PLAN_CREDITS = {
@@ -27,17 +32,47 @@ export const getCredits = async (req, res) => {
 // ─── ASSIGN credits (called from onboarding plan selection) ──────────
 export const assignCredits = async (req, res) => {
   try {
-    const { plan } = req.body;
+    const { plan, isDmEnabled, couponCode } = req.body;
     if (!plan) return res.status(400).json({ message: 'Plan is required.' });
 
     const range = PLAN_CREDITS[plan] || { min: 500, max: 800 };
     const creditsToAdd = randomInRange(range.min, range.max);
+
+    // Calculate billing amount (₹)
+    let basePrice = 999;
+    if (plan.includes('PRO')) basePrice = 1999;
+    if (plan.includes('Elite')) basePrice = 3999;
+    
+    let sum = basePrice + (isDmEnabled ? 399 : 0);
+    let discountPercentage = 0;
+    let discountAmount = 0;
+    
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim(), isActive: true });
+      if (coupon && (!coupon.expiryDate || new Date(coupon.expiryDate) > new Date())) {
+        discountPercentage = coupon.discountPercentage;
+        discountAmount = Math.floor((sum * discountPercentage) / 100);
+      }
+    }
+    
+    const finalAmount = sum - discountAmount;
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $inc: { credits: creditsToAdd }, $set: { plan } },
       { new: true, select: 'credits plan' }
     );
+
+    // Create a transaction record
+    await Transaction.create({
+      user: req.user._id,
+      plan: plan,
+      amount: finalAmount,
+      discountPercentage,
+      discountAmount,
+      couponCode: couponCode || '',
+      status: 'completed'
+    });
 
     return res.json({
       credits: user.credits,

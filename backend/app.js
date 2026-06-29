@@ -18,6 +18,8 @@ import strategyAssetRoutes from './routes/strategyAssetRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
 import creditsRoutes from './routes/creditsRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
@@ -65,6 +67,8 @@ app.use('/api/strategy-assets', strategyAssetRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/credits', creditsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/coupons', couponRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
@@ -105,3 +109,5 @@ if (process.env.MONGO_URI) {
     console.log(`Server running on port ${PORT} (No DB)`);
   });
 }
+
+export default app;

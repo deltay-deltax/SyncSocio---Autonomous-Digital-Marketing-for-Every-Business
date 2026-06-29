@@ -169,6 +169,10 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email: email?.toLowerCase().trim() });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    if (user.isBlocked) {
+      return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });
+    }
+
     if (!user.password) return res.status(400).json({ message: 'User uses OAuth to login. Please login using Google or Apple.' });
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -225,6 +229,9 @@ export const googleLogin = async (req, res) => {
     }
 
     let user = await User.findOne({ email });
+    if (user && user.isBlocked) {
+      return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });
+    }
     let isNewUser = false;
     if (!user) {
       user = await User.create({ name, email, googleId, isVerified: true });
@@ -308,6 +315,9 @@ export const appleLogin = async (req, res) => {
     }
     
     let user = await User.findOne({ email });
+    if (user && user.isBlocked) {
+      return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });
+    }
     let isNewUser = false;
     if (!user) {
       user = await User.create({ name, email, appleId, isVerified: true });
@@ -385,6 +395,10 @@ export const verifyOtp = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isBlocked) {
+      return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });
     }
 
     if (user.isVerified === true) {

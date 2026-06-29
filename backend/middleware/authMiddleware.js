@@ -27,6 +27,9 @@ export const protect = async (req, res, next) => {
       }
     }
 
+    if (req.user.isBlocked) {
+      return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });
+    }
     return next();
   } catch (error) {
     if (error?.name === 'TokenExpiredError') {

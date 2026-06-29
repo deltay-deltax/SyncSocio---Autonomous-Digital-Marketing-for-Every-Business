@@ -13,7 +13,7 @@
   "type": "module",
   "dependencies": {
     "apple-signin-auth": "^2.0.0",
-    "axios": "^1.15.0",
+    "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "cloudinary-core": "^2.14.1",

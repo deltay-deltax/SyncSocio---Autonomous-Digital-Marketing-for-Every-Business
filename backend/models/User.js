@@ -43,6 +43,14 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  totalCreditsPurchased: {
+    type: Number,
+    default: 0
+  },
+  totalCreditsConsumed: {
+    type: Number,
+    default: 0
+  },
   plan: {
     type: String,
     default: ''
@@ -50,6 +58,10 @@ const userSchema = new mongoose.Schema({
   activeBrandId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'BrandProfile'
+  },
+  isBlocked: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

@@ -207,11 +207,12 @@ router.post('/send-whatsapp', protect, async (req, res) => {
       return res.status(400).json({ message: 'Recipients and body are required' });
     }
 
-    const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
-    const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+    const profile = await BrandProfile.findOne({ user: req.user._id });
+    const WHATSAPP_ACCESS_TOKEN = profile?.whatsappAccessToken?.trim() || process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+    const WHATSAPP_PHONE_NUMBER_ID = profile?.whatsappPhoneId?.trim() || process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
 
     if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID || WHATSAPP_ACCESS_TOKEN === 'your_token_here') {
-      return res.status(500).json({ message: 'WhatsApp API credentials not configured in backend' });
+      return res.status(500).json({ message: 'WhatsApp API credentials not configured in your profile or backend' });
     }
 
     let mediaId = null;
@@ -256,7 +257,10 @@ router.post('/send-whatsapp', protect, async (req, res) => {
     }
 
     // Combine subject and body for the message
-    const messageText = subject ? `*${subject}*\n\n${body}` : body;
+    let messageText = subject ? `*${subject}* 🔸 ${body}` : body;
+    
+    // Meta API Rule: Template parameters ({{1}}) cannot contain newlines, tabs, or >4 consecutive spaces
+    messageText = messageText.replace(/[\r\n]+/g, '  🔸  ').replace(/\s{2,}/g, ' ').trim();
 
     const sendWithThrottle = async () => {
       for (let i = 0; i < recipients.length; i++) {
@@ -269,14 +273,33 @@ router.post('/send-whatsapp', protect, async (req, res) => {
         };
 
         if (mediaId) {
-          payload.type = 'image';
-          payload.image = {
-            id: mediaId,
-            caption: messageText
+          payload.type = 'template';
+          payload.template = {
+            name: 'custom_campaign_image',
+            language: { code: 'en_US' },
+            components: [
+              {
+                type: 'header',
+                parameters: [{ type: 'image', image: { id: mediaId } }]
+              },
+              {
+                type: 'body',
+                parameters: [{ type: 'text', text: messageText }]
+              }
+            ]
           };
         } else {
-          payload.type = 'text';
-          payload.text = { preview_url: true, body: messageText };
+          payload.type = 'template';
+          payload.template = {
+            name: 'custom_campaign_text',
+            language: { code: 'en_US' },
+            components: [
+              {
+                type: 'body',
+                parameters: [{ type: 'text', text: messageText }]
+              }
+            ]
+          };
         }
 
         try {
