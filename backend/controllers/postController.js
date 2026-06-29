@@ -167,12 +167,19 @@ export const directPublish = async (req, res) => {
 export const getPostHistory = async (req, res) => {
   try {
     const userId = req.user._id;
-    
     const brandId = req.user.activeBrandId;
-    const history = await PostAnalysis.find({
-      userId,
-      $or: [{ brandId }, { brandId: { $exists: false } }]
-    })
+    const BrandProfile = (await import('../models/BrandProfile.js')).default;
+    const defaultBrand = await BrandProfile.findOne({ user: userId }).sort({ createdAt: 1 });
+    const isDefaultBrand = defaultBrand && String(defaultBrand._id) === String(brandId);
+
+    let query = { userId };
+    if (isDefaultBrand) {
+      query.$or = [{ brandId }, { brandId: { $exists: false } }, { brandId: null }];
+    } else {
+      query.brandId = brandId;
+    }
+
+    const history = await PostAnalysis.find(query)
       .sort({ createdAt: -1 })
       .limit(50);
     

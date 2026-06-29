@@ -1,10 +1,7 @@
 import User from '../models/User.js';
-<<<<<<< Updated upstream
 import { logActivity } from '../utils/activityLogger.js';
-=======
 import Transaction from '../models/Transaction.js';
 import Coupon from '../models/Coupon.js';
->>>>>>> Stashed changes
 
 // Credit amounts per plan tier (random within range)
 const PLAN_CREDITS = {
