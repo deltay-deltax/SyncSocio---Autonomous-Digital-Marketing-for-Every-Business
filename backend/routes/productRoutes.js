@@ -12,10 +12,17 @@ const router = express.Router();
 router.get('/', protect, async (req, res) => {
   try {
     const brandId = req.user.activeBrandId;
-    const products = await Product.find({
-      user: req.user._id,
-      $or: [{ brandId }, { brandId: { $exists: false } }]
-    }).sort({ createdAt: -1 });
+    const BrandProfile = (await import('../models/BrandProfile.js')).default;
+    const defaultBrand = await BrandProfile.findOne({ user: req.user._id }).sort({ createdAt: 1 });
+
+    let query = { user: req.user._id };
+    if (defaultBrand && String(defaultBrand._id) === String(brandId)) {
+      query.$or = [{ brandId }, { brandId: { $exists: false } }];
+    } else {
+      query.brandId = brandId;
+    }
+
+    const products = await Product.find(query).sort({ createdAt: -1 });
     res.json({ success: true, products });
   } catch (err) {
     res.status(500).json({ error: err.message });

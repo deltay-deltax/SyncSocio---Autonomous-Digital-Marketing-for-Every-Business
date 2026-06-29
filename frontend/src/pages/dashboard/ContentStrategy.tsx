@@ -374,6 +374,7 @@ const DashboardStrategy = () => {
   // ── Profile
   const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
   const userId = profile.user || profile._id || 'default';
+  const brandId = profile._id || 'default';
   const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
 
   // ── SaaS / Services / Consulting mode detection
@@ -529,7 +530,7 @@ const DashboardStrategy = () => {
   };
 
   const fetchCreativeLibrary = async () => {
-    const cacheKey = `syncsocio_strategy_assets_${userId}`;
+    const cacheKey = `syncsocio_strategy_assets_${brandId}`;
     
     // 1. Try to load from IndexedDB cache first
     try {
@@ -1344,7 +1345,7 @@ const DashboardStrategy = () => {
         const data = await res.json();
         
         // Save to IndexedDB cache
-        const cacheKey = `syncsocio_strategy_assets_${userId}`;
+        const cacheKey = `syncsocio_strategy_assets_${brandId}`;
         try {
           const cached = await getCache(cacheKey) || [];
           cached.unshift(data.creative);
@@ -1354,7 +1355,7 @@ const DashboardStrategy = () => {
         }
 
         // LocalStorage fallback update
-        const keys = [ASSET_CACHE_KEY, `syncsocio_strategy_assets_${userId}`];
+        const keys = [ASSET_CACHE_KEY, `syncsocio_strategy_assets_${brandId}`];
         for (const key of keys) {
           try {
             const cached = JSON.parse(localStorage.getItem(key) || '[]');

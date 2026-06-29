@@ -18,6 +18,21 @@ const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
   </svg>
 );
 
+const GoogleIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+  </svg>
+);
+
+const WhatsAppIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12.004 2c-5.518 0-10 4.482-10 10 0 1.767.46 3.427 1.263 4.887L2 22l5.286-1.39A9.957 9.957 0 0 0 12.004 22c5.518 0 10-4.482 10-10s-4.482-10-10-10zm0 1.636c4.613 0 8.364 3.75 8.364 8.364 0 4.613-3.75 8.364-8.364 8.364a8.315 8.315 0 0 1-4.267-1.17l-.307-.183-3.167.832.846-3.087-.202-.32a8.32 8.32 0 0 1-1.269-4.436c0-4.613 3.75-8.364 8.364-8.364zm-3.52 3.393c-.198 0-.523.074-.796.371-.272.296-1.042 1.018-1.042 2.48 0 1.463 1.066 2.877 1.215 3.076.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.695.626.713.226 1.36.194 1.872.118.572-.085 1.603-.656 1.83-1.262.228-.605.228-1.123.16-1.233-.07-.11-.25-.181-.522-.317-.272-.136-1.61-.795-1.859-.885-.25-.09-.431-.136-.613.136-.182.273-.703.885-.862 1.068-.16.182-.318.204-.59.068-.272-.136-1.15-.424-2.19-1.353-.809-.722-1.355-1.616-1.514-1.888-.159-.272-.017-.42.12-.556.121-.122.27-.318.407-.477.136-.159.18-.273.272-.455.09-.182.045-.34-.023-.477-.07-.136-.613-1.477-.84-2.023-.223-.534-.488-.46-.67-.47l-.57-.01z"/>
+  </svg>
+);
+
 const iconMap: Record<string, any> = {
   TrendingUp: TrendingUp,
   Eye: Eye,
@@ -25,20 +40,27 @@ const iconMap: Record<string, any> = {
   Activity: Activity,
 };
 
-let cachedSummaryData: any = null;
+const summaryCache: Record<string, any> = {};
 
 const DashboardHome = () => {
   const { profile } = useOutletContext<{ profile: any }>() || {};
   const navigate = useNavigate();
-  const [data, setData] = useState<any>(cachedSummaryData);
-  const [loading, setLoading] = useState(!cachedSummaryData);
+  const brandId = profile?._id || 'default';
+  const [data, setData] = useState<any>(summaryCache[brandId] || null);
+  const [loading, setLoading] = useState(!summaryCache[brandId]);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-
-
   useEffect(() => {
     let isMounted = true;
+    // Reset data when brand switches
+    if (!summaryCache[brandId]) {
+      setData(null);
+      setLoading(true);
+    } else {
+      setData(summaryCache[brandId]);
+      setLoading(false);
+    }
 
     const fetchSummary = async () => {
       try {
@@ -49,7 +71,7 @@ const DashboardHome = () => {
         });
         if (res.ok && isMounted) {
           const summaryData = await res.json();
-          cachedSummaryData = summaryData;
+          summaryCache[brandId] = summaryData;
           setData(summaryData);
           setError(null);
         } else if (res.status === 401 && isMounted) {
@@ -60,7 +82,7 @@ const DashboardHome = () => {
         }
       } catch (err) {
         console.error('Failed to fetch summary:', err);
-        if (!cachedSummaryData && isMounted) setError('Connection failed');
+        if (!summaryCache[brandId] && isMounted) setError('Connection failed');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -77,7 +99,8 @@ const DashboardHome = () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [brandId]);
+
 
   if (loading && !data) {
      return (
@@ -308,55 +331,94 @@ const DashboardHome = () => {
                 <CardTitle className="text-base">Platform Connections</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="px-6 pb-6 space-y-3">
-              {/* Instagram API */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center text-white">
-                    <InstagramIcon size={14} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Instagram Graph API</p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">@{profile?.instagramUsername || 'connected'}</p>
-                  </div>
-                </div>
-                <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Active
-                </span>
-              </div>
+             <CardContent className="px-6 pb-6 space-y-3">
+               {/* Instagram API */}
+               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
+                 <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center text-white">
+                     <InstagramIcon size={14} />
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-foreground">Instagram Graph API</p>
+                     <p className="text-[9px] text-muted-foreground mt-0.5">
+                       {profile?.instagramIsConnected ? `@${profile.instagramUsername}` : 'Not Linked'}
+                     </p>
+                   </div>
+                 </div>
+                 {profile?.instagramIsConnected ? (
+                   <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
+                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Active
+                   </span>
+                 ) : (
+                   <Button 
+                     onClick={() => navigate('/dashboard/settings?tab=Connected%20Accounts')} 
+                     variant="outline" 
+                     size="sm" 
+                     className="h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-lg border-primary/20 text-primary hover:bg-primary/5"
+                   >
+                     Connect
+                   </Button>
+                 )}
+               </div>
 
-              {/* WhatsApp sandbox gateway */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-xs">
-                    WA
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">WhatsApp Sandbox</p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">Sandbox Campaign Gateway</p>
-                  </div>
-                </div>
-                <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Ready
-                </span>
-              </div>
+               {/* WhatsApp sandbox gateway */}
+               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
+                 <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
+                     <WhatsAppIcon size={14} />
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-foreground">WhatsApp Business API</p>
+                     <p className="text-[9px] text-muted-foreground mt-0.5">
+                       {profile?.whatsappIsConnected ? (profile.whatsappNumber || 'Connected') : 'Not Connected'}
+                     </p>
+                   </div>
+                 </div>
+                 {profile?.whatsappIsConnected ? (
+                   <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
+                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Ready
+                   </span>
+                 ) : (
+                   <Button 
+                     onClick={() => navigate('/dashboard/settings?tab=Connected%20Accounts')} 
+                     variant="outline" 
+                     size="sm" 
+                     className="h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-lg border-primary/20 text-primary hover:bg-primary/5"
+                   >
+                     Connect
+                   </Button>
+                 )}
+               </div>
 
-              {/* Email SMTP relay */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
-                    @
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Email SMTP Server</p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">smtp.gmail.com</p>
-                  </div>
-                </div>
-                <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Connected
-                </span>
-              </div>
-            </CardContent>
+               {/* Email SMTP relay */}
+               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 bg-card">
+                 <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-white">
+                     <GoogleIcon size={14} />
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-foreground">Gmail SMTP Relay</p>
+                     <p className="text-[9px] text-muted-foreground mt-0.5">
+                       {profile?.gmailIsConnected ? (profile.gmailEmail || 'Connected') : 'Not Connected'}
+                     </p>
+                   </div>
+                 </div>
+                 {profile?.gmailIsConnected ? (
+                   <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
+                     <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Connected
+                   </span>
+                 ) : (
+                   <Button 
+                     onClick={() => navigate('/dashboard/settings?tab=Connected%20Accounts')} 
+                     variant="outline" 
+                     size="sm" 
+                     className="h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-lg border-primary/20 text-primary hover:bg-primary/5"
+                   >
+                     Connect
+                   </Button>
+                 )}
+               </div>
+             </CardContent>
           </Card>
 
           {/* Top Post */}

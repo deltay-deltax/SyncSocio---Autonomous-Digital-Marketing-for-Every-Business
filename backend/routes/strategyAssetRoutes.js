@@ -76,12 +76,20 @@ router.post('/', protect, async (req, res) => {
 router.get('/', protect, async (req, res) => {
   try {
     const brandId = req.user.activeBrandId;
-    const creatives = await StrategyCreative.find({
-      user: req.user._id,
-      $or: [{ brandId }, { brandId: { $exists: false } }],
-      status: { $in: ['hearted', 'scheduled', 'posted'] },
-    }).sort({ createdAt: -1 });
+    const BrandProfile = (await import('../models/BrandProfile.js')).default;
+    const defaultBrand = await BrandProfile.findOne({ user: req.user._id }).sort({ createdAt: 1 });
 
+    let query = { 
+      user: req.user._id,
+      status: { $in: ['hearted', 'scheduled', 'posted'] }
+    };
+    if (defaultBrand && String(defaultBrand._id) === String(brandId)) {
+      query.$or = [{ brandId }, { brandId: { $exists: false } }];
+    } else {
+      query.brandId = brandId;
+    }
+
+    const creatives = await StrategyCreative.find(query).sort({ createdAt: -1 });
     res.json({ success: true, creatives });
   } catch (err) {
     console.error('[StrategyAssets] List error:', err);

@@ -192,7 +192,7 @@ export const recommendSchedulePosts = async (req, res) => {
     const BrandProfile = (await import('../models/BrandProfile.js')).default;
     const StrategyCreative = (await import('../models/StrategyCreative.js')).default;
 
-    const brandProfile = await BrandProfile.findOne({ user: userId });
+    const brandProfile = await BrandProfile.findOne({ user: userId, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: userId });
     if (!brandProfile) {
       return res.status(404).json({ message: 'Brand profile not found' });
     }
@@ -285,7 +285,7 @@ export const smartSchedulePosts = async (req, res) => {
     const StrategyCreative = (await import('../models/StrategyCreative.js')).default;
     const { writeCreativeToFiles } = await import('../utils/tempWriter.js');
 
-    const brandProfile = await BrandProfile.findOne({ user: userId });
+    const brandProfile = await BrandProfile.findOne({ user: userId, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: userId });
     if (!brandProfile) {
       return res.status(404).json({ message: 'Brand profile not found' });
     }

@@ -786,8 +786,11 @@ const DashboardSettings = () => {
                 </CardContent>
               </Card>
 
-              {/* Sticky save */}
-              <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/90 backdrop-blur-xl p-3 shadow-lg">
+              {/* Spacer to prevent content overlap */}
+              <div className="h-20" />
+
+              {/* Fixed save */}
+              <div className="fixed bottom-[73px] lg:bottom-0 left-0 lg:left-64 right-0 z-40 flex items-center justify-between gap-3 border-t border-border bg-background/95 backdrop-blur-xl px-6 py-4 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
                     <Sparkles size={13} className="text-white" />

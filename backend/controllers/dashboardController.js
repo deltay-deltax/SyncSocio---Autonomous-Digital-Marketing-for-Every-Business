@@ -29,12 +29,16 @@ const formatTimeAgo = (date) => {
 // Summary: Metrics and Activity Feed
 export const getDashboardSummary = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || req.user?._id;
+    const brandId = req.user?.activeBrandId;
     let fallbackToMock = true;
     let realMetrics = {};
 
     if (userId) {
-      const brandProfile = await BrandProfile.findOne({ user: userId });
+      // Use active brand profile, fall back to first brand
+      const brandProfile = brandId
+        ? (await BrandProfile.findOne({ user: userId, _id: brandId }) || await BrandProfile.findOne({ user: userId }))
+        : await BrandProfile.findOne({ user: userId });
       if (brandProfile && brandProfile.instagramAccessToken && brandProfile.instagramBusinessAccountId) {
         fallbackToMock = false;
         try {
@@ -218,11 +222,43 @@ export const getDashboardSummary = async (req, res) => {
           { message: 'Neural Pulse: Monitoring strategy trends', status: 'active', time: 'Just now' }
         ];
 
-    // Fetch workspace stats
-    const totalCreatives = await StrategyCreative.countDocuments({ user: userId });
-    const totalPosted = await StrategyCreative.countDocuments({ user: userId, status: { $in: ['posted', 'published'] } });
-    const totalProducts = await Product.countDocuments({ user: userId });
-    const totalFlows = await DMFlow.countDocuments({ user: userId });
+    // Fetch workspace stats — scoped to the active brand
+    const defaultBrand = await BrandProfile.findOne({ user: userId }).sort({ createdAt: 1 });
+    const isDefaultBrand = defaultBrand && String(defaultBrand._id) === String(brandId);
+
+    // Creatives: legacy records without brandId belong to default brand
+    let creativesQuery = { user: userId };
+    if (brandId) {
+      if (isDefaultBrand) {
+        creativesQuery.$or = [{ brandId }, { brandId: { $exists: false } }, { brandId: null }];
+      } else {
+        creativesQuery.brandId = brandId;
+      }
+    }
+    const totalCreatives = await StrategyCreative.countDocuments(creativesQuery);
+    const totalPosted = await StrategyCreative.countDocuments({ ...creativesQuery, status: { $in: ['posted', 'published'] } });
+
+    // Products: same fallback logic
+    let productsQuery = { user: userId };
+    if (brandId) {
+      if (isDefaultBrand) {
+        productsQuery.$or = [{ brandId }, { brandId: { $exists: false } }, { brandId: null }];
+      } else {
+        productsQuery.brandId = brandId;
+      }
+    }
+    const totalProducts = await Product.countDocuments(productsQuery);
+
+    // DM Flows: brand-scoped
+    let flowsQuery = { user: userId };
+    if (brandId) {
+      if (isDefaultBrand) {
+        flowsQuery.$or = [{ brandId }, { brandId: { $exists: false } }, { brandId: null }];
+      } else {
+        flowsQuery.brandId = brandId;
+      }
+    }
+    const totalFlows = await DMFlow.countDocuments(flowsQuery);
 
     const workspaceStats = {
       totalCreatives,
