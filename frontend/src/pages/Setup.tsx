@@ -7,9 +7,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useRazorpay } from '../hooks/useRazorpay';
+import { Checkout } from '@/components/Checkout';
 
 // ─── Types ───────────────────────────────────────────────────────────
-type Screen = 'checklist' | 'instagram' | 'plan' | 'activation';
+type Screen = 'checklist' | 'instagram' | 'plan' | 'checkout' | 'activation';
 
 interface Plan {
   name: string;
@@ -169,6 +170,8 @@ const Setup = () => {
     const stepParam = searchParams.get('step');
     return stepParam === '1' ? 'instagram' : 'checklist';
   });
+  const [igConnectStage, setIgConnectStage] = useState<'initial' | 'connecting' | 'success' | 'failed'>('initial');
+  const [selectedPlanAmount, setSelectedPlanAmount] = useState<number>(0);
   const { toast } = useToast();
   const isRazorpayLoaded = useRazorpay();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -190,7 +193,7 @@ const Setup = () => {
   const [warningPlan, setWarningPlan] = useState<string | null>(null);
   const [activationStep, setActivationStep] = useState(0);
   const [onboardingData, setOnboardingData] = useState<any>(null);
-  const [pendingSync, setPendingSync] = useState<any>(null);
+  const [syncData, setSyncData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Coupon Checkout State
@@ -300,6 +303,25 @@ const Setup = () => {
     }
   };
 
+  const proceedToCheckout = (planName: string, syncDataToApply?: any) => {
+    let currentPrice = planName === 'Growth' ? 2199 : 799;
+    if (appliedCoupon) {
+      const discount = appliedCoupon.discountPercentage;
+      currentPrice = Math.round(currentPrice * (1 - discount / 100));
+    }
+    
+    if (syncDataToApply) setSyncData(syncDataToApply);
+    setSelectedPlanAmount(currentPrice);
+    setSelectedPlan(planName);
+    setScreen('checkout');
+  };
+
+  const handleCheckoutSuccess = (verifyData: any) => {
+    const isDmEnabled = localStorage.getItem('syncsocio_dm_automation') === 'true';
+    localStorage.setItem('syncsocio_dm_automation', dmToggles[selectedPlan!] ? 'true' : 'false');
+    setScreen('activation');
+  };
+
   // Load onboarding data and determine recommendation
   useEffect(() => {
     const stored = localStorage.getItem('syncsocio_profile');
@@ -323,100 +345,40 @@ const Setup = () => {
     }
   }, []);
 
-  const processPayment = async (planName: string, syncDataToApply: any = null) => {
-    if (!isRazorpayLoaded) {
-      toast({ title: "Error", description: "Payment gateway is loading. Please try again.", variant: "destructive" });
+  const handleSelectPlan = (plan: Plan) => {
+    if (!onboardingData) {
+      proceedToCheckout(plan.name);
       return;
     }
+    const currentFreq = onboardingData.postingFrequency;
+    const currentTypes = onboardingData.contentTypes || [];
+    const hasReels = currentTypes.includes('Reels');
 
-    const planData = plans.find(p => p.name === planName);
-    if (!planData) return;
+    let issues = [];
+    let sync: any = {};
 
-    const isDmEnabled = dmToggles[planName];
-    const basePrice = parseInt(planData.price.replace('₹', ''));
-    let currentPrice = basePrice + (isDmEnabled ? 399 : 0);
-    const discount = appliedCoupon ? appliedCoupon.discountPercentage : 0;
-    if (discount > 0) {
-      currentPrice = Math.round(currentPrice * (1 - discount / 100));
+    if (plan.name === 'Starter') {
+      if (currentFreq === 'Daily') {
+        issues.push('Frequency will be reduced to 3-4x/wk');
+        sync.postingFrequency = '3-4x / wk';
+      }
+      if (hasReels) {
+        issues.push('Reels will be disabled');
+        sync.contentTypes = currentTypes.filter((t: string) => t !== 'Reels');
+      }
     }
 
-    setIsProcessingPayment(true);
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      
-      const orderRes = await fetch(`${API_BASE}/payment/create-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ amount: currentPrice })
-      });
-      
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.message || 'Failed to create order');
-
-      const options = {
-        key: orderData.key_id,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
-        name: "SyncSocio",
-        description: `Subscription: ${planName} Plan`,
-        order_id: orderData.order.id,
-        handler: async (response: any) => {
-          try {
-            const verifyRes = await fetch(`${API_BASE}/payment/verify`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              })
-            });
-
-            const verifyData = await verifyRes.json();
-            if (!verifyRes.ok) throw new Error(verifyData.message || 'Payment verification failed');
-
-            localStorage.setItem('syncsocio_dm_automation', isDmEnabled ? 'true' : 'false');
-            if (syncDataToApply) setSyncData(syncDataToApply);
-            setSelectedPlan(planName);
-            setScreen('activation');
-          } catch (err: any) {
-             toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
-          } finally {
-             setIsProcessingPayment(false);
-          }
-        },
-        prefill: { name: "User", email: "user@example.com" },
-        theme: { color: "#4f46e5" },
-        modal: {
-          ondismiss: () => {
-            setIsProcessingPayment(false);
-            toast({ title: "Payment Cancelled", description: "You closed the payment modal." });
-          }
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', (response: any) => {
-        setIsProcessingPayment(false);
-        toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" });
-      });
-      rzp.open();
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-      setIsProcessingPayment(false);
+    if (issues.length > 0) {
+      setSyncData(sync);
+      setWarningPlan(plan.name);
+    } else {
+      proceedToCheckout(plan.name);
     }
-  };
-
-  const handleSelectPlan = (plan: Plan) => {
-    processPayment(plan.name);
   };
 
   const handleToggle = (planName: string) => {
     setDmToggles(prev => ({ ...prev, [planName]: !prev[planName] }));
   };
-
-  const [syncData, setSyncData] = useState<any>(null);
 
   const igConnected = screen === 'plan' || screen === 'activation';
   const planChosen = screen === 'activation';
@@ -833,7 +795,74 @@ const Setup = () => {
         })}
         </div>
 
+        {/* Plan Drift Warning Overlay */}
+        <AnimatePresence>
+          {warningPlan && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md"
+            >
+              <motion.div 
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                className="max-w-sm w-full glass-card rounded-[2.5rem] p-8 shadow-2xl border-amber-500/20"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
+                  <AlertTriangle className="text-amber-500" size={28} />
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-foreground">Sync Preferences?</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-6">
+                  Picking <span className="font-bold text-foreground">{warningPlan}</span> will adjust your onboarding preferences (Frequency/Formats) to fit this plan's limitations.
+                </p>
+                <div className="space-y-3">
+                  <Button 
+                    className="w-full gradient-bg text-white h-12 rounded-xl text-xs font-bold"
+                    onClick={() => {
+                      if (warningPlan) {
+                        proceedToCheckout(warningPlan, syncData);
+                        setWarningPlan(null);
+                      }
+                    }}
+                    disabled={isProcessingPayment}
+                  >
+                    {isProcessingPayment ? 'Processing...' : 'Auto-Sync & Activate'}
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full h-11 text-xs font-bold text-muted-foreground"
+                    onClick={() => {
+                      setWarningPlan(null);
+                      setSyncData(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Wrapper>
+    );
+  }
 
+  // ════════════════════════════════════════════════════════════════════
+  // SCREEN 3.5 — CHECKOUT
+  // ════════════════════════════════════════════════════════════════════
+  if (screen === 'checkout') {
+    return (
+      <Wrapper screenKey="checkout">
+        <Checkout
+          baseAmount={selectedPlanAmount}
+          description={`Subscription: ${selectedPlan} Plan`}
+          type="plan_purchase"
+          planName={selectedPlan || ''}
+          creditsAdded={selectedPlan === 'Growth' ? 3000 : 1000}
+          onSuccess={handleCheckoutSuccess}
+          onBack={() => setScreen('plan')}
+        />
       </Wrapper>
     );
   }

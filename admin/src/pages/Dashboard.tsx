@@ -209,7 +209,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-500 bg-clip-text text-transparent">
             Platform Overview
           </h2>
           <p className="text-muted-foreground mt-1">Real-time statistics, SaaS billing performance, and user activity metrics.</p>
@@ -251,7 +251,7 @@ export default function Dashboard() {
           <button
             key={qa.label}
             onClick={() => navigate(qa.to)}
-            className={`flex items-center gap-2.5 px-4 py-3 bg-card border border-border rounded-xl text-sm font-medium text-foreground hover:border-${qa.color}-500/40 hover:bg-${qa.color}-500/5 transition-all group`}
+            className={`flex items-center gap-2.5 px-4 py-3 glass-card rounded-xl text-sm font-medium text-foreground hover:border-${qa.color}-500/40 hover:bg-${qa.color}-500/10 transition-all group hover-lift`}
           >
             <qa.icon size={16} className={`text-${qa.color}-400`} />
             {qa.label}
@@ -260,11 +260,11 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Grid with Sparklines */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {kpis.map((kpi) => (
           <div
             key={kpi.label}
-            className={`bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between ${kpi.borderHover} transition-all`}
+            className={`glass-card rounded-2xl p-6 flex flex-col justify-between ${kpi.borderHover} transition-all hover-lift`}
           >
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-muted-foreground">{kpi.label}</h3>
@@ -284,8 +284,8 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Transactions Table */}
-      <div className="mt-4 bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-border flex items-center justify-between">
+      <div className="mt-4 glass-card rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-border/50 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-foreground">Recent SaaS Transactions</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Latest subscription purchases. Auto-refreshes every 60s.</p>

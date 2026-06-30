@@ -86,9 +86,10 @@ export const getMetrics = async (req, res) => {
       const users = await User.find();
       for (const user of users) {
         if (user.plan && user.plan !== '') {
-          // Determine base price — Brand=799, Growth=2199
+          // Determine base price — Starter=799, Elite=2199
           let basePrice = 799;
-          if (user.plan.toLowerCase().includes('growth')) basePrice = 2199;
+          const pl = user.plan.toLowerCase();
+          if (pl.includes('growth') || pl.includes('elite') || pl.includes('pro')) basePrice = 2199;
 
           // Check if DM is enabled
           const brandProfile = await BrandProfile.findOne({ user: user._id });
@@ -155,8 +156,9 @@ export const getMetrics = async (req, res) => {
     let mrr = 0;
     activePaidUsers.forEach(u => {
       if (!u.plan) return;
-      if (u.plan.toLowerCase().includes('growth')) mrr += 2199;
-      else mrr += 799; // Brand plan
+      const pl = u.plan.toLowerCase();
+      if (pl.includes('growth') || pl.includes('elite') || pl.includes('pro')) mrr += 2199;
+      else mrr += 799; // Starter/Brand plan
     });
 
     const activeCoupons = await Coupon.countDocuments({ isActive: true });
@@ -656,13 +658,13 @@ export const getRevenueAnalytics = async (req, res) => {
       { $sort: { '_id.year': 1, '_id.month': 1 } }
     ]);
 
-    // Plan distribution — Brand vs Growth (no free plan)
+    // Plan distribution — Starter vs Elite (no free plan)
     const brandCount = await User.countDocuments({
-      plan: { $regex: /brand/i, $ne: null },
+      plan: { $regex: /brand|starter/i, $ne: null },
       $and: [{ plan: { $ne: '' } }]
     });
     const growthCount = await User.countDocuments({
-      plan: { $regex: /growth/i }
+      plan: { $regex: /growth|elite/i }
     });
     const noPlanCount = await User.countDocuments({
       $or: [{ plan: '' }, { plan: null }]
@@ -701,8 +703,8 @@ export const getRevenueAnalytics = async (req, res) => {
         revenueByMonth,
         signupsByMonth,
         planDistribution: [
-          { name: 'Brand (₹799)', value: brandCount, color: '#6366f1' },
-          { name: 'Growth (₹2199)', value: growthCount, color: '#8b5cf6' },
+          { name: 'Starter (₹799)', value: brandCount, color: '#6366f1' },
+          { name: 'Elite (₹2199)', value: growthCount, color: '#8b5cf6' },
           { name: 'No Plan', value: noPlanCount, color: '#374151' }
         ],
         topSpenders

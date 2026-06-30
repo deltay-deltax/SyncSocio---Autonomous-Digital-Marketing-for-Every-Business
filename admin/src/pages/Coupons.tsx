@@ -143,7 +143,7 @@ export default function Coupons() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Create Form */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-fit">
+        <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm h-fit">
           <div className="flex items-center gap-2 border-b border-border pb-4 mb-6">
             <Ticket className="text-blue-500" size={20} />
             <h3 className="text-lg font-bold text-foreground">Create Coupon Code</h3>
@@ -156,7 +156,7 @@ export default function Coupons() {
               </label>
               <input
                 type="text"
-                placeholder="e.g. VELOCITY50"
+                placeholder="e.g. SYNCSOCIO50"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm uppercase font-mono tracking-wider"
@@ -224,7 +224,7 @@ export default function Coupons() {
         </div>
 
         {/* Coupons Table */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-2xl shadow-sm overflow-hidden h-fit">
+        <div className="lg:col-span-2 glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden h-fit">
           <div className="px-6 py-5 border-b border-border">
             <h3 className="text-lg font-bold text-foreground">All Promo Codes</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Manage visibility and lifecycle of all coupon codes.</p>

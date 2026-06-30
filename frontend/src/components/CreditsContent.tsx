@@ -179,7 +179,7 @@ export const CreditsContent = () => {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Brand Plan (200 Cr)
+            Starter Plan (200 Cr)
           </button>
           <button
             onClick={() => setActiveTab('growth')}
@@ -190,7 +190,7 @@ export const CreditsContent = () => {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Growth Plan (700 Cr)
+            Elite Plan (700 Cr)
           </button>
         </div>
 
@@ -347,11 +347,11 @@ export const CreditsContent = () => {
           </div>
           <div className="divide-y divide-border/40">
             <div className="grid grid-cols-2 p-4">
-              <div className="font-bold text-foreground">Brand</div>
+              <div className="font-bold text-foreground">Starter</div>
               <div className="text-right font-mono font-bold text-primary">200 Credits</div>
             </div>
             <div className="grid grid-cols-2 p-4">
-              <div className="font-bold text-foreground">Growth</div>
+              <div className="font-bold text-foreground">Elite</div>
               <div className="text-right font-mono font-bold text-primary">700 Credits</div>
             </div>
           </div>

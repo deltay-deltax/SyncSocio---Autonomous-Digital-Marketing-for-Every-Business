@@ -103,7 +103,7 @@ export default function SystemHealth() {
           <button
             onClick={() => fetchHealth(true)}
             disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-sm hover:bg-muted/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 glass-card border border-transparent rounded-xl text-sm hover:bg-muted/20 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -141,7 +141,7 @@ export default function SystemHealth() {
           { label: 'Cost Today', value: `$${(health?.costToday ?? 0).toFixed(2)}`, icon: Zap, color: 'violet', sub: `$${(health?.weekCost ?? 0).toFixed(2)} this week` },
           { label: 'Total All-Time', value: health?.allTimeCalls?.toLocaleString() ?? 0, icon: TrendingUp, color: 'emerald', sub: `${health?.allTimeErrors ?? 0} total errors` },
         ].map((kpi) => (
-          <div key={kpi.label} className={`bg-card border border-border rounded-2xl p-5 hover:border-${kpi.color}-500/30 transition-all`}>
+          <div key={kpi.label} className={`glass-card border border-transparent rounded-2xl p-5 hover:border-${kpi.color}-500/30 transition-all`}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
               <div className={`p-2 bg-${kpi.color}-500/10 rounded-lg`}>
@@ -157,7 +157,7 @@ export default function SystemHealth() {
       </div>
 
       {/* Provider Breakdown */}
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+      <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm">
         <h3 className="text-lg font-bold text-foreground mb-5">Provider Breakdown (Today)</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {['FAL', 'CLAUDE', 'OPENAI', 'OTHER'].map((provider) => {
@@ -190,7 +190,7 @@ export default function SystemHealth() {
       </div>
 
       {/* Recent Errors */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-foreground">Recent API Errors</h3>
