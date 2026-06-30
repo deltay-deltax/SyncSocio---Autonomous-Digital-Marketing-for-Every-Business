@@ -113,7 +113,7 @@ const DashboardSettings = () => {
   const [activeTab, setActiveTab] = useState('Brand Profile');
   const [brands, setBrands] = useState<any[]>([]);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
-  const { isLoaded: razorpayLoaded } = useRazorpay();
+  const razorpayLoaded = useRazorpay();
 
   const fetchBrands = async () => {
     try {
