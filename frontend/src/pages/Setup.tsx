@@ -307,7 +307,7 @@ const Setup = () => {
   };
 
   const proceedToCheckout = (planName: string, syncDataToApply?: any) => {
-    let currentPrice = planName === 'Growth' ? 1899 : 599;
+    let currentPrice = planName === 'Elite' ? 1899 : 599;
     if (appliedCoupon) {
       const discount = appliedCoupon.discountPercentage;
       currentPrice = Math.round(currentPrice * (1 - discount / 100));
