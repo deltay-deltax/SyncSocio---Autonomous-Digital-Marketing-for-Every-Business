@@ -56,7 +56,7 @@ export default function Brands() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {brands.map((brand) => (
-          <div key={brand._id} className="bg-card border border-border rounded-2xl p-6 shadow-sm hover:border-blue-500/30 transition-all flex flex-col justify-between">
+          <div key={brand._id} className="glass-card border border-transparent rounded-2xl p-6 shadow-sm hover:border-blue-500/30 transition-all flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-blue-500/10 rounded-xl">

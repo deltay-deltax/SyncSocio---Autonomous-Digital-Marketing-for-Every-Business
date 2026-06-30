@@ -55,9 +55,21 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  planExpiresAt: {
+    type: Date,
+    required: false
+  },
   activeBrandId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'BrandProfile'
+  },
+  billingAddress: {
+    fullName: String,
+    email: String,
+    streetAddress: String,
+    city: String,
+    postalCode: String,
+    country: { type: String, default: 'India' }
   },
   isBlocked: {
     type: Boolean,

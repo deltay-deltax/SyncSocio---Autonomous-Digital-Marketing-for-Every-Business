@@ -468,7 +468,7 @@ export default function UserDetails() {
         
         {/* Tab 1: General Info */}
         {activeTab === 'general' && (
-          <form onSubmit={handleUserSave} className="space-y-6 max-w-2xl bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <form onSubmit={handleUserSave} className="space-y-6 max-w-2xl glass-card border border-transparent rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-3 border-b border-border pb-4 mb-4">
               <User className="text-blue-400" size={20} />
               <h3 className="text-lg font-semibold text-foreground">Core User Profile Info</h3>
@@ -561,7 +561,7 @@ export default function UserDetails() {
         {activeTab === 'brand' && (
           <form onSubmit={handleBrandSave} className="space-y-8 max-w-4xl">
             {/* Core Brand Details */}
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm space-y-6">
               <div className="flex items-center gap-3 border-b border-border pb-4">
                 <Award className="text-blue-400" size={20} />
                 <h3 className="text-lg font-semibold text-foreground">Brand Profile Settings</h3>
@@ -724,7 +724,7 @@ export default function UserDetails() {
             </div>
 
             {/* Social & Channel Connections */}
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm space-y-6">
               <div className="flex items-center gap-3 border-b border-border pb-4">
                 <Layers className="text-blue-400" size={20} />
                 <h3 className="text-lg font-semibold text-foreground">Integrations & Credentials Override</h3>
@@ -889,7 +889,7 @@ export default function UserDetails() {
 
             <div className="grid grid-cols-1 gap-6">
               {flows.map((flow) => (
-                <div key={flow._id} className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
+                <div key={flow._id} className="glass-card border border-transparent rounded-2xl p-5 shadow-sm space-y-4">
                   {editingFlowId === flow._id ? (
                     /* Edit Flow Sub-form */
                     <div className="space-y-4">
@@ -1055,7 +1055,7 @@ export default function UserDetails() {
               ))}
 
               {flows.length === 0 && (
-                <div className="text-center py-10 bg-card border border-border rounded-2xl text-muted-foreground text-sm">
+                <div className="text-center py-10 glass-card border border-transparent rounded-2xl text-muted-foreground text-sm">
                   This user has no automation flows configured yet.
                 </div>
               )}
@@ -1076,7 +1076,7 @@ export default function UserDetails() {
 
             <div className="grid grid-cols-1 gap-6">
               {assets.map((asset) => (
-                <div key={asset._id} className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
+                <div key={asset._id} className="glass-card border border-transparent rounded-2xl p-5 shadow-sm space-y-4">
                   {editingAssetId === asset._id ? (
                     /* Edit Asset Sub-form */
                     <div className="space-y-4">
@@ -1253,7 +1253,7 @@ export default function UserDetails() {
               ))}
 
               {assets.length === 0 && (
-                <div className="text-center py-10 bg-card border border-border rounded-2xl text-muted-foreground text-sm">
+                <div className="text-center py-10 glass-card border border-transparent rounded-2xl text-muted-foreground text-sm">
                   This user has no generated landing pages.
                 </div>
               )}

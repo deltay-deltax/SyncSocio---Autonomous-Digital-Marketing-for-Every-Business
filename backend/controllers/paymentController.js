@@ -1,12 +1,15 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import Transaction from '../models/Transaction.js';
+import User from '../models/User.js';
+import BrandProfile from '../models/BrandProfile.js';
 
 export const createOrder = async (req, res) => {
   try {
-    const { amount, currency = 'INR', receipt } = req.body;
+    const { amount, currency = 'INR', receipt, type, plan, creditsAdded } = req.body;
 
-    if (!amount) {
-      return res.status(400).json({ message: 'Amount is required' });
+    if (!amount || !type) {
+      return res.status(400).json({ message: 'Amount and type are required' });
     }
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -31,6 +34,17 @@ export const createOrder = async (req, res) => {
       return res.status(500).json({ message: 'Failed to create order' });
     }
 
+    // Create pending transaction in DB
+    await Transaction.create({
+      user: req.user._id,
+      amount,
+      type,
+      plan: plan || '',
+      creditsAdded: creditsAdded || 0,
+      razorpayOrderId: order.id,
+      status: 'pending'
+    });
+
     res.status(200).json({
       success: true,
       order,
@@ -44,7 +58,7 @@ export const createOrder = async (req, res) => {
 
 export const verifyPayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, billingAddress } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ message: 'Payment details are missing' });
@@ -58,12 +72,87 @@ export const verifyPayment = async (req, res) => {
 
     if (razorpay_signature === expectedSign) {
       // Payment is verified successfully
-      return res.status(200).json({ success: true, message: 'Payment verified successfully' });
+      const transaction = await Transaction.findOne({ razorpayOrderId: razorpay_order_id });
+      if (!transaction) {
+        return res.status(404).json({ success: false, message: 'Transaction not found in database' });
+      }
+
+      transaction.status = 'completed';
+      transaction.razorpayPaymentId = razorpay_payment_id;
+      await transaction.save();
+
+      const user = await User.findById(transaction.user);
+      if (user) {
+        if (transaction.type === 'topup') {
+          user.credits = (user.credits || 0) + transaction.creditsAdded;
+          user.totalCreditsPurchased = (user.totalCreditsPurchased || 0) + transaction.creditsAdded;
+        } else if (transaction.type === 'plan_purchase' || transaction.type === 'plan_renewal') {
+          user.plan = transaction.plan;
+          user.credits = (user.credits || 0) + transaction.creditsAdded;
+          user.totalCreditsPurchased = (user.totalCreditsPurchased || 0) + transaction.creditsAdded;
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + 30);
+          user.planExpiresAt = expiry;
+        } else if (transaction.type === 'plan_upgrade') {
+          user.plan = transaction.plan;
+          user.credits = (user.credits || 0) + transaction.creditsAdded;
+          user.totalCreditsPurchased = (user.totalCreditsPurchased || 0) + transaction.creditsAdded;
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + 30);
+          user.planExpiresAt = expiry;
+        }
+        
+        // Auto-update active brand profile plan
+        if (transaction.type === 'plan_purchase' || transaction.type === 'plan_renewal' || transaction.type === 'plan_upgrade') {
+          const brandQuery = user.activeBrandId ? { _id: user.activeBrandId } : { user: user._id };
+          const brandProfile = await BrandProfile.findOne(brandQuery);
+          if (brandProfile) {
+            brandProfile.selectedPlan = transaction.plan;
+            brandProfile.isPaid = true;
+            if (transaction.type === 'plan_upgrade') {
+              brandProfile.DM_Automation_Service = true;
+            }
+            await brandProfile.save();
+          }
+        }
+        
+        if (billingAddress) {
+          user.billingAddress = billingAddress;
+        }
+
+        await user.save();
+        return res.status(200).json({ 
+           success: true, 
+           message: 'Payment verified and applied',
+           credits: user.credits,
+           plan: user.plan,
+           planExpiresAt: user.planExpiresAt
+        });
+      }
+
+      return res.status(200).json({ success: true, message: 'Payment verified but user not found' });
     } else {
+      // Mark transaction as failed
+      const transaction = await Transaction.findOne({ razorpayOrderId: razorpay_order_id });
+      if (transaction) {
+         transaction.status = 'failed';
+         transaction.razorpayPaymentId = razorpay_payment_id;
+         await transaction.save();
+      }
       return res.status(400).json({ success: false, message: 'Invalid payment signature' });
     }
   } catch (error) {
     console.error('Error in verifyPayment:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+};
+
+export const getPaymentHistory = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, transactions });
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };

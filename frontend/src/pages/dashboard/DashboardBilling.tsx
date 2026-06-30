@@ -2,12 +2,15 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { Check, BotMessageSquare, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useOutletContext } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { Checkout } from "@/components/Checkout";
 
 const plans = [
   {
     name: "Starter",
-    basePrice: 799,
+    basePrice: 599,
+    originalPrice: 999,
     period: "/month",
     description: "Ideal for businesses getting started with visual marketing.",
     features: [
@@ -27,7 +30,8 @@ const plans = [
   },
   {
     name: "Elite",
-    basePrice: 2199,
+    basePrice: 1899,
+    originalPrice: 2999,
     period: "/month",
     description: "For brands ready to automate and dominate socials.",
     features: [
@@ -52,11 +56,15 @@ const plans = [
 
 const DashboardBilling = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { profile } = useOutletContext<{ profile: any }>() || {};
 
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
     "Starter": false,
     "Elite": false,
   });
+  
+  const [checkoutData, setCheckoutData] = useState<any>(null);
 
   const handleToggle = (planName: string) => {
     setDmToggles(prev => ({ ...prev, [planName]: !prev[planName] }));
@@ -64,8 +72,42 @@ const DashboardBilling = () => {
 
   const handleSelectPlan = (planName: string) => {
     const isDmEnabled = dmToggles[planName];
-    console.log("Selected plan:", planName, "DM Enabled:", isDmEnabled);
+    const basePrice = planName === 'Elite' ? 1899 : 599;
+    const amount = basePrice + (isDmEnabled ? 399 : 0);
+    const creditsAdded = planName === 'Elite' ? 700 : 200;
+    
+    const currentPlan = (profile?.selectedPlan || '').toLowerCase();
+    const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand');
+    const isUpgrading = isStarter && planName === 'Elite';
+    
+    // Store DM choice in local storage for onboarding scripts reference
+    localStorage.setItem('syncsocio_dm_automation', isDmEnabled ? 'true' : 'false');
+    
+    setCheckoutData({
+      baseAmount: amount,
+      description: isUpgrading ? 'Upgrade to Elite Plan' : `Purchase ${planName} Plan`,
+      type: isUpgrading ? 'plan_upgrade' : 'plan_purchase',
+      planName: planName,
+      creditsAdded: creditsAdded
+    });
   };
+
+  if (checkoutData) {
+    return (
+      <Checkout
+        baseAmount={checkoutData.baseAmount}
+        description={checkoutData.description}
+        type={checkoutData.type}
+        planName={checkoutData.planName}
+        creditsAdded={checkoutData.creditsAdded}
+        onSuccess={() => {
+           toast({ title: 'Success!', description: `Successfully processed your plan.` });
+           setTimeout(() => navigate('/dashboard'), 1500);
+        }}
+        onBack={() => setCheckoutData(null)}
+      />
+    );
+  }
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 p-4">
@@ -95,6 +137,11 @@ const DashboardBilling = () => {
         {plans.map((plan, i) => {
           const isDmEnabled = dmToggles[plan.name];
           const currentPrice = plan.basePrice + (isDmEnabled ? 399 : 0);
+          
+          const currentPlan = (profile?.selectedPlan || '').toLowerCase();
+          const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand');
+          const isElite = currentPlan.includes('elite') || currentPlan.includes('growth');
+          const isCurrentPlan = (plan.name === 'Starter' && isStarter) || (plan.name === 'Elite' && isElite);
 
           return (
             <motion.div
@@ -102,21 +149,29 @@ const DashboardBilling = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
-              className={`relative rounded-2xl p-8 hover-lift transition-all flex flex-col ${
-                plan.popular
-                  ? "bg-blue-600 text-white ring-2 ring-blue-600 shadow-xl scale-[1.02]"
-                  : "bg-card text-foreground border border-border/50 shadow-sm"
+              className={`relative rounded-2xl p-8 hover-lift transition-all flex flex-col border ${
+                isCurrentPlan
+                  ? plan.popular
+                    ? "bg-gradient-to-br from-blue-700 to-indigo-900 text-white border-emerald-500 shadow-xl ring-2 ring-emerald-500 scale-[1.02]"
+                    : "bg-emerald-500/5 text-foreground border-emerald-500 shadow-lg shadow-emerald-500/10"
+                  : plan.popular
+                  ? "bg-blue-600 text-white border-transparent shadow-xl ring-2 ring-blue-600 scale-[1.02]"
+                  : "bg-card text-foreground border-border/50 shadow-sm"
               }`}
             >
-              {plan.popular && (
+              {isCurrentPlan ? (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[10px] font-bold bg-emerald-500 text-white uppercase tracking-wider flex items-center gap-1 shadow-md">
+                  ✓ Current Plan
+                </span>
+              ) : plan.popular ? (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[10px] font-bold bg-blue-500 text-white uppercase tracking-wider flex items-center gap-1 shadow-md">
                   <SparklesIcon /> RECOMMENDED FOR YOU
                 </span>
-              )}
+              ) : null}
               
               <div className={`w-full py-2 px-4 rounded-xl flex justify-between items-center mb-6 font-bold text-sm ${plan.popular ? "bg-gradient-to-r from-blue-500 to-purple-600 shadow-inner text-white" : "bg-blue-500 text-white"}`}>
                 <div className="flex items-center gap-1.5">
-                  <ZapIcon /> {plan.features[0].split(' ')[0]} CREDITS
+                  <ZapIcon /> {plan.name === 'Elite' ? 700 : 200} CREDITS
                 </div>
                 <span className="text-xs font-medium">Included</span>
               </div>
@@ -126,11 +181,21 @@ const DashboardBilling = () => {
                 {plan.description}
               </p>
               
-              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-5xl font-bold">₹{currentPrice}</span>
-                <span className={`text-sm ${plan.popular ? "text-white/70" : "text-muted-foreground"}`}>
-                  {plan.period}
-                </span>
+              <div className="flex flex-col gap-1 mb-6">
+                <div className="flex items-center gap-2">
+                  <span className={`text-lg line-through ${plan.popular ? "text-white/60" : "text-muted-foreground/60"}`}>
+                    ₹{plan.originalPrice + (isDmEnabled ? 399 : 0)}
+                  </span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                    {Math.round((((plan.originalPrice + (isDmEnabled ? 399 : 0)) - currentPrice) / (plan.originalPrice + (isDmEnabled ? 399 : 0))) * 100)}% OFF
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-bold">₹{currentPrice}</span>
+                  <span className={`text-sm ${plan.popular ? "text-white/70" : "text-muted-foreground"}`}>
+                    {plan.period}
+                  </span>
+                </div>
               </div>
               {/* DM Automation Toggle */}
               {plan.name === 'Starter' && (
@@ -143,10 +208,11 @@ const DashboardBilling = () => {
                     </div>
                   </div>
                   <button
+                    disabled={isCurrentPlan}
                     onClick={() => handleToggle(plan.name)}
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                       isDmEnabled ? 'bg-blue-500' : 'bg-input'
-                    }`}
+                    } ${isCurrentPlan ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <span
                       className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-sm ring-0 transition-transform ${
@@ -158,12 +224,18 @@ const DashboardBilling = () => {
               )}
 
               <ul className="space-y-3.5 mb-8 flex-1 mt-2">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-[13px] font-medium">
-                    <Check size={16} className={`shrink-0 mt-0.5 ${plan.popular ? "text-white" : "text-blue-500"}`} />
-                    <span>{feature}</span>
-                  </li>
-                ))}
+                {plan.features.map((feature) => {
+                  let text = feature;
+                  if (feature.includes('credits/month')) {
+                    text = plan.name === 'Elite' ? '700 credits/month' : '200 credits/month';
+                  }
+                  return (
+                    <li key={feature} className="flex items-start gap-3 text-[13px] font-medium">
+                      <Check size={16} className={`shrink-0 mt-0.5 ${plan.popular ? "text-white" : "text-blue-500"}`} />
+                      <span>{text}</span>
+                    </li>
+                  );
+                })}
                 {isDmEnabled && plan.name === 'Starter' && (
                   <li className="flex items-start gap-3 text-[13px] font-bold">
                     <Check size={16} className={`shrink-0 mt-0.5 ${plan.popular ? "text-white" : "text-blue-500"}`} />
@@ -173,14 +245,17 @@ const DashboardBilling = () => {
               </ul>
               
               <Button
+                disabled={isCurrentPlan}
                 onClick={() => handleSelectPlan(plan.name)}
                 className={`w-full mt-auto py-6 rounded-xl ${
-                  plan.popular
+                  isCurrentPlan 
+                    ? "bg-muted text-muted-foreground cursor-not-allowed" 
+                    : plan.popular
                     ? "bg-white text-blue-600 hover:bg-white/90 font-bold"
                     : "bg-blue-600 text-white hover:bg-blue-700 font-bold"
                 }`}
               >
-                {plan.cta}
+                {isCurrentPlan ? "Current Plan" : plan.cta}
               </Button>
             </motion.div>
           );

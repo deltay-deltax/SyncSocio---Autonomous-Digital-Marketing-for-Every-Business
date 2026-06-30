@@ -132,7 +132,14 @@ export const getProfile = async (req, res) => {
       profile = await BrandProfile.findOne({ user: req.user._id });
     }
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
-    res.status(200).json(profile);
+    
+    const user = await User.findById(req.user._id).select('planExpiresAt credits plan');
+    const profileObj = profile.toObject();
+    profileObj.userPlanExpiresAt = user?.planExpiresAt;
+    profileObj.userCredits = user?.credits;
+    profileObj.userPlan = user?.plan;
+    
+    res.status(200).json(profileObj);
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching profile' });
   }

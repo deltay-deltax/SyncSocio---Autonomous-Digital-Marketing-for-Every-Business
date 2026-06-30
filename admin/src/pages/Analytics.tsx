@@ -45,7 +45,7 @@ interface AnalyticsData {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card border border-border rounded-xl p-3 shadow-xl text-sm">
+      <div className="glass-card border border-transparent rounded-xl p-3 shadow-xl text-sm">
         <p className="text-muted-foreground font-medium mb-1">{label}</p>
         {payload.map((entry: any, i: number) => (
           <p key={i} style={{ color: entry.color }} className="font-semibold">
@@ -61,7 +61,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card border border-border rounded-xl p-3 shadow-xl text-sm">
+      <div className="glass-card border border-transparent rounded-xl p-3 shadow-xl text-sm">
         <p className="font-semibold" style={{ color: payload[0].payload.color }}>{payload[0].name}</p>
         <p className="text-muted-foreground">{payload[0].value} users</p>
       </div>
@@ -142,10 +142,10 @@ export default function Analytics() {
         {[
           { label: '6-Month Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'emerald', sub: 'Completed transactions' },
           { label: 'New Signups', value: totalSignups, icon: Users, color: 'blue', sub: 'Last 6 months' },
-          { label: 'Brand Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Brand'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹799/month' },
-          { label: 'Growth Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Growth'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹2199/month' },
+          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹599/month' },
+          { label: 'Elite Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Elite'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹1899/month' },
         ].map((kpi) => (
-          <div key={kpi.label} className={`bg-card border border-border rounded-2xl p-5 hover:border-${kpi.color}-500/30 transition-all`}>
+          <div key={kpi.label} className={`glass-card border border-transparent rounded-2xl p-5 hover:border-${kpi.color}-500/30 transition-all`}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
               <div className={`p-2 bg-${kpi.color}-500/10 rounded-lg`}>
@@ -159,7 +159,7 @@ export default function Analytics() {
       </div>
 
       {/* Revenue Area Chart */}
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+      <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm">
         <div className="mb-6">
           <h3 className="text-lg font-bold text-foreground">Monthly Revenue</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Gross revenue from subscriptions over the last 6 months</p>
@@ -193,7 +193,7 @@ export default function Analytics() {
       {/* Signups Bar + Plan Pie side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Signups Bar */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-foreground">New Signups per Month</h3>
             <p className="text-xs text-muted-foreground mt-0.5">User registrations over the last 6 months</p>
@@ -210,7 +210,7 @@ export default function Analytics() {
         </div>
 
         {/* Plan Distribution Donut */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-foreground">Plan Distribution</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Breakdown of users by subscription plan</p>
@@ -250,7 +250,7 @@ export default function Analytics() {
       </div>
 
       {/* Top Spenders Table */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border">
           <h3 className="text-lg font-bold text-foreground">Top 10 Customers by Spend</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Users who have generated the most revenue</p>

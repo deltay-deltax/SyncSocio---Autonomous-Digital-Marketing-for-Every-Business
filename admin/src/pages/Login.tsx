@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import logo from '../assets/logo.jpeg';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -27,19 +28,24 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-violet-500" />
+    <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] mix-blend-screen pointer-events-none"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[100px] mix-blend-screen pointer-events-none"></div>
+
+      <div className="w-full max-w-md glass-card rounded-2xl p-8 relative z-10 hover-lift">
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-violet-500 rounded-t-2xl" />
         
-        <div className="text-center mb-8 mt-2">
+        <div className="text-center mb-8 mt-2 flex flex-col items-center">
+          <img src={logo} alt="Sync Socio Logo" className="w-16 h-16 rounded-2xl shadow-lg mb-4" />
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-500 mb-2">
-            Velocity Admin
+            Sync Socio Admin
           </h1>
           <p className="text-muted-foreground text-sm">Secure platform management</p>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg mb-6 text-sm text-center">
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-xl mb-6 text-sm text-center animate-in fade-in zoom-in duration-300">
             {error}
           </div>
         )}
@@ -51,8 +57,8 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
-              placeholder="admin@velocity.com"
+              className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm"
+              placeholder="admin@syncsocio.com"
               required
             />
           </div>
@@ -62,7 +68,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm"
               placeholder="••••••••"
               required
             />
@@ -70,9 +76,10 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-medium py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 mt-2 disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-medium py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 mt-4 disabled:opacity-50 relative overflow-hidden group"
           >
-            {loading ? 'Authenticating...' : 'Sign In'}
+            <span className="relative z-10">{loading ? 'Authenticating...' : 'Sign In'}</span>
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
           </button>
         </form>
       </div>

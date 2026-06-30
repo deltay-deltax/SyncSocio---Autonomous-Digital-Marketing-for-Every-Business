@@ -8,12 +8,29 @@ const transactionSchema = new mongoose.Schema({
   },
   plan: {
     type: String,
+    required: false
+  },
+  type: {
+    type: String,
+    enum: ['topup', 'plan_purchase', 'plan_upgrade', 'plan_renewal'],
     required: true
   },
   amount: {
     type: Number,
     required: true,
     min: 0
+  },
+  creditsAdded: {
+    type: Number,
+    default: 0
+  },
+  razorpayOrderId: {
+    type: String,
+    required: false
+  },
+  razorpayPaymentId: {
+    type: String,
+    required: false
   },
   discountPercentage: {
     type: Number,
@@ -29,7 +46,7 @@ const transactionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['completed', 'failed', 'refunded'],
+    enum: ['pending', 'completed', 'failed', 'refunded'],
     default: 'completed'
   }
 }, { timestamps: true });

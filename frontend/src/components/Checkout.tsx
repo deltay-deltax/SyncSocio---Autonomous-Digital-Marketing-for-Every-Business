@@ -1,0 +1,302 @@
+import React, { useState } from 'react';
+import { useRazorpay } from '@/hooks/useRazorpay';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { ArrowLeft, Tag } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+
+interface CheckoutProps {
+  baseAmount: number;
+  description: string;
+  type: string;
+  planName?: string;
+  creditsAdded?: number;
+  onSuccess: (data: any) => void;
+  onBack: () => void;
+}
+
+export const Checkout: React.FC<CheckoutProps> = ({
+  baseAmount,
+  description,
+  type,
+  planName = '',
+  creditsAdded = 0,
+  onSuccess,
+  onBack
+}) => {
+  const { toast } = useToast();
+  const isRazorpayLoaded = useRazorpay();
+  
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const [billing, setBilling] = useState({
+    fullName: '',
+    email: '',
+    streetAddress: '',
+    city: '',
+    postalCode: '',
+    country: 'India'
+  });
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const res = await fetch(`${API_BASE}/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ code: couponCode })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const couponData = data.coupon || { code: data.code || couponCode, discountPercentage: data.discountPercentage };
+        setAppliedCoupon(couponData);
+        toast({ title: 'Coupon Applied', description: `Got ${couponData.discountPercentage}% off!` });
+      } else {
+        toast({ title: 'Invalid Coupon', description: data.message || 'Could not apply coupon.', variant: 'destructive' });
+        setAppliedCoupon(null);
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to validate coupon', variant: 'destructive' });
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setBilling(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Calculations
+  const discountAmount = appliedCoupon ? Math.round(baseAmount * (appliedCoupon.discountPercentage / 100)) : 0;
+  const subtotalAfterDiscount = baseAmount - discountAmount;
+  const tax = 0;
+  const total = subtotalAfterDiscount;
+
+  const handlePayNow = async () => {
+    if (!billing.fullName || !billing.email) {
+       toast({ title: 'Missing Info', description: 'Please provide at least your full name and email.', variant: 'destructive' });
+       return;
+    }
+    if (!isRazorpayLoaded) {
+      toast({ title: 'Error', description: 'Payment gateway is loading. Please try again.', variant: 'destructive' });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      
+      const orderRes = await fetch(`${API_BASE}/payment/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ 
+           amount: total, 
+           type, 
+           plan: planName, 
+           creditsAdded,
+           couponCode: appliedCoupon?.code || '',
+           discountPercentage: appliedCoupon?.discountPercentage || 0,
+           discountAmount: discountAmount
+        })
+      });
+      
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.message || 'Failed to create order');
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: 'SyncSocio',
+        description,
+        order_id: orderData.order.id,
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch(`${API_BASE}/payment/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({
+                ...response,
+                billingAddress: billing
+              })
+            });
+
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok || !verifyData.success) throw new Error(verifyData.message || 'Payment verification failed');
+            
+            toast({ title: 'Payment Successful', description: 'Your order has been processed.' });
+            onSuccess(verifyData);
+          } catch (err: any) {
+             toast({ title: 'Verification Failed', description: err.message, variant: 'destructive' });
+          } finally {
+             setIsProcessing(false);
+          }
+        },
+        prefill: { 
+           name: billing.fullName, 
+           email: billing.email 
+        },
+        theme: { color: '#2563EB' },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+            toast({ title: 'Payment Cancelled', description: 'You closed the payment modal.' });
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', (response: any) => {
+        setIsProcessing(false);
+        toast({ title: 'Payment Failed', description: response.error.description, variant: 'destructive' });
+      });
+      rzp.open();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <main className="w-full max-w-5xl mx-auto py-10 px-4 sm:px-6">
+      <button
+        onClick={onBack}
+        className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to plans
+      </button>
+
+      <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-4 text-foreground">
+        Checkout
+      </h1>
+
+      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-8 mt-8">
+        {/* LEFT: form */}
+        <div className="space-y-8">
+          {/* Coupon */}
+          <section className="rounded-2xl border border-border/60 bg-card/40 p-6">
+            <h2 className="font-display text-lg font-bold flex items-center gap-2">
+              <Tag className="w-4 h-4 text-primary" /> Coupon code
+            </h2>
+            <div className="mt-4 flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                disabled={!!appliedCoupon || isApplyingCoupon}
+                placeholder="Try WELCOME10"
+                className="flex-1 h-11 px-3 rounded-xl bg-background border border-border/60 text-sm focus:outline-none focus:border-primary"
+              />
+              {!appliedCoupon ? (
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={!couponCode.trim() || isApplyingCoupon}
+                  className="h-11 px-5 rounded-xl bg-foreground text-background text-sm font-bold hover:opacity-90 disabled:opacity-70"
+                >
+                  {isApplyingCoupon ? 'Applying...' : 'Apply'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setAppliedCoupon(null); setCouponCode(''); }}
+                  className="h-11 px-5 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold hover:opacity-90"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            {appliedCoupon && (
+              <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>
+                {appliedCoupon.code} — {appliedCoupon.discountPercentage}% off
+              </div>
+            )}
+          </section>
+
+          {/* Billing */}
+          <section className="rounded-2xl border border-border/60 bg-card/40 p-6">
+            <h2 className="font-display text-lg font-bold">Billing address</h2>
+            <div className="mt-4 grid sm:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Full name</span>
+                <input name="fullName" value={billing.fullName} onChange={handleInputChange} className="mt-1 w-full h-11 px-3 rounded-xl bg-background border border-border/60 text-sm focus:outline-none focus:border-primary" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Email</span>
+                <input type="email" name="email" value={billing.email} onChange={handleInputChange} className="mt-1 w-full h-11 px-3 rounded-xl bg-background border border-border/60 text-sm focus:outline-none focus:border-primary" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Street address</span>
+                <input name="streetAddress" value={billing.streetAddress} onChange={handleInputChange} className="mt-1 w-full h-11 px-3 rounded-xl bg-background border border-border/60 text-sm focus:outline-none focus:border-primary" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">City</span>
+                <input name="city" value={billing.city} onChange={handleInputChange} className="mt-1 w-full h-11 px-3 rounded-xl bg-background border border-border/60 text-sm focus:outline-none focus:border-primary" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Postal code</span>
+                <input name="postalCode" value={billing.postalCode} onChange={handleInputChange} className="mt-1 w-full h-11 px-3 rounded-xl bg-background border border-border/60 text-sm focus:outline-none focus:border-primary" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Country</span>
+                <input name="country" value={billing.country} onChange={handleInputChange} className="mt-1 w-full h-11 px-3 rounded-xl bg-background border border-border/60 text-sm focus:outline-none focus:border-primary" />
+              </label>
+            </div>
+          </section>
+        </div>
+
+        {/* RIGHT: summary */}
+        <aside className="lg:sticky lg:top-20 h-fit rounded-2xl border border-border/60 bg-card/40 p-6">
+          <h2 className="font-display text-lg font-bold">Order summary</h2>
+          <div className="mt-4 p-4 rounded-xl bg-background border border-border/60">
+            <div className="text-xs font-bold uppercase tracking-widest text-primary">
+              {description}
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">SyncSocio Digital Automation</div>
+            <div className="mt-3 text-2xl font-bold">
+              ₹{baseAmount}
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>₹{baseAmount}</span>
+            </div>
+            {appliedCoupon && (
+              <div className="flex justify-between items-center text-primary font-bold">
+                <span>Discount ({appliedCoupon.code})</span>
+                <span>-₹{discountAmount}</span>
+              </div>
+            )}
+
+            <div className="h-px bg-border/60 my-2" />
+            <div className="flex justify-between items-center font-bold">
+              <span>Total due today</span>
+              <span className="text-lg">₹{total}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handlePayNow}
+            disabled={isProcessing}
+            className="mt-6 w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 disabled:opacity-60 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+          >
+            {isProcessing ? "Processing..." : `Pay now — ₹${total}`}
+          </button>
+          <p className="mt-3 text-[11px] text-muted-foreground text-center">
+            Secure payments powered by Razorpay
+          </p>
+        </aside>
+      </div>
+    </main>
+  );
+};

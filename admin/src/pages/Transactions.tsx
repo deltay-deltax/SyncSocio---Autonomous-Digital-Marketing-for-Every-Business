@@ -109,7 +109,7 @@ export default function Transactions() {
           { label: 'Completed', value: transactions.filter(t => t.status === 'completed').length, color: 'green' },
           { label: 'Refunded', value: transactions.filter(t => t.status === 'refunded').length, color: 'amber' },
         ].map((s) => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-4">
+          <div key={s.label} className="glass-card border border-transparent rounded-xl p-4">
             <p className="text-xs text-muted-foreground">{s.label}</p>
             <p className={`text-2xl font-bold mt-1 text-${s.color}-400`}>{s.value}</p>
           </div>
@@ -117,7 +117,7 @@ export default function Transactions() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 bg-card border border-border p-4 rounded-xl">
+      <div className="flex flex-col sm:flex-row gap-3 glass-card border border-transparent p-4 rounded-xl">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input
@@ -147,7 +147,7 @@ export default function Transactions() {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="text-xs uppercase bg-muted/50 text-muted-foreground">

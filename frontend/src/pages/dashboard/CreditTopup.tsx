@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { Coins, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Link } from 'react-router-dom';
-import { useRazorpay } from '../../hooks/useRazorpay';
+import { Link, useOutletContext } from 'react-router-dom';
+import { Checkout } from '@/components/Checkout';
 
 const topups = [
   { credits: 100, price: 299, per_credit: 2.99 },
@@ -14,114 +14,85 @@ const topups = [
 
 export const CreditTopup = () => {
   const { toast } = useToast();
+  const { profile } = useOutletContext<{ profile: any }>();
   const [buyingPack, setBuyingPack] = useState<number | null>(null);
-  const isRazorpayLoaded = useRazorpay();
+  const [showExpiredModal, setShowExpiredModal] = useState(false);
+  const [processingPlan, setProcessingPlan] = useState(false);
+  const [checkoutData, setCheckoutData] = useState<any>(null);
+
+  const isPlanExpired = profile?.userPlanExpiresAt && new Date(profile.userPlanExpiresAt) < new Date();
 
   const handleBuyTopup = async (creditsAmount: number, price: number) => {
-    if (!isRazorpayLoaded) {
-      toast({ title: "Error", description: "Payment gateway is loading. Please try again.", variant: "destructive" });
-      return;
+    if (isPlanExpired) {
+       setShowExpiredModal(true);
+       return;
     }
 
-    setBuyingPack(creditsAmount);
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      
-      // 1. Create order
-      const orderRes = await fetch(`${API_BASE}/payment/create-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ amount: price })
-      });
-      
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) {
-        throw new Error(orderData.message || 'Failed to create order');
-      }
-
-      // 2. Open Razorpay modal
-      const options = {
-        key: orderData.key_id,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
-        name: "SyncSocio",
-        description: `Top-up ${creditsAmount} Credits`,
-        order_id: orderData.order.id,
-        handler: async (response: any) => {
-          try {
-            // 3. Verify Payment
-            const verifyRes = await fetch(`${API_BASE}/payment/verify`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              })
-            });
-
-            const verifyData = await verifyRes.json();
-            if (!verifyRes.ok) {
-              throw new Error(verifyData.message || 'Payment verification failed');
-            }
-
-            // 4. Assign Credits
-            const topupRes = await fetch(`${API_BASE}/credits/topup`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-              body: JSON.stringify({ amount: creditsAmount })
-            });
-
-            if (topupRes.ok) {
-              const data = await topupRes.json();
-              localStorage.setItem('syncsocio_credits', String(data.credits));
-              window.dispatchEvent(new StorageEvent('storage', { key: 'syncsocio_credits', newValue: String(data.credits) }));
-              
-              toast({ title: "🎉 Payment Successful!", description: `Successfully added ${creditsAmount} credits.` });
-            } else {
-               const errorData = await topupRes.json();
-               toast({ title: "Credit Assignment Failed", description: errorData.message || "Please contact support.", variant: "destructive" });
-            }
-          } catch (err: any) {
-             console.error('[Verify/Topup Error]', err);
-             toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
-          } finally {
-             setBuyingPack(null);
-          }
-        },
-        prefill: {
-          name: "User",
-          email: "user@example.com",
-        },
-        theme: {
-          color: "#4f46e5",
-        },
-        modal: {
-          ondismiss: () => {
-            setBuyingPack(null);
-            toast({ title: "Payment Cancelled", description: "You closed the payment modal." });
-          }
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', (response: any) => {
-        setBuyingPack(null);
-        toast({ title: "Payment Failed", description: response.error.description, variant: "destructive" });
-      });
-      rzp.open();
-
-    } catch (err: any) {
-      console.error('[Credits] Purchase topup error:', err);
-      toast({
-        title: "Connection error",
-        description: err.message || "Failed to process purchase.",
-        variant: "destructive"
-      });
-      setBuyingPack(null);
-    }
+    setCheckoutData({
+      baseAmount: price,
+      description: `Top-up ${creditsAmount} Credits`,
+      type: 'topup',
+      creditsAdded: creditsAmount
+    });
   };
+
+  const handleCheckoutSuccess = (verifyData: any) => {
+    localStorage.setItem('syncsocio_credits', String(verifyData.credits));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'syncsocio_credits', newValue: String(verifyData.credits) }));
+    toast({ title: "🎉 Payment Successful!", description: "Credits added to your account." });
+    setCheckoutData(null);
+  };
+
+  const handlePlanAction = async (actionType: 'renew' | 'upgrade', currentPlan: string) => {
+    let amount = 0;
+    let planStr = '';
+    let creditsAdded = 0;
+    let typeStr = '';
+
+    const isGrowthOrElite = currentPlan.toLowerCase().includes('growth') || currentPlan.toLowerCase().includes('elite') || currentPlan.toLowerCase().includes('pro');
+
+    if (actionType === 'renew') {
+       amount = isGrowthOrElite ? 1899 : 599;
+       planStr = currentPlan;
+       creditsAdded = isGrowthOrElite ? 700 : 200;
+       typeStr = 'plan_renewal';
+    } else if (actionType === 'upgrade') {
+      amount = 1899; // Full Elite Plan price
+      planStr = currentPlan.toLowerCase().includes('starter') || currentPlan.toLowerCase().includes('brand') ? 'Elite' : 'Growth';
+      creditsAdded = 700; // Full Elite Plan credits
+      typeStr = 'plan_upgrade';
+    }
+
+    setShowExpiredModal(false);
+    setCheckoutData({
+      baseAmount: amount,
+      description: actionType === 'renew' ? `Renew ${planStr} Plan` : 'Upgrade to Elite Plan',
+      type: typeStr,
+      planName: planStr,
+      creditsAdded: creditsAdded
+    });
+  };
+
+  if (checkoutData) {
+    return (
+      <Checkout
+        baseAmount={checkoutData.baseAmount}
+        description={checkoutData.description}
+        type={checkoutData.type}
+        planName={checkoutData.planName}
+        creditsAdded={checkoutData.creditsAdded}
+        onSuccess={(data) => {
+           if (checkoutData.type === 'topup') {
+             handleCheckoutSuccess(data);
+           } else {
+             toast({ title: 'Success!', description: `Successfully processed your plan. You can now buy top-ups.` });
+             setTimeout(() => window.location.reload(), 1500);
+           }
+        }}
+        onBack={() => setCheckoutData(null)}
+      />
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12 pt-4">
@@ -177,6 +148,77 @@ export const CreditTopup = () => {
           </Link>
         </div>
       </motion.div>
+
+      {/* Plan Expired Modal */}
+      {showExpiredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card w-full max-w-lg rounded-[2rem] p-8 border border-border/50 shadow-2xl relative"
+          >
+            <button 
+              onClick={() => setShowExpiredModal(false)}
+              className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+              </div>
+              <h2 className="text-2xl font-black tracking-tight text-foreground mb-2">Plan Expired</h2>
+              <p className="text-sm text-muted-foreground">Your 30-day plan cycle has expired. You must renew or upgrade your current plan before purchasing additional top-ups.</p>
+            </div>
+
+            <div className="space-y-4">
+              {(() => {
+                const plan = (profile?.userPlan || '').toLowerCase();
+                const isStarterOrBrand = plan.includes('starter') || plan.includes('brand');
+                const isGrowthOrEliteOrPro = plan.includes('growth') || plan.includes('elite') || plan.includes('pro');
+
+                if (isStarterOrBrand) {
+                  return (
+                    <>
+                      <Button 
+                        onClick={() => handlePlanAction('renew', profile?.userPlan || 'Starter')} 
+                        disabled={processingPlan}
+                        className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:brightness-110 shadow-lg"
+                      >
+                        {processingPlan ? 'Processing...' : 'Renew Starter Plan (₹599)'}
+                      </Button>
+                      <Button 
+                        onClick={() => handlePlanAction('upgrade', profile?.userPlan || 'Starter')} 
+                        disabled={processingPlan}
+                        className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg"
+                      >
+                        {processingPlan ? 'Processing...' : 'Upgrade to Elite (₹1899)'}
+                      </Button>
+                    </>
+                  );
+                } else if (isGrowthOrEliteOrPro) {
+                  return (
+                    <Button 
+                      onClick={() => handlePlanAction('renew', profile?.userPlan || 'Elite')} 
+                      disabled={processingPlan}
+                      className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:brightness-110 shadow-lg"
+                    >
+                      {processingPlan ? 'Processing...' : 'Renew Elite Plan (₹1899)'}
+                    </Button>
+                  );
+                } else {
+                  return (
+                    <p className="text-center text-sm font-bold text-red-500">
+                      Unknown plan. Please manage subscription from settings.
+                    </p>
+                  );
+                }
+              })()}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

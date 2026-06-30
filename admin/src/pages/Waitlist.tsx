@@ -86,7 +86,7 @@ export default function Waitlist() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `velocity_waitlist_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `syncsocio_waitlist_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -106,7 +106,7 @@ export default function Waitlist() {
             Waitlist Management
           </h2>
           <p className="text-muted-foreground mt-1">
-            {total.toLocaleString()} people waiting to join Velocity.
+            {total.toLocaleString()} people waiting to join Sync Socio.
           </p>
         </div>
         <button
@@ -124,7 +124,7 @@ export default function Waitlist() {
             .sort(([, a], [, b]) => b - a)
             .slice(0, 4)
             .map(([role, count]) => (
-              <div key={role} className="bg-card border border-border rounded-xl p-4">
+              <div key={role} className="glass-card border border-transparent rounded-xl p-4">
                 <p className="text-xs text-muted-foreground capitalize">{role}</p>
                 <p className="text-2xl font-bold text-foreground mt-1">{count}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -136,7 +136,7 @@ export default function Waitlist() {
       )}
 
       {/* Search */}
-      <div className="flex gap-3 bg-card border border-border p-4 rounded-xl">
+      <div className="flex gap-3 glass-card border border-transparent p-4 rounded-xl">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input
@@ -150,7 +150,7 @@ export default function Waitlist() {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ClipboardList className="text-muted-foreground" size={18} />

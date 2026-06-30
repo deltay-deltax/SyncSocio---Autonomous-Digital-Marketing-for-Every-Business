@@ -224,8 +224,8 @@ export default function Users() {
             onChange={(e) => setPlanFilter(e.target.value)}
           >
             <option value="">All Plans</option>
-            <option value="brand">Brand</option>
-            <option value="growth">Growth</option>
+            <option value="starter">Starter</option>
+            <option value="elite">Elite</option>
           </select>
           <select 
             className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
@@ -259,7 +259,7 @@ export default function Users() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="text-xs uppercase bg-muted/50 text-muted-foreground">
