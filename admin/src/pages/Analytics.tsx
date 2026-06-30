@@ -142,8 +142,8 @@ export default function Analytics() {
         {[
           { label: '6-Month Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'emerald', sub: 'Completed transactions' },
           { label: 'New Signups', value: totalSignups, icon: Users, color: 'blue', sub: 'Last 6 months' },
-          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹799/month' },
-          { label: 'Elite Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Elite'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹2199/month' },
+          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹599/month' },
+          { label: 'Elite Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Elite'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹1899/month' },
         ].map((kpi) => (
           <div key={kpi.label} className={`glass-card border border-transparent rounded-2xl p-5 hover:border-${kpi.color}-500/30 transition-all`}>
             <div className="flex items-center justify-between mb-3">

@@ -6,7 +6,6 @@ import { Checkout } from '@/components/Checkout';
 import { useOutletContext, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useRazorpay } from '../../hooks/useRazorpay';
-import DashboardBilling from './DashboardBilling';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -215,12 +214,12 @@ const DashboardSettings = () => {
     const isGrowthOrElite = currentPlan.toLowerCase().includes('growth') || currentPlan.toLowerCase().includes('elite') || currentPlan.toLowerCase().includes('pro');
 
     if (actionType === 'renew') {
-       amount = isGrowthOrElite ? 2199 : 799;
+       amount = isGrowthOrElite ? 1899 : 599;
        planStr = currentPlan;
        creditsAdded = isGrowthOrElite ? 700 : 200;
        typeStr = 'plan_renewal';
     } else if (actionType === 'upgrade') {
-      amount = 2199; // Full Elite Plan price
+      amount = 1899; // Full Elite Plan price
       planStr = currentPlan.toLowerCase().includes('starter') || currentPlan.toLowerCase().includes('brand') ? 'Elite' : 'Growth';
       creditsAdded = 700; // Full Elite Plan credits
       typeStr = 'plan_upgrade';
@@ -1160,40 +1159,198 @@ const DashboardSettings = () => {
         )}
 
         {activeTab === 'Plan & Billing' && (
-          <div className="space-y-6">
-            <DashboardBilling hideHeader={true} />
-            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="p-8 pb-2">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Payment History</CardTitle>
-              </CardHeader>
-              <CardContent className="p-8">
-                <div className="space-y-3">
-                  {paymentHistory.length === 0 && (
-                     <p className="text-xs text-muted-foreground ml-1">No transactions found.</p>
-                  )}
-                  {paymentHistory.map((tx: any) => (
-                    <div key={tx._id} className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/5">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", tx.status === 'completed' ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600")}>
-                          {tx.status === 'completed' ? <CheckCircle2 size={18} /> : <X size={18} />}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-black text-foreground">{tx.type === 'topup' ? 'Credit Top-up' : tx.type === 'plan_upgrade' ? 'Plan Upgrade' : tx.plan ? `${tx.plan} Plan` : 'Payment'}</p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">
-                            {tx.status} • {new Date(tx.createdAt).toLocaleDateString()} • {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
+          <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+            <CardHeader className="p-8 pb-2">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Membership Status</CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 ml-1">Payment History</p>
+                {paymentHistory.length === 0 && (
+                   <p className="text-xs text-muted-foreground ml-1">No transactions found.</p>
+                )}
+                {paymentHistory.map((tx: any) => (
+                  <div key={tx._id} className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/5">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", tx.status === 'completed' ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600")}>
+                        {tx.status === 'completed' ? <CheckCircle2 size={18} /> : <X size={18} />}
                       </div>
-                      <div className="text-right">
-                         <span className="block text-xs font-black text-foreground">₹{tx.amount}</span>
-                         {tx.creditsAdded > 0 && <span className="block text-[10px] font-bold text-emerald-600">+{tx.creditsAdded} credits</span>}
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-foreground">{tx.type === 'topup' ? 'Credit Top-up' : tx.type === 'plan_upgrade' ? 'Plan Upgrade' : tx.plan ? `${tx.plan} Plan` : 'Payment'}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">
+                          {tx.status} • {new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    <div className="text-right">
+                       <span className="block text-xs font-black text-foreground">₹{tx.amount}</span>
+                       {tx.creditsAdded > 0 && <span className="block text-[10px] font-bold text-emerald-600">+{tx.creditsAdded} credits</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {(() => {
+                const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
+                const isStarterOrBrand = plan.includes('starter') || plan.includes('brand');
+                
+                const planName = isStarterOrBrand ? 'Starter' : 'Elite';
+                const planPrice = isStarterOrBrand ? '₹599/month' : '₹1899/month';
+                const planCredits = isStarterOrBrand ? '200 credits/month' : '700 credits/month';
+                 const planFeatures = isStarterOrBrand 
+                  ? [
+                      '200 credits/month',
+                      '1 active brand profile',
+                      'All image generation types',
+                      'Festival calendar',
+                      'Hinglish + 5 languages',
+                      'Caption & hashtag generation',
+                      'Schedule up to 30 posts/month',
+                      'Analytics dashboard',
+                      'Email support'
+                    ]
+                  : [
+                      '700 credits/month',
+                      '1 active brand profile',
+                      'All image generation types',
+                      'Festival calendar & suggestions',
+                      'Hinglish + 5 languages',
+                      'Caption & hashtag generation',
+                      'Unlimited post scheduling',
+                      'Reels + Video + UGC support',
+                      'DM automation & lead capture',
+                      'Best time to post analysis',
+                      'Analytics dashboard',
+                      'Priority 24/7 support'
+                    ];
+
+                return (
+                  <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white relative overflow-hidden shadow-xl shadow-primary/20">
+                    <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 pointer-events-none">
+                      <Zap size={120} fill="currentColor" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-2 opacity-70">Active Strategy Plan</p>
+                    <h3 className="text-3xl font-black tracking-tighter mb-4">SyncSocio {planName}</h3>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
+                        <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Status</p>
+                        <p className="text-xs font-black">ACTIVE</p>
+                      </div>
+                      <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
+                        <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Price</p>
+                        <p className="text-xs font-black">{planPrice}</p>
+                      </div>
+                      <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
+                        <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Credits</p>
+                        <p className="text-xs font-black">{planCredits}</p>
+                      </div>
+                      <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
+                        <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Next Bill</p>
+                        <p className="text-xs font-black">
+                          {profile.userPlanExpiresAt 
+                            ? new Date(profile.userPlanExpiresAt).toLocaleDateString() 
+                            : profile.createdAt 
+                              ? new Date(new Date(profile.createdAt).setDate(new Date(profile.createdAt).getDate() + 30)).toLocaleDateString()
+                              : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/10">
+                      <p className="text-[10px] font-black uppercase opacity-60 mb-2.5 tracking-wider">Plan Features & DNA</p>
+                      <ul className="grid sm:grid-cols-2 gap-2 text-xs font-semibold opacity-90">
+                        {planFeatures.map((f, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
+                const isStarterOrBrand = plan.includes('starter') || plan.includes('brand');
+                const isGrowthOrEliteOrPro = plan.includes('growth') || plan.includes('elite') || plan.includes('pro');
+
+                let expiryTime = 0;
+                if (profile.userPlanExpiresAt) {
+                  expiryTime = new Date(profile.userPlanExpiresAt).getTime();
+                } else if (profile.createdAt) {
+                  const created = new Date(profile.createdAt);
+                  created.setDate(created.getDate() + 30);
+                  expiryTime = created.getTime();
+                }
+
+                const diff = expiryTime - new Date().getTime();
+                const oneDay = 24 * 60 * 60 * 1000;
+                const canRenew = expiryTime === 0 || diff <= oneDay;
+
+                if (isStarterOrBrand) {
+                  return (
+                    <div className="space-y-4 pt-4 border-t border-border/40">
+                      <div className="flex justify-between items-center ml-1">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
+                        {!canRenew && (
+                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
+                            Renew available 1 day before expiry
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-3">
+                        <Button 
+                          onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || 'Starter')} 
+                          disabled={!canRenew}
+                          className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                        >
+                          Renew Plan (₹599)
+                        </Button>
+                        <Button 
+                          onClick={() => handlePlanAction('upgrade', profile.userPlan || profile.selectedPlan || 'Starter')} 
+                          className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
+                        >
+                          Upgrade to Elite (₹1899)
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                } else if (isGrowthOrEliteOrPro) {
+                  return (
+                    <div className="space-y-4 pt-4 border-t border-border/40">
+                      <div className="flex justify-between items-center ml-1">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
+                        {!canRenew && (
+                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
+                            Renew available 1 day before expiry
+                          </span>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || 'Elite')} 
+                        disabled={!canRenew}
+                        className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                      >
+                        Renew Elite Plan (₹1899)
+                      </Button>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="space-y-4 pt-4 border-t border-border/40">
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Subscription Actions</p>
+                      <Button disabled className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-muted text-muted-foreground border-border/50 cursor-not-allowed">
+                        Subscription Managed via Onboarding Flow
+                      </Button>
+                    </div>
+                  );
+                }
+              })()}
+            </CardContent>
+          </Card>
         )}
 
         {activeTab === 'Legal & Privacy' && (

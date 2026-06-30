@@ -9,7 +9,8 @@ import { Checkout } from "@/components/Checkout";
 const plans = [
   {
     name: "Starter",
-    basePrice: 799,
+    basePrice: 599,
+    originalPrice: 999,
     period: "/month",
     description: "Ideal for businesses getting started with visual marketing.",
     features: [
@@ -29,7 +30,8 @@ const plans = [
   },
   {
     name: "Elite",
-    basePrice: 2199,
+    basePrice: 1899,
+    originalPrice: 2999,
     period: "/month",
     description: "For brands ready to automate and dominate socials.",
     features: [
@@ -52,7 +54,7 @@ const plans = [
   }
 ];
 
-const DashboardBilling = ({ hideHeader = false }: { hideHeader?: boolean }) => {
+const DashboardBilling = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile } = useOutletContext<{ profile: any }>() || {};
@@ -70,34 +72,21 @@ const DashboardBilling = ({ hideHeader = false }: { hideHeader?: boolean }) => {
 
   const handleSelectPlan = (planName: string) => {
     const isDmEnabled = dmToggles[planName];
-    const basePrice = planName === 'Elite' ? 2199 : 799;
+    const basePrice = planName === 'Elite' ? 1899 : 599;
     const amount = basePrice + (isDmEnabled ? 399 : 0);
     const creditsAdded = planName === 'Elite' ? 700 : 200;
     
     const currentPlan = (profile?.selectedPlan || '').toLowerCase();
     const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand');
-    const isElite = currentPlan.includes('elite') || currentPlan.includes('growth');
-    const isCurrentPlan = (planName === 'Starter' && isStarter) || (planName === 'Elite' && isElite);
     const isUpgrading = isStarter && planName === 'Elite';
-    const isRenewing = isCurrentPlan;
     
     // Store DM choice in local storage for onboarding scripts reference
     localStorage.setItem('syncsocio_dm_automation', isDmEnabled ? 'true' : 'false');
     
-    let typeStr = 'plan_purchase';
-    let descStr = `Purchase ${planName} Plan`;
-    if (isUpgrading) {
-       typeStr = 'plan_upgrade';
-       descStr = 'Upgrade to Elite Plan';
-    } else if (isRenewing) {
-       typeStr = 'plan_renewal';
-       descStr = `Renew ${planName} Plan`;
-    }
-
     setCheckoutData({
       baseAmount: amount,
-      description: descStr,
-      type: typeStr,
+      description: isUpgrading ? 'Upgrade to Elite Plan' : `Purchase ${planName} Plan`,
+      type: isUpgrading ? 'plan_upgrade' : 'plan_purchase',
       planName: planName,
       creditsAdded: creditsAdded
     });
@@ -122,29 +111,27 @@ const DashboardBilling = ({ hideHeader = false }: { hideHeader?: boolean }) => {
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 p-4">
-      {!hideHeader && (
-        <div className="text-center mb-12 mt-8">
-          <h2 className="text-3xl font-bold mb-3">
-            Choose how active your agent is
-          </h2>
-          <p className="text-muted-foreground">
-            Upgrade or downgrade anytime
-          </p>
-          
-          <div className="flex justify-center mt-8">
-            <div className="flex items-center gap-2 bg-card p-1.5 rounded-full border border-border/50 shadow-sm w-full max-w-md">
-              <input 
-                type="text" 
-                placeholder="PROMO CODE (E.G. WELCOME10)" 
-                className="flex-1 bg-transparent border-none outline-none text-xs px-4 font-medium uppercase placeholder:text-muted-foreground/50"
-              />
-              <Button size="sm" className="rounded-full px-6 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold h-8">
-                Apply
-              </Button>
-            </div>
+      <div className="text-center mb-12 mt-8">
+        <h2 className="text-3xl font-bold mb-3">
+          Choose how active your agent is
+        </h2>
+        <p className="text-muted-foreground">
+          Upgrade or downgrade anytime
+        </p>
+        
+        <div className="flex justify-center mt-8">
+          <div className="flex items-center gap-2 bg-card p-1.5 rounded-full border border-border/50 shadow-sm w-full max-w-md">
+            <input 
+              type="text" 
+              placeholder="PROMO CODE (E.G. WELCOME10)" 
+              className="flex-1 bg-transparent border-none outline-none text-xs px-4 font-medium uppercase placeholder:text-muted-foreground/50"
+            />
+            <Button size="sm" className="rounded-full px-6 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold h-8">
+              Apply
+            </Button>
           </div>
         </div>
-      )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {plans.map((plan, i) => {
@@ -152,23 +139,9 @@ const DashboardBilling = ({ hideHeader = false }: { hideHeader?: boolean }) => {
           const currentPrice = plan.basePrice + (isDmEnabled ? 399 : 0);
           
           const currentPlan = (profile?.selectedPlan || '').toLowerCase();
-          const userIsStarter = currentPlan.includes('starter') || currentPlan.includes('brand');
-          const userIsElite = currentPlan.includes('elite') || currentPlan.includes('growth');
-          const isCurrentPlan = (plan.name === 'Starter' && userIsStarter) || (plan.name === 'Elite' && userIsElite);
-
-          let expiryTime = 0;
-          if (profile?.userPlanExpiresAt) {
-            expiryTime = new Date(profile.userPlanExpiresAt).getTime();
-          } else if (profile?.createdAt) {
-            const created = new Date(profile.createdAt);
-            created.setDate(created.getDate() + 30);
-            expiryTime = created.getTime();
-          }
-
-          const diff = expiryTime - new Date().getTime();
-          const oneDay = 24 * 60 * 60 * 1000;
-          const canRenew = isCurrentPlan && (expiryTime === 0 || diff <= oneDay);
-
+          const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand');
+          const isElite = currentPlan.includes('elite') || currentPlan.includes('growth');
+          const isCurrentPlan = (plan.name === 'Starter' && isStarter) || (plan.name === 'Elite' && isElite);
 
           return (
             <motion.div
@@ -208,11 +181,21 @@ const DashboardBilling = ({ hideHeader = false }: { hideHeader?: boolean }) => {
                 {plan.description}
               </p>
               
-              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-5xl font-bold">₹{currentPrice}</span>
-                <span className={`text-sm ${plan.popular ? "text-white/70" : "text-muted-foreground"}`}>
-                  {plan.period}
-                </span>
+              <div className="flex flex-col gap-1 mb-6">
+                <div className="flex items-center gap-2">
+                  <span className={`text-lg line-through ${plan.popular ? "text-white/60" : "text-muted-foreground/60"}`}>
+                    ₹{plan.originalPrice + (isDmEnabled ? 399 : 0)}
+                  </span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                    {Math.round((((plan.originalPrice + (isDmEnabled ? 399 : 0)) - currentPrice) / (plan.originalPrice + (isDmEnabled ? 399 : 0))) * 100)}% OFF
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-bold">₹{currentPrice}</span>
+                  <span className={`text-sm ${plan.popular ? "text-white/70" : "text-muted-foreground"}`}>
+                    {plan.period}
+                  </span>
+                </div>
               </div>
               {/* DM Automation Toggle */}
               {plan.name === 'Starter' && (
@@ -261,42 +244,19 @@ const DashboardBilling = ({ hideHeader = false }: { hideHeader?: boolean }) => {
                 )}
               </ul>
               
-              {(() => {
-                let btnText = plan.cta;
-                let btnDisabled = isCurrentPlan && !canRenew;
-
-                if (isCurrentPlan) {
-                   btnText = canRenew ? `Renew Plan (₹${currentPrice})` : "Current Plan";
-                } else {
-                   if (userIsStarter && plan.name === 'Elite') {
-                      btnText = "Upgrade to Elite";
-                   } else if (userIsElite && plan.name === 'Starter') {
-                      btnText = "Downgrade to Starter";
-                      btnDisabled = true;
-                   }
-                }
-
-                return (
-                  <Button
-                    disabled={btnDisabled}
-                    onClick={() => handleSelectPlan(plan.name)}
-                    className={`w-full mt-auto py-6 rounded-xl ${
-                      btnDisabled
-                        ? "bg-muted text-muted-foreground cursor-not-allowed" 
-                        : plan.popular
-                        ? "bg-white text-blue-600 hover:bg-white/90 font-bold"
-                        : "bg-blue-600 text-white hover:bg-blue-700 font-bold"
-                    }`}
-                  >
-                    {btnText}
-                  </Button>
-                );
-              })()}
-              {isCurrentPlan && !canRenew && (
-                <p className="text-center text-[10px] text-amber-600/80 font-bold uppercase tracking-widest mt-3 mb-[-12px]">
-                  Renew available 1 day before expiry
-                </p>
-              )}
+              <Button
+                disabled={isCurrentPlan}
+                onClick={() => handleSelectPlan(plan.name)}
+                className={`w-full mt-auto py-6 rounded-xl ${
+                  isCurrentPlan 
+                    ? "bg-muted text-muted-foreground cursor-not-allowed" 
+                    : plan.popular
+                    ? "bg-white text-blue-600 hover:bg-white/90 font-bold"
+                    : "bg-blue-600 text-white hover:bg-blue-700 font-bold"
+                }`}
+              >
+                {isCurrentPlan ? "Current Plan" : plan.cta}
+              </Button>
             </motion.div>
           );
         })}

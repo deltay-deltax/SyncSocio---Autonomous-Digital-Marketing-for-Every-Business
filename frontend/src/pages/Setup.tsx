@@ -15,6 +15,7 @@ type Screen = 'checklist' | 'instagram' | 'plan' | 'checkout' | 'activation';
 interface Plan {
   name: string;
   price: string;
+  originalPrice?: number;
   period: string;
   frequency: string;
   formats: string;
@@ -29,7 +30,8 @@ interface Plan {
 const plans: Plan[] = [
   {
     name: 'Starter',
-    price: '₹799',
+    price: '₹599',
+    originalPrice: 999,
     period: '/month',
     frequency: 'Schedule up to 30 posts',
     formats: 'All image generation types',
@@ -51,7 +53,8 @@ const plans: Plan[] = [
   },
   {
     name: 'Elite',
-    price: '₹2199',
+    price: '₹1899',
+    originalPrice: 2999,
     period: '/month',
     frequency: 'Best time to post analysis',
     formats: 'Reels + Video + UGC + DMs',
@@ -304,7 +307,7 @@ const Setup = () => {
   };
 
   const proceedToCheckout = (planName: string, syncDataToApply?: any) => {
-    let currentPrice = planName === 'Growth' ? 2199 : 799;
+    let currentPrice = planName === 'Growth' ? 1899 : 599;
     if (appliedCoupon) {
       const discount = appliedCoupon.discountPercentage;
       currentPrice = Math.round(currentPrice * (1 - discount / 100));
@@ -725,6 +728,18 @@ const Setup = () => {
                 )}
 
                 <h3 className="text-sm font-bold mb-1">{plan.name}</h3>
+                
+                {plan.originalPrice && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-sm line-through ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"}`}>
+                      ₹{plan.originalPrice + (isDmEnabled ? 399 : 0)}
+                    </span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                      {Math.round((((plan.originalPrice + (isDmEnabled ? 399 : 0)) - currentPrice) / (plan.originalPrice + (isDmEnabled ? 399 : 0))) * 100)}% OFF
+                    </span>
+                  </div>
+                )}
+                
                 <div className="flex items-baseline gap-0.5 mb-1">
                   <span className="text-3xl font-bold">₹{currentPrice}</span>
                   <span className={`text-xs ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>

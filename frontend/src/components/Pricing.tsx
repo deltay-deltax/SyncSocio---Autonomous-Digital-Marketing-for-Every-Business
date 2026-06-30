@@ -7,7 +7,8 @@ import { useNavigate, Link } from "react-router-dom";
 const plans = [
   {
     name: "Starter",
-    basePrice: 799,
+    basePrice: 599,
+    originalPrice: 999,
     period: "/month",
     description: "Ideal for businesses getting started with visual marketing.",
     features: [
@@ -27,7 +28,8 @@ const plans = [
   },
   {
     name: "Elite",
-    basePrice: 2199,
+    basePrice: 1899,
+    originalPrice: 2999,
     period: "/month",
     description: "For brands ready to automate and dominate socials.",
     features: [
@@ -118,11 +120,21 @@ const Pricing = () => {
                 <p className={`text-sm mb-6 ${plan.popular ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                   {plan.description}
                 </p>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold">₹{currentPrice}</span>
-                  <span className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                    {plan.period}
-                  </span>
+                <div className="flex flex-col gap-1 mb-6">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-lg line-through ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"}`}>
+                      ₹{plan.originalPrice + (isDmEnabled ? 399 : 0)}
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                      {Math.round((((plan.originalPrice + (isDmEnabled ? 399 : 0)) - currentPrice) / (plan.originalPrice + (isDmEnabled ? 399 : 0))) * 100)}% OFF
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold">₹{currentPrice}</span>
+                    <span className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                      {plan.period}
+                    </span>
+                  </div>
                 </div>
 
                 {/* DM Automation Toggle */}
