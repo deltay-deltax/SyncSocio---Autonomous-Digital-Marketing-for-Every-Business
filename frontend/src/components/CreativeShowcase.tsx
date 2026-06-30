@@ -524,12 +524,35 @@ const CarouselTile = ({
 
 const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialIndex: number, onClose: () => void }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft = initialIndex * scrollRef.current.clientWidth;
     }
   }, [initialIndex]);
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const videos = scrollRef.current.querySelectorAll('video');
+    videos.forEach((vid, i) => {
+      if (i === currentIndex) {
+        vid.play().catch(()=>{});
+      } else {
+        vid.pause();
+      }
+    });
+  }, [currentIndex]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!scrollRef.current) return;
+    const scrollLeft = scrollRef.current.scrollLeft;
+    const width = scrollRef.current.clientWidth;
+    const newIndex = Math.round(scrollLeft / width);
+    if (newIndex !== currentIndex) {
+      setCurrentIndex(newIndex);
+    }
+  };
 
   const scrollByAmount = (amount: number) => {
     if (scrollRef.current) {
@@ -580,6 +603,7 @@ const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialInde
 
         <div 
           ref={scrollRef}
+          onScroll={handleScroll}
           className="flex-1 w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {items.map((item, idx) => (
@@ -592,7 +616,7 @@ const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialInde
                 <video 
                   src={item.src}
                   controls
-                  autoPlay
+                  playsInline
                   className="max-w-full max-h-full rounded-2xl shadow-2xl" 
                   onClick={(e) => e.stopPropagation()} 
                 />
