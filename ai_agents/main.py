@@ -50,7 +50,13 @@ app = FastAPI(title="SyncSocio AI Strategy Service")
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
 origins = [origin.strip() for origin in frontend_url.split(",")] if frontend_url else []
-for fallback in ["http://localhost:5173", "http://localhost:3000", "https://velocity-26.vercel.app"]:
+for fallback in [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://velocity-26.vercel.app",
+    "https://www.syncsocio.com",
+    "https://syncsocio.com"
+]:
     if fallback not in origins:
         origins.append(fallback)
 
