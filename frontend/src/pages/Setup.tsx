@@ -27,7 +27,7 @@ interface Plan {
 // ─── Plan Data ───────────────────────────────────────────────────────
 const plans: Plan[] = [
   {
-    name: 'Brand',
+    name: 'Starter',
     price: '₹799',
     period: '/month',
     frequency: 'Schedule up to 30 posts',
@@ -49,7 +49,7 @@ const plans: Plan[] = [
     ctaStyle: 'primary',
   },
   {
-    name: 'Growth',
+    name: 'Elite',
     price: '₹2199',
     period: '/month',
     frequency: 'Best time to post analysis',
@@ -57,8 +57,8 @@ const plans: Plan[] = [
     postsPerMonth: '700 credits/month',
     features: [
       "700 credits/month",
-      "3 brand profiles",
-      "Everything in Brand",
+      "2 brand profiles",
+      "Everything in Starter",
       "All-in-One Drop feature",
       "AI Mode (Auto Generate)",
       "E-commerce listing generator",
@@ -84,8 +84,8 @@ const TOPUPS = [
 
 // Credits awarded per plan (shown in UI — actual amount is random within range)
 const PLAN_CREDITS_DISPLAY: Record<string, { label: string; color: string; glow: string }> = {
-  'Brand':  { label: '200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
-  'Growth': { label: '700 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
+  'Starter':  { label: '200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
+  'Elite': { label: '700 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
 };
 
 // ─── Checklist Steps ─────────────────────────────────────────────────
@@ -182,8 +182,8 @@ const Setup = () => {
     }
   }, [location.search]);
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
-    'Brand': localStorage.getItem('syncsocio_dm_automation') === 'true',
-    'Growth': localStorage.getItem('syncsocio_dm_automation') === 'true',
+    'Starter': localStorage.getItem('syncsocio_dm_automation') === 'true',
+    'Elite': localStorage.getItem('syncsocio_dm_automation') === 'true',
   });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null);
@@ -312,13 +312,13 @@ const Setup = () => {
       const hasReels = types.includes('Reels');
       
       if (freq === 'Once / wk' && !hasReels) {
-        setRecommendedPlan('Brand');
+        setRecommendedPlan('Starter');
       } else if (freq === '3-4x / wk' && !hasReels) {
-        setRecommendedPlan('Brand');
+        setRecommendedPlan('Starter');
       } else if (freq === 'Daily' || hasReels) {
-        setRecommendedPlan('Growth');
+        setRecommendedPlan('Elite');
       } else {
-        setRecommendedPlan('Growth');
+        setRecommendedPlan('Elite');
       }
     }
   }, []);
@@ -409,34 +409,7 @@ const Setup = () => {
   };
 
   const handleSelectPlan = (plan: Plan) => {
-    if (!onboardingData) {
-      processPayment(plan.name);
-      return;
-    }
-    const currentFreq = onboardingData.postingFrequency;
-    const currentTypes = onboardingData.contentTypes || [];
-    const hasReels = currentTypes.includes('Reels');
-
-    let issues = [];
-    let sync: any = {};
-
-    if (plan.name === 'Brand') {
-      if (currentFreq === 'Daily') {
-        issues.push('Frequency will be reduced to 3-4x/wk');
-        sync.postingFrequency = '3-4x / wk';
-      }
-      if (hasReels) {
-        issues.push('Reels will be disabled');
-        sync.contentTypes = currentTypes.filter((t: string) => t !== 'Reels');
-      }
-    }
-
-    if (issues.length > 0) {
-      setSyncData(sync);
-      setWarningPlan(plan.name);
-    } else {
-      processPayment(plan.name);
-    }
+    processPayment(plan.name);
   };
 
   const handleToggle = (planName: string) => {
@@ -519,11 +492,9 @@ const Setup = () => {
             }
           }
 
-          // Update local storage to match new sync
-          if (syncData) {
-            const updatedProfile = { ...onboardingData, ...syncData, selectedPlan };
-            localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
-          }
+          // Update local storage to match selected plan
+          const updatedProfile = { ...onboardingData, selectedPlan };
+          localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
         } catch (err) {
           console.error('Failed to save selected plan:', err);
         }
@@ -745,7 +716,7 @@ const Setup = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {plans.map((plan, i) => {
-            const isDmEnabled = dmToggles[plan.name];
+            const isDmEnabled = plan.name === 'Starter' ? dmToggles[plan.name] : false;
             const basePrice = parseInt(plan.price.replace('₹', ''));
             let currentPrice = basePrice + (isDmEnabled ? 399 : 0);
             
@@ -804,7 +775,7 @@ const Setup = () => {
                 </p>
 
                 {/* DM Automation Toggle */}
-                {plan.name === 'Brand' && (
+                {plan.name === 'Starter' && (
                   <div className={`flex items-center justify-between p-4 rounded-xl mb-6 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
                     <div className="flex items-center gap-3">
                       <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
@@ -862,55 +833,7 @@ const Setup = () => {
         })}
         </div>
 
-        {/* Plan Drift Warning Overlay */}
-        <AnimatePresence>
-          {warningPlan && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md"
-            >
-              <motion.div 
-                initial={{ scale: 0.95, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                className="max-w-sm w-full glass-card rounded-[2.5rem] p-8 shadow-2xl border-amber-500/20"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
-                  <AlertTriangle className="text-amber-500" size={28} />
-                </div>
-                <h3 className="text-xl font-bold mb-2 text-foreground">Sync Preferences?</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                  Picking <span className="font-bold text-foreground">{warningPlan}</span> will adjust your onboarding preferences (Frequency/Formats) to fit this plan's limitations.
-                </p>
-                <div className="space-y-3">
-                  <Button 
-                    className="w-full gradient-bg text-white h-12 rounded-xl text-xs font-bold"
-                    onClick={() => {
-                      if (warningPlan) {
-                        processPayment(warningPlan, syncData);
-                        setWarningPlan(null);
-                      }
-                    }}
-                    disabled={isProcessingPayment}
-                  >
-                    {isProcessingPayment ? 'Processing...' : 'Auto-Sync & Activate'}
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full h-11 text-xs font-bold text-muted-foreground"
-                    onClick={() => {
-                      setWarningPlan(null);
-                      setSyncData(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
       </Wrapper>
     );
   }

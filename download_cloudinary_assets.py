@@ -27,17 +27,23 @@ def download_all_assets():
     download_dir = os.path.join(os.path.dirname(__file__), 'cloudinary_downloads')
     os.makedirs(download_dir, exist_ok=True)
     
-    print(f"🚀 Starting download to: {download_dir}")
+    print(f"Starting download to: {download_dir}")
     
     next_cursor = None
     total_downloaded = 0
     
     while True:
-        # Fetch up to 500 resources at a time
+        # Fetch up to 500 video resources from the syncsocio/videos folder
         try:
-            res = cloudinary.api.resources(max_results=500, next_cursor=next_cursor)
+            res = cloudinary.api.resources(
+                resource_type="video",
+                type="upload",
+                prefix="syncsocio/videos/",
+                max_results=500, 
+                next_cursor=next_cursor
+            )
         except Exception as e:
-            print(f"❌ Failed to fetch resources from Cloudinary: {e}")
+            print(f"Failed to fetch video resources from Cloudinary: {e}")
             break
             
         resources = res.get('resources', [])
@@ -46,27 +52,31 @@ def download_all_assets():
             url = r['secure_url']
             # Replace slashes with underscores to avoid folder creation issues
             public_id = r['public_id'].replace('/', '_')
-            format_type = r.get('format', 'jpg')
+            format_type = r.get('format', 'mp4') # Default to mp4 for videos if missing
             
             filename = os.path.join(download_dir, f"{public_id}.{format_type}")
             
-            print(f"Downloading: {public_id}.{format_type}...")
+            print(f"Downloading Video: {public_id}.{format_type}...")
             try:
-                asset_data = requests.get(url, timeout=30).content
+                # Videos can be larger, so we stream the download
+                response = requests.get(url, stream=True, timeout=60)
+                response.raise_for_status()
+                
                 with open(filename, 'wb') as handler:
-                    handler.write(asset_data)
+                    for chunk in response.iter_content(chunk_size=8192):
+                        handler.write(chunk)
                 total_downloaded += 1
             except Exception as e:
-                print(f"⚠️ Failed to download {url}: {e}")
+                print(f"Failed to download video {url}: {e}")
                 
         # Handle pagination if there are more than 500 assets
         if 'next_cursor' in res:
             next_cursor = res['next_cursor']
-            print("➡️ Fetching next page of assets...")
+            print("Fetching next page of assets...")
         else:
             break
             
-    print(f"\n✅ Done! Successfully downloaded {total_downloaded} assets to the 'cloudinary_downloads' folder.")
+    print(f"\nDone! Successfully downloaded {total_downloaded} assets to the 'cloudinary_downloads' folder.")
 
 if __name__ == "__main__":
     download_all_assets()

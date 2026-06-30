@@ -4,7 +4,7 @@ import {
   Camera, MapPin, FileText, ArrowRight, Check, Globe, Rocket, Users, Compass, Trophy,
   BarChart3, MessageSquare, Zap, Star, Target, Utensils, Dumbbell,
   Shirt, Cpu, GraduationCap, Sparkle, Layers, Repeat, AtSign, Heart, Box, Palette, Diamond,
-  Clock, TrendingUp
+  Clock, TrendingUp, Loader2
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -95,6 +95,7 @@ const Onboarding = () => {
   const [scanStatus, setScanStatus] = useState('');
   const [scanError, setScanError] = useState('');
   const [scanSuccess, setScanSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleScanWebsite = async () => {
     if (!scanUrl.trim()) {
@@ -908,11 +909,20 @@ const Onboarding = () => {
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Brand Logo (Optional)</label>
                       <div className="border-2 border-dashed border-border/80 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer group">
-                        <div className="w-12 h-12 rounded-full bg-background border border-border flex items-center justify-center mb-3 group-hover:scale-105 transition-transform shadow-sm">
-                          <Camera size={18} className="text-muted-foreground/60 group-hover:text-primary" />
-                        </div>
-                        <p className="text-xs font-bold text-foreground">Upload Logo</p>
-                        <p className="text-[10px] font-medium text-muted-foreground mt-1">SVG, PNG, or JPG (max 2MB)</p>
+                        {formData.logo ? (
+                          <div className="flex flex-col items-center">
+                            <img src={formData.logo} alt="Brand Logo" className="max-h-16 object-contain mb-3" />
+                            <p className="text-xs font-bold text-foreground">Change Logo</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="w-12 h-12 rounded-full bg-background border border-border flex items-center justify-center mb-3 group-hover:scale-105 transition-transform shadow-sm">
+                              <Camera size={18} className="text-muted-foreground/60 group-hover:text-primary" />
+                            </div>
+                            <p className="text-xs font-bold text-foreground">Upload Logo</p>
+                            <p className="text-[10px] font-medium text-muted-foreground mt-1">SVG, PNG, or JPG (max 2MB)</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1129,7 +1139,9 @@ const Onboarding = () => {
                               <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Engine Hot</span>
                             </div>
                             <button
+                              disabled={isSubmitting}
                               onClick={async () => {
+                                setIsSubmitting(true);
                                 try {
                                   const searchParams = new URLSearchParams(window.location.search);
                                   const isNewBrand = searchParams.get('new_brand') === 'true';
@@ -1171,19 +1183,37 @@ const Onboarding = () => {
                                     }
                                   }
 
-                                  localStorage.setItem('syncsocio_profile', JSON.stringify(formData));
+                                  try {
+                                    localStorage.setItem('syncsocio_profile', JSON.stringify({ ...formData, logo: '' }));
+                                  } catch (storageErr) {
+                                    console.warn('Could not save profile to localStorage:', storageErr);
+                                  }
                                   window.location.href = isNewBrand ? "/dashboard" : "/setup";
                                 } catch (err) {
                                   console.error(err);
-                                  localStorage.setItem('syncsocio_profile', JSON.stringify(formData));
+                                  try {
+                                    localStorage.setItem('syncsocio_profile', JSON.stringify({ ...formData, logo: '' }));
+                                  } catch (storageErr) {
+                                    console.warn('Could not save profile to localStorage:', storageErr);
+                                  }
                                   const searchParams = new URLSearchParams(window.location.search);
                                   const isNewBrand = searchParams.get('new_brand') === 'true';
                                   window.location.href = isNewBrand ? "/dashboard" : "/setup";
+                                } finally {
+                                  setIsSubmitting(false);
                                 }
                               }}
-                              className="gradient-bg text-white px-8 py-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+                              className={`gradient-bg text-white px-8 py-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
-                              Launch Dashboard <ArrowRight size={14} strokeWidth={3} />
+                              {isSubmitting ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" /> Launching...
+                                </>
+                              ) : (
+                                <>
+                                  Launch Dashboard <ArrowRight size={14} strokeWidth={3} />
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>

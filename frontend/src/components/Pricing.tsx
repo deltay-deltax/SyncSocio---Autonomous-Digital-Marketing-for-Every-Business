@@ -126,7 +126,7 @@ const Pricing = () => {
                 </div>
 
                 {/* DM Automation Toggle */}
-                {plan.name === 'Brand' && (
+                {plan.name === 'Starter' && (
                   <div className={`flex items-center justify-between p-4 rounded-xl mb-8 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
                     <div className="flex items-center gap-3">
                       <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
@@ -159,7 +159,7 @@ const Pricing = () => {
                       <span>{feature}</span>
                     </li>
                   ))}
-                  {isDmEnabled && plan.name === 'Brand' && (
+                  {isDmEnabled && plan.name === 'Starter' && (
                     <li className="flex items-start gap-3 text-sm font-bold">
                       <Check size={18} className={`shrink-0 mt-0.5 ${plan.popular ? "text-primary-foreground" : "text-primary"}`} />
                       <span>Automated DM Replies & Lead Capture</span>

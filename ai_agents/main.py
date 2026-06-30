@@ -357,12 +357,19 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
                         
         typography_candidates = list(dict.fromkeys(google_fonts + css_fonts))[:10]
 
+        # Extract hex colors
+        hex_colors = re.findall(r'#(?:[0-9a-fA-F]{3}){1,2}\b', html_content)
+        from collections import Counter
+        color_counts = Counter([c.upper() for c in hex_colors if c.upper() not in ('#FFF', '#FFFFFF', '#000', '#000000')])
+        top_colors = [c for c, _ in color_counts.most_common(10)]
+
         print("\n" + "="*80)
         print(f"[WEBSITE SCANNER] [START] Initiating scan for URL: {url}")
         print(f"[WEBSITE SCANNER] [TITLE] Extracted Title: {extracted['title']}")
         print(f"[WEBSITE SCANNER] [META] Extracted Meta Description: {extracted['meta_description']}")
         print(f"[WEBSITE SCANNER] [LOGOS] Extracted Unique Logo Candidates: {len(extracted['logo_candidates'])}")
         print(f"[WEBSITE SCANNER] [FONTS] Extracted Typography Candidates: {typography_candidates}")
+        print(f"[WEBSITE SCANNER] [COLORS] Extracted Hex Colors: {top_colors}")
         print(f"[WEBSITE SCANNER] [IMAGES] Extracted Unique Image URLs Count: {len(extracted['images'])}")
         print(f"[WEBSITE SCANNER] [TEXT] Raw text character length: {len(extracted['body_text'])}")
         print("="*80 + "\n")
@@ -381,6 +388,7 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
             "logo_candidates": []
         }
         typography_candidates = []
+        top_colors = []
         
     if not openai_key:
         raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
@@ -435,12 +443,13 @@ JSON Structure:
 }
 """
         if is_fallback:
-            user_prompt = f"Scrape URL: {url} (SCRAPER BLOCKED/FAILED - PLEASE USE OFFLINE TRAINING KNOWLEDGE TO INFER DETAILS)\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\nNone (scraper failed)\n\nDetected typography candidates:\nNone (scraper failed)\n\nList of page images:\nNone (scraper failed)\n\nWebpage visible text:\n{extracted['body_text']}"
+            user_prompt = f"Scrape URL: {url} (SCRAPER BLOCKED/FAILED - PLEASE USE OFFLINE TRAINING KNOWLEDGE TO INFER DETAILS)\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\nNone (scraper failed)\n\nDetected typography candidates:\nNone (scraper failed)\n\nDetected colors:\nNone (scraper failed)\n\nList of page images:\nNone (scraper failed)\n\nWebpage visible text:\n{extracted['body_text']}"
         else:
             logo_info_str = "\n".join([f"- URL: {l['src']} | Source: {l['source']}" for l in extracted["logo_candidates"]])
             typo_info_str = ", ".join(typography_candidates) if typography_candidates else "None detected"
+            color_info_str = ", ".join(top_colors) if top_colors else "None detected"
             images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
-            user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\n{logo_info_str}\n\nDetected typography candidates:\n{typo_info_str}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
+            user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\n{logo_info_str}\n\nDetected typography candidates:\n{typo_info_str}\n\nDetected colors:\n{color_info_str}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
         
         print("\n" + "="*80)
         print("[WEBSITE SCANNER] [PROMPT] PROMPT BEING SENT TO GPT:")

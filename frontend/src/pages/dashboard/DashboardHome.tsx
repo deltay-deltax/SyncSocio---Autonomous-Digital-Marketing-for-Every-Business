@@ -295,40 +295,6 @@ const DashboardHome = () => {
 
         {/* Quick Actions & Platform Connections */}
         <motion.div className="lg:col-span-2 space-y-4 sm:space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          {/* Quick Actions */}
-          <Card className="border-border/50 overflow-hidden relative">
-            <CardHeader className="pb-3 px-6 pt-6">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  <Sparkles size={14} />
-                </div>
-                <CardTitle className="text-base">Quick Actions</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-6 grid grid-cols-1 gap-2.5">
-              <Button
-                onClick={() => navigate('/dashboard/strategy')}
-                className="w-full justify-start rounded-xl py-5 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md shadow-primary/25 border-0"
-              >
-                <Plus size={14} className="mr-2" /> Create SaaS Strategy Creative
-              </Button>
-              <Button
-                onClick={() => navigate('/dashboard/dms')}
-                variant="outline"
-                className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
-              >
-                <MessageSquare size={14} className="mr-2 text-primary" /> Configure DM Automations
-              </Button>
-              <Button
-                onClick={() => navigate('/dashboard/strategy')}
-                variant="outline"
-                className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
-              >
-                <Send size={14} className="mr-2 text-primary" /> Manage Campaign Recipients
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* Workspace Status */}
           <Card className="border-border/50 overflow-hidden relative bg-card">
             <CardHeader className="pb-3 px-6 pt-6">
@@ -426,6 +392,47 @@ const DashboardHome = () => {
                   </div>
                 );
               })()}
+
+              <Button
+                onClick={() => navigate('/dashboard/billing')}
+                className="w-full rounded-xl py-5 text-xs font-bold bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white shadow-md shadow-primary/25 border-0 transition-all hover:scale-[1.02]"
+              >
+                <Zap size={14} className="mr-2 fill-white" /> Upgrade Plan
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card className="border-border/50 overflow-hidden relative">
+            <CardHeader className="pb-3 px-6 pt-6">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Sparkles size={14} />
+                </div>
+                <CardTitle className="text-base">Quick Actions</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="px-6 pb-6 grid grid-cols-1 gap-2.5">
+              <Button
+                onClick={() => navigate('/dashboard/strategy')}
+                className="w-full justify-start rounded-xl py-5 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md shadow-primary/25 border-0"
+              >
+                <Plus size={14} className="mr-2" /> Create SaaS Strategy Creative
+              </Button>
+              <Button
+                onClick={() => navigate('/dashboard/dms')}
+                variant="outline"
+                className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
+              >
+                <MessageSquare size={14} className="mr-2 text-primary" /> Configure DM Automations
+              </Button>
+              <Button
+                onClick={() => navigate('/dashboard/strategy')}
+                variant="outline"
+                className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
+              >
+                <Send size={14} className="mr-2 text-primary" /> Manage Campaign Recipients
+              </Button>
             </CardContent>
           </Card>
 

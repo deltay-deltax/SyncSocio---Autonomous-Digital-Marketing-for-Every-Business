@@ -33,6 +33,7 @@ import AssetLibrary from './pages/dashboard/AssetLibrary';
 import Products from './pages/dashboard/Products';
 import CreditsExplainer from './pages/CreditsExplainer';
 import CreditTopup from './pages/dashboard/CreditTopup';
+import DashboardBilling from './pages/dashboard/DashboardBilling';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
@@ -90,6 +91,7 @@ function App() {
             <Route path="faq" element={<DashboardFAQ />} />
             <Route path="credits" element={<CreditsExplainer />} />
             <Route path="buy-credits" element={<CreditTopup />} />
+            <Route path="billing" element={<DashboardBilling />} />
           </Route>
         </Route>
 
