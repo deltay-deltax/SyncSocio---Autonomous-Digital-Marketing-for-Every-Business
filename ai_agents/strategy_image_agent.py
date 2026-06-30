@@ -422,7 +422,7 @@ Anchor the visual to this exact product.
 """
 
     idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
-    logo_inst = " Do NOT draw or include any logos, icons, or brand marks. Leave the top-left corner empty so a logo can be placed later."
+    logo_inst = " Incorporate the brand logo cleanly on the creative. Do not assume or add any fake logos or text."
 
     # If it is whatsapp or email campaign, we follow the exact requested structure in request 4
     if campaign_mode == "whatsapp":

@@ -1231,6 +1231,8 @@ const DashboardStrategy = () => {
         if (startBackgroundAllInOne) {
           const tId = await startBackgroundAllInOne(requests, creditCost, creditReason);
           setCurrentTaskId(tId);
+          setAdTemplate(null);
+          setIdea('');
         }
         return;
       }
@@ -1296,6 +1298,8 @@ const DashboardStrategy = () => {
       if (startBackgroundGeneration) {
         const tId = await startBackgroundGeneration(payload, creditCost, creditReason, currentMode);
         setCurrentTaskId(tId);
+        setAdTemplate(null);
+        setIdea('');
       }
     } catch (err: any) {
       console.error('[Strategy] Generation setup error:', err);

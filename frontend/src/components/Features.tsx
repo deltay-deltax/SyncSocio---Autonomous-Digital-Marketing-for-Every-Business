@@ -1,25 +1,35 @@
-import { Zap, Dna, Link2, TrendingUp } from "lucide-react";
+import { Dna, LayoutGrid, CalendarDays, CalendarClock, Send, BarChart3 } from "lucide-react";
 
 const features = [
   {
-    icon: Zap,
-    title: "One-Tap Brand Sync",
-    description: "Connect your Instagram, FB, and X handles instantly. No manual API keys. No janky integrations.",
-  },
-  {
     icon: Dna,
-    title: "DNA Synthesis Protocol",
-    description: "Our agent analyzes your categories, tone, and competitors to generate a vocal signature that sounds exactly like you — only smarter.",
+    title: "Brand DNA Engine",
+    description: "Your tone, category, USP, colors, and audience get synthesized into every creative — so every post sounds and looks unmistakably you.",
   },
   {
-    icon: Link2,
-    title: "Smart Task Linking",
-    description: "Define your growth goals once. Let the agent navigate the complex web of content formats and scheduling for you.",
+    icon: LayoutGrid,
+    title: "Multi-Format Content Studio",
+    description: "Generate static images, carousels, AI-UGC reels, product videos, and e-commerce listings — all from a single studio, in one tap.",
   },
   {
-    icon: TrendingUp,
-    title: "Predictive Reach Forecast",
-    description: "Track your growth week by week with simple performance reports.",
+    icon: CalendarDays,
+    title: "40+ Festival Calendar",
+    description: "Auto-timed creatives for Diwali, Holi, Eid, Christmas, and 40+ Indian and global occasions — always ready before the trend peaks.",
+  },
+  {
+    icon: CalendarClock,
+    title: "Auto-Schedule & Publish",
+    description: "Approve a post and let the agent handle the rest. Content goes live at the optimal time — directly to your Instagram feed.",
+  },
+  {
+    icon: Send,
+    title: "Broadcast Engine",
+    description: "Upload your customer list and hit send. AI-written WhatsApp blasts and email campaigns ship to thousands of contacts in one click.",
+  },
+  {
+    icon: BarChart3,
+    title: "Instagram Analytics",
+    description: "Track followers, reach, impressions, and engagement rate — pulled live from the Instagram Graph API. No guesswork, just real data.",
   },
 ];
 

@@ -57,7 +57,7 @@ const HeroSection = ({ onWaitlistClick, isJoined }: HeroSectionProps) => {
             className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tight mb-6"
           >
             Do it in{" "}
-            <span className="liquid-underline">one tap</span>.
+            <span className="liquid-underline">one tap.</span>
             <br />
             <span className="gradient-text">Literally.</span>
           </motion.h1>
