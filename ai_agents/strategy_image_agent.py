@@ -849,13 +849,16 @@ def generate_strategy_images(
         for i in range(count):
             prod_for_ecomm = assigned_products[i] if (assigned_products and i < len(assigned_products)) else None
             
-            base_ref = None
+            task_refs = []
             if prod_for_ecomm and prod_for_ecomm.get("imageBase64"):
-                base_ref = prod_for_ecomm["imageBase64"]
-                if not base_ref.startswith("data:") and not base_ref.startswith("http"):
-                    base_ref = "data:image/jpeg;base64," + base_ref
+                task_refs.append(prod_for_ecomm["imageBase64"])
             elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
-                base_ref = assigned_refs[i]
+                task_refs.append(assigned_refs[i])
+                
+            for r in ref_images:
+                res_r = _resolve_ref_image(r)
+                if res_r and res_r not in task_refs:
+                    task_refs.append(res_r)
 
             prompt, caption = build_ecomm_image_prompt(
                 brand_doc=brand_doc,
@@ -863,18 +866,18 @@ def generate_strategy_images(
                 platform=plat,
                 shot_index=i,
                 total_count=count,
-                ref_image=base_ref,
+                ref_image=task_refs[0] if task_refs else None,
                 language=language,
                 idea=idea,
             )
-            tasks.append((prompt, caption, base_ref, i))
+            tasks.append((prompt, caption, task_refs, i))
 
         def run_ecomm_task(task):
             prompt, caption, task_ref, index = task
             try:
                 result = generate_fal_image_gpt2(
                     prompt=prompt,
-                    image=task_ref,
+                    image=task_refs,
                     image_size=fal_size,
                 )
                 return {
@@ -945,9 +948,17 @@ def generate_strategy_images(
         tasks = []
         for i in range(count):
             prod = assigned_products[i]
-            ref = prod.get("imageBase64") if prod else assigned_refs[i]
-            if ref and not ref.startswith("http") and not ref.startswith("data:"):
-                ref = "data:image/jpeg;base64," + ref
+            
+            task_refs = []
+            if prod and prod.get("imageBase64"):
+                task_refs.append(prod.get("imageBase64"))
+            elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
+                task_refs.append(assigned_refs[i])
+                
+            for r in ref_images:
+                res_r = _resolve_ref_image(r)
+                if res_r and res_r not in task_refs:
+                    task_refs.append(res_r)
 
             t_id = _template_for(i)
             c_dir = None
@@ -960,10 +971,10 @@ def generate_strategy_images(
                 product=prod, ad_template=t_id, 
                 language=language, custom_directive=c_dir
             )
-            tasks.append((prompt, ref, i, prod, t_id, c_dir))
+            tasks.append((prompt, task_refs, i, prod, t_id, c_dir))
 
         def run_image_task(task):
-            prompt, ref, index, prod, t_id, c_dir = task
+            prompt, refs, index, prod, t_id, c_dir = task
             template_label = None
             if t_id and t_id in AD_TEMPLATE_DIRECTIVES:
                 template_label = AD_TEMPLATE_DIRECTIVES[t_id]["label"]
@@ -976,7 +987,7 @@ def generate_strategy_images(
                 if not template_label:
                     template_label = c_dir.replace("Use a ", "").replace("Use an ", "").replace("Use ", "").strip(".")
 
-            print(f"\n[StrategyAgent] 🖼  Image {index+1}/{count} | ref_image={'YES ✓' if ref else 'NONE'} | template={template_label or 'None'}")
+            print(f"\n[StrategyAgent] 🖼  Image {index+1}/{count} | ref_image={'YES ✓ (' + str(len(refs)) + ')' if refs else 'NONE'} | template={template_label or 'None'}")
             
             # Generate custom Instagram caption + hashtags using Gemini
             caption = generate_instagram_caption_and_hashtags(
@@ -992,7 +1003,7 @@ def generate_strategy_images(
             try:
                 result = generate_fal_image_gpt2(
                     prompt=prompt,
-                    image=ref,
+                    image=refs,
                     image_size=fal_size,
                 )
                 return {
@@ -1052,15 +1063,23 @@ def generate_strategy_images(
     elif layout == "carousel":
         def run_carousel_task(index):
             prod = assigned_products[index]
-            ref = prod.get("imageBase64") if prod else assigned_refs[index]
-            if ref and not ref.startswith("http") and not ref.startswith("data:"):
-                ref = "data:image/jpeg;base64," + ref
+            
+            task_refs = []
+            if prod and prod.get("imageBase64"):
+                task_refs.append(prod.get("imageBase64"))
+            elif assigned_refs and index < len(assigned_refs) and assigned_refs[index]:
+                task_refs.append(assigned_refs[index])
+                
+            for r in ref_images:
+                res_r = _resolve_ref_image(r)
+                if res_r and res_r not in task_refs:
+                    task_refs.append(res_r)
                 
             # 1. Draft the text via LLM
             print(f"[StrategyAgent] ✍️ Drafting {slide_count} slides in {language} for carousel {index+1}...")
             slide_texts = build_carousel_slide_prompts(brand_doc, idea, slide_count, product=prod, language=language)
 
-            print(f"\n[StrategyAgent] 🎠 Carousel {index+1}/{count} | ref_image={'YES ✓' if ref else 'NONE'}")
+            print(f"\n[StrategyAgent] 🎠 Carousel {index+1}/{count} | ref_image={'YES ✓' if task_refs else 'NONE'}")
             if prod: print(f"                   Product: {prod.get('name')}")
 
             # Generate custom Instagram caption + hashtags using Gemini
@@ -1077,7 +1096,7 @@ def generate_strategy_images(
             try:
                 slides = generate_fal_carousel_ideogram(
                     base_prompt=f"{brand_doc.get('brandName', 'Brand')} — {idea}" if idea and idea.strip() else brand_doc.get('brandName', 'Brand'),
-                    image=ref,
+                    image=task_refs,
                     count=slide_count,
                     slide_prompts=slide_texts,
                 )

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Sparkles, Package, ShoppingBag, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, X, Sparkles, Package, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -27,7 +27,7 @@ interface BrandShape {
 
 interface Props {
   brand?: BrandShape;
-  language?: 'english' | 'hinglish' | 'hindi';
+  language?: string;
   isSaas?: boolean;  // When true: SaaS/Services/Consulting mode — override all D2C angles
   onGenerate?: (data: {
     prompt: string;
@@ -36,7 +36,7 @@ interface Props {
     product?: any;
     imageCount: number;
     customInstruction: string;
-    language?: 'english' | 'hinglish' | 'hindi';
+    language?: string;
   }) => void;
   products?: any[];
 }
@@ -553,6 +553,21 @@ const getSaasAngles = (festivalId: string): Festival['angles'] => {
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+const languages = [
+  { id: 'english', label: 'English', flag: '🇬🇧' },
+  { id: 'hinglish', label: 'Hinglish', flag: '🅷' },
+  { id: 'hindi', label: 'Hindi (हिन्दी)', flag: '🇮🇳' },
+  { id: 'marathi', label: 'Marathi (मराठी)', flag: '🌾' },
+  { id: 'bengali', label: 'Bengali (বাংলা)', flag: '🌸' },
+  { id: 'gujarati', label: 'Gujarati (ગુજરાતી)', flag: '🪁' },
+  { id: 'punjabi', label: 'Punjabi (ਪੰਜਾਬੀ)', flag: '🌾' },
+  { id: 'tamil', label: 'Tamil (தமிழ்)', flag: '🪔' },
+  { id: 'telugu', label: 'Telugu (தெలుగు)', flag: '🌟' },
+  { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
+  { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
+  { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
+];
+
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
@@ -578,7 +593,7 @@ export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'engl
   const [selected, setSelected] = useState<Festival | null>(null);
   const [angleId, setAngleId] = useState<string>('');
   const [postType, setPostType] = useState<'Static Ad' | 'Story'>('Static Ad');
-  const [lang, setLang] = useState<'english' | 'hinglish' | 'hindi'>(language);
+  const [lang, setLang] = useState<string>(language || 'english');
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [imageCount, setImageCount] = useState<number>(1);
   const [customInstruction, setCustomInstruction] = useState<string>('');
@@ -713,7 +728,8 @@ ${langInstr}`;
     const langInstr =
       lang === 'english' ? 'Write in clean professional English.'
       : lang === 'hinglish' ? 'Write in Hinglish — mix Hindi words naturally. Casual warm tone.'
-      : 'Write entirely in Hindi using Devanagari script.';
+      : lang === 'hindi' ? 'Write entirely in Hindi using Devanagari script.'
+      : `Write entirely in ${languages.find(l => l.id === lang)?.label.split(' ')[0] || lang} script.`;
       
     const postTypeAndLang = `POST TYPE: ${postType}
 LANGUAGE INSTRUCTION: ${langInstr}`;
@@ -969,19 +985,19 @@ Ensure a clean layout, ${brand.visualStyle || 'modern premium'} aesthetic, and b
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Language</p>
-                    <div className="flex gap-1.5">
-                      {(['english', 'hinglish', 'hindi'] as const).map((l) => (
-                        <button
-                          key={l}
-                          onClick={() => setLang(l)}
-                          className={cn(
-                            'flex-1 px-2 py-2 rounded-lg text-[11px] font-semibold capitalize border transition',
-                            lang === l ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border hover:border-primary/40'
-                          )}
-                        >
-                          {l}
-                        </button>
-                      ))}
+                    <div className="relative">
+                      <select
+                        value={lang}
+                        onChange={(e) => setLang(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg text-[11px] font-semibold bg-card border-border border hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary transition cursor-pointer appearance-none"
+                      >
+                        {languages.map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.flag} {l.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     </div>
                   </div>
                 </div>

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { CreditsModal } from '@/components/CreditsModal';
+import { BackgroundGenerationsPopover } from '@/components/BackgroundGenerationsPopover';
 import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
@@ -23,6 +24,18 @@ const navItems = [
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
   { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
 ];
+
+export type BgTask = {
+  id: string;
+  title: string;
+  status: 'generating' | 'success' | 'error';
+  mode: any;
+  posts: any[];
+  error: any;
+  creditCost: number;
+  creditReason: string;
+  createdAt: number;
+};
 
 const DashboardLayout = () => {
   const location = useLocation();
@@ -46,216 +59,215 @@ const DashboardLayout = () => {
   const [brands, setBrands] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const [activeGeneration, setActiveGeneration] = useState<{
-    status: 'idle' | 'generating' | 'success' | 'error';
-    mode: any;
-    posts: any[];
-    error: any;
-    creditCost: number;
-    creditReason: string;
-  }>({
-    status: 'idle',
-    mode: null,
-    posts: [],
-    error: null,
-    creditCost: 0,
-    creditReason: '',
-  });
+  const [backgroundTasks, setBackgroundTasks] = useState<BgTask[]>([]);
+  const [viewingTask, setViewingTask] = useState<BgTask | null>(null);
+
+  const viewCompletedTask = (taskId: string) => {
+    const task = backgroundTasks.find(t => t.id === taskId);
+    if (task && task.status === 'success') {
+      setViewingTask(task);
+      if (location.pathname !== '/dashboard/strategy') {
+        navigate('/dashboard/strategy');
+      }
+    }
+  };
+
+  const clearViewingTask = () => setViewingTask(null);
+
+  const removeTask = (taskId: string) => {
+    setBackgroundTasks(prev => prev.filter(t => t.id !== taskId));
+    if (viewingTask?.id === taskId) {
+      setViewingTask(null);
+    }
+  };
 
   const startBackgroundGeneration = async (payload: any, creditCost: number, creditReason: string, mode: any) => {
-    setActiveGeneration({
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const title = mode === 'all_in_one' ? 'All-in-One Pack' : 
+                  mode === 'whatsapp' ? 'WhatsApp Blast' : 
+                  mode === 'email' ? 'Email Campaign' : 
+                  `${payload.count || 1} ${mode || 'custom'} generation(s)`;
+
+    const newTask: BgTask = {
+      id: taskId,
+      title,
       status: 'generating',
       mode,
       posts: [],
       error: null,
       creditCost,
       creditReason,
-    });
+      createdAt: Date.now(),
+    };
 
-    try {
-      const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+    setBackgroundTasks(prev => [newTask, ...prev]);
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }));
-        throw new Error(err.detail || 'Generation failed');
-      }
-
-      const data = await res.json();
-      const posts = data.posts || [];
-
-      // Verify if any post failed (image/video missing or contains error message)
-      const failedPost = posts.find((p: any) => 
-        p.error || 
-        (p.type === 'video' && !p.url) || 
-        (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
-        (p.type !== 'video' && p.type !== 'carousel' && !p.image)
-      );
-      if (failedPost) {
-        throw new Error(failedPost.error || 'One or more creative generations failed.');
-      }
-
-      // Deduct credits
-      if (creditCost > 0 && posts.length > 0) {
-        const token = localStorage.getItem('token');
-        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+    (async () => {
+      try {
+        const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ amount: creditCost, reason: creditReason }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
-        if (deductRes.ok) {
-          const credData = await deductRes.json();
-          localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
-          window.dispatchEvent(new StorageEvent('storage', {
-            key: 'syncsocio_credits',
-            newValue: String(credData.credits ?? 0),
-          }));
-          setCredits(credData.credits ?? 0);
-          setCreditsAnim(true);
-          setTimeout(() => setCreditsAnim(false), 1000);
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || 'Generation failed');
         }
+
+        const data = await res.json();
+        const posts = data.posts || [];
+
+        // Verify if any post failed (image/video missing or contains error message)
+        const failedPost = posts.find((p: any) => 
+          p.error || 
+          (p.type === 'video' && !p.url) || 
+          (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
+          (p.type !== 'video' && p.type !== 'carousel' && !p.image)
+        );
+        if (failedPost) {
+          throw new Error(failedPost.error || 'One or more creative generations failed.');
+        }
+
+        // Deduct credits
+        if (creditCost > 0 && posts.length > 0) {
+          const token = localStorage.getItem('token');
+          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+          const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ amount: creditCost, reason: creditReason }),
+          });
+          if (deductRes.ok) {
+            const credData = await deductRes.json();
+            localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+            window.dispatchEvent(new StorageEvent('storage', {
+              key: 'syncsocio_credits',
+              newValue: String(credData.credits ?? 0),
+            }));
+          }
+        }
+
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'success', posts } : t));
+
+        toast({
+          title: 'Creative synthesis complete! 🎉',
+          description: `Successfully generated ${posts.length} dynamic ${mode || 'custom'} creative(s).`,
+        });
+      } catch (err: any) {
+        console.error('[BgGeneration] failed:', err);
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        toast({
+          variant: 'destructive',
+          title: 'Creative generation failed ❌',
+          description: err.message || 'Something went wrong during assets synthesis.',
+        });
       }
+    })();
 
-      setActiveGeneration(prev => ({
-        ...prev,
-        status: 'success',
-        posts,
-      }));
-
-      toast({
-        title: 'Creative synthesis complete! 🎉',
-        description: `Successfully generated ${posts.length} dynamic ${mode || 'custom'} creative(s).`,
-      });
-    } catch (err: any) {
-      console.error('[BgGeneration] failed:', err);
-      setActiveGeneration(prev => ({
-        ...prev,
-        status: 'error',
-        error: err.message || 'Something went wrong',
-      }));
-      toast({
-        variant: 'destructive',
-        title: 'Creative generation failed ❌',
-        description: err.message || 'Something went wrong during assets synthesis.',
-      });
-    }
+    return taskId;
   };
 
   const startBackgroundAllInOne = async (requests: any[], creditCost: number, creditReason: string) => {
-    setActiveGeneration({
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    
+    const newTask: BgTask = {
+      id: taskId,
+      title: 'All-in-One Package',
       status: 'generating',
       mode: 'all_in_one',
       posts: [],
       error: null,
       creditCost,
       creditReason,
-    });
+      createdAt: Date.now(),
+    };
 
-    try {
-      const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
-      const fetchPromises = requests.map(req =>
-        fetch(`${AI_BASE}/generate-strategy-images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(req),
-        }).then(async (res) => {
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ detail: res.statusText }));
-            throw new Error(err.detail || 'Generation failed');
-          }
-          return res.json();
-        })
-      );
+    setBackgroundTasks(prev => [newTask, ...prev]);
 
-      const resultsArray = await Promise.all(fetchPromises);
-      let allPosts: any[] = [];
-      resultsArray.forEach((data, reqIndex) => {
-        const req = requests[reqIndex];
-        const posts = (data.posts || []).map((post: any) => ({
-          ...post,
-          sectionType: req.layout,
-        }));
-        allPosts = [...allPosts, ...posts];
-      });
+    (async () => {
+      try {
+        const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
+        const fetchPromises = requests.map(req =>
+          fetch(`${AI_BASE}/generate-strategy-images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req),
+          }).then(async (res) => {
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({ detail: res.statusText }));
+              throw new Error(err.detail || 'Generation failed');
+            }
+            return res.json();
+          })
+        );
 
-      // Verify if any post failed
-      const failedPost = allPosts.find((p: any) => 
-        p.error || 
-        (p.type === 'video' && !p.url) || 
-        (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
-        (p.type !== 'video' && p.type !== 'carousel' && !p.image)
-      );
-      if (failedPost) {
-        throw new Error(failedPost.error || 'One or more creative generations failed in the All-in-One package.');
-      }
-
-      // Deduct credits
-      if (creditCost > 0 && allPosts.length > 0) {
-        const token = localStorage.getItem('token');
-        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        const deductRes = await fetch(`${apiBase}/credits/deduct`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ amount: creditCost, reason: creditReason }),
-        });
-        if (deductRes.ok) {
-          const credData = await deductRes.json();
-          localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
-          window.dispatchEvent(new StorageEvent('storage', {
-            key: 'syncsocio_credits',
-            newValue: String(credData.credits ?? 0),
+        const resultsArray = await Promise.all(fetchPromises);
+        let allPosts: any[] = [];
+        resultsArray.forEach((data, reqIndex) => {
+          const req = requests[reqIndex];
+          const posts = (data.posts || []).map((post: any) => ({
+            ...post,
+            sectionType: req.layout,
           }));
-          setCredits(credData.credits ?? 0);
-          setCreditsAnim(true);
-          setTimeout(() => setCreditsAnim(false), 1000);
+          allPosts = [...allPosts, ...posts];
+        });
+
+        // Verify if any post failed
+        const failedPost = allPosts.find((p: any) => 
+          p.error || 
+          (p.type === 'video' && !p.url) || 
+          (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
+          (p.type !== 'video' && p.type !== 'carousel' && !p.image)
+        );
+        if (failedPost) {
+          throw new Error(failedPost.error || 'One or more creative generations failed in the All-in-One package.');
         }
+
+        // Deduct credits
+        if (creditCost > 0 && allPosts.length > 0) {
+          const token = localStorage.getItem('token');
+          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+          const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ amount: creditCost, reason: creditReason }),
+          });
+          if (deductRes.ok) {
+            const credData = await deductRes.json();
+            localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+            window.dispatchEvent(new StorageEvent('storage', {
+              key: 'syncsocio_credits',
+              newValue: String(credData.credits ?? 0),
+            }));
+          }
+        }
+
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'success', posts: allPosts } : t));
+
+        toast({
+          title: 'All-in-One creative package synthesized! 🎁',
+          description: `Generated all 11 marketing-strategy assets successfully.`,
+        });
+      } catch (err: any) {
+        console.error('[BgAllInOne] failed:', err);
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        toast({
+          variant: 'destructive',
+          title: 'All-in-One generation failed ❌',
+          description: err.message || 'Something went wrong during packages synthesis.',
+        });
       }
+    })();
 
-      setActiveGeneration(prev => ({
-        ...prev,
-        status: 'success',
-        posts: allPosts,
-      }));
-
-      toast({
-        title: 'All-in-One creative package synthesized! 🎁',
-        description: `Generated all 11 marketing-strategy assets successfully.`,
-      });
-    } catch (err: any) {
-      console.error('[BgAllInOne] failed:', err);
-      setActiveGeneration(prev => ({
-        ...prev,
-        status: 'error',
-        error: err.message || 'Something went wrong',
-      }));
-      toast({
-        variant: 'destructive',
-        title: 'All-in-One generation failed ❌',
-        description: err.message || 'Something went wrong during packages synthesis.',
-      });
-    }
-  };
-
-  const clearActiveGeneration = () => {
-    setActiveGeneration({
-      status: 'idle',
-      mode: null,
-      posts: [],
-      error: null,
-      creditCost: 0,
-      creditReason: '',
-    });
+    return taskId;
   };
 
   useEffect(() => {
@@ -626,6 +638,12 @@ const DashboardLayout = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <BackgroundGenerationsPopover 
+              tasks={backgroundTasks}
+              onView={viewCompletedTask}
+              onRemove={removeTask}
+            />
+
             {brands.length > 0 && (
               <select
                 value={profile?._id || ''}
@@ -729,10 +747,13 @@ const DashboardLayout = () => {
               profile, 
               setProfile, 
               setShowNotifications,
-              activeGeneration,
+              backgroundTasks,
+              viewingTask,
               startBackgroundGeneration,
               startBackgroundAllInOne,
-              clearActiveGeneration
+              viewCompletedTask,
+              clearViewingTask,
+              removeTask
             }} />
           </div>
         </section>

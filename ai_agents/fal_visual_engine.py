@@ -74,10 +74,10 @@ def generate_fal_image_flux_legacy(prompt: str, image: str = None, aspect_ratio:
         raise e
 
 
-def generate_fal_image_gpt2(prompt: str, image: str = None, image_size: str = "portrait_4_3"):
+def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "portrait_4_3"):
     """
     Static image generation using GPT-Image-2 via FAL.ai.
-    When an image is provided, it uses the openai/gpt-image-2/edit endpoint
+    When an image (or list of images) is provided, it uses the openai/gpt-image-2/edit endpoint
     (with fallbacks) to perform high-fidelity image-to-image edits.
     """
     api_key = os.getenv("FAL_API_KEY") or os.getenv("FAL_KEY")
@@ -87,26 +87,34 @@ def generate_fal_image_gpt2(prompt: str, image: str = None, image_size: str = "p
 
     try:
         if image:
-            if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
-                data_url = image
-            else:
-                if "base64," in image:
-                    image = image.split("base64,")[1]
-                data_url = f"data:image/jpeg;base64,{image}"
-            size_kb = len(image) * 3 // 4 // 1024 if not image.startswith("http") else 0
+            images = [image] if isinstance(image, str) else image
+            data_urls = []
+            size_kb = 0
+            for img in images:
+                if not img: continue
+                if img.startswith("http://") or img.startswith("https://") or img.startswith("data:"):
+                    data_urls.append(img)
+                else:
+                    clean = img.split("base64,")[1] if "base64," in img else img
+                    data_urls.append(f"data:image/jpeg;base64,{clean}")
+                if not img.startswith("http"):
+                    size_kb += len(img) * 3 // 4 // 1024
             
-            # Image-to-image flow using GPT-Image-2 Edit endpoint
-            print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image...")
-            print(f"  has_ref    : YES ({size_kb} KB)")
-            print(f"\n--- PROMPT SENT TO FAL gpt-image-2/edit ---")
-            print(prompt)
-            print("--------------------------------------\n")
+            if len(data_urls) == 0:
+                image = None
+            else:
+                # Image-to-image flow using GPT-Image-2 Edit endpoint
+                print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image with {len(data_urls)} refs...")
+                print(f"  has_ref    : YES ({size_kb} KB)")
+                print(f"\n--- PROMPT SENT TO FAL gpt-image-2/edit ---")
+                print(prompt)
+                print("--------------------------------------\n")
 
-            edit_arguments = {
-                "prompt": prompt,
-                "image_urls": [data_url],
-                "quality": "low",
-            }
+                edit_arguments = {
+                    "prompt": prompt,
+                    "image_urls": data_urls,
+                    "quality": "low",
+                }
             try:
                 result = fal_client.subscribe(
                     "openai/gpt-image-2/edit",
@@ -123,7 +131,7 @@ def generate_fal_image_gpt2(prompt: str, image: str = None, image_size: str = "p
                     print(f"[FAL] gpt-image-2/edit failed: {edit_err2}. Falling back to Flux Image-to-Image...")
                     flux_args = {
                         "prompt": prompt,
-                        "image_url": data_url,
+                        "image_url": data_urls[0],
                         "strength": 0.5,
                         "image_size": {
                             "width": 1024,
@@ -188,7 +196,7 @@ def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = 
     return generate_fal_image_gpt2(prompt=prompt, image=image)
 
 
-def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: int = 3, slide_prompts: List[str] = None):
+def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: int = 3, slide_prompts: List[str] = None):
     """
     Generates carousel images using GPT-Image-2 (Text-to-Image / Edit) via FAL.ai.
     Uses openai/gpt-image-2/edit for image-to-image when a product reference image is present.
@@ -202,18 +210,16 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
         results = []
         actual_count = count  # Dynamic — respects user selection (3, 5, 7, etc.)
         
-        # Clean base64 string once
-        cleaned_image = None
-        is_url = False
+        data_urls = []
         if image:
-            if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
-                cleaned_image = image
-                is_url = True
-            else:
-                if "base64," in image:
-                    cleaned_image = image.split("base64,")[1]
+            images = [image] if isinstance(image, str) else image
+            for img in images:
+                if not img: continue
+                if img.startswith("http://") or img.startswith("https://") or img.startswith("data:"):
+                    data_urls.append(img)
                 else:
-                    cleaned_image = image
+                    clean = img.split("base64,")[1] if "base64," in img else img
+                    data_urls.append(f"data:image/jpeg;base64,{clean}")
         
         for i in range(actual_count):
             if slide_prompts and i < len(slide_prompts):
@@ -223,12 +229,11 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: str = None, count: i
             
             print(f"FAL ENGINE (gpt-image-2): Generating Carousel Slide {i+1}/{actual_count}...")
             
-            if cleaned_image:
+            if len(data_urls) > 0:
                 # Use GPT-Image-2 edit (image-to-image)
-                data_url = cleaned_image if is_url else f"data:image/jpeg;base64,{cleaned_image}"
                 arguments = {
                     "prompt": slide_prompt,
-                    "image_urls": [data_url],
+                    "image_urls": data_urls,
                     "quality": "low",
                 }
                 model_endpoint = "openai/gpt-image-2/edit"

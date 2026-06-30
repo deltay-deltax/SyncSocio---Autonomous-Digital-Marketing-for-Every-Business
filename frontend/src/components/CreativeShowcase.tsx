@@ -7,8 +7,11 @@ import {
   Sparkles,
   Play,
   ArrowUpRight,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // Beautiful Unsplash fallback URLs to avoid missing local asset import compile errors
 const imgCoffee = "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=600";
@@ -54,10 +57,15 @@ type Item = { src: string; caption: string; tag: string; isVideo?: boolean };
 
 const mocks: Record<string, Item[]> = {
   image: [
-    { src: imgCoffee, caption: "Mornings, sorted with our artisan blend.", tag: "Lifestyle" },
-    { src: imgPerfume, caption: "The drop you've been waiting for.", tag: "Launch" },
-    { src: imgJuice, caption: "Clean. Cold-pressed. Yours.", tag: "Product" },
-    { src: imgChocolate, caption: "Bite-sized happiness, delivered.", tag: "Food" },
+    { src: "/assets/landing/static1.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static2.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static3.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static4.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static5.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static6.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static 7.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static8.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static9.jpg", caption: "", tag: "" },
   ],
   carousel: [
     { src: carousel1, caption: "5 secrets nobody tells you", tag: "Slide 1/5" },
@@ -66,27 +74,49 @@ const mocks: Record<string, Item[]> = {
     { src: imgChocolate, caption: "Bonus cover slide", tag: "Cover" },
   ],
   video: [
-    { src: videoUgc, caption: "AI UGC creator speaking in Hinglish.", tag: "0:15 · UGC", isVideo: true },
-    { src: videoProduct, caption: "Image → cinematic slow-mo splash.", tag: "Img2Video", isVideo: true },
-    { src: videoDance, caption: "Trending audio synced with motion.", tag: "Reel", isVideo: true },
-    { src: imgPerfume, caption: "Product close-up cutaway.", tag: "B-roll", isVideo: true },
+    { src: "/assets/landing/v1.mp4", caption: "AI UGC creator speaking in Hinglish.", tag: "0:15 · UGC", isVideo: true },
+    { src: "/assets/landing/v2.mp4", caption: "Trending audio synced with motion.", tag: "Reel", isVideo: true },
+    { src: "/assets/landing/v3.mp4", caption: "Product close-up cutaway.", tag: "B-roll", isVideo: true },
+    { src: "/assets/landing/v4.mp4", caption: "Image → cinematic slow-mo splash.", tag: "Img2Video", isVideo: true },
+    { src: "/assets/landing/v5.mp4", caption: "Dynamic text overlays.", tag: "Promo", isVideo: true },
+    { src: "/assets/landing/v6.mp4", caption: "Unboxing experience.", tag: "UGC", isVideo: true },
+    { src: "/assets/landing/v7.mp4", caption: "Behind the scenes.", tag: "BTS", isVideo: true },
+    { src: "/assets/landing/v8.mp4", caption: "Customer testimonial.", tag: "Review", isVideo: true },
   ],
   ecomm: [
-    { src: ecommEarbuds, caption: "Hero shot · A+ content for Amazon.", tag: "Amazon" },
-    { src: ecommBag, caption: "Spec callouts · infographic style.", tag: "Detail" },
-    { src: ecommShoes, caption: "Lifestyle backdrop · Flipkart-ready.", tag: "Flipkart" },
-    { src: imgJuice, caption: "Variant grid · multiple angles.", tag: "Variant" },
+    // ecomm9 10 11 12 (for hero carousel)
+    { src: "/assets/landing/ecom9.jpg", caption: "Nothing Earbuds (Black)", tag: "Tech" },
+    { src: "/assets/landing/ecom10.jpg", caption: "Nothing Earbuds (White)", tag: "Tech" },
+    { src: "/assets/landing/ecom11.jpg", caption: "Active Noise Cancellation", tag: "Tech" },
+    { src: "/assets/landing/ecom12.jpg", caption: "24-hour battery life", tag: "Tech" },
+    // ecomm1234
+    { src: "/assets/landing/ecom1.jpg", caption: "Indulge Wisely, Indulge Smoor.", tag: "Chocolate" },
+    { src: "/assets/landing/ecom2.jpg", caption: "Premium Cocoa Beans.", tag: "Chocolate" },
+    { src: "/assets/landing/ecom3.jpg", caption: "The perfect gift box.", tag: "Chocolate" },
+    { src: "/assets/landing/ecom4.jpg", caption: "Available in 3 flavors.", tag: "Chocolate" },
+    // ecomm56
+    { src: "/assets/landing/ecom5.jpg", caption: "Beast Life Mass Gainer.", tag: "Product" },
+    { src: "/assets/landing/ecom6.jpg", caption: "High protein, low carb.", tag: "Product" },
+    // ecomm78
+    { src: "/assets/landing/ecom7.jpg", caption: "Koskii Saree Collection.", tag: "Fashion" },
+    { src: "/assets/landing/ecom8.jpg", caption: "Intricate embroidery.", tag: "Fashion" },
   ],
   festival: [
-    { src: festDiwali, caption: "Diwali drop — 30% off everything ✨", tag: "Diwali" },
-    { src: festHoli, caption: "Holi vibes, bold colours, bolder offers.", tag: "Holi" },
-    { src: festEid, caption: "Eid Mubarak from the team.", tag: "Eid" },
-    { src: festXmas, caption: "Year-end gifting guide is here.", tag: "X-mas" },
+    { src: "/assets/landing/festival1.jpg", caption: "Father's Day Special ✨", tag: "Father's Day" },
+    { src: "/assets/landing/festival2.jpg", caption: "Independence Day Freedom Sale.", tag: "Independence Day" },
+    { src: "/assets/landing/festival3.jpg", caption: "Eid Mubarak from the team.", tag: "Eid" },
+    { src: "/assets/landing/festival4.jpg", caption: "Onam Sadhya Essentials.", tag: "Onam" },
+    { src: "/assets/landing/festival5.jpg", caption: "Navratri special collection.", tag: "Navratri" },
+    { src: "/assets/landing/festival7.jpg", caption: "Raksha Bandhan hampers.", tag: "Rakhi" },
+    { src: "/assets/landing/festival8.jpg", caption: "Diwali drop — 30% off everything.", tag: "Diwali" },
+    { src: "/assets/landing/festival9.png", caption: "Ganesh Chaturthi modaks.", tag: "Ganesh" },
+    { src: "/assets/landing/festival10.jpg", caption: "Dussehra victory sale.", tag: "Dussehra" },
   ],
 };
 
 const CreativeShowcase = () => {
   const [active, setActive] = useState<string>("image");
+  const [enlargedIndex, setEnlargedIndex] = useState<number | null>(null);
   const items = mocks[active];
   const current = formats.find((f) => f.id === active)!;
 
@@ -245,10 +275,28 @@ const CreativeShowcase = () => {
 
               {/* RIGHT — hero + masonry */}
               <div className="col-span-12 lg:col-span-8 grid grid-cols-6 gap-4 sm:gap-5 auto-rows-[120px] sm:auto-rows-[150px]">
-                <HeroTile item={items[0]} accent={current.accent} className="col-span-6 row-span-3" />
-                <Tile item={items[1]} accent={current.accent} className="col-span-3 row-span-2" />
-                <Tile item={items[2]} accent={current.accent} className="col-span-3 row-span-2" compact />
-                <Tile item={items[3]} accent={current.accent} className="col-span-6 row-span-2" wide />
+                {["image", "video", "festival"].includes(active) ? (
+                  <>
+                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-6 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
+                    <Tile item={items[0]} accent={current.accent} className="col-span-2 row-span-2" onClick={() => setEnlargedIndex(0)} />
+                    <Tile item={items[1]} accent={current.accent} className="col-span-2 row-span-2" onClick={() => setEnlargedIndex(1)} />
+                    <Tile item={items[2]} accent={current.accent} className="col-span-2 row-span-2" onClick={() => setEnlargedIndex(2)} />
+                  </>
+                ) : active === "ecomm" ? (
+                  <>
+                    <CarouselTile items={items.slice(0, 4)} accent={current.accent} className="col-span-6 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
+                    <CarouselTile items={items.slice(4, 8)} accent={current.accent} className="col-span-2 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
+                    <CarouselTile items={items.slice(8, 10)} accent={current.accent} className="col-span-2 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 8)} />
+                    <CarouselTile items={items.slice(10, 12)} accent={current.accent} className="col-span-2 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 10)} />
+                  </>
+                ) : (
+                  <>
+                    <HeroTile item={items[0]} accent={current.accent} className="col-span-6 row-span-3" onClick={() => setEnlargedIndex(0)} />
+                    <Tile item={items[1]} accent={current.accent} className="col-span-3 row-span-2" onClick={() => setEnlargedIndex(1)} />
+                    <Tile item={items[2]} accent={current.accent} className="col-span-3 row-span-2" compact onClick={() => setEnlargedIndex(2)} />
+                    <Tile item={items[3]} accent={current.accent} className="col-span-6 row-span-2" wide onClick={() => setEnlargedIndex(3)} />
+                  </>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>
@@ -281,6 +329,10 @@ const CreativeShowcase = () => {
           </div>
         </div>
       </div>
+      
+      {enlargedIndex !== null && (
+        <Lightbox items={items} initialIndex={enlargedIndex} onClose={() => setEnlargedIndex(null)} />
+      )}
     </section>
   );
 };
@@ -289,27 +341,42 @@ const HeroTile = ({
   item,
   className,
   accent,
+  onClick,
 }: {
   item: Item;
   className?: string;
   accent: string;
-}) => (
-  <motion.div
-    whileHover={{ y: -3 }}
-    className={`relative rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
-  >
-    <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110" />
+  onClick?: () => void;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  return (
+    <motion.div
+      whileHover={{ y: -3 }}
+      onClick={onClick}
+      onMouseEnter={() => videoRef.current?.play().catch(()=>{})}
+      onMouseLeave={() => { if(videoRef.current){ videoRef.current.pause(); videoRef.current.currentTime=0; } }}
+      className={`relative rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
+    >
+      {item.isVideo || item.src.endsWith(".mp4") ? (
+        <video ref={videoRef} src={item.src} loop muted playsInline className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110" />
+      ) : (
+        <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110" />
+      )}
     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
     <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-700 mix-blend-overlay`} />
 
     {/* corner brand */}
     <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
-      <span className="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-black text-neutral-900 uppercase tracking-widest shadow-md">
-        ★ Featured Output
-      </span>
-      <span className="px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-bold text-white border border-white/20 uppercase tracking-wider">
-        {item.tag}
-      </span>
+      {item.tag && (
+        <span className="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-black text-neutral-900 uppercase tracking-widest shadow-md">
+          ★ Featured Output
+        </span>
+      )}
+      {item.tag && (
+        <span className="px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-bold text-white border border-white/20 uppercase tracking-wider">
+          {item.tag}
+        </span>
+      )}
     </div>
 
     {item.isVideo && (
@@ -333,7 +400,8 @@ const HeroTile = ({
       </p>
     </div>
   </motion.div>
-);
+  );
+};
 
 const Tile = ({
   item,
@@ -341,24 +409,37 @@ const Tile = ({
   accent,
   compact,
   wide,
+  onClick,
 }: {
   item: Item;
   className?: string;
   accent: string;
   compact?: boolean;
   wide?: boolean;
-}) => (
-  <motion.div
-    whileHover={{ y: -3 }}
-    className={`relative rounded-2xl sm:rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
-  >
-    <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+  onClick?: () => void;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  return (
+    <motion.div
+      whileHover={{ y: -3 }}
+      onClick={onClick}
+      onMouseEnter={() => videoRef.current?.play().catch(()=>{})}
+      onMouseLeave={() => { if(videoRef.current){ videoRef.current.pause(); videoRef.current.currentTime=0; } }}
+      className={`relative rounded-2xl sm:rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
+    >
+      {item.isVideo || item.src.endsWith(".mp4") ? (
+        <video ref={videoRef} src={item.src} loop muted playsInline className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+      ) : (
+        <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+      )}
     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
     <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay`} />
 
-    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-bold text-white border border-white/20 uppercase tracking-wider">
-      {item.tag}
-    </span>
+    {item.tag && (
+      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-bold text-white border border-white/20 uppercase tracking-wider">
+        {item.tag}
+      </span>
+    )}
 
     {item.isVideo && (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -374,6 +455,160 @@ const Tile = ({
       </p>
     </div>
   </motion.div>
-);
+  );
+};
+
+const CarouselTile = ({
+  items,
+  className,
+  accent,
+  onItemClick,
+}: {
+  items: Item[];
+  className?: string;
+  accent: string;
+  onItemClick: (idx: number) => void;
+}) => {
+  return (
+    <div className={`relative rounded-3xl overflow-hidden border border-border/40 group ${className ?? ""}`}>
+      <div className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {items.map((item, idx) => (
+          <div 
+            key={idx} 
+            className="relative min-w-full h-full snap-center shrink-0 cursor-pointer" 
+            onClick={() => onItemClick(idx)}
+            onMouseEnter={(e) => {
+              const video = e.currentTarget.querySelector('video');
+              if (video) video.play().catch(()=>{});
+            }}
+            onMouseLeave={(e) => {
+              const video = e.currentTarget.querySelector('video');
+              if (video) { video.pause(); video.currentTime = 0; }
+            }}
+          >
+            {item.isVideo || item.src.endsWith(".mp4") ? (
+              <video src={item.src} loop muted playsInline className="w-full h-full object-cover" />
+            ) : (
+              <img src={item.src} alt={item.caption} loading="lazy" className="w-full h-full object-cover" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
+            <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay pointer-events-none`} />
+            
+            {item.tag && (
+              <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-bold text-white border border-white/20 uppercase tracking-wider">
+                {item.tag}
+              </span>
+            )}
+            
+            {item.caption && (
+              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 pointer-events-none">
+                <p className="text-white font-bold leading-tight drop-shadow-md text-sm sm:text-base">
+                  {item.caption}
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="absolute bottom-4 right-4 flex items-center gap-2.5 pointer-events-none bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+        <div className="flex gap-1.5">
+          {items.map((_, i) => (
+            <div key={i} className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+          ))}
+        </div>
+        <ChevronRight size={14} className="text-white drop-shadow-md animate-pulse" />
+      </div>
+    </div>
+  );
+};
+
+const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialIndex: number, onClose: () => void }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = initialIndex * scrollRef.current.clientWidth;
+    }
+  }, [initialIndex]);
+
+  const scrollByAmount = (amount: number) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: amount * scrollRef.current.clientWidth, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex flex-col bg-background"
+      >
+        {/* Ambient gradients matched from page */}
+        <div className="absolute inset-0 pointer-events-none -z-10">
+          <div className="absolute -top-32 left-1/3 w-[700px] h-[700px] rounded-full opacity-[0.10] blur-[160px] bg-primary" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[140px] bg-fuchsia-500" />
+          <div
+            className="absolute inset-0 opacity-[0.025]"
+            style={{
+              backgroundImage: "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+              backgroundSize: "64px 64px",
+            }}
+          />
+        </div>
+        <button 
+          className="absolute top-6 right-6 z-50 p-2.5 text-white hover:text-white bg-black/40 hover:bg-black/60 border border-white/10 shadow-2xl rounded-full transition-all backdrop-blur-md"
+          onClick={onClose}
+        >
+          <X size={24} />
+        </button>
+
+        <button 
+          className="absolute left-6 top-1/2 -translate-y-1/2 z-50 p-3 text-white hover:text-white bg-black/40 hover:bg-black/60 border border-white/10 shadow-2xl rounded-full transition-all backdrop-blur-md hidden sm:block"
+          onClick={(e) => { e.stopPropagation(); scrollByAmount(-1); }}
+        >
+          <ChevronLeft size={32} />
+        </button>
+
+        <button 
+          className="absolute right-6 top-1/2 -translate-y-1/2 z-50 p-3 text-white hover:text-white bg-black/40 hover:bg-black/60 border border-white/10 shadow-2xl rounded-full transition-all backdrop-blur-md hidden sm:block"
+          onClick={(e) => { e.stopPropagation(); scrollByAmount(1); }}
+        >
+          <ChevronRight size={32} />
+        </button>
+
+        <div 
+          ref={scrollRef}
+          className="flex-1 w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        >
+          {items.map((item, idx) => (
+            <div 
+              key={idx} 
+              className="w-full h-full shrink-0 snap-center flex items-center justify-center p-4 sm:p-12 cursor-pointer"
+              onClick={onClose}
+            >
+              {item.isVideo || item.src.endsWith(".mp4") ? (
+                <video 
+                  src={item.src}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-full rounded-2xl shadow-2xl" 
+                  onClick={(e) => e.stopPropagation()} 
+                />
+              ) : (
+                <img 
+                  src={item.src} 
+                  className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl cursor-default" 
+                  onClick={(e) => e.stopPropagation()} 
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
 
 export default CreativeShowcase;

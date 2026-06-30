@@ -248,16 +248,22 @@ const DashboardStrategy = () => {
   const location = useLocation();
   const { 
     setShowNotifications,
-    activeGeneration,
+    backgroundTasks,
+    viewingTask,
     startBackgroundGeneration,
     startBackgroundAllInOne,
-    clearActiveGeneration
+    viewCompletedTask,
+    clearViewingTask,
+    removeTask
   } = useOutletContext<{ 
     setShowNotifications?: (show: boolean) => void;
-    activeGeneration?: any;
-    startBackgroundGeneration?: (payload: any, creditCost: number, creditReason: string, mode: any) => Promise<void>;
-    startBackgroundAllInOne?: (requests: any[], creditCost: number, creditReason: string) => Promise<void>;
-    clearActiveGeneration?: () => void;
+    backgroundTasks?: import('./DashboardLayout').BgTask[];
+    viewingTask?: import('./DashboardLayout').BgTask | null;
+    startBackgroundGeneration?: (payload: any, creditCost: number, creditReason: string, mode: any) => Promise<string>;
+    startBackgroundAllInOne?: (requests: any[], creditCost: number, creditReason: string) => Promise<string>;
+    viewCompletedTask?: (id: string) => void;
+    clearViewingTask?: () => void;
+    removeTask?: (id: string) => void;
   }>() || {};
   const { toast } = useToast();
 
@@ -270,6 +276,8 @@ const DashboardStrategy = () => {
     const params = new URLSearchParams(window.location.search);
     return (params.get('mode') as Mode) || null;
   });
+
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
   React.useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -285,35 +293,60 @@ const DashboardStrategy = () => {
 
   // Sync with background generation
   React.useEffect(() => {
-    if (!activeGeneration) return;
+    if (!currentTaskId || !backgroundTasks) return;
 
-    if (activeGeneration.status === 'generating') {
-      setStage('generating');
-      if (activeGeneration.mode !== 'all_in_one') {
-        setMode(activeGeneration.mode);
-      }
-    } else if (activeGeneration.status === 'success') {
-      const posts = activeGeneration.posts || [];
+    const task = backgroundTasks.find(t => t.id === currentTaskId);
+    if (!task) return;
+
+    if (task.status === 'success') {
+      const posts = task.posts || [];
       setGenerated(posts);
       setSavedIndices(new Set());
       setShowHeartPop({});
       setStage('results');
       
-      if (mode === 'whatsapp' || mode === 'email') {
+      if (task.mode !== 'all_in_one') {
+        setMode(task.mode);
+      }
+
+      if (task.mode === 'whatsapp' || task.mode === 'email') {
         const first = posts[0] || {};
         setCampaignImage(imgSrc(first.image) || '');
         setCampaignBody(first.caption || '');
-        if (mode === 'email') setCampaignSubject(first.subject || '');
+        if (task.mode === 'email') setCampaignSubject(first.subject || '');
       }
       
-      if (clearActiveGeneration) clearActiveGeneration();
-    } else if (activeGeneration.status === 'error') {
-      setGenError(activeGeneration.error || 'Something went wrong');
+      setCurrentTaskId(null);
+    } else if (task.status === 'error') {
+      setGenError(task.error || 'Something went wrong');
       setStage('builder');
-      
-      if (clearActiveGeneration) clearActiveGeneration();
+      setCurrentTaskId(null);
     }
-  }, [activeGeneration, mode]);
+  }, [backgroundTasks, currentTaskId]);
+
+  // Listen for external requests to view a task (from top-right manager)
+  React.useEffect(() => {
+    if (viewingTask && viewingTask.status === 'success') {
+      const posts = viewingTask.posts || [];
+      setGenerated(posts);
+      setSavedIndices(new Set());
+      setShowHeartPop({});
+      setStage('results');
+      
+      if (viewingTask.mode !== 'all_in_one') {
+        setMode(viewingTask.mode);
+      }
+      
+      if (viewingTask.mode === 'whatsapp' || viewingTask.mode === 'email') {
+        const first = posts[0] || {};
+        setCampaignImage(imgSrc(first.image) || '');
+        setCampaignBody(first.caption || '');
+        if (viewingTask.mode === 'email') setCampaignSubject(first.subject || '');
+      }
+      
+      if (clearViewingTask) clearViewingTask();
+    }
+  }, [viewingTask, clearViewingTask]);
 
   // ── Custom Import List Modal
   const [showListNameModal, setShowListNameModal] = useState(false);
@@ -1123,6 +1156,11 @@ const DashboardStrategy = () => {
         }
       }
 
+      // Append brand logo as an additional reference image if available
+      if (profile?.logo && !refImages.includes(profile.logo)) {
+        refImages.push(profile.logo);
+      }
+
       if (currentMode === 'all_in_one') {
         const requests = [
           // 1. 2 images
@@ -1190,7 +1228,8 @@ const DashboardStrategy = () => {
         const creditCost = 140;
         const creditReason = 'All-in-One generation (2 images, 2 carousels of 3 slides, 4 ecomm listings, 1 AI UGC Video)';
         if (startBackgroundAllInOne) {
-          await startBackgroundAllInOne(requests, creditCost, creditReason);
+          const tId = await startBackgroundAllInOne(requests, creditCost, creditReason);
+          setCurrentTaskId(tId);
         }
         return;
       }
@@ -1255,7 +1294,8 @@ const DashboardStrategy = () => {
       // ─────────────────────────────────────────────────────────────────
 
       if (startBackgroundGeneration) {
-        await startBackgroundGeneration(payload, creditCost, creditReason, currentMode);
+        const tId = await startBackgroundGeneration(payload, creditCost, creditReason, currentMode);
+        setCurrentTaskId(tId);
       }
     } catch (err: any) {
       console.error('[Strategy] Generation setup error:', err);
@@ -1558,6 +1598,29 @@ const DashboardStrategy = () => {
               className="w-2.5 h-2.5 rounded-full bg-primary"
             />
           ))}
+        </div>
+        
+        <div className="mt-12 flex flex-col items-center">
+          <p className="text-sm font-medium text-muted-foreground mb-4">Don't want to wait?</p>
+          <Button
+            variant="outline"
+            className="rounded-full shadow-sm hover:shadow"
+            onClick={() => {
+              setStage('builder');
+              setCurrentTaskId(null);
+              // Reset all fields so the user has a fresh slate
+              setIdea('');
+              setSelectedProducts([]);
+              setUploads([]);
+              setVideoScript('');
+              setAvatarDescription('');
+              setSelectedCampaignCreative(null);
+              setSelectedCampaignComputerImage(null);
+              setActiveCampaignImageSource(null);
+            }}
+          >
+            Generate more in background
+          </Button>
         </div>
       </div>
     );

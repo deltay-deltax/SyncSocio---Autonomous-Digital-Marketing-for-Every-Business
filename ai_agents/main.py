@@ -360,8 +360,8 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
         # Extract hex colors
         hex_colors = re.findall(r'#(?:[0-9a-fA-F]{3}){1,2}\b', html_content)
         from collections import Counter
-        color_counts = Counter([c.upper() for c in hex_colors if c.upper() not in ('#FFF', '#FFFFFF', '#000', '#000000')])
-        top_colors = [c for c, _ in color_counts.most_common(10)]
+        color_counts = Counter([c.upper() for c in hex_colors])
+        top_colors = [c for c, _ in color_counts.most_common(15)]
 
         print("\n" + "="*80)
         print(f"[WEBSITE SCANNER] [START] Initiating scan for URL: {url}")
@@ -427,8 +427,8 @@ JSON Structure:
   "brandTone": "Choose ONE from: 'Warm & Friendly', 'Professional & Clean', 'Fun & Energetic', 'Inspirational', 'Luxury & Premium' (default: 'Warm & Friendly')",
   "visualVibe": "Choose ONE from: 'Minimalist', 'Vibrant', 'Luxury', 'Edgy' (default: 'Minimalist')",
   "brandKeywords": "A comma-separated string of 3-5 keywords describing the brand vibe",
-  "primaryColor": "Hex code representing the brand's primary color, infer from the category/name if not obvious (default: '#2563EB')",
-  "secondaryColor": "Hex code representing the brand's secondary color (default: '#60A5FA')",
+  "primaryColor": "Hex code of the brand's primary color. STRONGLY prefer choosing from the 'Detected colors' list. If none exist, infer from brand identity (default: '#2563EB')",
+  "secondaryColor": "Hex code of the brand's secondary color. STRONGLY prefer choosing from the 'Detected colors' list. (default: '#60A5FA')",
   "products": [
     {
       "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",

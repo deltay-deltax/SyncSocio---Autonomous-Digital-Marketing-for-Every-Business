@@ -7,9 +7,10 @@ import PostAnalysis from '../models/PostAnalysis.js';
 const router = express.Router();
 
 router.get('/metrics', protect, async (req, res) => {
+    let brandProfile;
     try {
         const userId = req.user.id;
-        const brandProfile = await BrandProfile.findOne({ user: userId, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: userId });
+        brandProfile = await BrandProfile.findOne({ user: userId, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: userId });
 
         if (!brandProfile || !brandProfile.instagramAccessToken || !brandProfile.instagramBusinessAccountId) {
             return res.status(400).json({ 
@@ -22,6 +23,9 @@ router.get('/metrics', protect, async (req, res) => {
         const accessToken = brandProfile.instagramAccessToken;
         const igId = brandProfile.instagramBusinessAccountId;
         console.log(`🚀 FETCHING METRICS FOR INSTA ID: ${igId} (v25.0 Path)`);
+
+        const mediaUrl = `https://graph.facebook.com/v25.0/${igId}/media`;
+        const insightsUrl = `https://graph.facebook.com/v25.0/${igId}/insights`;
 
         const userStats = brandProfile.cachedMetrics?.userStats || {};
         const currentFollowersCount = userStats.followers_count || 0;
@@ -202,7 +206,7 @@ router.get('/metrics', protect, async (req, res) => {
             message: 'Real-time v25.0 Meta metrics loaded.',
             mock: false,
             data: {
-                followers: userRes.data.followers_count || 0,
+                followers: currentFollowersCount,
                 followersChange: followersChange,
                 reach: currentReach,
                 reachChange: calcChange(currentReach, prevReach),
@@ -211,11 +215,11 @@ router.get('/metrics', protect, async (req, res) => {
                 engagementRate: engagementRate,
                 engagementRateChange: 'Live', // Needs historical post processing
                 profile_views: getMetricValue(insightsData, 'profile_views') || 0,
-                post_count: mediaRes.data.summary?.total_count || userRes.data.media_count || 0,
-                username: userRes.data.username,
+                post_count: userStats.media_count || 0,
+                username: userStats.username || '',
                 profile_info: {
-                    name: userRes.data.name,
-                    biography: userRes.data.biography
+                    name: userStats.name || '',
+                    biography: userStats.biography || ''
                 },
                 hourlyActivity,
                 peakHourText,
@@ -301,7 +305,7 @@ router.get('/metrics', protect, async (req, res) => {
                 })(),
                 // --- REAL DATA: 30-Day Follower Growth (Chart 3) ---
                 followerGrowth: await (async () => {
-                    const currentFollowers = userRes.data.followers_count || 0;
+                    const currentFollowers = currentFollowersCount;
                     try {
                         const folParams = {
                             metric: 'follower_count',
@@ -373,7 +377,7 @@ router.get('/metrics', protect, async (req, res) => {
                        
                        if (dailyNetChange.length === 0 && brandProfile.followerHistory && brandProfile.followerHistory.length > 0) {
                            // Calculate net growth across recorded history
-                           const now = userRes.data.followers_count || 0;
+                           const now = currentFollowersCount;
                            const sorted = [...brandProfile.followerHistory].sort((a,b) => new Date(a.date) - new Date(b.date));
                            const oldest = sorted[0].count;
                            return (now - oldest);
