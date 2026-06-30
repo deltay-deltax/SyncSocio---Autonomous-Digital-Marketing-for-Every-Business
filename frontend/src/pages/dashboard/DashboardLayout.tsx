@@ -542,6 +542,7 @@ const DashboardLayout = () => {
             <NavLink
               key={item.path}
               to={itemPath}
+              onClick={() => setIsSidebarOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
                 isActive
@@ -602,14 +603,29 @@ const DashboardLayout = () => {
 
       {/* MOBILE NAV OVERLAY */}
       <AnimatePresence>
-        {!isSidebarOpen && (
+        {isSidebarOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setIsSidebarOpen(true)}
+            onClick={() => setIsSidebarOpen(false)}
             className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
           />
+        )}
+      </AnimatePresence>
+
+      {/* SIDEBAR — Mobile */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.aside
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+            className="lg:hidden w-72 fixed inset-y-0 left-0 z-50 bg-[#F8FAFC] shadow-2xl flex flex-col"
+          >
+            <SidebarContent />
+          </motion.aside>
         )}
       </AnimatePresence>
 
@@ -627,12 +643,12 @@ const DashboardLayout = () => {
           )}
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setIsSidebarOpen(false)}
+              onClick={() => setIsSidebarOpen(true)}
               className="lg:hidden p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground"
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-sm font-black text-foreground uppercase tracking-widest">
+            <h2 className="hidden sm:block text-sm font-black text-foreground uppercase tracking-widest">
               {navItems.find(i => i.path === location.pathname || (i.path !== '/dashboard' && location.pathname.startsWith(i.path)))?.label || 'Dashboard'}
             </h2>
           </div>
@@ -660,16 +676,16 @@ const DashboardLayout = () => {
 
             <button
               onClick={() => navigate('/dashboard/buy-credits')}
-              className="hidden sm:flex items-center gap-2 bg-primary/5 border border-primary/10 px-3 py-1.5 rounded-full mr-2 hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 bg-primary/5 border border-primary/10 p-2 sm:px-3 sm:py-1.5 rounded-full mr-1 sm:mr-2 hover:bg-primary/10 transition-all duration-200 cursor-pointer"
             >
-              <Coins size={13} className="text-primary" />
-              <span className="text-[10px] font-black text-primary uppercase tracking-widest">Buy Credit</span>
+              <Coins size={14} className="text-primary" />
+              <span className="hidden sm:inline text-[10px] font-black text-primary uppercase tracking-widest">Buy Credit</span>
             </button>
 
             {/* ── Credits Badge ──────────────────────────────── */}
             {credits !== null && (
               <div
-                className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${
                   credits < 50
                     ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
                     : credits < 200
@@ -685,7 +701,7 @@ const DashboardLayout = () => {
                   }`}
                 />
                 <span className="text-[10px] font-black uppercase tracking-widest">
-                  {credits.toLocaleString()} <span className="opacity-60 font-bold normal-case tracking-normal">credits</span>
+                  {credits.toLocaleString()} <span className="hidden sm:inline opacity-60 font-bold normal-case tracking-normal">credits</span>
                 </span>
               </div>
             )}
@@ -759,25 +775,7 @@ const DashboardLayout = () => {
         </section>
       </main>
 
-      {/* MOBILE BOTTOM NAV */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-border/50 px-8 py-4 flex justify-between items-center z-40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-        {navItems.map((item) => {
-          let itemPath = item.path;
-          const isActive = itemPath === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(itemPath);
-          return (
-            <NavLink
-              key={item.path}
-              to={itemPath}
-              className={({ isActive }) => cn(
-                "p-2 rounded-2xl transition-all duration-300",
-                isActive ? "bg-primary/10 text-primary scale-110 shadow-sm" : "text-muted-foreground hover:scale-105"
-              )}
-            >
-              <item.icon size={22} className={isActive ? "stroke-[2.5]" : "stroke-[2]"} />
-            </NavLink>
-          );
-        })}
-      </nav>
+
 
       {/* NOTIFICATION OVERLAY */}
       <AnimatePresence>

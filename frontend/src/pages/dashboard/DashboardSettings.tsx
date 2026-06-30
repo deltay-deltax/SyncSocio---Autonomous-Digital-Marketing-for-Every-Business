@@ -233,6 +233,14 @@ const DashboardSettings = () => {
         typography: scraped.typography || formData.typography
       };
 
+      // 3.5. Delete existing products before saving new ones
+      await fetch(`${apiBase}/products`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
       // 4. Save newly scraped products sequentially
       const scrapedProducts = scraped.products || [];
       if (scrapedProducts.length > 0) {
@@ -264,7 +272,13 @@ const DashboardSettings = () => {
       const uId = profile?.user || profile?._id || 'default';
       localStorage.removeItem(`syncsocio_products_${uId}`);
       try {
-        const req = indexedDB.open('SyncSocioProductCache', 1);
+        const req = indexedDB.open('SyncSocioProductCache', 2);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains('products')) {
+            db.createObjectStore('products');
+          }
+        };
         req.onsuccess = () => {
           const db = req.result;
           if (db.objectStoreNames.contains('products')) {
@@ -523,6 +537,9 @@ const DashboardSettings = () => {
       setProfile(updatedProfile);
       localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
       alert('✅ Brand Identity updated successfully! The AI Agent has been notified.');
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (err: any) {
       alert('Error: ' + err.message);
     } finally {

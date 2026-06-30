@@ -38,6 +38,19 @@ import { Toaster } from './components/ui/toaster';
 
 function App() {
   useEffect(() => {
+    // Clear out any old bloated localStorage caches that were causing QuotaExceededError
+    try {
+      localStorage.removeItem('syncsocio_generated_assets');
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('syncsocio_strategy_assets_')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+
     // Only track once per session
     if (!sessionStorage.getItem('velocity_visit_tracked')) {
       const sessionToken = Math.random().toString(36).substring(2, 15);

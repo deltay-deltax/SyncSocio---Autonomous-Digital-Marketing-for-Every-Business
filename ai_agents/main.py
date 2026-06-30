@@ -417,7 +417,7 @@ JSON Structure:
     "city": "Target city if found, otherwise empty string"
   },
   "logo": "URL of the brand's logo image selected from candidates or empty string",
-  "typography": "The primary font family selected from typography candidates (e.g., 'Outfit', 'Inter', etc.) or a sensible modern default matching the brand tone (default: 'Inter')",
+  "typography": "Choose ONE from: 'Sans Serif Modern', 'Serif Classic', 'Display Bold', 'Handwritten', 'Mono Tech' based on the typography candidates and brand tone (default: 'Sans Serif Modern')",
   "usp": "A concise, punchy Unique Selling Point summarizing the brand's key differentiator (under 150 characters)",
   "competitors": ["rival_handle_1", "rival_handle_2"],
   "targetAudiences": ["Choose one or more from: 'Students & Young Adults', 'Working Professionals', 'Parents & Families', 'Business Owners'"],
@@ -468,23 +468,9 @@ JSON Structure:
         scraped_data = json.loads(gpt_response_text)
         scraped_data["website"] = url
         
-        # Convert matched logo image URL to base64 string
+        # Keep logo image URL as is to avoid local storage quota issues
         logo_url = scraped_data.get("logo", "")
         print(f"[WEBSITE SCANNER] [LOGO] Scraped Logo URL: {logo_url or 'None'}")
-        if logo_url:
-            if logo_url.startswith("http"):
-                logo_b64 = download_image_as_base64(logo_url)
-                if logo_b64:
-                    scraped_data["logo"] = logo_b64
-                    print(f"[WEBSITE SCANNER] [LOGO] ✅ Saved logo as base64 ({len(logo_b64)} characters)")
-                else:
-                    scraped_data["logo"] = logo_url
-                    print(f"[WEBSITE SCANNER] [LOGO] ❌ Failed to download logo. Kept original URL.")
-            else:
-                print(f"[WEBSITE SCANNER] [LOGO] ⚠️ Logo URL is not absolute: {logo_url}")
-                scraped_data["logo"] = logo_url
-        else:
-            scraped_data["logo"] = ""
 
         # Convert matched product image URLs to base64 strings
         products = scraped_data.get("products", [])
@@ -493,26 +479,7 @@ JSON Structure:
             products = products[:12]
             scraped_data["products"] = products
             
-        print(f"[WEBSITE SCANNER] [PRODUCTS] Starting base64 conversion for {len(products)} products...")
-        for prod in products:
-            prod_name = prod.get("name", "Unnamed Product")
-            img_url = prod.get("imageBase64", "")
-            print(f"[WEBSITE SCANNER] [PRODUCTS] Product: '{prod_name}' | Scraped Image URL: {img_url or 'None'}")
-            
-            if img_url:
-                if img_url.startswith("http"):
-                    b64_data = download_image_as_base64(img_url)
-                    if b64_data:
-                        prod["imageBase64"] = b64_data
-                        print(f"[WEBSITE SCANNER] [PRODUCTS] ✅ Saved image as base64 for '{prod_name}' ({len(b64_data)} characters)")
-                    else:
-                        prod["imageBase64"] = img_url
-                        print(f"[WEBSITE SCANNER] [PRODUCTS] ❌ Failed download/conversion for '{prod_name}'. Kept original URL.")
-                else:
-                    print(f"[WEBSITE SCANNER] [PRODUCTS] ⚠️ Invalid image url format for '{prod_name}'. Kept original URL.")
-                    prod["imageBase64"] = img_url
-            else:
-                print(f"[WEBSITE SCANNER] [PRODUCTS] ℹ️ No image found or assigned for '{prod_name}'.")
+        print(f"[WEBSITE SCANNER] [PRODUCTS] Skipping base64 conversion for {len(products)} products to save storage quota...")
                     
         return scraped_data
         
@@ -735,21 +702,8 @@ JSON Structure:
         import json
         scraped_data = json.loads(gpt_response_text)
         
-        # Convert matched product image URLs to base64 strings
-        prod_name = scraped_data.get("name", "Unnamed Product")
-        img_url = scraped_data.get("imageBase64", "")
-        
-        if img_url and img_url.startswith("http"):
-            b64_data = download_image_as_base64(img_url)
-            if b64_data:
-                scraped_data["imageBase64"] = b64_data
-            else:
-                scraped_data["imageBase64"] = img_url
-        else:
-            if img_url:
-                scraped_data["imageBase64"] = img_url
-            else:
-                scraped_data["imageBase64"] = ""
+        # Keep product image URL as is to avoid local storage quota issues
+        pass
             
         return scraped_data
         

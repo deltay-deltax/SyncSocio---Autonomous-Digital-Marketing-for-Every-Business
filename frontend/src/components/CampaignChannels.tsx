@@ -186,7 +186,7 @@ const CampaignChannels = () => {
                       </div>
                       <div className="text-[10px] bg-white/20 rounded-full px-2.5 py-0.5 font-bold uppercase tracking-wider">Business</div>
                     </div>
-                    <div className="bg-[#ECE5DD] dark:bg-[#0b141a] p-3 space-y-2 min-h-[420px]">
+                    <div className="bg-[#ECE5DD] p-3 space-y-2 min-h-[420px]">
                       {waMessages.map((m, i) => (
                         <motion.div
                           key={i}

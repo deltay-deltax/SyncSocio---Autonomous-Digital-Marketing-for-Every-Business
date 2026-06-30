@@ -221,7 +221,10 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                     clean = img.split("base64,")[1] if "base64," in img else img
                     data_urls.append(f"data:image/jpeg;base64,{clean}")
         
-        for i in range(actual_count):
+        import requests
+        from concurrent.futures import ThreadPoolExecutor
+
+        def generate_slide(i):
             if slide_prompts and i < len(slide_prompts):
                 slide_prompt = slide_prompts[i]
             else:
@@ -253,7 +256,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                 )
             except Exception as e:
                 # Fallback path if edit fails
-                if cleaned_image:
+                if len(data_urls) > 0:
                     print(f"[FAL] openai/gpt-image-2/edit failed for slide {i+1}: {e}. Trying fal-ai/gpt-image-2/edit...")
                     try:
                         result = fal_client.subscribe(
@@ -278,15 +281,22 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
             if result and "images" in result and len(result["images"]) > 0:
                 image_url = result["images"][0]["url"]
                 
-                import requests
                 response = requests.get(image_url)
                 if response.status_code == 200:
                     b64_image = base64.b64encode(response.content).decode('utf-8')
-                    results.append({"image": b64_image, "status": "success"})
+                    return {"image": b64_image, "status": "success", "index": i}
                 else:
                     raise Exception(f"Failed to download carousel slide {i+1}")
             else:
                 raise Exception(f"No image data for slide {i+1}")
+
+        with ThreadPoolExecutor(max_workers=actual_count) as executor:
+            thread_results = list(executor.map(generate_slide, range(actual_count)))
+            
+        thread_results.sort(key=lambda x: x["index"])
+        for r in thread_results:
+            del r["index"]
+            results.append(r)
         
         return results
         

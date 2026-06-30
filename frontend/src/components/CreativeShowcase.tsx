@@ -10,6 +10,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -63,15 +64,20 @@ const mocks: Record<string, Item[]> = {
     { src: "/assets/landing/static4.jpg", caption: "", tag: "" },
     { src: "/assets/landing/static5.jpg", caption: "", tag: "" },
     { src: "/assets/landing/static6.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static 7.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static7.jpg", caption: "", tag: "" },
     { src: "/assets/landing/static8.jpg", caption: "", tag: "" },
     { src: "/assets/landing/static9.jpg", caption: "", tag: "" },
   ],
   carousel: [
-    { src: carousel1, caption: "5 secrets nobody tells you", tag: "Slide 1/5" },
-    { src: carousel2, caption: "Focus on progress, not perfection", tag: "Slide 2/5" },
-    { src: carousel3, caption: "Save this for later", tag: "Slide 5/5" },
-    { src: imgChocolate, caption: "Bonus cover slide", tag: "Cover" },
+    { src: "/assets/landing/car1.jpg", caption: "5 secrets nobody tells you", tag: "Slide 1/5" },
+    { src: "/assets/landing/car2.jpg", caption: "Focus on progress, not perfection", tag: "Slide 2/5" },
+    { src: "/assets/landing/car3.jpg", caption: "Save this for later", tag: "Slide 5/5" },
+    { src: "/assets/landing/car4.jpg", caption: "Bonus cover slide", tag: "Cover" },
+    { src: "/assets/landing/car5.jpg", caption: "Behind the scenes", tag: "Slide 1/3" },
+    { src: "/assets/landing/car6.jpg", caption: "Our creative process", tag: "Slide 2/3" },
+    { src: "/assets/landing/car7.jpg", caption: "Step 1: Ideation", tag: "Step 1" },
+    { src: "/assets/landing/car8.jpg", caption: "Step 2: Design", tag: "Step 2" },
+    { src: "/assets/landing/car9.jpg", caption: "Step 3: Publish", tag: "Step 3" },
   ],
   video: [
     { src: "/assets/landing/v1.mp4", caption: "AI UGC creator speaking in Hinglish.", tag: "0:15 · UGC", isVideo: true },
@@ -116,6 +122,7 @@ const mocks: Record<string, Item[]> = {
 
 const CreativeShowcase = () => {
   const [active, setActive] = useState<string>("image");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [enlargedIndex, setEnlargedIndex] = useState<number | null>(null);
   const items = mocks[active];
   const current = formats.find((f) => f.id === active)!;
@@ -176,7 +183,51 @@ const CreativeShowcase = () => {
 
         {/* Format selector — segmented control */}
         <div className="max-w-6xl mx-auto mb-10">
-          <div className="relative p-1.5 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md flex flex-wrap gap-1 sm:flex-nowrap">
+          {/* Mobile Dropdown */}
+          <div className="sm:hidden relative">
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/50 bg-card/80 backdrop-blur-md font-black uppercase tracking-wider text-foreground"
+            >
+              <div className="flex items-center gap-3">
+                <current.icon size={18} className="text-primary" />
+                {current.label}
+              </div>
+              <ChevronDown size={18} className={`text-muted-foreground transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full left-0 right-0 mt-2 p-1.5 rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl z-50 shadow-xl flex flex-col gap-1"
+                >
+                  {formats.map((f) => {
+                    const isActive = f.id === active;
+                    return (
+                      <button
+                        key={f.id}
+                        onClick={() => { setActive(f.id); setIsMenuOpen(false); }}
+                        className={`flex items-center justify-between p-3 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${
+                          isActive ? `bg-gradient-to-br ${f.accent} text-white` : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <f.icon size={14} />
+                          {f.label}
+                        </span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${isActive ? 'bg-white/25 text-white' : 'bg-foreground/10 text-muted-foreground'}`}>
+                          {f.count}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Desktop Tabs */}
+          <div className="hidden sm:flex relative p-1.5 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md flex-nowrap gap-1">
             {formats.map((f) => {
               const isActive = f.id === active;
               return (
@@ -275,19 +326,33 @@ const CreativeShowcase = () => {
 
               {/* RIGHT — hero + masonry */}
               <div className="col-span-12 lg:col-span-8 grid grid-cols-6 gap-4 sm:gap-5 auto-rows-[120px] sm:auto-rows-[150px]">
-                {["image", "video", "festival"].includes(active) ? (
+                {active === "image" ? (
                   <>
-                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-6 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
-                    <Tile item={items[0]} accent={current.accent} className="col-span-2 row-span-2" onClick={() => setEnlargedIndex(0)} />
-                    <Tile item={items[1]} accent={current.accent} className="col-span-2 row-span-2" onClick={() => setEnlargedIndex(1)} />
-                    <Tile item={items[2]} accent={current.accent} className="col-span-2 row-span-2" onClick={() => setEnlargedIndex(2)} />
+                    <Tile item={items[2]} accent={current.accent} className="col-span-3 row-span-3" onClick={() => setEnlargedIndex(2)} />
+                    <Tile item={items[0]} accent={current.accent} className="col-span-3 row-span-2" onClick={() => setEnlargedIndex(0)} />
+                    <Tile item={items[1]} accent={current.accent} className="col-span-3 row-span-3" onClick={() => setEnlargedIndex(1)} />
+                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
+                  </>
+                ) : ["video", "festival"].includes(active) ? (
+                  <>
+                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
+                    <Tile item={items[0]} accent={current.accent} className="col-span-3 row-span-2" onClick={() => setEnlargedIndex(0)} />
+                    <Tile item={items[1]} accent={current.accent} className="col-span-3 row-span-3" onClick={() => setEnlargedIndex(1)} />
+                    <Tile item={items[2]} accent={current.accent} className="col-span-3 row-span-2" onClick={() => setEnlargedIndex(2)} />
                   </>
                 ) : active === "ecomm" ? (
                   <>
-                    <CarouselTile items={items.slice(0, 4)} accent={current.accent} className="col-span-6 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
-                    <CarouselTile items={items.slice(4, 8)} accent={current.accent} className="col-span-2 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
-                    <CarouselTile items={items.slice(8, 10)} accent={current.accent} className="col-span-2 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 8)} />
-                    <CarouselTile items={items.slice(10, 12)} accent={current.accent} className="col-span-2 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 10)} />
+                    <CarouselTile items={items.slice(0, 4)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
+                    <CarouselTile items={items.slice(4, 8)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
+                    <CarouselTile items={items.slice(8, 10)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 8)} />
+                    <CarouselTile items={items.slice(10, 12)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 10)} />
+                  </>
+                ) : active === "carousel" ? (
+                  <>
+                    <CarouselTile items={items.slice(0, 2)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
+                    <CarouselTile items={items.slice(2, 4)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 2)} />
+                    <CarouselTile items={items.slice(4, 6)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
+                    <CarouselTile items={items.slice(6, 9)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 6)} />
                   </>
                 ) : (
                   <>
@@ -362,22 +427,7 @@ const HeroTile = ({
       ) : (
         <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110" />
       )}
-    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
     <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-700 mix-blend-overlay`} />
-
-    {/* corner brand */}
-    <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
-      {item.tag && (
-        <span className="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-black text-neutral-900 uppercase tracking-widest shadow-md">
-          ★ Featured Output
-        </span>
-      )}
-      {item.tag && (
-        <span className="px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-bold text-white border border-white/20 uppercase tracking-wider">
-          {item.tag}
-        </span>
-      )}
-    </div>
 
     {item.isVideo && (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -390,15 +440,6 @@ const HeroTile = ({
         </motion.div>
       </div>
     )}
-
-    <div className="absolute inset-x-0 bottom-0 p-6 sm:p-7">
-      <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/70 mb-2">
-        Generated by SyncSocio · just now
-      </div>
-      <p className="text-white font-black text-lg sm:text-xl leading-tight drop-shadow-lg max-w-md">
-        {item.caption}
-      </p>
-    </div>
   </motion.div>
   );
 };
@@ -432,14 +473,7 @@ const Tile = ({
       ) : (
         <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
       )}
-    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
     <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay`} />
-
-    {item.tag && (
-      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-bold text-white border border-white/20 uppercase tracking-wider">
-        {item.tag}
-      </span>
-    )}
 
     {item.isVideo && (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -448,12 +482,6 @@ const Tile = ({
         </div>
       </div>
     )}
-
-    <div className="absolute inset-x-0 bottom-0 p-3.5 sm:p-4">
-      <p className={`text-white font-bold leading-tight drop-shadow-md ${wide ? "text-sm sm:text-base" : "text-xs sm:text-sm"} ${compact ? "line-clamp-1" : "line-clamp-2"}`}>
-        {item.caption}
-      </p>
-    </div>
   </motion.div>
   );
 };
@@ -491,22 +519,7 @@ const CarouselTile = ({
             ) : (
               <img src={item.src} alt={item.caption} loading="lazy" className="w-full h-full object-cover" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
             <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay pointer-events-none`} />
-            
-            {item.tag && (
-              <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-bold text-white border border-white/20 uppercase tracking-wider">
-                {item.tag}
-              </span>
-            )}
-            
-            {item.caption && (
-              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 pointer-events-none">
-                <p className="text-white font-bold leading-tight drop-shadow-md text-sm sm:text-base">
-                  {item.caption}
-                </p>
-              </div>
-            )}
           </div>
         ))}
       </div>

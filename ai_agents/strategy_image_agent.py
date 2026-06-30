@@ -422,7 +422,7 @@ Anchor the visual to this exact product.
 """
 
     idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
-    logo_inst = " Incorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text." if brand_doc.get("logo") else " Do not assume or add any fake logos or text."
+    logo_inst = " Do NOT draw or include any logos, icons, or brand marks. Leave the top-left corner empty so a logo can be placed later."
 
     # If it is whatsapp or email campaign, we follow the exact requested structure in request 4
     if campaign_mode == "whatsapp":
@@ -1078,6 +1078,11 @@ def generate_strategy_images(
             # 1. Draft the text via LLM
             print(f"[StrategyAgent] ✍️ Drafting {slide_count} slides in {language} for carousel {index+1}...")
             slide_texts = build_carousel_slide_prompts(brand_doc, idea, slide_count, product=prod, language=language)
+            
+            base_image_prompt = build_image_prompt(
+                brand_doc, idea, aspect_ratio, product=prod, ad_template=None, campaign_mode=None, language=language, custom_directive="Design a cohesive, premium carousel slide. Embed the SLIDE TEXT directly in the image layout."
+            )
+            enriched_slide_prompts = [f"{base_image_prompt}\n\nSLIDE TEXT TO INCLUDE: {text}" for text in slide_texts]
 
             print(f"\n[StrategyAgent] 🎠 Carousel {index+1}/{count} | ref_image={'YES ✓' if task_refs else 'NONE'}")
             if prod: print(f"                   Product: {prod.get('name')}")
@@ -1098,7 +1103,7 @@ def generate_strategy_images(
                     base_prompt=f"{brand_doc.get('brandName', 'Brand')} — {idea}" if idea and idea.strip() else brand_doc.get('brandName', 'Brand'),
                     image=task_refs,
                     count=slide_count,
-                    slide_prompts=slide_texts,
+                    slide_prompts=enriched_slide_prompts,
                 )
                 return {
                     "slides":  slides,          # list of {image: base64}

@@ -303,10 +303,14 @@ CAROUSEL STRUCTURE:
 - Last slide: CTA — Clear call to action (e.g. Book a Consultation, Learn More).
 
 Example: ["Slide 1 text", "Slide 2 text"]
+Output ONLY a raw valid JSON array of strings, with no markdown formatting or backticks.
 """
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
-        text = response.content.strip()
+        content = response.content
+        if isinstance(content, list):
+            content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+        text = content.strip()
         if text.startswith("```json"): text = text[7:]
         if text.startswith("```"): text = text[3:]
         if text.endswith("```"): text = text[:-3]
@@ -535,7 +539,7 @@ def generate_saas_strategy_images(
             try:
                 result = generate_fal_image_gpt2(
                     prompt=prompt,
-                    image=ref,
+                    image=None,
                     image_size=fal_size,
                 )
                 return {"image": result["image"], "caption": caption, "type": "image",
@@ -590,6 +594,15 @@ def generate_saas_strategy_images(
                 brand_doc, idea, slide_count,
                 language=language,
             )
+            
+            base_image_prompt = build_saas_image_prompt(
+                brand_doc, idea, aspect_ratio,
+                ad_template=None,
+                custom_directive="Design a cohesive, premium carousel slide. Embed the SLIDE TEXT directly in the image layout.",
+                language=language,
+            )
+            enriched_slide_prompts = [f"{base_image_prompt}\n\nSLIDE TEXT TO INCLUDE: {text}" for text in slide_texts]
+
             print(f"\n[SaaSAgent] 🎠 Carousel {index+1}/{count} | ref={'YES' if ref else 'NO'}")
             print(f"[SaaSAgent] 📝 Carousel Slide Prompts:\n{json.dumps(slide_texts, indent=2)}\n")
             caption = generate_saas_instagram_caption(
@@ -606,7 +619,7 @@ def generate_saas_strategy_images(
                     base_prompt=f"{brand_name} — {idea}" if idea and idea.strip() else brand_name,
                     image=ref,
                     count=slide_count,
-                    slide_prompts=slide_texts,
+                    slide_prompts=enriched_slide_prompts,
                 )
                 return {"slides": slides, "caption": caption, "type": "carousel", "index": index}
             except Exception as e:
@@ -698,7 +711,7 @@ Create a high-quality, photorealistic portrait image of this UGC creator/present
                     print(f"[SaaSAgent] UGC Stage 1: Generating starting image with GPT-Image-2...")
                     print(f"[SaaSAgent] 📝 UGC Stage 1 Prompt:\n{stage1_prompt}\n")
                     gpt_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "portrait_16_9")
-                    gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=ref, image_size=gpt_size)
+                    gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=None, image_size=gpt_size)
                     generated_img = gpt_res.get("image")
                     if not generated_img:
                         raise Exception("UGC Stage 1 image generation failed")

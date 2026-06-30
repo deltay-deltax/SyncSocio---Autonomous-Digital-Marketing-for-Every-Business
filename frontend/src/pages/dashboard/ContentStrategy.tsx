@@ -69,7 +69,7 @@ const aspects: { id: AspectRatio; label: string; ratio: string }[] = [
 
 const imageCounts = [1, 2, 4, 6, 8];
 const carouselCounts = [1, 2, 3];
-const carouselSlides = [3, 5, 7];
+const carouselSlides = [1, 2, 3, 5, 7];
 const videoCounts = [1, 2, 3, 4];
 
 const platforms = ['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Shopify', 'Nykaa'];
@@ -213,10 +213,12 @@ const PRODUCT_CACHE_KEY = 'syncsocio_products';
 
 function openProductDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_PRODUCT_NAME, 1);
+    const req = indexedDB.open(IDB_PRODUCT_NAME, 2);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(IDB_PRODUCT_STORE)) db.createObjectStore(IDB_PRODUCT_STORE);
+      if (!db.objectStoreNames.contains(IDB_PRODUCT_STORE)) {
+        db.createObjectStore(IDB_PRODUCT_STORE);
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -246,7 +248,7 @@ async function getProductCache(key: string): Promise<any> {
 const DashboardStrategy = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { 
+  const {
     setShowNotifications,
     backgroundTasks,
     viewingTask,
@@ -255,7 +257,7 @@ const DashboardStrategy = () => {
     viewCompletedTask,
     clearViewingTask,
     removeTask
-  } = useOutletContext<{ 
+  } = useOutletContext<{
     setShowNotifications?: (show: boolean) => void;
     backgroundTasks?: import('./DashboardLayout').BgTask[];
     viewingTask?: import('./DashboardLayout').BgTask | null;
@@ -304,7 +306,7 @@ const DashboardStrategy = () => {
       setSavedIndices(new Set());
       setShowHeartPop({});
       setStage('results');
-      
+
       if (task.mode !== 'all_in_one') {
         setMode(task.mode);
       }
@@ -315,7 +317,7 @@ const DashboardStrategy = () => {
         setCampaignBody(first.caption || '');
         if (task.mode === 'email') setCampaignSubject(first.subject || '');
       }
-      
+
       setCurrentTaskId(null);
     } else if (task.status === 'error') {
       setGenError(task.error || 'Something went wrong');
@@ -332,18 +334,18 @@ const DashboardStrategy = () => {
       setSavedIndices(new Set());
       setShowHeartPop({});
       setStage('results');
-      
+
       if (viewingTask.mode !== 'all_in_one') {
         setMode(viewingTask.mode);
       }
-      
+
       if (viewingTask.mode === 'whatsapp' || viewingTask.mode === 'email') {
         const first = posts[0] || {};
         setCampaignImage(imgSrc(first.image) || '');
         setCampaignBody(first.caption || '');
         if (viewingTask.mode === 'email') setCampaignSubject(first.subject || '');
       }
-      
+
       if (clearViewingTask) clearViewingTask();
     }
   }, [viewingTask, clearViewingTask]);
@@ -449,7 +451,7 @@ const DashboardStrategy = () => {
   const [showProductModal, setShowProductModal] = useState(false);
 
   React.useEffect(() => {
-    const maxProducts = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
+    const maxProducts = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
     if (selectedProducts.length > maxProducts) {
       setSelectedProducts(selectedProducts.slice(0, maxProducts));
     }
@@ -506,14 +508,14 @@ const DashboardStrategy = () => {
       // Pick first product from uploads or products list for context
       const firstProduct = products[0] || {};
       const payload = {
-        brandName:          profile.brandName || '',
-        brandTone:          profile.brandTone || '',
-        usp:                profile.usp || '',
-        productName:        firstProduct.name || '',
+        brandName: profile.brandName || '',
+        brandTone: profile.brandTone || '',
+        usp: profile.usp || '',
+        productName: firstProduct.name || '',
         productDescription: firstProduct.description || '',
-        keyBenefit:         firstProduct.keyBenefit || '',
-        avatarDescription:  avatarDescription.trim(),
-        isSaas:             isSaasMode,
+        keyBenefit: firstProduct.keyBenefit || '',
+        avatarDescription: avatarDescription.trim(),
+        isSaas: isSaasMode,
       };
       const res = await fetch(`${AI_BASE}/generate-ugc-script`, {
         method: 'POST',
@@ -561,7 +563,7 @@ const DashboardStrategy = () => {
           const list = data.products || [];
           setProducts(list);
           await setProductCache(cacheKey, list);
-          try { localStorage.removeItem(cacheKey); } catch {}
+          try { localStorage.removeItem(cacheKey); } catch { }
         } else {
           if (res.status === 401 || res.status === 403) {
             setProducts([]);
@@ -592,7 +594,7 @@ const DashboardStrategy = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const limit = mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count);
+    const limit = mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count);
     if (selectedProducts.length >= limit) {
       alert(`You can select at most ${limit} item(s). Please deselect an item first.`);
       return;
@@ -622,7 +624,7 @@ const DashboardStrategy = () => {
       };
 
       setSelectedProducts((prev) => [...prev, customProduct]);
-      
+
       // Reset input value so same file can be selected again
       if (modalFileInputRef.current) {
         modalFileInputRef.current.value = '';
@@ -634,7 +636,7 @@ const DashboardStrategy = () => {
 
   const fetchCreativeLibrary = async () => {
     const cacheKey = `syncsocio_strategy_assets_${brandId}`;
-    
+
     // 1. Try to load from IndexedDB cache first
     try {
       const cachedData = await getCache(cacheKey);
@@ -642,8 +644,8 @@ const DashboardStrategy = () => {
         setCreativeLibrary(cachedData);
         setLoadingCreatives(false);
       } else {
-        // Fallback to localStorage just in case
-        const cachedStr = localStorage.getItem(cacheKey) || localStorage.getItem(ASSET_CACHE_KEY);
+        // Fallback to localStorage just in case (legacy)
+        const cachedStr = localStorage.getItem(cacheKey);
         if (cachedStr) {
           const fallbackData = JSON.parse(cachedStr);
           if (Array.isArray(fallbackData) && fallbackData.length > 0) {
@@ -673,12 +675,11 @@ const DashboardStrategy = () => {
         setCreativeLibrary(fetchedCreatives);
         // Save to IndexedDB (as primary cache)
         await setCache(cacheKey, fetchedCreatives);
-        // Also sync to localStorage for backwards compatibility / fallback
+        // Clear any old bloated localStorage cache to free up quota
         try {
-          localStorage.setItem(cacheKey, JSON.stringify(fetchedCreatives));
-        } catch (e) {
-          console.warn('[Strategy] LocalStorage cache quota exceeded, relying on IndexedDB:', e);
-        }
+          localStorage.removeItem(cacheKey);
+          localStorage.removeItem(ASSET_CACHE_KEY);
+        } catch (e) {}
       }
     } catch (err) {
       console.error('[Strategy] Fetch creatives error:', err);
@@ -689,7 +690,7 @@ const DashboardStrategy = () => {
   };
 
   const pickRandom = () => {
-    const targetLimit = mode === 'ecomm' ? ecommImgCount : count;
+    const targetLimit = mode === 'ecomm' ? 1 : count;
     if (products.length > 0) {
       const shuffled = [...products].sort(() => 0.5 - Math.random()).slice(0, Math.min(products.length, targetLimit));
       setSelectedProducts(shuffled);
@@ -718,7 +719,7 @@ const DashboardStrategy = () => {
       } else {
         const exists = prev.find((x) => x._id === p._id);
         if (exists) return prev.filter((x) => x._id !== p._id);
-        const limit = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
+        const limit = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
         if (prev.length >= limit) return prev;
         return [...prev, p];
       }
@@ -812,10 +813,10 @@ const DashboardStrategy = () => {
     const finalListName = listNameInput.trim() || 'Imported List';
     try {
       const token = localStorage.getItem('token');
-      const payload = isWhatsapp 
-        ? { name: finalListName, phones: pendingEmails } 
+      const payload = isWhatsapp
+        ? { name: finalListName, phones: pendingEmails }
         : { name: finalListName, emails: pendingEmails };
-        
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -924,7 +925,7 @@ const DashboardStrategy = () => {
           break;
         }
       }
-      
+
       // If not found in a specific cell, try a loose regex on the whole row
       if (!rowCC) {
         const looseMatch = rowStr.match(/(?:^|\s)\+(\d{1,4})(?:\s|\(|$)/);
@@ -1086,8 +1087,8 @@ const DashboardStrategy = () => {
     try {
       const token = localStorage.getItem('token');
       const isWhatsapp = mode === 'whatsapp';
-      const endpoint = isWhatsapp 
-        ? `${NODE_BASE}/campaigns/send-whatsapp` 
+      const endpoint = isWhatsapp
+        ? `${NODE_BASE}/campaigns/send-whatsapp`
         : `${NODE_BASE}/campaigns/send`;
 
       const payload: any = {
@@ -1130,7 +1131,7 @@ const DashboardStrategy = () => {
       const currentMode = overrides?.layout || (mode === 'festival' ? 'image' : mode);
       const currentProducts = overrides?.products !== undefined ? overrides.products : selectedProducts;
       const currentIdea = overrides?.idea !== undefined ? overrides.idea : idea;
-      
+
       let currentCount = overrides?.count !== undefined ? overrides.count : count;
       let currentAspect = overrides?.aspect !== undefined ? overrides.aspect : (mode === 'festival' && tone === 'Story' ? '9:16' : aspect);
       let currentLanguage = overrides?.language !== undefined ? overrides.language : language;
@@ -1239,7 +1240,7 @@ const DashboardStrategy = () => {
         currentCount = 1;
         currentAspect = '9:16';
         currentLanguage = 'english';
-        
+
         if (videoKind === 'img2video' && selectedMotionPreset) {
           const preset = MOTION_PRESETS.find((p) => p.id === selectedMotionPreset);
           if (preset) {
@@ -1286,11 +1287,10 @@ const DashboardStrategy = () => {
       } else {
         creditCost = currentCount * 5;  // image / festival
       }
-      const creditReason = `${currentMode} generation (${
-        currentMode === 'ecomm' ? ecommTotal
-        : currentMode === 'carousel' ? `${currentCount} × ${slideCount} slides`
-        : currentCount
-      } items)`;
+      const creditReason = `${currentMode} generation (${currentMode === 'ecomm' ? ecommTotal
+          : currentMode === 'carousel' ? `${currentCount} × ${slideCount} slides`
+            : currentCount
+        } items)`;
       // ─────────────────────────────────────────────────────────────────
 
       if (startBackgroundGeneration) {
@@ -1350,7 +1350,7 @@ const DashboardStrategy = () => {
 
       if (res.ok) {
         const data = await res.json();
-        
+
         // Save to IndexedDB cache
         const cacheKey = `syncsocio_strategy_assets_${brandId}`;
         try {
@@ -1361,17 +1361,8 @@ const DashboardStrategy = () => {
           console.error('[Strategy] IndexedDB save error:', e);
         }
 
-        // LocalStorage fallback update
-        const keys = [ASSET_CACHE_KEY, `syncsocio_strategy_assets_${brandId}`];
-        for (const key of keys) {
-          try {
-            const cached = JSON.parse(localStorage.getItem(key) || '[]');
-            cached.unshift(data.creative);
-            localStorage.setItem(key, JSON.stringify(cached));
-          } catch (e) {
-            console.error('[Strategy] LocalStorage save error for key:', key, e);
-          }
-        }
+        // No localStorage fallback needed anymore since we use robust IndexedDB above.
+        // This prevents QuotaExceededError crashes when the app tries to save profiles later.
       } else {
         // Revert optimistic UI if failed
         setSavedCount((n) => Math.max(0, n - 1));
@@ -1499,7 +1490,7 @@ const DashboardStrategy = () => {
       const data = await response.json();
       if (data.status === 'success') {
         const updatedPost = { ...previewPost };
-        
+
         if (previewPost.type === 'carousel') {
           const updatedSlides = [...(previewPost.slides || [])];
           if (updatedSlides[previewSlide]) {
@@ -1517,7 +1508,7 @@ const DashboardStrategy = () => {
         }
 
         setPreviewPost(updatedPost);
-        
+
         setGenerated((prev) => {
           const next = [...prev];
           next[previewIndex] = updatedPost;
@@ -1576,15 +1567,15 @@ const DashboardStrategy = () => {
         <h2 className="text-2xl font-display font-bold text-foreground mb-2">
           {mode === 'all_in_one' ? 'Generating All-in-One Marketing Pack ⚡' :
             mode === 'whatsapp' ? 'Drafting your WhatsApp blast 📲' :
-            mode === 'email' ? 'Composing your email campaign ✉️' :
-            'Cooking up your posts ✨'}
+              mode === 'email' ? 'Composing your email campaign ✉️' :
+                'Cooking up your posts ✨'}
         </h2>
         <p className="text-sm text-muted-foreground mb-2">
           {mode === 'all_in_one'
             ? 'SyncSocio is cooking up 1 image, 1 carousel, and 2 listing designs…'
             : mode === 'whatsapp' || mode === 'email'
-            ? 'SyncSocio is writing copy & laying out the creative…'
-            : `SyncSocio AI is generating ${count} on-brand ${mode === 'video' ? 'videos' : mode === 'carousel' ? 'carousels' : 'posts'}…`}
+              ? 'SyncSocio is writing copy & laying out the creative…'
+              : `SyncSocio AI is generating ${count} on-brand ${mode === 'video' ? 'videos' : mode === 'carousel' ? 'carousels' : 'posts'}…`}
         </p>
         <p className="text-xs text-muted-foreground/60 mb-6">
           {mode === 'all_in_one' ? 'Since we are running them in parallel, this takes 2 - 5 mins' : 'This may take 15–30 seconds'}
@@ -1599,7 +1590,7 @@ const DashboardStrategy = () => {
             />
           ))}
         </div>
-        
+
         <div className="mt-12 flex flex-col items-center">
           <p className="text-sm font-medium text-muted-foreground mb-4">Don't want to wait?</p>
           <Button
@@ -1672,17 +1663,17 @@ const DashboardStrategy = () => {
     const selectedFest = FESTIVALS_2026.find((f) => f.id === festival);
     const modeLabel = mode === 'all_in_one' ? 'All-in-One Pack · SyncSocio AI'
       : mode === 'ecomm' ? `Listing · ${platform}`
-      : mode === 'festival' && selectedFest ? `Campaign · ${selectedFest.name} ${selectedFest.emoji}`
-        : mode === 'festival' ? `Campaign · ${festival}`
-          : mode === 'video' ? 'Reel · SyncSocio AI'
-            : 'Post · SyncSocio AI';
+        : mode === 'festival' && selectedFest ? `Campaign · ${selectedFest.name} ${selectedFest.emoji}`
+          : mode === 'festival' ? `Campaign · ${festival}`
+            : mode === 'video' ? 'Reel · SyncSocio AI'
+              : 'Post · SyncSocio AI';
 
     const accentGrad = mode === 'all_in_one' ? 'from-indigo-500 via-purple-500 via-pink-500 to-amber-500'
       : mode === 'festival' ? 'from-violet-500 via-fuchsia-500 to-rose-500'
-      : mode === 'ecomm' ? 'from-emerald-400 via-teal-400 to-cyan-500'
-      : mode === 'video' ? 'from-amber-400 via-orange-500 to-rose-500'
-      : mode === 'carousel' ? 'from-fuchsia-500 via-rose-500 to-pink-400'
-      : 'from-sky-400 via-indigo-500 to-fuchsia-500';
+        : mode === 'ecomm' ? 'from-emerald-400 via-teal-400 to-cyan-500'
+          : mode === 'video' ? 'from-amber-400 via-orange-500 to-rose-500'
+            : mode === 'carousel' ? 'from-fuchsia-500 via-rose-500 to-pink-400'
+              : 'from-sky-400 via-indigo-500 to-fuchsia-500';
 
     const hasSection = (sectionType: string) => {
       return generated.some((post: any) => post.sectionType === sectionType);
@@ -1839,7 +1830,7 @@ const DashboardStrategy = () => {
       return (
         <div className="space-y-5 border border-border/40 rounded-3xl p-6 bg-card/10 backdrop-blur-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-[0.03] bg-primary" />
-          
+
           <div>
             <h2 className="text-lg font-display font-black text-foreground">{title}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
@@ -3081,7 +3072,7 @@ const DashboardStrategy = () => {
                     <ShoppingBag size={18} className="text-primary" /> Select Products
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Pick up to {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} product{(mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) > 1 ? 's' : ''}. SyncSocio will anchor generations to these.
+                    Pick up to {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} product{(mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) > 1 ? 's' : ''}. SyncSocio will anchor generations to these.
                   </p>
                 </div>
                 <button onClick={() => setShowProductModal(false)} className="p-2 rounded-xl hover:bg-muted transition">
@@ -3133,7 +3124,7 @@ const DashboardStrategy = () => {
 
                   {products.map((p) => {
                     const selected = !!selectedProducts.find((x) => x._id === p._id);
-                    const disabled = !selected && selectedProducts.length >= (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count)));
+                    const disabled = !selected && selectedProducts.length >= (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count)));
                     return (
                       <button
                         key={p._id}
@@ -3167,9 +3158,9 @@ const DashboardStrategy = () => {
 
               <div className="p-5 border-t border-border/50 shrink-0 flex items-center justify-between">
                 <p className="text-xs font-semibold text-muted-foreground">
-                  <span className={cn(selectedProducts.length === (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) ? 'text-primary' : 'text-foreground')}>
+                  <span className={cn(selectedProducts.length === (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) ? 'text-primary' : 'text-foreground')}>
                     {selectedProducts.length}
-                  </span> / {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? ecommImgCount : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} selected
+                  </span> / {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} selected
                 </p>
                 <Button onClick={() => setShowProductModal(false)} className="rounded-xl px-6">Done</Button>
               </div>
@@ -3350,9 +3341,9 @@ const DashboardStrategy = () => {
             <Sparkles size={18} />
             {mode === 'all_in_one' ? 'Generate All-in-One Pack' :
               mode === 'whatsapp' ? 'Generate WhatsApp message' :
-              mode === 'email' ? 'Generate email campaign' :
-              mode === 'video' ? 'Generate 1 video' :
-                `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
+                mode === 'email' ? 'Generate email campaign' :
+                  mode === 'video' ? 'Generate 1 video' :
+                    `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
           </Button>
           {!canGenerate && mode !== 'ecomm' && mode !== 'all_in_one' && (
             <p className="text-[11px] text-muted-foreground text-center mt-2">
@@ -3602,8 +3593,8 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
   const countryDropdownRef = useRef<HTMLDivElement>(null);
 
-  const filteredCountries = COUNTRY_CODES.filter(c => 
-    c.name.toLowerCase().includes(countrySearchQuery.toLowerCase()) || 
+  const filteredCountries = COUNTRY_CODES.filter(c =>
+    c.name.toLowerCase().includes(countrySearchQuery.toLowerCase()) ||
     c.code.includes(countrySearchQuery)
   );
 
@@ -3685,8 +3676,8 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                       {time} <CheckCheck size={11} className="text-[#34B7F1]" />
                     </div>
                   </div>
-                  <a 
-                    href="#" 
+                  <a
+                    href="#"
                     className="flex items-center justify-center gap-1.5 py-2.5 bg-white border-t border-gray-100 text-[11px] font-bold text-[#0066cc] hover:bg-gray-50 active:bg-gray-100 transition-colors w-full"
                     onClick={(e) => e.preventDefault()}
                   >
@@ -3729,9 +3720,9 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                   <img src={image} className="w-full rounded-xl object-cover aspect-video" />
                 )}
                 {body.includes('<') && (body.includes('</') || body.includes('/>')) ? (
-                  <div 
-                    className="text-xs text-foreground leading-relaxed email-html-preview" 
-                    dangerouslySetInnerHTML={{ __html: body }} 
+                  <div
+                    className="text-xs text-foreground leading-relaxed email-html-preview"
+                    dangerouslySetInnerHTML={{ __html: body }}
                   />
                 ) : (
                   <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{body}</pre>
@@ -3898,7 +3889,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                     <span>{whatsappCountryCode}</span>
                     <ChevronDown size={12} className={cn("text-muted-foreground transition-transform", isCountryDropdownOpen && "transform rotate-180")} />
                   </button>
-                  
+
                   {isCountryDropdownOpen && (
                     <div className="absolute left-0 mt-1 z-[60] w-64 bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-2xl p-2 flex flex-col gap-2">
                       <Input

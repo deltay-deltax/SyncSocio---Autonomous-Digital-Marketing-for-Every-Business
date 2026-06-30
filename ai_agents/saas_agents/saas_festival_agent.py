@@ -99,7 +99,7 @@ def _build_saas_festival_image_prompt(
 
     reframe = _get_festival_reframe(festival_name)
     idea_line = f"Campaign idea: {idea}" if idea and idea.strip() else ""
-    logo_inst = " Incorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text." if logo else " Do not assume or add any fake logos or text."
+    logo_inst = " Do NOT draw or include any logos, icons, or brand marks. Leave the top-left corner empty so a logo can be placed later."
 
     image_prompt = f"""
 BRAND: {brand_name} — {category} company.
@@ -232,7 +232,7 @@ def generate_saas_festival_images(
         try:
             result = generate_fal_image_gpt2(
                 prompt=image_prompt,
-                image=ref,
+                image=None,
                 image_size=fal_size,
             )
             return {
