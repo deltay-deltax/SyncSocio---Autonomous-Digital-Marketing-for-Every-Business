@@ -193,10 +193,8 @@ const Setup = () => {
   });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null);
-  const [warningPlan, setWarningPlan] = useState<string | null>(null);
   const [activationStep, setActivationStep] = useState(0);
   const [onboardingData, setOnboardingData] = useState<any>(null);
-  const [syncData, setSyncData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Coupon Checkout State
@@ -306,14 +304,13 @@ const Setup = () => {
     }
   };
 
-  const proceedToCheckout = (planName: string, syncDataToApply?: any) => {
+  const proceedToCheckout = (planName: string) => {
     let currentPrice = planName === 'Elite' ? 1899 : 599;
     if (appliedCoupon) {
       const discount = appliedCoupon.discountPercentage;
       currentPrice = Math.round(currentPrice * (1 - discount / 100));
     }
     
-    if (syncDataToApply) setSyncData(syncDataToApply);
     setSelectedPlanAmount(currentPrice);
     setSelectedPlan(planName);
     setScreen('checkout');
@@ -349,34 +346,7 @@ const Setup = () => {
   }, []);
 
   const handleSelectPlan = (plan: Plan) => {
-    if (!onboardingData) {
-      proceedToCheckout(plan.name);
-      return;
-    }
-    const currentFreq = onboardingData.postingFrequency;
-    const currentTypes = onboardingData.contentTypes || [];
-    const hasReels = currentTypes.includes('Reels');
-
-    let issues = [];
-    let sync: any = {};
-
-    if (plan.name === 'Starter') {
-      if (currentFreq === 'Daily') {
-        issues.push('Frequency will be reduced to 3-4x/wk');
-        sync.postingFrequency = '3-4x / wk';
-      }
-      if (hasReels) {
-        issues.push('Reels will be disabled');
-        sync.contentTypes = currentTypes.filter((t: string) => t !== 'Reels');
-      }
-    }
-
-    if (issues.length > 0) {
-      setSyncData(sync);
-      setWarningPlan(plan.name);
-    } else {
-      proceedToCheckout(plan.name);
-    }
+    proceedToCheckout(plan.name);
   };
 
   const handleToggle = (planName: string) => {
@@ -415,8 +385,7 @@ const Setup = () => {
           const payload = { 
             selectedPlan,
             DM_Automation_Service: isDmEnabled,
-            isPaid: true,
-            ...(syncData || {})
+            isPaid: true
           };
 
           await fetch(`${API_BASE}/profile`, {
@@ -635,48 +604,6 @@ const Setup = () => {
         <div className="text-center mb-10">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Choose how active your agent is</h1>
           <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
-
-          {/* Coupon Input Box */}
-          <div className="max-w-md mx-auto mt-6 bg-card/40 border border-border/80 backdrop-blur rounded-2xl p-4 shadow-sm">
-            <form onSubmit={handleApplyCoupon} className="flex gap-2">
-              <input
-                type="text"
-                placeholder="PROMO CODE (e.g. WELCOME10)"
-                value={couponCodeInput}
-                onChange={(e) => setCouponCodeInput(e.target.value)}
-                className="flex-1 bg-background/50 border border-border rounded-xl px-4 py-2 text-foreground focus:border-blue-500 focus:outline-none text-xs uppercase font-mono"
-                disabled={couponLoading || !!appliedCoupon}
-              />
-              <Button 
-                type="submit" 
-                size="sm" 
-                variant={appliedCoupon ? "outline" : "default"}
-                disabled={couponLoading || !couponCodeInput.trim() || !!appliedCoupon}
-                className="rounded-xl text-xs h-9"
-              >
-                {couponLoading ? 'Checking...' : appliedCoupon ? 'Applied' : 'Apply'}
-              </Button>
-            </form>
-            {couponError && (
-              <p className="text-[11px] text-red-500 text-left mt-2 pl-1 font-semibold">{couponError}</p>
-            )}
-            {appliedCoupon && (
-              <div className="flex items-center justify-between mt-2 pl-1">
-                <p className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1">
-                  ✓ Code {appliedCoupon.code} applied: {appliedCoupon.discountPercentage}% OFF!
-                </p>
-                <button 
-                  onClick={() => {
-                    setAppliedCoupon(null);
-                    localStorage.removeItem('velocity_applied_coupon');
-                  }} 
-                  className="text-[10px] text-muted-foreground hover:text-destructive underline"
-                >
-                  Remove
-                </button>
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
@@ -810,55 +737,7 @@ const Setup = () => {
         })}
         </div>
 
-        {/* Plan Drift Warning Overlay */}
-        <AnimatePresence>
-          {warningPlan && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md"
-            >
-              <motion.div 
-                initial={{ scale: 0.95, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                className="max-w-sm w-full glass-card rounded-[2.5rem] p-8 shadow-2xl border-amber-500/20"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
-                  <AlertTriangle className="text-amber-500" size={28} />
-                </div>
-                <h3 className="text-xl font-bold mb-2 text-foreground">Sync Preferences?</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                  Picking <span className="font-bold text-foreground">{warningPlan}</span> will adjust your onboarding preferences (Frequency/Formats) to fit this plan's limitations.
-                </p>
-                <div className="space-y-3">
-                  <Button 
-                    className="w-full gradient-bg text-white h-12 rounded-xl text-xs font-bold"
-                    onClick={() => {
-                      if (warningPlan) {
-                        proceedToCheckout(warningPlan, syncData);
-                        setWarningPlan(null);
-                      }
-                    }}
-                    disabled={isProcessingPayment}
-                  >
-                    {isProcessingPayment ? 'Processing...' : 'Auto-Sync & Activate'}
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full h-11 text-xs font-bold text-muted-foreground"
-                    onClick={() => {
-                      setWarningPlan(null);
-                      setSyncData(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
       </Wrapper>
     );
   }
@@ -868,7 +747,7 @@ const Setup = () => {
   // ════════════════════════════════════════════════════════════════════
   if (screen === 'checkout') {
     return (
-      <Wrapper screenKey="checkout">
+      <Wrapper maxW="max-w-7xl" screenKey="checkout">
         <Checkout
           baseAmount={selectedPlanAmount}
           description={`Subscription: ${selectedPlan} Plan`}

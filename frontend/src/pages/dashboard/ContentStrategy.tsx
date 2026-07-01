@@ -91,18 +91,7 @@ const MOTION_PRESETS = [
 
 const languages = [
   { id: 'english', label: 'English', flag: '🇬🇧' },
-  { id: 'hinglish', label: 'Hinglish', flag: '🅷' },
   { id: 'hindi', label: 'Hindi (हिन्दी)', flag: '🇮🇳' },
-  { id: 'marathi', label: 'Marathi (मराठी)', flag: '🌾' },
-  { id: 'bengali', label: 'Bengali (বাংলা)', flag: '🌸' },
-  { id: 'gujarati', label: 'Gujarati (ગુજરાતી)', flag: '🪁' },
-  { id: 'punjabi', label: 'Punjabi (ਪੰਜਾਬੀ)', flag: '🌾' },
-  { id: 'tamil', label: 'Tamil (தமிழ்)', flag: '🪔' },
-  { id: 'telugu', label: 'Telugu (தெలుగు)', flag: '🌟' },
-  { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
-  { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
-  { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
-  { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' },
 ];
 
 // ── Ad composition templates ─────────────────────────────────────────────────
@@ -526,6 +515,7 @@ const DashboardStrategy = () => {
         keyBenefit: firstProduct.keyBenefit || '',
         avatarDescription: avatarDescription.trim(),
         isSaas: isSaasMode,
+        language: language,
       };
       const res = await fetch(`${AI_BASE}/generate-ugc-script`, {
         method: 'POST',
@@ -2358,7 +2348,7 @@ const DashboardStrategy = () => {
             </section>
           )}
 
-          {mode !== 'video' && (
+          {(mode !== 'video' || videoKind === 'ai-ugc') && (
             <LanguagePicker language={language} setLanguage={setLanguage} country={profile?.location?.country} />
           )}
 
@@ -2629,28 +2619,32 @@ const DashboardStrategy = () => {
       {/* ─── E-COMM ─── */}
       {mode === 'ecomm' && (
         <>
-          <section className="mb-6">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">1 · Platform</p>
-            <div className="flex flex-wrap gap-2">
-              {platforms.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatform(p)}
-                  className={cn(
-                    'px-4 py-2.5 rounded-xl text-sm font-semibold transition',
-                    platform === p
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                      : 'bg-card border border-border text-foreground hover:border-primary/40'
-                  )}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </section>
+          {profile?.location?.country?.toLowerCase() !== 'nepal' && (
+            <section className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">1 · Platform</p>
+              <div className="flex flex-wrap gap-2">
+                {platforms.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPlatform(p)}
+                    className={cn(
+                      'px-4 py-2.5 rounded-xl text-sm font-semibold transition',
+                      platform === p
+                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                        : 'bg-card border border-border text-foreground hover:border-primary/40'
+                    )}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="mb-6">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">2 · Image count</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              {profile?.location?.country?.toLowerCase() !== 'nepal' ? '2' : '1'} · Image count
+            </p>
             <div className="flex gap-2 flex-wrap">
               {ecommImageCounts.map((c) => (
                 <button
@@ -3408,8 +3402,7 @@ const LanguagePicker = ({
 }) => {
   const availableLanguages = country?.toLowerCase() === 'nepal'
     ? [
-        { id: 'english', label: 'English', flag: '🇬🇧' },
-        { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
+        { id: 'english', label: 'English', flag: '🇬🇧' }
       ]
     : languages;
 

@@ -77,6 +77,10 @@ brand_collection = db["brandprofiles"]
 dm_flows_collection = db["dm_flows"]
 assets_collection = db["assets"]
 
+@app.get("/")
+def read_root():
+    return {"message": "SyncSocio AI Agent Backend is running."}
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "timestamp": datetime.now()}
@@ -433,8 +437,8 @@ JSON Structure:
   "brandTone": "Choose ONE from: 'Warm & Friendly', 'Professional & Clean', 'Fun & Energetic', 'Inspirational', 'Luxury & Premium' (default: 'Warm & Friendly')",
   "visualVibe": "Choose ONE from: 'Minimalist', 'Vibrant', 'Luxury', 'Edgy' (default: 'Minimalist')",
   "brandKeywords": "A comma-separated string of 3-5 keywords describing the brand vibe",
-  "primaryColor": "Hex code of the brand's primary color. STRONGLY prefer choosing from the 'Detected colors' list. If none exist, infer from brand identity (default: '#2563EB')",
-  "secondaryColor": "Hex code of the brand's secondary color. STRONGLY prefer choosing from the 'Detected colors' list. (default: '#60A5FA')",
+  "primaryColor": "Hex code of the brand's primary color. Select a color from the 'Detected colors' list that matches the brand category, tone, and logo. Avoid choosing generic blue/social link colors (like #1863DC, #2563EB) for non-tech/non-SaaS brands unless they are the true brand colors (default: '#2563EB')",
+  "secondaryColor": "Hex code of the brand's secondary color. Select a matching color from the 'Detected colors' list that complements the primary color and fits the brand identity (default: '#60A5FA')",
   "products": [
     {
       "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
@@ -1833,6 +1837,7 @@ class UGCScriptRequest(BaseModel):
     keyBenefit: str = ""
     avatarDescription: str = ""
     isSaas: bool = False
+    language: str = "english"
 
 @app.post("/generate-ugc-script")
 async def api_generate_ugc_script(request: UGCScriptRequest):
@@ -1873,6 +1878,7 @@ async def api_generate_ugc_script(request: UGCScriptRequest):
 
         sys_msg = (
             f"You are an expert short-form video scriptwriter. {style_guide} "
+            f"The script MUST be written entirely in {request.language.upper()}. "
             "The script MUST be deliverable in exactly 8 seconds when spoken naturally "
             "(roughly 20-30 words maximum). Output ONLY the script text — no labels, "
             "no stage directions, no quotation marks, no markdown."

@@ -111,6 +111,7 @@ export const getMetrics = async (req, res) => {
           await Transaction.create({
             user: user._id,
             plan: user.plan,
+            type: 'plan_purchase',
             amount,
             discountPercentage,
             discountAmount,

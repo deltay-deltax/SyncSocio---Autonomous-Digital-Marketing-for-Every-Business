@@ -1162,7 +1162,8 @@ def generate_strategy_images(
                     prod_desc = products[0].get("description", "") if products else ""
                     prod_benefit = products[0].get("keyBenefit", "") if products else ""
                     
-                    sys_msg = "You are a D2C marketing assistant. Generate a talking-head UGC video script and avatar description for the given product."
+                    lang_req = language.upper() if language else "ENGLISH"
+                    sys_msg = f"You are a D2C marketing assistant. Generate a talking-head UGC video script and avatar description for the given product. The script MUST be written in {lang_req}."
                     user_msg = f"""Brand: {brand_name}
 Product: {prod_name}
 Description: {prod_desc}
@@ -1231,15 +1232,18 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                         raise Exception("UGC Stage 1 image generation failed")
                     
                     # Generate custom Instagram caption + hashtags using Gemini during Stage 1
-                    caption = generate_instagram_caption_and_hashtags(
-                        brand_doc=brand_doc,
-                        product=prod,
-                        layout="video",
-                        idea=f"UGC Video post with script: {video_script}",
-                        language=language,
-                        template_label="UGC Creator Video",
-                        index=index,
-                    )
+                    if language and language.lower() == "hindi":
+                        caption = ""
+                    else:
+                        caption = generate_instagram_caption_and_hashtags(
+                            brand_doc=brand_doc,
+                            product=prod,
+                            layout="video",
+                            idea=f"UGC Video post with script: {video_script}",
+                            language=language,
+                            template_label="UGC Creator Video",
+                            index=index,
+                        )
                     
                     # Stage 2: Take the generated hero image and send it to Seedance Image-to-Video
                     print(f"[StrategyAgent] UGC Stage 2: Animating starting image with Seedance Fast Image-to-Video...")
