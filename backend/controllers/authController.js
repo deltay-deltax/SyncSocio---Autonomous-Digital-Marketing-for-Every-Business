@@ -2,7 +2,7 @@ import User from '../models/User.js';
 import BrandProfile from '../models/BrandProfile.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import appleSigninAuth from 'apple-signin-auth';
@@ -34,20 +34,10 @@ const hashOtp = (otp) => {
 };
 
 const sendOtpEmail = async (email, name, otp) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    throw new Error('SMTP is not configured');
+  if (!process.env.SENDGRID_API_KEY) {
+    throw new Error('SendGrid API Key is not configured');
   }
-
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_PORT === '465',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    family: 4,
-  });
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const msg = {
     to: email,
@@ -76,7 +66,7 @@ const sendOtpEmail = async (email, name, otp) => {
     `,
   };
 
-  await transporter.sendMail(msg);
+  await sgMail.send(msg);
 };
 
 export const signup = async (req, res) => {
@@ -502,18 +492,9 @@ export const forgotPassword = async (req, res) => {
 
     await user.save({ validateBeforeSave: false });
 
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      console.log("Attempting native NodeMailer dispatch to:", user.email);
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-        family: 4,
-      });
+    if (process.env.SENDGRID_API_KEY) {
+      console.log("Attempting SendGrid dispatch to:", user.email);
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
       const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/resetpassword/${resetToken}`;
       const msg = {
@@ -550,16 +531,11 @@ export const forgotPassword = async (req, res) => {
           </div>
         `,
       };
-      
-      try {
-        const info = await transporter.sendMail(msg);
-        console.log("Email successfully dispatched! Info:", info.response);
-      } catch (mailErr) {
-        console.error("Nodemailer Dispatch Failed:", mailErr);
-        throw mailErr;
-      }
+
+      await sgMail.send(msg);
+      console.log(`Password reset email reliably sent to ${user.email} via SendGrid.`);
     } else {
-      console.warn("SMTP_HOST, SMTP_USER, or SMTP_PASS is missing. Email skipped.");
+      console.warn("SENDGRID_API_KEY is missing. Email skipped.");
     }
 
     res.status(200).json({

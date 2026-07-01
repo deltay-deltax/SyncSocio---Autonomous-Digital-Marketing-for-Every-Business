@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
 const SIGNUP_METHOD_LABELS = {
   email: 'Email/Password',
@@ -36,20 +36,11 @@ const resolveSignupMethodLabel = (provider) => {
 const resolvePlanDetails = (selectedPlan) => PLAN_DETAILS[selectedPlan] || null;
 
 export const sendSignupWelcomeEmail = async ({ to, name, provider, plan }) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    throw new Error('SMTP credentials are missing for welcome email delivery.');
+  if (!process.env.SENDGRID_API_KEY) {
+    throw new Error('SENDGRID_API_KEY is missing for welcome email delivery.');
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_PORT === '465',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    family: 4,
-  });
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const userName = name?.trim() || 'there';
   const signupMethod = resolveSignupMethodLabel(provider);
@@ -127,23 +118,21 @@ export const sendSignupWelcomeEmail = async ({ to, name, provider, plan }) => {
     `,
   };
 
-  return transporter.sendMail(msg);
+  try {
+    await sgMail.send(msg);
+    console.log(`Welcome email correctly dispatched to ${to}`);
+  } catch (error) {
+    console.error(`Failed to send welcome email to ${to}:`, error.response?.body || error);
+    throw error;
+  }
 };
 
 export const sendSignupNotificationEmail = async ({ to, name, provider }) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    throw new Error('SMTP credentials are missing for signup notification email delivery.');
+  if (!process.env.SENDGRID_API_KEY) {
+    throw new Error('SENDGRID_API_KEY is missing for signup notification email delivery.');
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_PORT === '465',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const userName = name?.trim() || 'there';
   const signupMethod = resolveSignupMethodLabel(provider);
@@ -197,23 +186,20 @@ export const sendSignupNotificationEmail = async ({ to, name, provider }) => {
     `,
   };
 
-  return transporter.sendMail(msg);
+  try {
+    await sgMail.send(msg);
+  } catch (error) {
+    console.error(`Failed to send signup notification:`, error.response?.body || error);
+  }
 };
 
 export const sendLoginNotificationEmail = async ({ to, name }) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    throw new Error('SMTP credentials are missing for login notification email delivery.');
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('SENDGRID_API_KEY missing. Admin login notification skipped.');
+    return;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_PORT === '465',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const userName = name?.trim() || 'there';
 
@@ -254,5 +240,9 @@ export const sendLoginNotificationEmail = async ({ to, name }) => {
     `,
   };
 
-  return transporter.sendMail(msg);
+  try {
+    await sgMail.send(msg);
+  } catch (error) {
+    console.error(`Failed to send admin login notification for ${to}:`, error.response?.body || error);
+  }
 };

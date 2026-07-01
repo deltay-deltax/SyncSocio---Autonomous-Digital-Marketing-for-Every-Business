@@ -545,21 +545,11 @@ export const sendManualEmail = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Usually we would use the nodemailer setup from utils here.
-    // For now we will mock it or try to import it dynamically
-    const nodemailer = await import('nodemailer');
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: process.env.SMTP_PORT || 587,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      family: 4,
-    });
+    const sgMail = (await import('@sendgrid/mail')).default;
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-    await transporter.sendMail({
-      from: `Velocity Admin <${process.env.SMTP_USER}>`,
+    await sgMail.send({
+      from: `Velocity Admin <${process.env.SMTP_FROM_EMAIL || 'admin@velocity.com'}>`,
       to: user.email,
       subject: subject || 'Message from Admin',
       text: message,
