@@ -91,7 +91,17 @@ const MOTION_PRESETS = [
 
 const languages = [
   { id: 'english', label: 'English', flag: '🇬🇧' },
+  { id: 'hinglish', label: 'Hinglish', flag: '🅷' },
   { id: 'hindi', label: 'Hindi (हिन्दी)', flag: '🇮🇳' },
+  { id: 'marathi', label: 'Marathi (मराठी)', flag: '🌾' },
+  { id: 'bengali', label: 'Bengali (বাংলা)', flag: '🌸' },
+  { id: 'gujarati', label: 'Gujarati (ગુજરાતી)', flag: '🪁' },
+  { id: 'punjabi', label: 'Punjabi (ਪੰਜਾਬੀ)', flag: '🌾' },
+  { id: 'tamil', label: 'Tamil (தமிழ்)', flag: '🪔' },
+  { id: 'telugu', label: 'Telugu (தெలుగు)', flag: '🌟' },
+  { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
+  { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
+  { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
 ];
 
 // ── Ad composition templates ─────────────────────────────────────────────────
@@ -2349,7 +2359,12 @@ const DashboardStrategy = () => {
           )}
 
           {(mode !== 'video' || videoKind === 'ai-ugc') && (
-            <LanguagePicker language={language} setLanguage={setLanguage} country={profile?.location?.country} />
+            <LanguagePicker 
+              language={language} 
+              setLanguage={setLanguage} 
+              country={profile?.location?.country}
+              isAiUgc={mode === 'video' && videoKind === 'ai-ugc'}
+            />
           )}
 
           {/* ─── Ad Template Picker (image mode only) ─── */}
@@ -3394,17 +3409,27 @@ const IdeaBox = ({
 );
 
 const LanguagePicker = ({
-  language, setLanguage, country,
+  language, setLanguage, country, isAiUgc
 }: {
   language: string;
   setLanguage: (v: string) => void;
   country?: string;
+  isAiUgc?: boolean;
 }) => {
-  const availableLanguages = country?.toLowerCase() === 'nepal'
-    ? [
-        { id: 'english', label: 'English', flag: '🇬🇧' }
-      ]
-    : languages;
+  let availableLanguages = languages;
+
+  if (isAiUgc) {
+    availableLanguages = country?.toLowerCase() === 'nepal'
+      ? [{ id: 'english', label: 'English', flag: '🇬🇧' }]
+      : languages.filter(l => l.id === 'english' || l.id === 'hindi');
+  } else {
+    if (country?.toLowerCase() === 'nepal') {
+      availableLanguages = [
+        { id: 'english', label: 'English', flag: '🇬🇧' },
+        { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
+      ];
+    }
+  }
 
   return (
     <section className="mb-6">
