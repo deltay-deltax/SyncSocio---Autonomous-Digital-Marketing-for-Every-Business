@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import dns from 'dns';
+dns.setDefaultResultOrder('ipv4first'); // Force IPv4 globally to fix Render IPv6 ENETUNREACH for Gmail
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
