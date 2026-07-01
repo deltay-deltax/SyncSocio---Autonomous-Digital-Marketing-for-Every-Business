@@ -48,6 +48,7 @@ export const sendSignupWelcomeEmail = async ({ to, name, provider, plan }) => {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    family: 4,
   });
 
   const userName = name?.trim() || 'there';

@@ -46,6 +46,7 @@ const sendOtpEmail = async (email, name, otp) => {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    family: 4,
   });
 
   const msg = {
@@ -511,6 +512,7 @@ export const forgotPassword = async (req, res) => {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        family: 4,
       });
 
       const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/resetpassword/${resetToken}`;

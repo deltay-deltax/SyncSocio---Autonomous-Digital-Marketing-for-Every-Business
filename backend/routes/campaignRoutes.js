@@ -134,6 +134,7 @@ router.post('/send', protect, async (req, res) => {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      family: 4,
     });
 
     const hasImage = typeof image === 'string' && image.startsWith('data:');
