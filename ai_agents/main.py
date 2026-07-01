@@ -1408,8 +1408,16 @@ async def api_generate_visuals(request: VisualGenRequest):
                 ]
             })
             if brand_doc:
+                location = brand_doc.get('location')
+                country = 'Unknown'
+                if isinstance(location, dict):
+                    country = location.get('country') or brand_doc.get('country') or 'Unknown'
+                else:
+                    country = brand_doc.get('country') or 'Unknown'
+
                 brand_dna = f"""
                 Brand: {brand_doc.get('brandName')}
+                Country: {country}
                 Goal: {brand_doc.get('mainGoal')}
                 Category: {brand_doc.get('businessCategory')}
                 Tone: {brand_doc.get('brandTone')}
@@ -1677,6 +1685,18 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             raise HTTPException(status_code=404, detail="Brand profile not found")
 
         print(f"[StrategyImages] ✅ Brand found: {brand_doc.get('brandName')} | platform={request.platform or 'N/A'}")
+
+        # If Nepal target, force language to English or Nepali
+        location = brand_doc.get("location")
+        country = "Unknown"
+        if isinstance(location, dict):
+            country = location.get("country") or brand_doc.get("country") or "Unknown"
+        else:
+            country = brand_doc.get("country") or "Unknown"
+
+        if country.lower() == "nepal" and request.language:
+            if request.language.lower() not in ["english", "nepali"]:
+                request.language = "english"
 
         # 2. Detect if SaaS/Services/Consulting brand and route accordingly
         business_category = brand_doc.get("businessCategory", "")

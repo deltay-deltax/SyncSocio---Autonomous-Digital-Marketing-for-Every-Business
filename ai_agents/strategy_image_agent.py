@@ -379,12 +379,20 @@ def _brand_block(bd: Dict[str, Any]) -> str:
     website        = bd.get("website", "")
     logo           = bd.get("logo", "")
 
+    location       = bd.get("location")
+    country        = "Unknown"
+    if isinstance(location, dict):
+        country    = location.get("country") or bd.get("country") or "Unknown"
+    else:
+        country    = bd.get("country") or "Unknown"
+
     logo_ref = ""
     if logo:
         logo_ref = f"Brand Logo Reference: {logo if logo.startswith('http') else '[Logo image is uploaded and available for branding]'}\n"
 
     return (
-        f"{brand_name} — {category} brand.\n"
+        f"{brand_name} — {category} brand based in {country}.\n"
+        f"Country: {country}.\n"
         f"Brand tone: {brand_tone}.\n"
         f"Visual style: {visual_vibe}.\n"
         f"Primary color: {primary_color}. Secondary: {secondary_color}.\n"
@@ -825,6 +833,18 @@ def generate_strategy_images(
     Returns:
         list of {image?: str (base64), url?: str, caption: str, type: str}
     """
+    # If Nepal target, force language to English or Nepali
+    loc = brand_doc.get("location")
+    country = "Unknown"
+    if isinstance(loc, dict):
+        country = loc.get("country") or brand_doc.get("country") or "Unknown"
+    else:
+        country = brand_doc.get("country") or "Unknown"
+
+    if country.lower() == "nepal" and language:
+        if language.lower() not in ["english", "nepali"]:
+            language = "english"
+
     print(f"\n[StrategyAgent] 🚀 Generating {count} {layout}(s) | aspect={aspect_ratio} | refs={len(ref_images)} | products={len(products or [])} | platform={platform or 'N/A'}")
 
     results = []

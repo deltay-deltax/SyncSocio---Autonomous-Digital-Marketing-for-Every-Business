@@ -64,7 +64,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/instagram', instagramMetricsRoutes);
 app.use('/api/dm-flows', dmFlowRoutes);
-app.use('/api/ads', adsRoutes);
+app.use('/api/promotions', adsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/strategy-assets', strategyAssetRoutes);

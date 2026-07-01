@@ -757,7 +757,14 @@ const DashboardSettings = () => {
                     <Input value={formData.city} onChange={e => updateField('city', e.target.value)} placeholder="Mumbai" className="text-sm" />
                   </Field>
                   <Field label="Country">
-                    <Input value={formData.country} onChange={e => updateField('country', e.target.value)} placeholder="India" className="text-sm" />
+                    <select
+                      value={formData.country}
+                      onChange={e => updateField('country', e.target.value)}
+                      className="h-10 w-full rounded-xl px-4 text-xs font-semibold border border-border/60 bg-background hover:border-primary transition-all cursor-pointer outline-none"
+                    >
+                      <option value="India">India</option>
+                      <option value="Nepal">Nepal</option>
+                    </select>
                   </Field>
                   <Field label="Industry" className="md:col-span-2">
                     <ChipGroup options={industries} value={formData.businessCategory} onChange={v => updateField('businessCategory', v)} />

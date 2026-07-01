@@ -8,6 +8,7 @@ import HowItWorks from "@/components/HowItWorks";
 import DMAutomation from "@/components/DMAutomation";
 import CampaignChannels from "@/components/CampaignChannels";
 import Pricing from "@/components/Pricing";
+import FAQ from "@/components/FAQ";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import WaitlistDialog from "@/components/WaitlistDialog";
@@ -87,6 +88,7 @@ const Index = () => {
       <DMAutomation />
       <CampaignChannels />
       <Pricing />
+      <FAQ />
       <CTASection 
         onWaitlistClick={() => setIsWaitlistOpen(true)} 
         isJoined={isWaitlistJoined}

@@ -9,9 +9,17 @@ def get_brand_dna(payload: Dict[str, Any]) -> str:
     brand = payload.get("brand_info", payload) # Support both flat and nested
     posts = payload.get("historical_posts", [])
     
+    location = brand.get("location")
+    country = "Unknown"
+    if isinstance(location, dict):
+        country = location.get("country") or brand.get("country") or "Unknown"
+    else:
+        country = brand.get("country") or "Unknown"
+
     # 1. Core Identity
     dna = f"BRAND IDENTITY:\n"
     dna += f"- Name: {brand.get('brandName', 'Unknown')}\n"
+    dna += f"- Country: {country}\n"
     dna += f"- Category: {brand.get('businessCategory', 'General Business')}\n"
     dna += f"- Tone: {brand.get('brandTone', 'Professional')}\n"
     dna += f"- Visual Vibe: {brand.get('visualVibe', 'Clean and Modern')}\n"

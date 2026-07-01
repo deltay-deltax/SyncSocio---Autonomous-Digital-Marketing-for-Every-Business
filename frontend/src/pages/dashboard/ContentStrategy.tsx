@@ -102,6 +102,7 @@ const languages = [
   { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
   { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
   { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
+  { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' },
 ];
 
 // ── Ad composition templates ─────────────────────────────────────────────────
@@ -267,6 +268,12 @@ const DashboardStrategy = () => {
     clearViewingTask?: () => void;
     removeTask?: (id: string) => void;
   }>() || {};
+
+  // ── Profile
+  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+  const userId = profile.user || profile._id || 'default';
+  const brandId = profile._id || 'default';
+  const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
   const { toast } = useToast();
 
   // ── Stage / Mode
@@ -362,6 +369,15 @@ const DashboardStrategy = () => {
   const [idea, setIdea] = useState('');
   const [uploads, setUploads] = useState<string[]>([]);
   const [language, setLanguage] = useState<string>('english');
+
+  React.useEffect(() => {
+    if (profile?.location?.country?.toLowerCase() === 'nepal') {
+      if (language !== 'english' && language !== 'nepali') {
+        setLanguage('english');
+      }
+    }
+  }, [profile?.location?.country, language]);
+
   const [videoKind, setVideoKind] = useState<string>('ai-ugc');
   const [selectedMotionPreset, setSelectedMotionPreset] = useState<string | null>(null);
   const [avatarDescription, setAvatarDescription] = useState<string>('');
@@ -475,12 +491,6 @@ const DashboardStrategy = () => {
   const clickTimeoutRef = useRef<Record<number, any>>({});
 
   const fileInput = useRef<HTMLInputElement>(null);
-
-  // ── Profile
-  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-  const userId = profile.user || profile._id || 'default';
-  const brandId = profile._id || 'default';
-  const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
 
   // ── SaaS / Services / Consulting mode detection
   // If the brand category is one of these 3, hide E-Comm Listing tab and route to SaaS prompts
@@ -2349,7 +2359,7 @@ const DashboardStrategy = () => {
           )}
 
           {mode !== 'video' && (
-            <LanguagePicker language={language} setLanguage={setLanguage} />
+            <LanguagePicker language={language} setLanguage={setLanguage} country={profile?.location?.country} />
           )}
 
           {/* ─── Ad Template Picker (image mode only) ─── */}
@@ -2659,7 +2669,7 @@ const DashboardStrategy = () => {
             </div>
           </section>
 
-          <LanguagePicker language={language} setLanguage={setLanguage} />
+          <LanguagePicker language={language} setLanguage={setLanguage} country={profile?.location?.country} />
 
           {/* Product images — with "From Products" */}
           <section className="mb-6">
@@ -2792,6 +2802,7 @@ const DashboardStrategy = () => {
             primaryColor: profile.primaryColor || '#2563eb',
             secondaryColor: profile.secondaryColor || '#f59e0b',
             visualStyle: profile.visualStyle || 'modern premium',
+            country: profile.location?.country,
           }}
           isSaas={isSaasMode}
           language={(language === 'hinglish' || language === 'hindi' ? language : 'english') as 'english' | 'hinglish' | 'hindi'}
@@ -3389,32 +3400,42 @@ const IdeaBox = ({
 );
 
 const LanguagePicker = ({
-  language, setLanguage,
+  language, setLanguage, country,
 }: {
   language: string;
   setLanguage: (v: string) => void;
-}) => (
-  <section className="mb-6">
-    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Caption language</p>
-    <div className="flex flex-wrap gap-2">
-      {languages.map((l) => (
-        <button
-          key={l.id}
-          onClick={() => setLanguage(l.id)}
-          className={cn(
-            'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2',
-            language === l.id
-              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-              : 'bg-card border border-border text-foreground hover:border-primary/40'
-          )}
-        >
-          <span className="text-sm">{l.flag}</span>
-          <span>{l.label}</span>
-        </button>
-      ))}
-    </div>
-  </section>
-);
+  country?: string;
+}) => {
+  const availableLanguages = country?.toLowerCase() === 'nepal'
+    ? [
+        { id: 'english', label: 'English', flag: '🇬🇧' },
+        { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
+      ]
+    : languages;
+
+  return (
+    <section className="mb-6">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Caption language</p>
+      <div className="flex flex-wrap gap-2">
+        {availableLanguages.map((l) => (
+          <button
+            key={l.id}
+            onClick={() => setLanguage(l.id)}
+            className={cn(
+              'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2',
+              language === l.id
+                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                : 'bg-card border border-border text-foreground hover:border-primary/40'
+            )}
+          >
+            <span className="text-sm">{l.flag}</span>
+            <span>{l.label}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign Results (WhatsApp / Email)

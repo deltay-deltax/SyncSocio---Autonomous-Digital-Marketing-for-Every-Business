@@ -23,6 +23,7 @@ interface BrandShape {
   primaryColor?: string;
   secondaryColor?: string;
   visualStyle?: string;
+  country?: string;
 }
 
 interface Props {
@@ -566,6 +567,7 @@ const languages = [
   { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
   { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
   { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
+  { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' },
 ];
 
 const sameDay = (a: Date, b: Date) =>
@@ -594,6 +596,14 @@ export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'engl
   const [angleId, setAngleId] = useState<string>('');
   const [postType, setPostType] = useState<'Static Ad' | 'Story'>('Static Ad');
   const [lang, setLang] = useState<string>(language || 'english');
+
+  React.useEffect(() => {
+    if (brand?.country?.toLowerCase() === 'nepal') {
+      if (lang !== 'english' && lang !== 'nepali') {
+        setLang('english');
+      }
+    }
+  }, [brand?.country, lang]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [imageCount, setImageCount] = useState<number>(1);
   const [customInstruction, setCustomInstruction] = useState<string>('');
@@ -991,11 +1001,19 @@ Ensure a clean layout, ${brand.visualStyle || 'modern premium'} aesthetic, and b
                         onChange={(e) => setLang(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg text-[11px] font-semibold bg-card border-border border hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary transition cursor-pointer appearance-none"
                       >
-                        {languages.map((l) => (
-                          <option key={l.id} value={l.id}>
-                            {l.flag} {l.label}
-                          </option>
-                        ))}
+                        {(() => {
+                          const available = brand?.country?.toLowerCase() === 'nepal'
+                            ? [
+                                { id: 'english', label: 'English', flag: '🇬🇧' },
+                                { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
+                              ]
+                            : languages;
+                          return available.map((l) => (
+                            <option key={l.id} value={l.id}>
+                              {l.flag} {l.label}
+                            </option>
+                          ));
+                        })()}
                       </select>
                       <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     </div>
