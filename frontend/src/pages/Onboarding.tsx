@@ -198,7 +198,7 @@ const Onboarding = () => {
     otherCategory: '',
     mainGoal: '',
     website: '',
-    location: { country: '', city: '' },
+    location: { country: 'India', city: '' },
     usp: '',
     competitors: ['', ''],
     targetAudiences: [],
@@ -609,11 +609,24 @@ const Onboarding = () => {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Target Country</label>
-                      <div className="relative">
-                        <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                        <input type="text" placeholder="e.g. United Kingdom" value={formData.location.country}
-                          onChange={(e) => setFormData({...formData, location: {...formData.location, country: e.target.value}})}
-                          className="w-full bg-background text-foreground text-xs font-semibold rounded-xl pl-12 pr-5 py-4 outline-none border border-border/80 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" />
+                      <div className="grid grid-cols-2 gap-3 mb-2">
+                        {['India', 'Nepal'].map(country => (
+                          <button
+                            key={country}
+                            type="button"
+                            onClick={() => setFormData({
+                              ...formData,
+                              location: { ...formData.location, country }
+                            })}
+                            className={`py-3.5 rounded-xl text-xs font-bold uppercase transition-all border ${
+                              formData.location.country === country
+                                ? 'gradient-bg text-white border-primary shadow-md'
+                                : 'bg-card text-muted-foreground border-border hover:border-primary/20'
+                            }`}
+                          >
+                            {country}
+                          </button>
+                        ))}
                       </div>
                     </div>
                     <div>

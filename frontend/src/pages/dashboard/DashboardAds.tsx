@@ -39,7 +39,7 @@ const DashboardAds = () => {
     const fetchRecommendations = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/ads/recommendations`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/promotions/recommendations`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

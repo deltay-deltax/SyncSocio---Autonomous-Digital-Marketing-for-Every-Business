@@ -23,6 +23,7 @@ interface BrandShape {
   primaryColor?: string;
   secondaryColor?: string;
   visualStyle?: string;
+  country?: string;
 }
 
 interface Props {
@@ -566,6 +567,7 @@ const languages = [
   { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
   { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
   { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
+  { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' },
 ];
 
 const sameDay = (a: Date, b: Date) =>
@@ -586,6 +588,143 @@ function imgSrc(src: string | null | undefined): string {
   return `data:image/jpeg;base64,${src}`;
 }
 
+export const FESTIVALS_NEPAL_2083: Festival[] = [
+  // NATIONAL
+  { id:'nepali_new_year', name:'Nepali New Year', date:'2026-04-14', type:'national', emoji:'🌄',
+    angles:[
+      {id:'new_year', label:'New Beginnings', emoji:'✨', description:'Start the year fresh'},
+      {id:'offer', label:'New Year Offer', emoji:'🏷️', description:'Baisakh special discount'},
+      {id:'cultural', label:'Cultural Pride', emoji:'🇳🇵', description:'Celebrate Nepali heritage'},
+    ]},
+  { id:'republic_day_np', name:'Republic Day', date:'2026-05-29', type:'national', emoji:'🇳🇵',
+    angles:[
+      {id:'pride', label:'National Pride', emoji:'🇳🇵', description:'Proud to be Nepali'},
+      {id:'offer', label:'Republic Offer', emoji:'🏷️', description:'Patriotic sale campaign'},
+    ]},
+  { id:'constitution_day', name:'Constitution Day', date:'2026-09-19', type:'national', emoji:'📜',
+    angles:[
+      {id:'pride', label:'National Pride', emoji:'🇳🇵', description:'Celebrate our constitution'},
+    ]},
+  // HINDU
+  { id:'buddha_jayanti', name:'Buddha Jayanti', date:'2026-05-01', type:'hindu', emoji:'🕊️',
+    angles:[
+      {id:'peace', label:'Peace & Harmony', emoji:'🌸', description:'Spread peace and calm'},
+      {id:'values', label:'Brand Values', emoji:'🙏', description:'Compassionate brand message'},
+    ]},
+  { id:'rakshya_bandhan', name:'Janai Purnima / Rakhi', date:'2026-08-28', type:'hindu', emoji:'🧵',
+    angles:[
+      {id:'bond', label:'Sibling Bond', emoji:'👫', description:'Celebrate the bond of love'},
+      {id:'gift', label:'Gift Angle', emoji:'🎁', description:'Perfect gift for sibling'},
+      {id:'offer', label:'Special Offer', emoji:'🏷️', description:'Festival discount'},
+    ]},
+  { id:'krishna_janmashtami', name:'Krishna Janmashtami', date:'2026-09-04', type:'hindu', emoji:'🦚',
+    angles:[
+      {id:'joy', label:'Joy & Celebration', emoji:'✨', description:'Festive joy and mischief'},
+      {id:'offer', label:'Festive Offer', emoji:'🏷️', description:'Special discount'},
+    ]},
+  { id:'teej', name:'Haritalika Teej', date:'2026-09-14', type:'hindu', emoji:'💃',
+    angles:[
+      {id:'women', label:'Women Empowerment', emoji:'🌺', description:'Celebrate womanhood'},
+      {id:'fashion', label:'Festive Fashion', emoji:'👗', description:'Get ready for Teej'},
+      {id:'offer', label:'Teej Special', emoji:'🏷️', description:'Discounts for women'},
+    ]},
+  { id:'dashain_phulpati', name:'Phulpati', date:'2026-10-17', type:'hindu', emoji:'🌿',
+    angles:[
+      {id:'cultural', label:'Cultural Tradition', emoji:'🌸', description:'Bringing the sacred flowers'},
+      {id:'offer', label:'Festive Offer', emoji:'🏷️', description:'Dashain offer starts'},
+    ]},
+  { id:'dashain_ashtami', name:'Maha Ashtami', date:'2026-10-19', type:'hindu', emoji:'🐐',
+    angles:[
+      {id:'power', label:'Strength & Devotion', emoji:'💪', description:'Worship of Goddess Durga'},
+      {id:'offer', label:'Special Offer', emoji:'🏷️', description:'Maha Ashtami deals'},
+    ]},
+  { id:'dashain_navami', name:'Maha Navami', date:'2026-10-20', type:'hindu', emoji:'⚔️',
+    angles:[
+      {id:'blessings', label:'Divine Blessings', emoji:'🙏', description:'Final day of Navratri'},
+      {id:'offer', label:'Navami Special', emoji:'🏷️', description:'Last minute Dashain shopping'},
+    ]},
+  { id:'dashain', name:'Bijaya Dashami (Tika)', date:'2026-10-21', type:'hindu', emoji:'🌾',
+    angles:[
+      {id:'family', label:'Family Reunion', emoji:'👨‍👩‍👧‍👦', description:'Celebrate with loved ones'},
+      {id:'blessings', label:'Tika & Blessings', emoji:'🔴', description:'Elder blessings'},
+      {id:'offer', label:'Dashain Dhamaka', emoji:'🏷️', description:'Biggest sale of the year'},
+    ]},
+  { id:'dhanteras', name:'Dhanteras', date:'2026-11-06', type:'hindu', emoji:'🪙',
+    angles:[
+      {id:'wealth', label:'Wealth & Prosperity', emoji:'💰', description:'Auspicious day for purchases'},
+      {id:'offer', label:'Dhanteras Offer', emoji:'🏷️', description:'Discounts on jewelry & goods'},
+    ]},
+  { id:'tihar', name:'Tihar / Deepawali', date:'2026-11-11', type:'hindu', emoji:'🪔',
+    angles:[
+      {id:'light', label:'Festival of Lights', emoji:'✨', description:'Illuminate your life'},
+      {id:'siblings', label:'Bhai Tika', emoji:'👫', description:'Celebrate sibling bond'},
+      {id:'offer', label:'Tihar Offer', emoji:'🏷️', description:'Festive discount'},
+    ]},
+  { id:'chhath', name:'Chhath Parva', date:'2026-11-15', type:'hindu', emoji:'🌅',
+    angles:[
+      {id:'devotion', label:'Purity & Devotion', emoji:'🙏', description:'Sun god worship'},
+      {id:'nature', label:'Nature Connection', emoji:'🌿', description:'Eco-friendly celebration'},
+    ]},
+  { id:'maghe_sankranti', name:'Maghe Sankranti', date:'2027-01-15', type:'hindu', emoji:'🍠',
+    angles:[
+      {id:'warmth', label:'Warmth & Health', emoji:'☀️', description:'Healthy winter treats'},
+      {id:'fresh_start', label:'New Season', emoji:'🌱', description:'Welcome warmer days'},
+    ]},
+  { id:'shivaratri', name:'Maha Shivaratri', date:'2027-03-06', type:'hindu', emoji:'🔱',
+    angles:[
+      {id:'power', label:'Strength & Power', emoji:'💪', description:'Channel inner strength'},
+      {id:'spiritual', label:'Spiritual Connection', emoji:'🕉️', description:'Connect with the divine'},
+    ]},
+  // REGIONAL / ETHNIC
+  { id:'udhauli', name:'Udhauli / Yomari Punhi', date:'2026-12-24', type:'regional', emoji:'🥟',
+    angles:[
+      {id:'harvest', label:'Harvest Festival', emoji:'🌾', description:'Celebrate the harvest'},
+      {id:'culture', label:'Cultural Heritage', emoji:'🎭', description:'Ethnic traditions'},
+    ]},
+  { id:'tamu_lhosar', name:'Tamu Lhosar', date:'2026-12-30', type:'regional', emoji:'🎉',
+    angles:[
+      {id:'new_year', label:'Gurung New Year', emoji:'🎊', description:'Celebrate new beginnings'},
+    ]},
+  { id:'sonam_lhosar', name:'Sonam Lhosar', date:'2027-02-07', type:'regional', emoji:'🐉',
+    angles:[
+      {id:'new_year', label:'Tamang New Year', emoji:'🎊', description:'Celebrate new beginnings'},
+    ]},
+  { id:'gyalpo_lhosar', name:'Gyalpo Lhosar', date:'2027-03-09', type:'regional', emoji:'🏔️',
+    angles:[
+      {id:'new_year', label:'Sherpa New Year', emoji:'🎊', description:'Celebrate new beginnings'},
+    ]},
+  { id:'fagu_purnima', name:'Fagu Purnima (Holi)', date:'2027-03-21', type:'regional', emoji:'🎨',
+    angles:[
+      {id:'colors', label:'Festival of Colors', emoji:'🌈', description:'Vibrant celebrations'},
+      {id:'joy', label:'Joy & Unity', emoji:'🤗', description:'Bring people together'},
+      {id:'offer', label:'Holi Special', emoji:'🏷️', description:'Colorful discounts'},
+    ]},
+  // COMMERCE
+  { id:'new_year_commerce', name:'New Year', date:'2026-01-01', type:'commerce', emoji:'🎆',
+    angles:[
+      {id:'resolution', label:'New Year Resolution', emoji:'✨', description:'Start the year strong'},
+      {id:'offer', label:'New Year Offer', emoji:'🏷️', description:'Kickoff sale'},
+    ]},
+  { id:'valentines_commerce', name:"Valentine's Day", date:'2026-02-14', type:'commerce', emoji:'❤️',
+    angles:[
+      {id:'gift', label:'Gift Angle', emoji:'🎁', description:"Perfect Valentine's gift"},
+      {id:'offer', label:'Valentine Offer', emoji:'🏷️', description:'Love-themed discount'},
+    ]},
+  { id:'womens_day_commerce', name:"Women's Day", date:'2026-03-08', type:'commerce', emoji:'💜',
+    angles:[
+      {id:'empowerment', label:'Empowerment', emoji:'💪', description:"Celebrate women's strength"},
+      {id:'offer', label:"Women's Day Special", emoji:'🏷️', description:'Special discount'},
+    ]},
+  { id:'mothers_day_commerce', name:"Mother's Day", date:'2026-05-10', type:'commerce', emoji:'🌷',
+    angles:[
+      {id:'gift', label:'Gift for Mom', emoji:'🎁', description:"Perfect Mother's Day gift"},
+    ]},
+  { id:'fathers_day_commerce', name:"Father's Day", date:'2026-06-21', type:'commerce', emoji:'👔',
+    angles:[
+      {id:'gift', label:'Gift for Dad', emoji:'🎁', description:"Perfect Father's Day gift"},
+    ]},
+];
+
 export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'english', isSaas = false, onGenerate, products }) => {
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -594,6 +733,14 @@ export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'engl
   const [angleId, setAngleId] = useState<string>('');
   const [postType, setPostType] = useState<'Static Ad' | 'Story'>('Static Ad');
   const [lang, setLang] = useState<string>(language || 'english');
+
+  React.useEffect(() => {
+    if (brand?.country?.toLowerCase() === 'nepal') {
+      if (lang !== 'english' && lang !== 'nepali') {
+        setLang('english');
+      }
+    }
+  }, [brand?.country, lang]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [imageCount, setImageCount] = useState<number>(1);
   const [customInstruction, setCustomInstruction] = useState<string>('');
@@ -601,9 +748,14 @@ export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'engl
   // SaaS-only: campaign focus input (replaces product picker)
   const [campaignFocus, setCampaignFocus] = useState<string>('');
 
+  const activeFestivals = useMemo(
+    () => brand?.country?.toLowerCase() === 'nepal' ? FESTIVALS_NEPAL_2083 : FESTIVALS_2026,
+    [brand?.country]
+  );
+
   const filtered = useMemo(
-    () => FESTIVALS_2026.filter((f) => filter === 'all' || f.type === filter),
-    [filter]
+    () => activeFestivals.filter((f) => filter === 'all' || f.type === filter),
+    [filter, activeFestivals]
   );
 
   const byDate = useMemo(() => {
@@ -991,11 +1143,19 @@ Ensure a clean layout, ${brand.visualStyle || 'modern premium'} aesthetic, and b
                         onChange={(e) => setLang(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg text-[11px] font-semibold bg-card border-border border hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary transition cursor-pointer appearance-none"
                       >
-                        {languages.map((l) => (
-                          <option key={l.id} value={l.id}>
-                            {l.flag} {l.label}
-                          </option>
-                        ))}
+                        {(() => {
+                          const available = brand?.country?.toLowerCase() === 'nepal'
+                            ? [
+                                { id: 'english', label: 'English', flag: '🇬🇧' },
+                                { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
+                              ]
+                            : languages;
+                          return available.map((l) => (
+                            <option key={l.id} value={l.id}>
+                              {l.flag} {l.label}
+                            </option>
+                          ));
+                        })()}
                       </select>
                       <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     </div>

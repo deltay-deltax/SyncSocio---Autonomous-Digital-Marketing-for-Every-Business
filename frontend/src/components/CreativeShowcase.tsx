@@ -325,41 +325,41 @@ const CreativeShowcase = () => {
               </div>
 
               {/* RIGHT — hero + masonry */}
-              <div className="col-span-12 lg:col-span-8 grid grid-cols-6 gap-4 sm:gap-5 auto-rows-[120px] sm:auto-rows-[150px]">
+              <div className="col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[220px] sm:auto-rows-[150px]">
                 {active === "image" ? (
                   <>
-                    <Tile item={items[2]} accent={current.accent} className="col-span-3 row-span-3" onClick={() => setEnlargedIndex(2)} />
-                    <Tile item={items[0]} accent={current.accent} className="col-span-3 row-span-2" onClick={() => setEnlargedIndex(0)} />
-                    <Tile item={items[1]} accent={current.accent} className="col-span-3 row-span-3" onClick={() => setEnlargedIndex(1)} />
-                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
+                    <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(2)} />
+                    <Tile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => setEnlargedIndex(0)} />
+                    <Tile item={items[1]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(1)} />
+                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
                   </>
                 ) : ["video", "festival"].includes(active) ? (
                   <>
-                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
-                    <Tile item={items[0]} accent={current.accent} className="col-span-3 row-span-2" onClick={() => setEnlargedIndex(0)} />
-                    <Tile item={items[1]} accent={current.accent} className="col-span-3 row-span-3" onClick={() => setEnlargedIndex(1)} />
-                    <Tile item={items[2]} accent={current.accent} className="col-span-3 row-span-2" onClick={() => setEnlargedIndex(2)} />
+                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
+                    <Tile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => setEnlargedIndex(0)} />
+                    <Tile item={items[1]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(1)} />
+                    <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => setEnlargedIndex(2)} />
                   </>
                 ) : active === "ecomm" ? (
                   <>
-                    <CarouselTile items={items.slice(0, 4)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
-                    <CarouselTile items={items.slice(4, 8)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
-                    <CarouselTile items={items.slice(8, 10)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 8)} />
-                    <CarouselTile items={items.slice(10, 12)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 10)} />
+                    <CarouselTile items={items.slice(0, 4)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
+                    <CarouselTile items={items.slice(4, 8)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
+                    <CarouselTile items={items.slice(8, 10)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 8)} />
+                    <CarouselTile items={items.slice(10, 12)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 10)} />
                   </>
                 ) : active === "carousel" ? (
                   <>
-                    <CarouselTile items={items.slice(0, 2)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
-                    <CarouselTile items={items.slice(2, 4)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 2)} />
-                    <CarouselTile items={items.slice(4, 6)} accent={current.accent} className="col-span-3 row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
-                    <CarouselTile items={items.slice(6, 9)} accent={current.accent} className="col-span-3 row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 6)} />
+                    <CarouselTile items={items.slice(0, 2)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
+                    <CarouselTile items={items.slice(2, 4)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 2)} />
+                    <CarouselTile items={items.slice(4, 6)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
+                    <CarouselTile items={items.slice(6, 9)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 6)} />
                   </>
                 ) : (
                   <>
-                    <HeroTile item={items[0]} accent={current.accent} className="col-span-6 row-span-3" onClick={() => setEnlargedIndex(0)} />
-                    <Tile item={items[1]} accent={current.accent} className="col-span-3 row-span-2" onClick={() => setEnlargedIndex(1)} />
-                    <Tile item={items[2]} accent={current.accent} className="col-span-3 row-span-2" compact onClick={() => setEnlargedIndex(2)} />
-                    <Tile item={items[3]} accent={current.accent} className="col-span-6 row-span-2" wide onClick={() => setEnlargedIndex(3)} />
+                    <HeroTile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-6 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(0)} />
+                    <Tile item={items[1]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => setEnlargedIndex(1)} />
+                    <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" compact onClick={() => setEnlargedIndex(2)} />
+                    <Tile item={items[3]} accent={current.accent} className="col-span-1 sm:col-span-6 row-span-1 sm:row-span-2" wide onClick={() => setEnlargedIndex(3)} />
                   </>
                 )}
               </div>
@@ -523,13 +523,14 @@ const CarouselTile = ({
           </div>
         ))}
       </div>
-      <div className="absolute bottom-4 right-4 flex items-center gap-2.5 pointer-events-none bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-        <div className="flex gap-1.5">
+      <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 flex items-center gap-1.5 sm:gap-2.5 pointer-events-none bg-black/40 backdrop-blur-md px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-white/10">
+        <div className="flex gap-1 sm:gap-1.5">
           {items.map((_, i) => (
-            <div key={i} className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+            <div key={i} className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-white shadow-sm" />
           ))}
         </div>
-        <ChevronRight size={14} className="text-white drop-shadow-md animate-pulse" />
+        <ChevronRight size={12} className="text-white drop-shadow-md animate-pulse sm:hidden" />
+        <ChevronRight size={14} className="text-white drop-shadow-md animate-pulse hidden sm:block" />
       </div>
     </div>
   );

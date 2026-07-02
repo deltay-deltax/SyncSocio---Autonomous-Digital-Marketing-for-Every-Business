@@ -45,11 +45,19 @@ def analyze_brand_mix(brand_info: Dict[str, Any]):
     base_count = 3 if 'Starter' in plan else 7
     post_count = base_count * duration_weeks
 
+    brand_loc = brand_info.get('location')
+    brand_country = 'Unknown'
+    if isinstance(brand_loc, dict):
+        brand_country = brand_loc.get('country') or brand_info.get('country') or 'Unknown'
+    else:
+        brand_country = brand_info.get('country') or 'Unknown'
+
     prompt = f"""
     You are a Senior Social Media Strategist. Analyze the following brand profile and determine the optimal {post_count}-day content mix for Instagram growth.
     
     BRAND PROFILE:
     - Name: {brand_info.get('brandName')}
+    - Country: {brand_country}
     - Category: {brand_info.get('businessCategory')}
     - Tone: {brand_info.get('brandTone')}
     - USP: {brand_info.get('usp')}
@@ -218,12 +226,20 @@ def planner_node(state: GraphState):
     ═══════════════════════════════════════════════════════════════
     """
 
+    loc = brand.get('location')
+    country = 'Unknown'
+    if isinstance(loc, dict):
+        country = loc.get('country') or brand.get('country') or 'Unknown'
+    else:
+        country = brand.get('country') or 'Unknown'
+
     prompt = f"""
     You are the Lead Strategist for SyncSocio AI. Your goal is to create a high-impact {post_count}-post content strategy.
     Read the FULL brand dossier below and use EVERY detail to craft hyper-relevant, on-brand content.
 
     ═══════════ BRAND DOSSIER ═══════════
     BRAND NAME: {brand.get('brandName')}
+    COUNTRY: {country}
     INDUSTRY / CATEGORY: {brand.get('businessCategory', '')}
     BRAND TONE: {brand.get('brandTone', 'Luxury/Premium')}
     VISUAL VIBE: {brand.get('visualVibe', 'Modern')}
@@ -321,6 +337,13 @@ def generate_brand_visual_dna(brand_info: Dict[str, Any]):
     """
     Dedicated agent to distill the full brand profile (Identity + Color + Tone) into a 200-char DNA string.
     """
+    loc = brand_info.get('location')
+    country = 'Unknown'
+    if isinstance(loc, dict):
+        country = loc.get('country') or brand_info.get('country') or 'Unknown'
+    else:
+        country = brand_info.get('country') or 'Unknown'
+
     prompt = f"""
     Distill this brand's entire identity into a 200-character DNA string for an image generator.
     YOU MUST INCLUDE:
@@ -330,6 +353,7 @@ def generate_brand_visual_dna(brand_info: Dict[str, Any]):
     
     BRAND DATA:
     - Name: {brand_info.get('brandName')}
+    - Country: {country}
     - Category: {brand_info.get('businessCategory')}
     - Tone: {brand_info.get('brandTone')}
     - Primary Color: {brand_info.get('primaryColor')}
@@ -376,11 +400,19 @@ def visual_illustrator_node(state: GraphState):
         # Organic, real-world look for services/startups
         universal_base = "Raw, authentic high-fidelity photography, candid shot, real-world environment, natural ambient lighting, organic textures, non-studio, shot on 35mm lens."
 
+    loc = brand.get('location')
+    country = 'Unknown'
+    if isinstance(loc, dict):
+        country = loc.get('country') or brand.get('country') or 'Unknown'
+    else:
+        country = brand.get('country') or 'Unknown'
+
     # Layer 2: Brand DNA — structured directly from brand fields (no LLM compression, no char cap)
     # The previous LLM-distillation step was discarding color, USP, audience, and pain point data.
     print(f"Brand Agent: Assembling structured DNA for {brand.get('brandName')}...")
     brand_dna = (
         f"Brand: {brand.get('brandName')}. "
+        f"Country: {country}. "
         f"Category: {brand.get('businessCategory')}. "
         f"Tone: {brand.get('brandTone')}. "
         f"Primary Color: {brand.get('primaryColor')}. "

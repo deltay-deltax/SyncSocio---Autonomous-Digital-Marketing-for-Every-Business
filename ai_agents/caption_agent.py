@@ -45,7 +45,18 @@ def caption_writer_node(state: CaptionState) -> Dict:
         for i, p in enumerate(posts)
     ])
 
-    language = state.get("brand_info", {}).get("language", "english")
+    brand_info = state.get("brand_info", {})
+    location = brand_info.get("location")
+    country = "Unknown"
+    if isinstance(location, dict):
+        country = location.get("country") or brand_info.get("country") or "Unknown"
+    else:
+        country = brand_info.get("country") or "Unknown"
+
+    language = brand_info.get("language", "english")
+    if country.lower() == "nepal" and language:
+        if language.lower() not in ["english", "nepali"]:
+            language = "english"
 
     prompt = f"""
 {brand_dna}

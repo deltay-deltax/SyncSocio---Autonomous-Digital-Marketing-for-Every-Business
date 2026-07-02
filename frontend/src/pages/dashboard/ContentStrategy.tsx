@@ -267,6 +267,12 @@ const DashboardStrategy = () => {
     clearViewingTask?: () => void;
     removeTask?: (id: string) => void;
   }>() || {};
+
+  // ── Profile
+  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+  const userId = profile.user || profile._id || 'default';
+  const brandId = profile._id || 'default';
+  const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
   const { toast } = useToast();
 
   // ── Stage / Mode
@@ -362,6 +368,15 @@ const DashboardStrategy = () => {
   const [idea, setIdea] = useState('');
   const [uploads, setUploads] = useState<string[]>([]);
   const [language, setLanguage] = useState<string>('english');
+
+  React.useEffect(() => {
+    if (profile?.location?.country?.toLowerCase() === 'nepal') {
+      if (language !== 'english' && language !== 'nepali') {
+        setLanguage('english');
+      }
+    }
+  }, [profile?.location?.country, language]);
+
   const [videoKind, setVideoKind] = useState<string>('ai-ugc');
   const [selectedMotionPreset, setSelectedMotionPreset] = useState<string | null>(null);
   const [avatarDescription, setAvatarDescription] = useState<string>('');
@@ -558,6 +573,7 @@ const DashboardStrategy = () => {
         keyBenefit: firstProduct.keyBenefit || '',
         avatarDescription: avatarDescription.trim(),
         isSaas: isSaasMode,
+        language: language,
       };
       const res = await fetch(`${AI_BASE}/generate-ugc-script`, {
         method: 'POST',
@@ -2416,8 +2432,13 @@ const DashboardStrategy = () => {
             </section>
           )}
 
-          {mode !== 'video' && (
-            <LanguagePicker language={language} setLanguage={setLanguage} />
+          {(mode !== 'video' || videoKind === 'ai-ugc') && (
+            <LanguagePicker 
+              language={language} 
+              setLanguage={setLanguage} 
+              country={profile?.location?.country}
+              isAiUgc={mode === 'video' && videoKind === 'ai-ugc'}
+            />
           )}
 
           {/* ─── Ad Template Picker (image mode only) ─── */}
@@ -2687,28 +2708,32 @@ const DashboardStrategy = () => {
       {/* ─── E-COMM ─── */}
       {mode === 'ecomm' && (
         <>
-          <section className="mb-6">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">1 · Platform</p>
-            <div className="flex flex-wrap gap-2">
-              {platforms.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatform(p)}
-                  className={cn(
-                    'px-4 py-2.5 rounded-xl text-sm font-semibold transition',
-                    platform === p
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                      : 'bg-card border border-border text-foreground hover:border-primary/40'
-                  )}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </section>
+          {profile?.location?.country?.toLowerCase() !== 'nepal' && (
+            <section className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">1 · Platform</p>
+              <div className="flex flex-wrap gap-2">
+                {platforms.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPlatform(p)}
+                    className={cn(
+                      'px-4 py-2.5 rounded-xl text-sm font-semibold transition',
+                      platform === p
+                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                        : 'bg-card border border-border text-foreground hover:border-primary/40'
+                    )}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="mb-6">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">2 · Image count</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              {profile?.location?.country?.toLowerCase() !== 'nepal' ? '2' : '1'} · Image count
+            </p>
             <div className="flex gap-2 flex-wrap">
               {ecommImageCounts.map((c) => (
                 <button
@@ -2727,7 +2752,7 @@ const DashboardStrategy = () => {
             </div>
           </section>
 
-          <LanguagePicker language={language} setLanguage={setLanguage} />
+          <LanguagePicker language={language} setLanguage={setLanguage} country={profile?.location?.country} />
 
           {/* Product images — with "From Products" */}
           <section className="mb-6">
@@ -2860,6 +2885,7 @@ const DashboardStrategy = () => {
             primaryColor: profile.primaryColor || '#2563eb',
             secondaryColor: profile.secondaryColor || '#f59e0b',
             visualStyle: profile.visualStyle || 'modern premium',
+            country: profile.location?.country,
           }}
           isSaas={isSaasMode}
           language={(language === 'hinglish' || language === 'hindi' ? language : 'english') as 'english' | 'hinglish' | 'hindi'}
@@ -3457,32 +3483,51 @@ const IdeaBox = ({
 );
 
 const LanguagePicker = ({
-  language, setLanguage,
+  language, setLanguage, country, isAiUgc
 }: {
   language: string;
   setLanguage: (v: string) => void;
-}) => (
-  <section className="mb-6">
-    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Caption language</p>
-    <div className="flex flex-wrap gap-2">
-      {languages.map((l) => (
-        <button
-          key={l.id}
-          onClick={() => setLanguage(l.id)}
-          className={cn(
-            'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2',
-            language === l.id
-              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-              : 'bg-card border border-border text-foreground hover:border-primary/40'
-          )}
-        >
-          <span className="text-sm">{l.flag}</span>
-          <span>{l.label}</span>
-        </button>
-      ))}
-    </div>
-  </section>
-);
+  country?: string;
+  isAiUgc?: boolean;
+}) => {
+  let availableLanguages = languages;
+
+  if (isAiUgc) {
+    availableLanguages = country?.toLowerCase() === 'nepal'
+      ? [{ id: 'english', label: 'English', flag: '🇬🇧' }]
+      : languages.filter(l => l.id === 'english' || l.id === 'hindi');
+  } else {
+    if (country?.toLowerCase() === 'nepal') {
+      availableLanguages = [
+        { id: 'english', label: 'English', flag: '🇬🇧' },
+        { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
+      ];
+    }
+  }
+
+  return (
+    <section className="mb-6">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Caption language</p>
+      <div className="flex flex-wrap gap-2">
+        {availableLanguages.map((l) => (
+          <button
+            key={l.id}
+            onClick={() => setLanguage(l.id)}
+            className={cn(
+              'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2',
+              language === l.id
+                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                : 'bg-card border border-border text-foreground hover:border-primary/40'
+            )}
+          >
+            <span className="text-sm">{l.flag}</span>
+            <span>{l.label}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign Results (WhatsApp / Email)
