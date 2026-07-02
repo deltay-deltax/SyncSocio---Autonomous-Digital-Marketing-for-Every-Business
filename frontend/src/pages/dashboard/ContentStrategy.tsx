@@ -492,7 +492,6 @@ const DashboardStrategy = () => {
   const fileInput = useRef<HTMLInputElement>(null);
 
 
-
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | null>(null);
 
