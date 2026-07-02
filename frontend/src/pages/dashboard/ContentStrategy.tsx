@@ -3422,13 +3422,11 @@ const LanguagePicker = ({
     availableLanguages = country?.toLowerCase() === 'nepal'
       ? [{ id: 'english', label: 'English', flag: '🇬🇧' }]
       : languages.filter(l => l.id === 'english' || l.id === 'hindi');
-  } else {
-    if (country?.toLowerCase() === 'nepal') {
-      availableLanguages = [
-        { id: 'english', label: 'English', flag: '🇬🇧' },
-        { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
-      ];
-    }
+  } else if (country?.toLowerCase() === 'nepal') {
+    availableLanguages = [
+      { id: 'english', label: 'English', flag: '🇬🇧' },
+      { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
+    ];
   }
 
   return (
