@@ -491,12 +491,6 @@ const DashboardStrategy = () => {
 
   const fileInput = useRef<HTMLInputElement>(null);
 
-  // ── Profile
-  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-  const userId = profile.user || profile._id || 'default';
-  const brandId = profile._id || 'default';
-  const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
-
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | null>(null);
 
