@@ -31,16 +31,23 @@ export const assignCredits = async (req, res) => {
 
     let creditsToAdd = PLAN_CREDITS[plan] || PLAN_CREDITS[`SyncSocio ${plan}`] || 200;
 
-    // Check if the user already paid for this plan setup via Razorpay.
-    // If they did, we don't want to double-assign the plan credits.
+    // Check if the user already paid for this plan setup via Razorpay in the last 15 minutes.
+    // If they did, we don't want to double-assign the plan credits or create duplicate transaction logs.
     const completedTx = await Transaction.findOne({
       user: req.user._id,
-      type: 'plan_purchase',
-      status: 'completed'
+      type: { $in: ['plan_purchase', 'plan_renewal', 'plan_upgrade'] },
+      status: 'completed',
+      createdAt: { $gte: new Date(Date.now() - 15 * 60 * 1000) }
     });
 
     if (completedTx) {
-      creditsToAdd = 0;
+      const currentUser = await User.findById(req.user._id).select('credits plan');
+      return res.json({
+        credits: currentUser?.credits || 0,
+        plan: currentUser?.plan || '',
+        assigned: 0,
+        message: '✅ Plan was already activated via payment gateway.',
+      });
     }
 
     // Calculate billing amount (₹)
