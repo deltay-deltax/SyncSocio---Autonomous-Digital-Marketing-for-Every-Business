@@ -150,6 +150,16 @@ AD_TEMPLATE_DIRECTIVES: Dict[int, Dict[str, str]] = {
             "Brand color accents on icons and bullets. No product shots."
         ),
     },
+
+    # ── Text-led formats (101–104) — name tells the model what to create ────────
+    101: {"label": "Outcome-led",   "track": "text_led"},
+    102: {"label": "Stat-led",       "track": "text_led"},
+    103: {"label": "Social Proof",   "track": "text_led"},
+    104: {"label": "Before / After", "track": "text_led"},
+
+    # ── UI/Image-led formats (105–106) — ref screenshot anchors the output ───
+    105: {"label": "Feature Callout", "track": "image_led"},
+    106: {"label": "Dashboard Hero",  "track": "image_led"},
 }
 
 
@@ -207,6 +217,22 @@ def _select_ref_images(ref_images: List[str], count: int) -> List[Optional[str]]
     return out
 
 
+# IDs for image-led formats that require a reference screenshot
+_IMAGE_LED_TEMPLATE_IDS = {105, 106}
+# IDs for text-led formats — no dashboard/UI imagery expected
+_TEXT_LED_TEMPLATE_IDS  = {101, 102, 103, 104}
+
+
+def is_image_led_template(ad_template: Optional[int]) -> bool:
+    """Returns True when the chosen template is in the UI/image-led track (105-106)."""
+    return ad_template in _IMAGE_LED_TEMPLATE_IDS
+
+
+def is_text_led_template(ad_template: Optional[int]) -> bool:
+    """Returns True when the chosen template is in the text-led track (101-104)."""
+    return ad_template in _TEXT_LED_TEMPLATE_IDS
+
+
 def build_saas_image_prompt(
     brand_doc: Dict[str, Any],
     idea: Optional[str],
@@ -216,6 +242,7 @@ def build_saas_image_prompt(
     custom_directive: Optional[str] = None,
     language: str = "english",
     campaign_mode: Optional[str] = None,
+    include_logo: bool = True,
 ) -> str:
     category = brand_doc.get("businessCategory", "Services")
     block = _brand_block(brand_doc)
@@ -233,13 +260,19 @@ Make this specific service the **hero** of the ad.
 Anchor the visual to this exact service.
 """
 
-    idea_str = f"Campaign idea: {idea}\\n" if idea and idea.strip() else ""
-    logo_inst = " Incorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text." if brand_doc.get("logo") else " Do not assume or add any fake logos or text."
+    idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
+    
+    if include_logo and brand_doc.get("logo"):
+        logo_inst = " Incorporate the brand logo reference cleanly on the creative. Do not assume or add any fake logos or text."
+    elif not include_logo:
+        logo_inst = " Absolutely DO NOT include any logos, brand marks, or placeholder logos in this creative."
+    else:
+        logo_inst = " Do not assume or add any fake logos or text."
 
     if campaign_mode == "whatsapp":
         return f"""{block}
 {product_block}
-{idea_str}Create a high-converting service business whatsapp ad creative. Make it feel native to whtsapp msg .{logo_inst} Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
+{idea_str}Create a high-converting service business whatsapp ad creative. Make it feel native to whatsapp msg.{logo_inst} Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
 Any text overlays, labels, or copy displayed in the image must be in {language}."""
 
     if campaign_mode == "email":
@@ -250,18 +283,31 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
 
     template_block = ""
     if custom_directive:
-        template_block = f"\\nCOMPOSITION VARIATION: {custom_directive}\\n"
+        template_block = f"\nCOMPOSITION VARIATION: {custom_directive}\n"
     elif ad_template and ad_template in AD_TEMPLATE_DIRECTIVES:
         t = AD_TEMPLATE_DIRECTIVES[ad_template]
-        template_block = f"\\n{t['directive']}\\n"
+        label = t["label"]
+        track = t.get("track", "")
+        # New SaaS formats (101-106): just name the format, let the model interpret it
+        if ad_template >= 101:
+            if track == "image_led":
+                template_block = (
+                    f"\nAd Format: {label}."
+                    f" A reference screenshot/UI image is provided — use it as the visual anchor."
+                    f" Replicate its colors, layout, and UI style faithfully in the creative.\n"
+                )
+            else:
+                template_block = (
+                    f"\nAd Format: {label}.\n"
+                    f"This is a purely typographic, text-led ad. "
+                    f"Do NOT include any UI screenshots, dashboards, product shots, or illustrations.\n"
+                )
+        else:
+            # Legacy D2C-style SaaS templates (1-8): use full directive
+            template_block = f"\n{t['directive']}\n"
     else:
-        camera_angles = [
-            "Use a dramatic low-angle shot.", "Use an overhead flat-lay composition.", 
-            "Use an extreme close-up macro shot.", "Use an asymmetrical framing.", 
-            "Use a straight-on eye-level composition.", "Use dynamic tilted framing."
-        ]
-        angle = random.choice(camera_angles)
-        template_block = f"\\nCOMPOSITION VARIATION: {angle}\\n"
+        # If no template is provided, let the AI decide entirely based on its training
+        pass
 
     platform_instruction = "Make it feel native to Instagram feed."
 
@@ -497,17 +543,6 @@ def generate_saas_strategy_images(
 
         # Build mixed SaaS compositions when no template is chosen
         mixed_directives: List[str] = []
-        if ad_template is None:
-            saas_comp = [
-                "Use an overhead flat-lay of a laptop/dashboard in a clean workspace.",
-                "Use an extreme close-up of a UI metric card or KPI widget.",
-                "Use an asymmetrical split layout — UI left, bold copy right.",
-                "Use a straight-on eye-level shot of a clean, lit desk workspace.",
-                "Use a bold typographic-first layout with a supporting UI visual below.",
-                "Use a dynamic data visualization (chart/graph) as the hero element.",
-            ]
-            random.shuffle(saas_comp)
-            mixed_directives = [saas_comp[i % len(saas_comp)] for i in range(count)]
 
         def _template_for(i: int) -> Optional[int]:
             if ad_template == -1:
@@ -532,17 +567,61 @@ def generate_saas_strategy_images(
                 custom_directive=c_dir,
                 language=language,
             )
-            tasks.append((prompt, ref, i, t_id, c_dir))
+            tasks.append((prompt, ref, i, t_id, c_dir, prod))
 
         def run_image_task(task):
-            prompt, ref, index, t_id, c_dir = task
+            prompt, ref, index, t_id, c_dir, prod = task
             template_label = None
             if t_id and t_id in AD_TEMPLATE_DIRECTIVES:
                 template_label = AD_TEMPLATE_DIRECTIVES[t_id]["label"]
             elif c_dir:
                 template_label = c_dir[:60]
 
-            print(f"\n[SaaSAgent] 🖼  Image {index+1}/{count} | ref={'YES' if ref else 'NO'} | template={template_label or 'free'}")
+            # Resolve logo once for the batch
+            logo_url = brand_doc.get("logo")
+            resolved_logo = None
+            if logo_url:
+                raw_logo = _resolve_ref_image(logo_url)
+                if raw_logo:
+                    resolved_logo = "data:image/jpeg;base64," + raw_logo if not raw_logo.startswith("http") and not raw_logo.startswith("data:") else raw_logo
+
+            # Determine creative track for this template
+            _track = "auto"
+            include_logo_in_prompt = True
+            
+            if is_text_led_template(t_id):
+                _track = "text_led"
+                # Text-led formats are purely typographic — strip ref images entirely
+                effective_ref = None
+                include_logo_in_prompt = False  # Explicitly tell AI not to draw a logo
+                print(f"\n[SaaSAgent] 🔤 Image {index+1}/{count} | track=TEXT-LED | template={template_label}")
+            elif is_image_led_template(t_id):
+                _track = "image_led"
+                # Pass BOTH the dashboard screenshot AND the actual logo image to FAL
+                effective_ref = [ref] if ref else []
+                if resolved_logo:
+                    effective_ref.append(resolved_logo)
+                if not effective_ref:
+                    effective_ref = None
+                print(f"\n[SaaSAgent] 🖥  Image {index+1}/{count} | track=IMAGE-LED | refs={len(effective_ref) if effective_ref else 0} | template={template_label}")
+            else:
+                effective_ref = [ref] if ref else []
+                if resolved_logo:
+                    effective_ref.append(resolved_logo)
+                if not effective_ref:
+                    effective_ref = None
+                print(f"\n[SaaSAgent] 🖼  Image {index+1}/{count} | track=auto | refs={len(effective_ref) if effective_ref else 0} | template={template_label or 'free'}")
+
+            # Rebuild prompt with the correct include_logo flag
+            prompt = build_saas_image_prompt(
+                brand_doc, idea, aspect_ratio,
+                product=prod,
+                ad_template=t_id,
+                custom_directive=c_dir,
+                language=language,
+                include_logo=include_logo_in_prompt
+            )
+
             print(f"[SaaSAgent] 📝 Image Prompt:\n{prompt}\n")
             caption = generate_saas_instagram_caption(
                 brand_doc=brand_doc,
@@ -554,11 +633,11 @@ def generate_saas_strategy_images(
             try:
                 result = generate_fal_image_gpt2(
                     prompt=prompt,
-                    image=ref,
+                    image=effective_ref,
                     image_size=fal_size,
                 )
                 return {"image": result["image"], "caption": caption, "type": "image",
-                        "template": template_label, "index": index}
+                        "template": template_label, "track": _track, "index": index}
             except Exception as e:
                 print(f"[SaaSAgent] ❌ Image {index+1} failed: {e}")
                 return {"image": None, "caption": caption, "type": "image",

@@ -128,6 +128,10 @@ const brandProfileSchema = new mongoose.Schema({
   neuralState: {
     type: String,
     default: 'Idle'
+  },
+  isTesterEnabled: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

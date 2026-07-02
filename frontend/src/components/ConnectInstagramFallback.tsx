@@ -1,11 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface ConnectInstagramFallbackProps {
   title?: string;
   description?: string;
+  metaTesterStatus?: string;
 }
 
 const InstagramIcon = ({ size = 28, className = "" }: { size?: number; className?: string }) => (
@@ -29,8 +30,10 @@ const InstagramIcon = ({ size = 28, className = "" }: { size?: number; className
 
 const ConnectInstagramFallback: React.FC<ConnectInstagramFallbackProps> = ({
   title = "Connect Instagram to Unlock",
-  description = "SyncSocio requires a linked Instagram Business account to analyze your feed, track live analytics, launch optimization loops, and preview ads."
+  description = "SyncSocio requires a linked Instagram Business account to analyze your feed, track live analytics, launch optimization loops, and preview ads.",
+  metaTesterStatus
 }) => {
+
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-4 animate-in fade-in duration-500">
       <Card className="max-w-md w-full rounded-[2.5rem] border border-border/60 bg-white shadow-[0_20px_50px_-15px_rgba(0,0,0,0.03)] overflow-hidden relative">
@@ -55,17 +58,29 @@ const ConnectInstagramFallback: React.FC<ConnectInstagramFallbackProps> = ({
           <div className="h-px w-full bg-border/50" />
 
           {/* Call to action */}
-          <Button
-            onClick={() => window.location.href = '/setup?step=1'}
-            className="w-full h-12 text-xs font-black uppercase tracking-widest gradient-bg text-white shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
-          >
-            <Sparkles size={14} className="mr-2 animate-pulse" />
-            Connect Account
-          </Button>
-
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold opacity-60">
-            Link in under 2 minutes
-          </p>
+          {metaTesterStatus === 'pending' ? (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-xl p-4 w-full flex flex-col items-center justify-center gap-2">
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <CheckCircle2 size={16} /> Request In Review
+              </div>
+              <p className="text-[10px] opacity-80 leading-relaxed max-w-[200px] text-center">
+                We are reviewing your Meta Tester request. You'll be able to connect soon!
+              </p>
+            </div>
+          ) : (
+            <>
+              <Button
+                onClick={() => window.location.href = '/setup?step=1'}
+                className="w-full h-12 text-xs font-black uppercase tracking-widest gradient-bg text-white shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
+              >
+                <Sparkles size={14} className="mr-2 animate-pulse" />
+                Connect Account
+              </Button>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold opacity-60">
+                Link in under 2 minutes
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

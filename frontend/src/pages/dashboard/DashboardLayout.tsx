@@ -66,8 +66,14 @@ const DashboardLayout = () => {
     const task = backgroundTasks.find(t => t.id === taskId);
     if (task && task.status === 'success') {
       setViewingTask(task);
-      if (location.pathname !== '/dashboard/strategy') {
-        navigate('/dashboard/strategy');
+      if (task.mode === 'schedule') {
+        if (location.pathname !== '/dashboard/history') {
+          navigate('/dashboard/history');
+        }
+      } else {
+        if (location.pathname !== '/dashboard/strategy') {
+          navigate('/dashboard/strategy');
+        }
       }
     }
   };
@@ -267,6 +273,155 @@ const DashboardLayout = () => {
       }
     })();
 
+    return taskId;
+  };
+
+  const startBackgroundEdit = async (
+    previewPost: any, 
+    previewIndex: number, 
+    previewSlide: number,
+    fullMediaSrc: string, 
+    editInstruction: string, 
+    aspect: string
+  ) => {
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const title = 'Media Edit';
+
+    const newTask: BgTask = {
+      id: taskId,
+      title,
+      status: 'generating',
+      mode: 'edit_media',
+      posts: [],
+      error: null,
+      creditCost: 0,
+      creditReason: '',
+      createdAt: Date.now(),
+    };
+
+    setBackgroundTasks(prev => [newTask, ...prev]);
+
+    (async () => {
+      try {
+        const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${AI_BASE}/edit-strategy-media`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: fullMediaSrc,
+            instruction: editInstruction,
+            type: previewPost.type,
+            aspectRatio: aspect,
+          }),
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Failed to edit media');
+        }
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          const updatedPost = { ...previewPost, id: Math.random().toString(36).substring(7) };
+          if (previewPost.type === 'carousel') {
+            const updatedSlides = [...(previewPost.slides || [])];
+            if (updatedSlides[previewSlide]) {
+              updatedSlides[previewSlide] = {
+                ...updatedSlides[previewSlide],
+                image: data.image,
+              };
+            }
+            updatedPost.slides = updatedSlides;
+          } else if (previewPost.type === 'video') {
+            updatedPost.url = data.url;
+            updatedPost.thumbnail = data.thumbnail;
+          } else {
+            updatedPost.image = data.image;
+          }
+
+          setBackgroundTasks(prev => prev.map(t => 
+            t.id === taskId ? { ...t, status: 'success', posts: [previewPost, updatedPost] } : t
+          ));
+        } else {
+          throw new Error(data.message || 'Edit failed');
+        }
+      } catch (err: any) {
+        console.error('[BgEdit] failed:', err);
+        setBackgroundTasks(prev => prev.map(t => 
+          t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t
+        ));
+      }
+    })();
+    
+    return taskId;
+  };
+
+  const startBackgroundSchedule = async (postIds: string[], platforms: any, schedules?: any[], startDate?: string, endDate?: string) => {
+    const taskId = `task_schedule_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const isImmediate = schedules && schedules.length > 0 && schedules.every((s: any) => new Date(s.scheduledAt).getTime() <= Date.now() + 60000);
+    const title = isImmediate ? `Posting ${postIds.length} creative(s)` : `Scheduling ${postIds.length} creative(s)`;
+
+    const newTask: BgTask = {
+      id: taskId,
+      title,
+      status: 'generating',
+      mode: 'schedule',
+      posts: [],
+      error: null,
+      creditCost: 0,
+      creditReason: '',
+      createdAt: Date.now(),
+    };
+
+    setBackgroundTasks(prev => [newTask, ...prev]);
+
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        
+        const res = await fetch(`${API_BASE}/posts/smart-schedule`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            postIds,
+            startDate,
+            endDate,
+            platforms,
+            schedules
+          })
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to process posts');
+        }
+
+        // Complete the task
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'success' } : t));
+        
+        toast({
+          title: isImmediate ? 'Posts published! 🚀' : 'Posts scheduled! 📅',
+          description: `Successfully processed ${postIds.length} post(s).`,
+        });
+
+        // Trigger a global event to refresh assets if needed
+        window.dispatchEvent(new Event('refresh-assets'));
+
+      } catch (err: any) {
+        console.error('[BgSchedule] failed:', err);
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        toast({
+          variant: 'destructive',
+          title: 'Action failed ❌',
+          description: err.message || 'Something went wrong while processing your posts.',
+        });
+      }
+    })();
+    
     return taskId;
   };
 
@@ -778,6 +933,8 @@ const DashboardLayout = () => {
               viewingTask,
               startBackgroundGeneration,
               startBackgroundAllInOne,
+              startBackgroundSchedule,
+              startBackgroundEdit,
               viewCompletedTask,
               clearViewingTask,
               removeTask

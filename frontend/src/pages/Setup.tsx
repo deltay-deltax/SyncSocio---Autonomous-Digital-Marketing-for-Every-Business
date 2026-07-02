@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare, Zap } from 'lucide-react';
+import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare, Zap, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -203,6 +204,11 @@ const Setup = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercentage: number } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
 
+  // Meta Tester State
+  const [metaTesterIgHandle, setMetaTesterIgHandle] = useState('');
+  const [metaTesterLoading, setMetaTesterLoading] = useState(false);
+  const [metaTesterSuccess, setMetaTesterSuccess] = useState(false);
+
   // Validate Coupon handler
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,6 +242,43 @@ const Setup = () => {
       setCouponError(err.message || 'Failed to validate coupon.');
     } finally {
       setCouponLoading(false);
+    }
+  };
+
+  const handleMetaTesterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!metaTesterIgHandle.trim()) {
+      toast({ title: 'Username required', description: 'Please enter your Instagram username.', variant: 'destructive' });
+      return;
+    }
+    setMetaTesterLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const res = await fetch(`${API_BASE}/profile/request-meta-tester`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ igHandle: metaTesterIgHandle.trim() })
+      });
+      if (!res.ok) throw new Error('Failed to request tester access');
+      
+      // Persist state in localStorage so it survives reloads
+      const stored = localStorage.getItem('syncsocio_profile');
+      let profile = stored ? JSON.parse(stored) : {};
+      profile.metaTesterStatus = 'pending';
+      localStorage.setItem('syncsocio_profile', JSON.stringify(profile));
+      setOnboardingData(profile);
+      
+      setMetaTesterSuccess(true);
+      toast({ title: 'Request Sent', description: 'We will approve your Meta tester request shortly.' });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: 'Error', description: err.message || 'Something went wrong', variant: 'destructive' });
+    } finally {
+      setMetaTesterLoading(false);
     }
   };
 
@@ -564,14 +607,53 @@ const Setup = () => {
           </div>
 
           {/* CTA */}
-          <Button
-            onClick={handleInstagramConnect}
-            className="w-full h-12 text-sm font-semibold"
-            style={{ background: '#1877F2' }}
-          >
-            <svg className="w-5 h-5 fill-white mr-2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-            Continue with Facebook
-          </Button>
+          {onboardingData?.isTesterEnabled ? (
+            <Button
+              onClick={handleInstagramConnect}
+              className="w-full h-12 text-sm font-semibold"
+              style={{ background: '#1877F2' }}
+            >
+              <svg className="w-5 h-5 fill-white mr-2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              Continue with Facebook
+            </Button>
+          ) : (
+            <div className="bg-muted/30 border border-border rounded-2xl p-5 text-left mb-6 relative">
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
+                <ShieldCheck size={16} className="text-primary" /> Meta App in Review
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                SyncSocio is currently waiting on Meta approval. To connect right now, request tester access below.
+              </p>
+
+              {(metaTesterSuccess || onboardingData?.metaTesterStatus === 'pending') ? (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-semibold">
+                  <CheckCircle2 size={14} /> Request Pending Approval
+                </div>
+              ) : (
+                <form onSubmit={handleMetaTesterSubmit} className="space-y-3">
+                  <Input 
+                    placeholder="Instagram Username (e.g. @mybrand)" 
+                    value={metaTesterIgHandle}
+                    onChange={e => setMetaTesterIgHandle(e.target.value)}
+                    className="text-xs h-10"
+                  />
+                  <Button type="submit" disabled={metaTesterLoading} className="w-full h-10 text-xs font-semibold gradient-bg text-white">
+                    {metaTesterLoading ? 'Submitting...' : 'Request Tester Access'}
+                  </Button>
+                </form>
+              )}
+
+              <Button
+                disabled
+                className="w-full h-12 text-sm font-semibold opacity-50 cursor-not-allowed mt-4"
+                style={{ background: '#1877F2' }}
+              >
+                <svg className="w-5 h-5 fill-white mr-2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                Continue with Facebook (Locked)
+              </Button>
+            </div>
+          )}
+
 
           <Button
             variant="ghost"

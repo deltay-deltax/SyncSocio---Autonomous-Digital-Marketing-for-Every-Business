@@ -1926,8 +1926,11 @@ async def api_edit_strategy_media(request: EditMediaRequest):
         # Clean/pass base64 representation of the image
         image_data = request.image
 
-        if request.type in ["image", "carousel"]:
-            # Edit the image using gpt-image-2
+        if request.type == "video":
+            raise HTTPException(status_code=400, detail="Editing is not supported for video format.")
+
+        else:
+            # Edit the image using gpt-image-2 for all other formats (image, carousel, ecomm, etc. across saas and non-saas)
             res = generate_fal_image_gpt2(
                 prompt=request.instruction,
                 image=image_data,
@@ -1938,37 +1941,6 @@ async def api_edit_strategy_media(request: EditMediaRequest):
                 "image": res.get("image"),
                 "type": request.type
             }
-
-        elif request.type == "video":
-            # 1. Edit the video thumbnail / frame first
-            print(f"[EditMedia] Editing video thumbnail frame...")
-            img_res = generate_fal_image_gpt2(
-                prompt=request.instruction,
-                image=image_data,
-                image_size=image_size
-            )
-            edited_image = img_res.get("image")
-            if not edited_image:
-                raise HTTPException(status_code=500, detail="Failed to edit video frame")
-
-            # 2. Animate the edited frame into a video using Wan
-            print(f"[EditMedia] Animating edited frame with Wan Image-to-Video...")
-            edited_image_url = f"data:image/jpeg;base64,{edited_image}"
-            video_res = generate_fal_video_wan(
-                prompt=request.instruction,
-                image=edited_image_url,
-                aspect_ratio="9:16"
-            )
-
-            return {
-                "status": "success",
-                "url": video_res.get("url"),
-                "thumbnail": edited_image,
-                "type": "video"
-            }
-
-        else:
-            raise HTTPException(status_code=400, detail=f"Unsupported media type: {request.type}")
 
     except HTTPException:
         raise

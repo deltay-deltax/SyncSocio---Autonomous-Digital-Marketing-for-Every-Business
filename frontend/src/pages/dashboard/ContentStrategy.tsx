@@ -25,7 +25,7 @@ const breakpointColumnsObj = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Mode = 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email';
+type Mode = 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media';
 type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '2:3';
 
 // Keep the original GeneratedPost type for real API responses
@@ -116,6 +116,51 @@ const AD_TEMPLATES: { id: number; label: string; icon: string; desc: string }[] 
   { id: 8, label: 'Social Proof', icon: '⭐', desc: 'Stars, quote, product in one frame' },
   { id: 9, label: 'Feature List + Product', icon: '📋', desc: 'Bullet benefits beside product' },
   { id: 10, label: 'Urgency / Offer', icon: '🔥', desc: 'Big discount badge, product, deadline' },
+];
+
+// ── SaaS Creative Format Tracks ───────────────────────────────────────────────
+// IDs 101-104 = Text-led (no image ref needed)
+// IDs 105-106 = Image/UI-led (dashboard screenshot anchors the output)
+type SaasTrack = 'text_led' | 'image_led';
+interface SaasFormat {
+  id: number;
+  track: SaasTrack;
+  label: string;
+  icon: string;
+  tagline: string;
+  desc: string;
+}
+const SAAS_FORMAT_TRACKS: SaasFormat[] = [
+  {
+    id: 101, track: 'text_led', icon: '⚡', label: 'Outcome-led',
+    tagline: 'Bold result. Zero clutter.',
+    desc: '"Cut content time by 80%" — logo — CTA. Pure typography, no UI imagery. Notion/Linear style.',
+  },
+  {
+    id: 102, track: 'text_led', icon: '📊', label: 'Stat-led',
+    tagline: 'One big number. Nothing else.',
+    desc: '"₹50,000 saved per month" in a massive display font on a clean background.',
+  },
+  {
+    id: 103, track: 'text_led', icon: '⭐', label: 'Social Proof',
+    tagline: 'Real voice. Real result.',
+    desc: 'AI headshot + testimonial quote + star rating card. No product shown.',
+  },
+  {
+    id: 104, track: 'text_led', icon: '🔀', label: 'Before / After',
+    tagline: 'Show the transformation.',
+    desc: 'Left = chaos. Right = calm + automated. Text/illustrated split — no actual UI needed.',
+  },
+  {
+    id: 105, track: 'image_led', icon: '🔍', label: 'Feature Callout',
+    tagline: 'One feature. Maximum impact.',
+    desc: 'Close-up of a single UI element from your screenshot with a bold callout annotation.',
+  },
+  {
+    id: 106, track: 'image_led', icon: '🖥', label: 'Dashboard Hero',
+    tagline: 'Your UI as the star.',
+    desc: 'Dashboard fills 70% of frame anchored from your screenshot. Metric bar at bottom.',
+  },
 ];
 
 const aspectClass: Record<AspectRatio, string> = {
@@ -254,6 +299,7 @@ const DashboardStrategy = () => {
     viewingTask,
     startBackgroundGeneration,
     startBackgroundAllInOne,
+    startBackgroundEdit,
     viewCompletedTask,
     clearViewingTask,
     removeTask
@@ -263,6 +309,7 @@ const DashboardStrategy = () => {
     viewingTask?: import('./DashboardLayout').BgTask | null;
     startBackgroundGeneration?: (payload: any, creditCost: number, creditReason: string, mode: any) => Promise<string>;
     startBackgroundAllInOne?: (requests: any[], creditCost: number, creditReason: string) => Promise<string>;
+    startBackgroundEdit?: (previewPost: any, previewIndex: number, previewSlide: number, fullMediaSrc: string, editInstruction: string, aspect: string) => Promise<string>;
     viewCompletedTask?: (id: string) => void;
     clearViewingTask?: () => void;
     removeTask?: (id: string) => void;
@@ -390,6 +437,9 @@ const DashboardStrategy = () => {
 
   // ── Image ad template (null = auto, 1–10 = specific template, -1 = all 8 variants)
   const [adTemplate, setAdTemplate] = useState<number | null>(null);
+  // ── SaaS Format Track (only active when isSaasMode && mode === 'image')
+  const [saasFormatId, setSaasFormatId] = useState<number | null>(null);
+  const [saasFormatTrack, setSaasFormatTrack] = useState<SaasTrack | null>(null);
 
   // ── Festival
   const [festival, setFestival] = useState<string>('diwali');
@@ -1215,6 +1265,14 @@ const DashboardStrategy = () => {
         refImages.push(profile.logo);
       }
 
+      // ── SaaS text-led track: strip product/upload refs, keep logo only ──
+      // Text-led formats (101–104) are pure typography — passing a dashboard
+      // image confuses the model into including unwanted UI elements.
+      if (isSaasMode && currentMode === 'image' && saasFormatTrack === 'text_led') {
+        // Keep only the brand logo URL (http) if present — drop base64 product images
+        refImages = refImages.filter((r) => r.startsWith('http'));
+      }
+
       if (currentMode === 'all_in_one') {
         const requests = [
           // 1. 2 images
@@ -1322,7 +1380,11 @@ const DashboardStrategy = () => {
           imageCount: ecommTotal,
         }),
         ...((currentMode === 'image' || currentMode === 'festival') && {
-          adTemplate: currentCount === 8 ? -1 : adTemplate,
+          // SaaS brands: use saasFormatId (101-106) when a format is selected
+          // D2C brands: use the regular adTemplate (1-10)
+          adTemplate: isSaasMode && currentMode === 'image'
+            ? (saasFormatId ?? null)
+            : (currentCount === 8 ? -1 : adTemplate),
         }),
         videoKind: currentMode === 'video' ? videoKind : undefined,
         avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
@@ -1352,6 +1414,8 @@ const DashboardStrategy = () => {
         const tId = await startBackgroundGeneration(payload, creditCost, creditReason, currentMode);
         setCurrentTaskId(tId);
         setAdTemplate(null);
+        setSaasFormatId(null);
+        setSaasFormatTrack(null);
         setIdea('');
       }
     } catch (err: any) {
@@ -1514,89 +1578,30 @@ const DashboardStrategy = () => {
     if (!previewPost || previewIndex === null) return;
     setIsApplyingEdit(true);
     setStage('generating');
-    try {
-      let baseMedia = '';
-      if (previewPost.type === 'carousel' && previewPost.slides && previewPost.slides.length > 0) {
-        baseMedia = previewPost.slides[previewSlide]?.image || '';
-      } else if (previewPost.type === 'video') {
-        baseMedia = previewPost.thumbnail || '';
-      } else {
-        baseMedia = previewPost.image || '';
-      }
+    
+    let baseMedia = '';
+    if (previewPost.type === 'carousel' && previewPost.slides && previewPost.slides.length > 0) {
+      baseMedia = previewPost.slides[previewSlide]?.image || '';
+    } else if (previewPost.type === 'video') {
+      baseMedia = previewPost.thumbnail || '';
+    } else {
+      baseMedia = previewPost.image || '';
+    }
 
-      const fullMediaSrc = imgSrc(baseMedia);
+    const fullMediaSrc = imgSrc(baseMedia);
 
-      const response = await fetch(`${AI_BASE}/edit-strategy-media`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: fullMediaSrc,
-          instruction: editInstruction,
-          type: previewPost.type,
-          aspectRatio: aspect,
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || 'Failed to edit media');
-      }
-
-      const data = await response.json();
-      if (data.status === 'success') {
-        const updatedPost = { ...previewPost };
-
-        if (previewPost.type === 'carousel') {
-          const updatedSlides = [...(previewPost.slides || [])];
-          if (updatedSlides[previewSlide]) {
-            updatedSlides[previewSlide] = {
-              ...updatedSlides[previewSlide],
-              image: data.image,
-            };
-          }
-          updatedPost.slides = updatedSlides;
-        } else if (previewPost.type === 'video') {
-          updatedPost.url = data.url;
-          updatedPost.thumbnail = data.thumbnail;
-        } else {
-          updatedPost.image = data.image;
-        }
-
-        setPreviewPost(updatedPost);
-
-        setGenerated((prev) => {
-          const next = [...prev];
-          next[previewIndex] = updatedPost;
-          return next;
-        });
-
-        // Clear saved status so they can re-save the edited version
-        setSavedIndices((prev) => {
-          const next = new Set(prev);
-          if (next.has(previewIndex)) {
-            next.delete(previewIndex);
-            setSavedCount((n) => Math.max(0, n - 1));
-          }
-          return next;
-        });
-
-        setEditInstruction('');
-        setIsEditing(false);
-      } else {
-        throw new Error(data.message || 'Edit failed');
-      }
-    } catch (err: any) {
-      console.error('Error applying edit:', err);
-      toast({
-        title: "Edit Error",
-        description: err.message || "Failed to apply changes",
-        variant: "destructive",
-      });
-    } finally {
+    if (startBackgroundEdit) {
+      const tId = await startBackgroundEdit(
+        previewPost,
+        previewIndex,
+        previewSlide,
+        fullMediaSrc,
+        editInstruction,
+        aspect
+      );
+      setCurrentTaskId(tId);
+      setIsEditing(false);
       setIsApplyingEdit(false);
-      setStage('builder');
     }
   };
 
@@ -1625,14 +1630,17 @@ const DashboardStrategy = () => {
           {mode === 'all_in_one' ? 'Generating All-in-One Marketing Pack ⚡' :
             mode === 'whatsapp' ? 'Drafting your WhatsApp blast 📲' :
               mode === 'email' ? 'Composing your email campaign ✉️' :
-                'Cooking up your posts ✨'}
+                currentTaskId && backgroundTasks?.find(t => t.id === currentTaskId)?.mode === 'edit_media' ? 'Applying AI Edit ✨' :
+                  'Cooking up your posts ✨'}
         </h2>
         <p className="text-sm text-muted-foreground mb-2">
           {mode === 'all_in_one'
             ? 'SyncSocio is cooking up 1 image, 1 carousel, and 2 listing designs…'
             : mode === 'whatsapp' || mode === 'email'
               ? 'SyncSocio is writing copy & laying out the creative…'
-              : `SyncSocio AI is generating ${count} on-brand ${mode === 'video' ? 'videos' : mode === 'carousel' ? 'carousels' : 'posts'}…`}
+              : currentTaskId && backgroundTasks?.find(t => t.id === currentTaskId)?.mode === 'edit_media'
+                ? 'SyncSocio AI is analyzing and applying your edit request…'
+                : `SyncSocio AI is generating ${count} on-brand ${mode === 'video' ? 'videos' : mode === 'carousel' ? 'carousels' : 'posts'}…`}
         </p>
         <p className="text-xs text-muted-foreground/60 mb-6">
           {mode === 'all_in_one' ? 'Since we are running them in parallel, this takes 2 - 5 mins' : 'This may take 15–30 seconds'}
@@ -1667,7 +1675,9 @@ const DashboardStrategy = () => {
               setActiveCampaignImageSource(null);
             }}
           >
-            Generate more in background
+            {currentTaskId && backgroundTasks?.find(t => t.id === currentTaskId)?.mode === 'edit_media' 
+              ? 'Run in background' 
+              : 'Generate more in background'}
           </Button>
         </div>
       </div>
@@ -2440,8 +2450,162 @@ const DashboardStrategy = () => {
             />
           )}
 
-          {/* ─── Ad Template Picker (image mode only) ─── */}
-          {mode === 'image' && (
+          {/* ─── SaaS Format Track Selector (SaaS image mode only) ─── */}
+          {mode === 'image' && isSaasMode && (
+            <section className="mb-6 border border-border/60 rounded-2xl p-4 bg-card/40">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Creative Format
+                  </span>
+                  {saasFormatId !== null && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[9px] font-bold uppercase tracking-wide">
+                      {SAAS_FORMAT_TRACKS.find((f) => f.id === saasFormatId)?.label || 'Selected'}
+                    </span>
+                  )}
+                </div>
+                {saasFormatId !== null && (
+                  <button
+                    onClick={() => { setSaasFormatId(null); setSaasFormatTrack(null); }}
+                    className="text-[10px] font-semibold text-muted-foreground hover:text-foreground transition flex items-center gap-1 bg-muted/60 hover:bg-muted px-2 py-0.5 rounded-md"
+                  >
+                    <X size={10} /> Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Track Toggle */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {(['text_led', 'image_led'] as SaasTrack[]).map((track) => {
+                  const isActive = saasFormatTrack === track;
+                  return (
+                    <button
+                      key={track}
+                      onClick={() => {
+                        if (saasFormatTrack === track) {
+                          setSaasFormatTrack(null);
+                          setSaasFormatId(null);
+                        } else {
+                          setSaasFormatTrack(track);
+                          setSaasFormatId(null);
+                        }
+                      }}
+                      className={cn(
+                        'relative flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all duration-200',
+                        isActive
+                          ? 'border-primary bg-primary/8 shadow-sm shadow-primary/20 ring-1 ring-primary/30'
+                          : 'border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30'
+                      )}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-base leading-none">
+                          {track === 'text_led' ? '🅰' : '🖥'}
+                        </span>
+                        <p className={cn('text-[11px] font-bold', isActive ? 'text-primary' : 'text-foreground')}>
+                          {track === 'text_led' ? 'Text-led' : 'UI / Dashboard'}
+                        </p>
+                        {isActive && (
+                          <div className="ml-auto w-4 h-4 rounded-full bg-primary flex items-center justify-center shrink-0">
+                            <Check size={9} className="text-primary-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[9px] text-muted-foreground leading-tight pl-6">
+                        {track === 'text_led'
+                          ? 'Pure typography — no image needed'
+                          : 'Pass a screenshot to anchor the visual'}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Format Cards for selected track */}
+              <AnimatePresence initial={false}>
+                {saasFormatTrack !== null && (
+                  <motion.div
+                    key={saasFormatTrack}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.22, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {SAAS_FORMAT_TRACKS.filter((f) => f.track === saasFormatTrack).map((fmt) => (
+                        <button
+                          key={fmt.id}
+                          onClick={() => setSaasFormatId(saasFormatId === fmt.id ? null : fmt.id)}
+                          className={cn(
+                            'relative flex flex-col items-start gap-1.5 p-3 rounded-xl border text-left transition-all duration-200',
+                            saasFormatId === fmt.id
+                              ? 'border-primary bg-primary/8 shadow-md shadow-primary/15 ring-1 ring-primary/30'
+                              : 'border-border/60 bg-card hover:border-primary/40 hover:bg-muted/40'
+                          )}
+                        >
+                          <span className="text-xl leading-none">{fmt.icon}</span>
+                          <p className={cn('text-[10px] font-bold leading-tight', saasFormatId === fmt.id ? 'text-primary' : 'text-foreground')}>
+                            {fmt.label}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground/80 leading-tight italic">{fmt.tagline}</p>
+                          <p className="text-[9px] text-muted-foreground leading-tight line-clamp-2">{fmt.desc}</p>
+                          {saasFormatId === fmt.id && (
+                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                              <Check size={9} className="text-primary-foreground" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Image-led callout banner */}
+                    {saasFormatTrack === 'image_led' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-3 flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25"
+                      >
+                        <span className="text-amber-500 text-sm shrink-0">📸</span>
+                        <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-snug">
+                          <span className="font-bold">Upload a dashboard or app screenshot below.</span> The AI will use it as the visual anchor — replicating your UI's colors, layout, and style in the creative.
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {/* Text-led note */}
+                    {saasFormatTrack === 'text_led' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-3 flex items-start gap-2.5 p-3 rounded-xl bg-muted/60 border border-border/40"
+                      >
+                        <span className="text-base shrink-0">✍️</span>
+                        <p className="text-[10px] text-muted-foreground leading-snug">
+                          Text-led formats are <span className="font-semibold text-foreground">purely typographic</span> — no dashboard image needed. Any uploaded product/dashboard images will be ignored for this format.
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {saasFormatId === null && (
+                      <p className="mt-2 text-[10px] text-muted-foreground">
+                        Select a format above, or leave unselected for AI to choose.
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {saasFormatTrack === null && (
+                <p className="text-[10px] text-muted-foreground">
+                  Select a track above, or leave unselected — AI will pick the best composition for your brief.
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* ─── Ad Template Picker (D2C image mode only — hidden for SaaS) ─── */}
+          {mode === 'image' && !isSaasMode && (
             <section className="mb-6 border border-border/60 rounded-2xl p-4 bg-card/40 hover:border-primary/20 transition-all duration-300">
               <div
                 onClick={() => setShowAdTemplates(!showAdTemplates)}
@@ -2531,6 +2695,7 @@ const DashboardStrategy = () => {
             </section>
           )}
 
+
           {/* References — with "From Products" button kept */}
           <section className="mb-6">
             <div className="flex items-center justify-between mb-3">
@@ -2548,17 +2713,18 @@ const DashboardStrategy = () => {
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-              <button
-                onClick={() => setShowProductModal(true)}
-                className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-1 group"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary flex items-center justify-center transition">
-                  <Plus size={16} />
-                </div>
-                <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground">Add Product</span>
-              </button>
+              {!(isSaasMode && saasFormatTrack === 'text_led') && (
+                <button
+                  onClick={() => setShowProductModal(true)}
+                  className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-1 group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary flex items-center justify-center transition">
+                    <Plus size={16} />
+                  </div>
+                  <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground">Add Product</span>
+                </button>
+              )}
 
-              {/* Selected products */}
               {selectedProducts.map((p, i) => (
                 <motion.div
                   key={`prod-${p._id || i}`}

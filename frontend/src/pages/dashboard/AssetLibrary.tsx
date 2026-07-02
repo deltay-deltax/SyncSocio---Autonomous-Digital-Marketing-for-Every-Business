@@ -4,7 +4,7 @@ import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Masonry from 'react-masonry-css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const breakpointColumnsObj = {
   default: 4,
@@ -117,6 +117,9 @@ const typeIcon: Record<string, any> = {
 
 const AssetLibrary = () => {
   const navigate = useNavigate();
+  const { startBackgroundSchedule } = useOutletContext<{
+    startBackgroundSchedule?: (postIds: string[], platforms: any, schedules?: any[], startDate?: string, endDate?: string) => Promise<string>;
+  }>() || {};
   const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
   const brandId = profile._id || 'default';
   const cacheKey = `syncsocio_strategy_assets_${brandId}`;
@@ -252,9 +255,7 @@ const AssetLibrary = () => {
 
   const handleSmartScheduleSubmit = async (finalRecommendations: any[]) => {
     if (selectedAssetIds.length === 0) return;
-    setSchedulingInProgress(true);
     try {
-      const token = localStorage.getItem('token');
       const schedules = finalRecommendations.map(r => {
         let isoStr = r.scheduledAt;
         if (r.scheduledAtLocal) {
@@ -268,28 +269,9 @@ const AssetLibrary = () => {
         };
       });
 
-      const res = await fetch(`${API_BASE}/posts/smart-schedule`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          postIds: selectedAssetIds,
-          startDate,
-          endDate,
-          platforms,
-          schedules
-        })
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to smart schedule posts');
+      if (startBackgroundSchedule) {
+        startBackgroundSchedule(selectedAssetIds, platforms, schedules, startDate, endDate);
       }
-
-      const data = await res.json();
-      console.log('Smart schedule results:', data);
 
       setSelectionMode(false);
       setSelectedAssetIds([]);
@@ -297,14 +279,32 @@ const AssetLibrary = () => {
       setModalStep(0);
       setRecommendations([]);
       
-      await removeCache(cacheKey);
-      await fetchAssets();
-      navigate('/dashboard/history');
     } catch (err: any) {
       console.error('[Schedule] smart schedule error:', err);
       alert(err.message || 'Error scheduling posts. Please try again.');
-    } finally {
-      setSchedulingInProgress(false);
+    }
+  };
+
+  const handlePostNow = async () => {
+    if (selectedAssetIds.length === 0) return;
+    try {
+      const schedules = selectedAssetIds.map(id => ({
+        id,
+        scheduledAt: new Date().toISOString()
+      }));
+
+      if (startBackgroundSchedule) {
+        startBackgroundSchedule(selectedAssetIds, platforms, schedules, undefined, undefined);
+      }
+
+      setSelectionMode(false);
+      setSelectedAssetIds([]);
+      setShowScheduleModal(false);
+      setModalStep(0);
+      setRecommendations([]);
+    } catch (err: any) {
+      console.error('[PostNow] error:', err);
+      alert(err.message || 'Error posting immediately. Please try again.');
     }
   };
 
@@ -775,6 +775,13 @@ const AssetLibrary = () => {
               creative{selectedAssetIds.length > 1 ? 's' : ''} selected
             </div>
             <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={handlePostNow}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs rounded-xl px-4 h-9 shadow-md shadow-emerald-500/15 border-0"
+              >
+                Post Now
+              </Button>
               <Button
                 size="sm"
                 onClick={() => setShowScheduleModal(true)}

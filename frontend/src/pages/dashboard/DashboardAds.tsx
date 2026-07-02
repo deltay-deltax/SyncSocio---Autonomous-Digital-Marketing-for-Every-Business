@@ -31,6 +31,7 @@ const DashboardAds = () => {
       <ConnectInstagramFallback 
         title="Connect Instagram to View Ad Recommendations" 
         description="SyncSocio needs a connected Instagram account to scan your top-performing organic posts and recommend high-ROI paid boost campaigns."
+        metaTesterStatus={profile?.metaTesterStatus}
       />
     );
   }

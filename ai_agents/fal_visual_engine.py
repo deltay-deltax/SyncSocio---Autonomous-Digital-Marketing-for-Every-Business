@@ -86,10 +86,11 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
     os.environ["FAL_KEY"] = api_key
 
     try:
+        has_ref = False
+        data_urls = []
+        size_kb = 0
         if image:
             images = [image] if isinstance(image, str) else image
-            data_urls = []
-            size_kb = 0
             for img in images:
                 if not img: continue
                 if img.startswith("http://") or img.startswith("https://") or img.startswith("data:"):
@@ -99,22 +100,22 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                     data_urls.append(f"data:image/jpeg;base64,{clean}")
                 if not img.startswith("http"):
                     size_kb += len(img) * 3 // 4 // 1024
-            
-            if len(data_urls) == 0:
-                image = None
-            else:
-                # Image-to-image flow using GPT-Image-2 Edit endpoint
-                print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image with {len(data_urls)} refs...")
-                print(f"  has_ref    : YES ({size_kb} KB)")
-                print(f"\n--- PROMPT SENT TO FAL gpt-image-2/edit ---")
-                print(prompt)
-                print("--------------------------------------\n")
+            if len(data_urls) > 0:
+                has_ref = True
 
-                edit_arguments = {
-                    "prompt": prompt,
-                    "image_urls": data_urls,
-                    "quality": "low",
-                }
+        if has_ref:
+            # Image-to-image flow using GPT-Image-2 Edit endpoint
+            print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image with {len(data_urls)} refs...")
+            print(f"  has_ref    : YES ({size_kb} KB)")
+            print(f"\n--- PROMPT SENT TO FAL gpt-image-2/edit ---")
+            print(prompt)
+            print("--------------------------------------\n")
+
+            edit_arguments = {
+                "prompt": prompt,
+                "image_urls": data_urls,
+                "quality": "low",
+            }
             try:
                 result = fal_client.subscribe(
                     "openai/gpt-image-2/edit",

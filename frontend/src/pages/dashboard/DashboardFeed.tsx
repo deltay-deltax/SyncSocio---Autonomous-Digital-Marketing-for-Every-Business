@@ -24,6 +24,7 @@ const DashboardFeed = () => {
       <ConnectInstagramFallback 
         title="Connect Instagram to View Feed" 
         description="SyncSocio needs a connected Instagram account to display your brand's feed and recent agent activity."
+        metaTesterStatus={profile?.metaTesterStatus}
       />
     );
   }

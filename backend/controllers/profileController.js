@@ -1,4 +1,5 @@
 import BrandProfile from '../models/BrandProfile.js';
+import MetaTester from '../models/MetaTester.js';
 import User from '../models/User.js';
 import AgentActivity from '../models/AgentActivity.js';
 import ContentCalendar from '../models/ContentCalendar.js';
@@ -139,6 +140,15 @@ export const getProfile = async (req, res) => {
     profileObj.userCredits = user?.credits;
     profileObj.userPlan = user?.plan;
     
+    // Check if there is a pending Meta Tester request
+    const pendingTester = await MetaTester.findOne({ userId: req.user._id, status: 'pending' });
+    console.log('[DEBUG] req.user._id:', req.user._id, typeof req.user._id);
+    console.log('[DEBUG] pendingTester found:', !!pendingTester);
+    
+    if (pendingTester) {
+      profileObj.metaTesterStatus = 'pending';
+    }
+    
     res.status(200).json(profileObj);
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching profile' });
@@ -228,5 +238,25 @@ export const terminateAccount = async (req, res) => {
   } catch (error) {
     console.error('Termination Error:', error);
     res.status(500).json({ message: 'Server error during account termination' });
+  }
+};
+
+export const requestMetaTester = async (req, res) => {
+  try {
+    const { igHandle } = req.body;
+    if (!igHandle) {
+      return res.status(400).json({ message: 'Instagram username is required.' });
+    }
+
+    const testerRequest = await MetaTester.create({
+      userId: req.user._id,
+      brandId: req.user.activeBrandId || undefined,
+      igHandle
+    });
+
+    res.status(201).json({ success: true, request: testerRequest });
+  } catch (error) {
+    console.error('Request Meta Tester Error:', error);
+    res.status(500).json({ message: 'Server error requesting Meta tester access.' });
   }
 };

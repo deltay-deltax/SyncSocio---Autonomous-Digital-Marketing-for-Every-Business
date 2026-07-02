@@ -20,7 +20,8 @@ const DashboardAnalytics = () => {
     return (
       <ConnectInstagramFallback 
         title="Connect Instagram to View Analytics" 
-        description="SyncSocio needs a connected Instagram account to analyze your profile performance and generate your dashboard summary."
+        description="SyncSocio requires a linked Instagram Business account to track live metrics and audience insights."
+        metaTesterStatus={profile?.metaTesterStatus}
       />
     );
   }
