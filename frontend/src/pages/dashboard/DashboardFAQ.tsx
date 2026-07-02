@@ -3,61 +3,114 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, HelpCircle, Mail, Phone, MapPin, MessageCircle } from "lucide-react";
 
 const FAQS = [
+  // ── About SyncSocio ───────────────────────────────────────────────────────
   {
-    q: "What is SyncSocio?",
-    a: "SyncSocio is an AI-powered content workspace that helps creators plan, optimize and publish high-performing posts across reels, images and carousels — all from one elegant dashboard.",
+    q: "What exactly is SyncSocio?",
+    a: "SyncSocio is your all-in-one AI content workspace built for Instagram growth. It plans your weekly content mix, generates on-brand images, carousels, reels and captions, schedules your posts, runs DM automations, and surfaces real-time analytics — all from a single dashboard. No Canva, no ChatGPT, no third-party scheduler.",
   },
+  {
+    q: "Why should I use SyncSocio instead of ChatGPT or Canva?",
+    a: "ChatGPT writes text. Canva designs manually. SyncSocio does both — automatically and on-brand. Your brand colors, tone, USP, and visual style are baked in from onboarding, so every output looks and sounds like you. It also handles strategy, scheduling, analytics, and DM automation, which no single general-purpose AI tool does.",
+  },
+  {
+    q: "Who is SyncSocio built for?",
+    a: "SyncSocio works for D2C brands, e-commerce stores, local businesses, SaaS companies, coaches, consultants, architects, real estate agents, and anyone who needs consistent, high-quality social content without hiring an agency. The AI reads your business category and adjusts its entire strategy accordingly.",
+  },
+  {
+    q: "Do I need a website to get started?",
+    a: "No website needed. SyncSocio is Instagram-first. All you need is an Instagram Business or Creator account. Everything else — strategy, visuals, captions, scheduling — is handled inside the platform.",
+  },
+
+  // ── Content Generation ────────────────────────────────────────────────────
+  {
+    q: "What types of content can I generate?",
+    a: "You can generate Static Ad Images, Multi-slide Carousels, UGC-style Videos, Product Showcase Videos, E-commerce Listing Images, Festival Posts, WhatsApp campaign graphics, and Email campaign copy. Every output is tailored to your brand identity — not a generic template.",
+  },
+  {
+    q: "How does the AI know what my brand looks like?",
+    a: "During onboarding, you set your brand name, category, tone, primary and secondary colors, USP, and visual vibe. SyncSocio builds a Brand DNA profile from these inputs and passes it into every prompt, so generated content is consistent without you manually prompting anything.",
+  },
+  {
+    q: "Can I generate content in regional languages?",
+    a: "Yes. SyncSocio supports English, Hinglish, Hindi, Marathi, Bengali, Gujarati, Punjabi, Tamil, Telugu, Kannada, Malayalam, Odia, and Nepali. If your brand targets Nepal, the platform automatically restricts choices to English and Nepali to keep messaging accurate.",
+  },
+  {
+    q: "Do I need any design or marketing skills to use it?",
+    a: "None at all. SyncSocio makes every creative and strategic decision for you — content format, posting time, visual layout, copy angle. Just describe your brand once and the AI handles everything from there.",
+  },
+  {
+    q: "Can I upload my own images or use existing product photos?",
+    a: "Yes. You can upload product images directly into any generation job, and the AI will incorporate them into the final creative. You can also import from your Product Library so your catalogue is always one click away.",
+  },
+  {
+    q: "What is the Festival Calendar?",
+    a: "The Festival Calendar is a built-in planner that shows upcoming Indian and global festivals. Click any festival to instantly generate a themed post — caption, image, and hashtags — branded to your business. Great for staying relevant without manually tracking dates.",
+  },
+
+  // ── Strategy & Planning ───────────────────────────────────────────────────
   {
     q: "How does the Content Mix work?",
-    a: "Tap Content Mix to generate a balanced 7-day plan: 3 reels, 2 images and 2 carousels. Each card includes the format, optimal posting time, topic and a ready-to-use AI prompt.",
+    a: "Content Mix generates a balanced 7-day posting plan: typically 3 Reels, 2 Images, and 2 Carousels. Each slot comes with a format, optimal posting time, topic idea, and a ready-to-use AI prompt. You can regenerate any slot or customize the mix before generating visuals.",
   },
   {
-    q: "Can I upload my own media?",
-    a: "Yes. Tick any card in your weekly plan to highlight it, then upload your own image, reel or carousel asset directly to that slot before publishing.",
+    q: "How does SyncSocio decide the best time for me to post?",
+    a: "We connect to the Instagram Graph API and analyze when your actual followers are online and most active. The 'Peak Hour' shown in your dashboard is specific to your audience — not a generic industry average.",
   },
   {
-    q: "What happens when I publish a post?",
-    a: "Once published, the post is removed from your active weekly plan so you always see what's left to do. Generate the next week anytime when your queue is empty.",
+    q: "What is the Content Plan tab?",
+    a: "The Content Plan is your scheduling calendar. After generating posts, you can drag them onto specific dates and times, preview them before they go live, and manage your entire month's queue in one view.",
+  },
+
+  // ── Analytics ─────────────────────────────────────────────────────────────
+  {
+    q: "What analytics does SyncSocio track?",
+    a: "We pull live data from Instagram: Total Reach, Weekly Reach, Impressions, Engagement Rate, Likes This Week, Total Followers, Follower Growth over 30 days, and Posts This Month. All metrics are updated in real-time and include period-on-period comparison percentages.",
   },
   {
-    q: "How is the optimal posting time decided?",
-    a: "SyncSocio analyzes your specific audience behavior via the Instagram Graph API to identify the 'Peak Hour' when the highest number of your followers are online and active.",
+    q: "How is Engagement Rate calculated?",
+    a: "Engagement Rate = ((Likes + Comments + Saves) ÷ Total Reach) × 100. We weight interactions, not just likes, to give you a more meaningful signal of how your audience actually responds to your content.",
   },
   {
-    q: "What does 'Posts This Month' represent?",
-    a: "This represents the total number of media items (reels, images, and carousels) you have published on your connected Instagram account during the current calendar month.",
+    q: "What does a positive percentage change (e.g. +12.4%) mean?",
+    a: "It means your metric this period (e.g. reach this week) is higher than the same metric in the previous period. A rising number means your content is working — a drop is a signal to try a different format or posting time.",
+  },
+
+  // ── DM Automation & Campaigns ─────────────────────────────────────────────
+  {
+    q: "What is DM Automation and how does it help me?",
+    a: "DM Automation lets you build keyword-triggered reply flows on Instagram. When someone comments a word like 'price' on your post, or replies to your story, the bot instantly sends them a custom message — with a product link, offer, or lead form. It captures leads 24/7 without you being online.",
   },
   {
-    q: "What is 'Total Reach' and how is it measured?",
-    a: "Total Reach measures the number of unique Instagram accounts that have seen your content. Even if one person views your post multiple times, it still counts as only 1 towards your unique Reach.",
+    q: "Can I run WhatsApp or Email campaigns from SyncSocio?",
+    a: "Yes. The Campaign Generator lets you create WhatsApp blast messages and Email campaigns with AI-generated copy and creatives. You can upload contact lists, pick products, and send — all from within the dashboard.",
+  },
+
+  // ── Plans, Credits & Billing ──────────────────────────────────────────────
+  {
+    q: "How do credits work?",
+    a: "Credits are consumed each time you generate AI content — one image, one carousel, one video, or one caption batch each costs credits. The Starter plan comes with 200 credits/month and Elite comes with 700 credits/month. If you run out, you can buy top-up packs of 100, 300, or 700 credits at any time.",
   },
   {
-    q: "What does 'Reach This Week' measure?",
-    a: "This tracks the number of unique accounts that interacted with or viewed your content specifically within the last 7 days. It is a critical metric for understanding your weekly growth and organic visibility.",
+    q: "Do unused credits roll over to the next month?",
+    a: "Credits reset at the start of each billing cycle and don't carry over. We recommend using your credits actively throughout the month — the platform is designed to make daily generation fast and easy.",
   },
   {
-    q: "What are 'Impressions'?",
-    a: "Impressions are the total number of times your content was on screen. Unlike Reach, if a single person views your post three times, it counts as 3 Impressions.",
+    q: "Can I run multiple brands from one account?",
+    a: "Yes. Starter plan supports 1 brand profile and Elite supports up to 2 brand profiles, each with its own Brand DNA, color palette, tone, and content schedule. Switch between them instantly from the dashboard sidebar.",
   },
   {
-    q: "How is the 'Engagement Rate' calculated?",
-    a: "We calculate accuracy by taking the total weight of interactions (Likes, Comments, and Saves) and dividing it by the Total Reach of those posts. Formula: ((Likes + Comments + Saves) / Reach) × 100.",
+    q: "Is there a free trial available?",
+    a: "We don't offer a time-limited trial — instead, every plan launches at a heavily discounted price so you get full access from day one. You can also buy a credit top-up pack and test generation without committing to a monthly plan.",
   },
   {
-    q: "What does 'Likes This Week' track?",
-    a: "This metric provides a cumulative count of all likes received across your posts within a rolling 7-day window, helping you track short-term audience appreciation trends.",
+    q: "Is my content and data secure?",
+    a: "Yes. Your brand data, uploaded media, prompts, and analytics are stored privately in your workspace and never shared or used to train models. You retain full ownership of everything you create inside SyncSocio.",
   },
+
+  // ── Asset Library ─────────────────────────────────────────────────────────
   {
-    q: "What are 'Total Followers'?",
-    a: "This is your current, live follower count directly from Instagram. We also track 'Follower Growth' over 30 days to help you visualize your audience expansion syncsocio.",
-  },
-  {
-    q: "What do the percentage changes (e.g., +10.5%) mean?",
-    a: "These indicators show your 'Growth SyncSocio' by comparing your current performance (e.g., this week) against the previous period. A positive percentage means your reach or engagement is trending up.",
-  },
-  {
-    q: "Is my data private?",
-    a: "Absolutely. Your prompts, uploads, and performance schedules are tied to your private workspace and never shared. You stay in full control of your creative data.",
+    q: "Where do my generated posts get saved?",
+    a: "Every post you save is stored in the Asset Library — organized by type (image, carousel, video) and date. You can re-download, reuse, or schedule any saved asset at any time. Nothing expires.",
   },
 ];
 

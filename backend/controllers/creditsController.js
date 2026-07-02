@@ -80,7 +80,9 @@ export const assignCredits = async (req, res) => {
     await Transaction.create({
       user: req.user._id,
       plan: plan,
+      type: 'plan_purchase',
       amount: finalAmount,
+      creditsAdded: creditsToAdd,
       discountPercentage,
       discountAmount,
       couponCode: couponCode || '',

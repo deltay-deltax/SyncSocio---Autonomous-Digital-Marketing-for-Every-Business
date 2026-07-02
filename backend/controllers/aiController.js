@@ -27,6 +27,7 @@ export const generateStrategy = async (req, res) => {
       suggestedMix: req.body.suggestedMix,
       customInstruction: req.body.customInstruction || '',
       durationWeeks: req.body.durationWeeks || 1,
+      location: profile.location,
       // Rich brand context for the planner agent
       usp: profile.usp,
       painPoint: profile.painPoint,
@@ -78,6 +79,7 @@ export const regenerateStrategy = async (req, res) => {
       secondaryColor: profile.secondaryColor,
       productBrief: req.body.productBrief,
       rejectedItems: req.body.rejectedItems || [],
+      location: profile.location,
       // Rich brand context
       usp: profile.usp,
       painPoint: profile.painPoint,

@@ -456,6 +456,18 @@ def generate_saas_strategy_images(
     Args match generate_strategy_images() signature from strategy_image_agent.py
     so the caller in main.py can swap them transparently.
     """
+    # If Nepal target, force language to English or Nepali
+    loc = brand_doc.get("location")
+    country = "Unknown"
+    if isinstance(loc, dict):
+        country = loc.get("country") or brand_doc.get("country") or "Unknown"
+    else:
+        country = brand_doc.get("country") or "Unknown"
+
+    if country.lower() == "nepal" and language:
+        if language.lower() not in ["english", "nepali"]:
+            language = "english"
+
     if layout == "ecomm":
         raise ValueError(
             "E-Comm Listing generation is not available for SaaS/Services/Consulting brands. "

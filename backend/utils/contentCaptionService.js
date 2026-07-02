@@ -10,6 +10,7 @@ export async function generateCaptionsAndHashtags(userId, posts) {
       brandName: brandProfile.brandName || 'Unknown',
       businessCategory: brandProfile.businessCategory || 'General',
       brandTone: brandProfile.brandTone || 'Professional',
+      location: brandProfile.location,
       posts: posts || []
     };
 

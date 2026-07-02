@@ -118,19 +118,6 @@ const DashboardBilling = () => {
         <p className="text-muted-foreground">
           Upgrade or downgrade anytime
         </p>
-        
-        <div className="flex justify-center mt-8">
-          <div className="flex items-center gap-2 bg-card p-1.5 rounded-full border border-border/50 shadow-sm w-full max-w-md">
-            <input 
-              type="text" 
-              placeholder="PROMO CODE (E.G. WELCOME10)" 
-              className="flex-1 bg-transparent border-none outline-none text-xs px-4 font-medium uppercase placeholder:text-muted-foreground/50"
-            />
-            <Button size="sm" className="rounded-full px-6 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold h-8">
-              Apply
-            </Button>
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">

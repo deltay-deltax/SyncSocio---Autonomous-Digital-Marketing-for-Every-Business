@@ -1,5 +1,5 @@
 import express from 'express';
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { protect } from '../middleware/authMiddleware.js';
 import EmailList from '../models/EmailList.js';
 import PhoneList from '../models/PhoneList.js';
@@ -121,20 +121,11 @@ router.post('/send', protect, async (req, res) => {
     const brandName = profile?.brandName || 'SyncSocio';
     const senderEmail = profile?.gmailEmail || process.env.SMTP_USER || 'noreply@syncsocio.com';
 
-    // Verify SMTP is configured
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      return res.status(500).json({ message: 'SMTP credentials not configured on server' });
+    // Verify SendGrid API Key is configured
+    if (!process.env.SENDGRID_API_KEY) {
+      return res.status(500).json({ message: 'SendGrid API Key not configured on server' });
     }
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_PORT === '465',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
     const hasImage = typeof image === 'string' && image.startsWith('data:');
 
@@ -160,15 +151,17 @@ router.post('/send', protect, async (req, res) => {
           `.replace(/[\r\n]+/g, ' ').replace(/>\s+</g, '><').trim(),
           attachments: hasImage ? [{
             filename: 'hero.png',
-            content: Buffer.from(image.split(',')[1], 'base64'),
-            cid: 'campaign-hero'
-          }] : []
+            content: image.split(',')[1],
+            type: 'image/png',
+            disposition: 'inline',
+            content_id: 'campaign-hero'
+          }] : undefined
         };
 
         try {
-          await transporter.sendMail(mailOptions);
+          await sgMail.send(mailOptions);
         } catch (err) {
-          console.error(`Failed sending to ${recipient}:`, err.message);
+          console.error(`Failed sending to ${recipient}:`, err.response?.body || err.message);
         }
 
         // 300ms gap between individual sends to stay within limits

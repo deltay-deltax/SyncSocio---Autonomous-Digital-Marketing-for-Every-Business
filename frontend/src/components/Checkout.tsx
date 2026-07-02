@@ -166,7 +166,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
   };
 
   return (
-    <main className="w-full max-w-5xl mx-auto py-10 px-4 sm:px-6">
+    <main className="w-full max-w-7xl mx-auto py-10 px-4 sm:px-6">
       <button
         onClick={onBack}
         className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground"
@@ -178,7 +178,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
         Checkout
       </h1>
 
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-8 mt-8">
+      <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8 mt-8">
         {/* LEFT: form */}
         <div className="space-y-8">
           {/* Coupon */}
@@ -254,22 +254,22 @@ export const Checkout: React.FC<CheckoutProps> = ({
         </div>
 
         {/* RIGHT: summary */}
-        <aside className="lg:sticky lg:top-20 h-fit rounded-2xl border border-border/60 bg-card/40 p-6">
-          <h2 className="font-display text-lg font-bold">Order summary</h2>
-          <div className="mt-4 p-4 rounded-xl bg-background border border-border/60">
-            <div className="text-xs font-bold uppercase tracking-widest text-primary">
+        <aside className="lg:sticky lg:top-20 h-fit rounded-lg border border-border bg-card p-8 shadow-sm">
+          <h2 className="font-display text-xl font-extrabold tracking-tight text-foreground">Order summary</h2>
+          <div className="mt-6 p-6 rounded-lg bg-background border border-border/80">
+            <div className="text-[11px] font-black uppercase tracking-wider text-primary">
               {description}
             </div>
-            <div className="text-sm text-muted-foreground mt-1">SyncSocio Digital Automation</div>
-            <div className="mt-3 text-2xl font-bold">
+            <div className="text-xs text-muted-foreground mt-1.5 font-medium">SyncSocio Digital Automation</div>
+            <div className="mt-4 text-3xl font-black text-foreground">
               ₹{baseAmount}
             </div>
           </div>
 
-          <div className="mt-5 space-y-2 text-sm">
-            <div className="flex justify-between items-center">
+          <div className="mt-6 space-y-3.5 text-sm">
+            <div className="flex justify-between items-center font-medium">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>₹{baseAmount}</span>
+              <span className="text-foreground">₹{baseAmount}</span>
             </div>
             {appliedCoupon && (
               <div className="flex justify-between items-center text-primary font-bold">
@@ -278,21 +278,21 @@ export const Checkout: React.FC<CheckoutProps> = ({
               </div>
             )}
 
-            <div className="h-px bg-border/60 my-2" />
+            <div className="h-px bg-border my-2.5" />
             <div className="flex justify-between items-center font-bold">
-              <span>Total due today</span>
-              <span className="text-lg">₹{total}</span>
+              <span className="text-foreground">Total due today</span>
+              <span className="text-xl text-foreground font-black">₹{total}</span>
             </div>
           </div>
 
           <button
             onClick={handlePayNow}
             disabled={isProcessing}
-            className="mt-6 w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 disabled:opacity-60 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+            className="mt-8 w-full h-14 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:opacity-95 disabled:opacity-60 transition-all shadow-lg shadow-primary/10 hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0"
           >
             {isProcessing ? "Processing..." : `Pay now — ₹${total}`}
           </button>
-          <p className="mt-3 text-[11px] text-muted-foreground text-center">
+          <p className="mt-4 text-[11px] text-muted-foreground text-center font-medium">
             Secure payments powered by Razorpay
           </p>
         </aside>

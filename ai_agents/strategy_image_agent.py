@@ -379,12 +379,20 @@ def _brand_block(bd: Dict[str, Any]) -> str:
     website        = bd.get("website", "")
     logo           = bd.get("logo", "")
 
+    location       = bd.get("location")
+    country        = "Unknown"
+    if isinstance(location, dict):
+        country    = location.get("country") or bd.get("country") or "Unknown"
+    else:
+        country    = bd.get("country") or "Unknown"
+
     logo_ref = ""
     if logo:
         logo_ref = f"Brand Logo Reference: {logo if logo.startswith('http') else '[Logo image is uploaded and available for branding]'}\n"
 
     return (
-        f"{brand_name} — {category} brand.\n"
+        f"{brand_name} — {category} brand based in {country}.\n"
+        f"Country: {country}.\n"
         f"Brand tone: {brand_tone}.\n"
         f"Visual style: {visual_vibe}.\n"
         f"Primary color: {primary_color}. Secondary: {secondary_color}.\n"
@@ -825,6 +833,18 @@ def generate_strategy_images(
     Returns:
         list of {image?: str (base64), url?: str, caption: str, type: str}
     """
+    # If Nepal target, force language to English or Nepali
+    loc = brand_doc.get("location")
+    country = "Unknown"
+    if isinstance(loc, dict):
+        country = loc.get("country") or brand_doc.get("country") or "Unknown"
+    else:
+        country = brand_doc.get("country") or "Unknown"
+
+    if country.lower() == "nepal" and language:
+        if language.lower() not in ["english", "nepali"]:
+            language = "english"
+
     print(f"\n[StrategyAgent] 🚀 Generating {count} {layout}(s) | aspect={aspect_ratio} | refs={len(ref_images)} | products={len(products or [])} | platform={platform or 'N/A'}")
 
     results = []
@@ -1142,7 +1162,8 @@ def generate_strategy_images(
                     prod_desc = products[0].get("description", "") if products else ""
                     prod_benefit = products[0].get("keyBenefit", "") if products else ""
                     
-                    sys_msg = "You are a D2C marketing assistant. Generate a talking-head UGC video script and avatar description for the given product."
+                    lang_req = language.upper() if language else "ENGLISH"
+                    sys_msg = f"You are a D2C marketing assistant. Generate a talking-head UGC video script and avatar description for the given product. The script MUST be written in {lang_req}."
                     user_msg = f"""Brand: {brand_name}
 Product: {prod_name}
 Description: {prod_desc}
@@ -1211,15 +1232,18 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                         raise Exception("UGC Stage 1 image generation failed")
                     
                     # Generate custom Instagram caption + hashtags using Gemini during Stage 1
-                    caption = generate_instagram_caption_and_hashtags(
-                        brand_doc=brand_doc,
-                        product=prod,
-                        layout="video",
-                        idea=f"UGC Video post with script: {video_script}",
-                        language=language,
-                        template_label="UGC Creator Video",
-                        index=index,
-                    )
+                    if language and language.lower() == "hindi":
+                        caption = ""
+                    else:
+                        caption = generate_instagram_caption_and_hashtags(
+                            brand_doc=brand_doc,
+                            product=prod,
+                            layout="video",
+                            idea=f"UGC Video post with script: {video_script}",
+                            language=language,
+                            template_label="UGC Creator Video",
+                            index=index,
+                        )
                     
                     # Stage 2: Take the generated hero image and send it to Seedance Image-to-Video
                     print(f"[StrategyAgent] UGC Stage 2: Animating starting image with Seedance Fast Image-to-Video...")
