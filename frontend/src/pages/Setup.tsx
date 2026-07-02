@@ -448,7 +448,7 @@ const Setup = () => {
               });
               if (credRes.ok) {
                 const credData = await credRes.json();
-                localStorage.setItem('velocity_credits', String(credData.credits ?? 0));
+                localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
                 // Clean up applied coupon from storage
                 localStorage.removeItem('velocity_applied_coupon');
               }
@@ -874,7 +874,7 @@ const Setup = () => {
           description={`Subscription: ${selectedPlan} Plan`}
           type="plan_purchase"
           planName={selectedPlan || ''}
-          creditsAdded={selectedPlan === 'Growth' ? 3000 : 1000}
+          creditsAdded={selectedPlan === 'Elite' ? 700 : 200}
           onSuccess={handleCheckoutSuccess}
           onBack={() => setScreen('plan')}
         />

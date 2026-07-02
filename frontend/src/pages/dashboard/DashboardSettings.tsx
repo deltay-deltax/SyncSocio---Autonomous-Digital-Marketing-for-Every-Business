@@ -211,16 +211,16 @@ const DashboardSettings = () => {
     let creditsAdded = 0;
     let typeStr = '';
 
-    const isGrowthOrElite = currentPlan.toLowerCase().includes('growth') || currentPlan.toLowerCase().includes('elite') || currentPlan.toLowerCase().includes('pro');
+    const isElite = currentPlan.toLowerCase().includes('elite');
 
     if (actionType === 'renew') {
-       amount = isGrowthOrElite ? 1899 : 599;
+       amount = isElite ? 1899 : 599;
        planStr = currentPlan;
-       creditsAdded = isGrowthOrElite ? 700 : 200;
+       creditsAdded = isElite ? 700 : 200;
        typeStr = 'plan_renewal';
     } else if (actionType === 'upgrade') {
       amount = 1899; // Full Elite Plan price
-      planStr = currentPlan.toLowerCase().includes('starter') || currentPlan.toLowerCase().includes('brand') ? 'Elite' : 'Growth';
+      planStr = 'Elite';
       creditsAdded = 700; // Full Elite Plan credits
       typeStr = 'plan_upgrade';
     }
@@ -1209,12 +1209,12 @@ const DashboardSettings = () => {
 
               {(() => {
                 const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
-                const isStarterOrBrand = plan.includes('starter') || plan.includes('brand');
+                const isElite = plan.includes('elite');
                 
-                const planName = isStarterOrBrand ? 'Starter' : 'Elite';
-                const planPrice = isStarterOrBrand ? '₹599/month' : '₹1899/month';
-                const planCredits = isStarterOrBrand ? '200 credits/month' : '700 credits/month';
-                 const planFeatures = isStarterOrBrand 
+                const planName = isElite ? 'Elite' : 'Starter';
+                const planPrice = isElite ? '₹1899/month' : '₹599/month';
+                const planCredits = isElite ? '700 credits/month' : '200 credits/month';
+                const planFeatures = !isElite 
                   ? [
                       '200 credits/month',
                       '1 active brand profile',
@@ -1291,8 +1291,7 @@ const DashboardSettings = () => {
 
               {(() => {
                 const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
-                const isStarterOrBrand = plan.includes('starter') || plan.includes('brand');
-                const isGrowthOrEliteOrPro = plan.includes('growth') || plan.includes('elite') || plan.includes('pro');
+                const isElite = plan.includes('elite');
 
                 let expiryTime = 0;
                 if (profile.userPlanExpiresAt) {
@@ -1307,7 +1306,7 @@ const DashboardSettings = () => {
                 const oneDay = 24 * 60 * 60 * 1000;
                 const canRenew = expiryTime === 0 || diff <= oneDay;
 
-                if (isStarterOrBrand) {
+                if (!isElite) {
                   return (
                     <div className="space-y-4 pt-4 border-t border-border/40">
                       <div className="flex justify-between items-center ml-1">
@@ -1335,7 +1334,7 @@ const DashboardSettings = () => {
                       </div>
                     </div>
                   );
-                } else if (isGrowthOrEliteOrPro) {
+                } else {
                   return (
                     <div className="space-y-4 pt-4 border-t border-border/40">
                       <div className="flex justify-between items-center ml-1">
@@ -1352,15 +1351,6 @@ const DashboardSettings = () => {
                         className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                       >
                         Renew Elite Plan (₹1899)
-                      </Button>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div className="space-y-4 pt-4 border-t border-border/40">
-                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Subscription Actions</p>
-                      <Button disabled className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-muted text-muted-foreground border-border/50 cursor-not-allowed">
-                        Subscription Managed via Onboarding Flow
                       </Button>
                     </div>
                   );

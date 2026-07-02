@@ -41,9 +41,8 @@ const ResetPassword = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Invalid or expired token");
       
-      setSuccess("Password updated securely!");
-      localStorage.setItem("token", data.token);
-      setTimeout(() => navigate("/onboarding"), 2000);
+      setSuccess("Password updated securely! Redirecting to login...");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err: any) {
       setError(err.message);
     } finally {

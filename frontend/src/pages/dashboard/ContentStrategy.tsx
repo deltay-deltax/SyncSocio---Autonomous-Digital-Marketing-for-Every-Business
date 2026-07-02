@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -481,6 +481,48 @@ const DashboardStrategy = () => {
   const userId = profile.user || profile._id || 'default';
   const brandId = profile._id || 'default';
   const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
+
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | null>(null);
+
+  const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
+  const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+  const isElite = planName.includes('elite');
+
+  React.useEffect(() => {
+    if (mode) {
+      const isPremium = ['all_in_one', 'video', 'ecomm', 'whatsapp', 'email'].includes(mode);
+      if (isPlanExpired) {
+        setStage('pick');
+        setMode(null);
+        setUpgradeModalReason('expired');
+        setShowUpgradeModal(true);
+      } else if (isPremium && !isElite) {
+        setStage('pick');
+        setMode(null);
+        setUpgradeModalReason('premium');
+        setShowUpgradeModal(true);
+      }
+    }
+  }, [mode, isPlanExpired, isElite]);
+
+  const handleModeClick = (mId: Mode) => {
+    const isPremium = ['all_in_one', 'video', 'ecomm', 'whatsapp', 'email'].includes(mId);
+
+    if (isPlanExpired) {
+      setUpgradeModalReason('expired');
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    if (isPremium && !isElite) {
+      setUpgradeModalReason('premium');
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    openMode(mId);
+  };
 
   // ── SaaS / Services / Consulting mode detection
   // If the brand category is one of these 3, hide E-Comm Listing tab and route to SaaS prompts
@@ -2181,29 +2223,55 @@ const DashboardStrategy = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visibleModes.map((m, i) => (
-            <motion.button
-              key={m.id}
-              onClick={() => openMode(m.id)}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              whileHover={{ y: -3 }}
-              className="group relative p-6 rounded-2xl border border-border/60 bg-card text-left overflow-hidden hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all"
-            >
-              <div className={cn('absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity', m.accent)} />
-              <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-muted group-hover:bg-primary group-hover:text-primary-foreground text-foreground flex items-center justify-center mb-4 transition">
-                  <m.icon size={20} />
+          {visibleModes.map((m, i) => {
+            const isPremium = ['all_in_one', 'video', 'ecomm', 'whatsapp', 'email'].includes(m.id);
+            const isLocked = isPlanExpired || (isPremium && !isElite);
+            
+            return (
+              <motion.button
+                key={m.id}
+                onClick={() => handleModeClick(m.id)}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                whileHover={isLocked ? {} : { y: -3 }}
+                className={cn(
+                  "group relative p-6 rounded-2xl border border-border/60 bg-card text-left overflow-hidden hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all",
+                  isLocked && "opacity-75 cursor-pointer hover:border-border/60 hover:shadow-none"
+                )}
+              >
+                {!isLocked && (
+                  <div className={cn('absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity', m.accent)} />
+                )}
+                <div className="relative">
+                  <div className={cn(
+                    "w-12 h-12 rounded-2xl bg-muted text-foreground flex items-center justify-center mb-4 transition",
+                    !isLocked && "group-hover:bg-primary group-hover:text-primary-foreground"
+                  )}>
+                    <m.icon size={20} />
+                  </div>
+                  {isLocked && (
+                    <div className="absolute top-0 right-0 p-1 text-muted-foreground/60">
+                      <Lock size={14} />
+                    </div>
+                  )}
+                  <p className="text-base font-semibold text-foreground flex items-center gap-1.5">
+                    {m.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{m.desc}</p>
+                  {!isLocked ? (
+                    <div className="flex items-center gap-1 mt-4 text-[11px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition">
+                      Open brief <span aria-hidden>→</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 mt-4 text-[11px] font-semibold text-muted-foreground">
+                      Locked <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted font-bold text-muted-foreground/80 uppercase">Premium</span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-base font-semibold text-foreground">{m.label}</p>
-                <p className="text-xs text-muted-foreground mt-1">{m.desc}</p>
-                <div className="flex items-center gap-1 mt-4 text-[11px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition">
-                  Open brief <span aria-hidden>→</span>
-                </div>
-              </div>
-            </motion.button>
-          ))}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
     );
@@ -4031,6 +4099,46 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card w-full max-w-md rounded-[2rem] p-8 border border-border/50 shadow-2xl text-center relative"
+            >
+              <button 
+                onClick={() => setShowUpgradeModal(false)}
+                className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
+              >
+                <X size={14} />
+              </button>
+              
+              <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock size={30} />
+              </div>
+
+              <h2 className="text-xl font-bold mb-2">
+                {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                {upgradeModalReason === 'expired' 
+                  ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
+                  : 'This is an Elite feature. Upgrade to the Elite Plan to unlock UGC/Product Video generation, All-in-One Drops, WhatsApp/Email Campaigns, and E-commerce Listing templates.'}
+              </p>
+
+              <Button 
+                onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/buy-credits'); }} 
+                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
+              >
+                {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
+              </Button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

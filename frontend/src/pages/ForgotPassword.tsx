@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const [email, setEmail] = useState(location.state?.email || "");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +34,7 @@ const ForgotPassword = () => {
         body: JSON.stringify({ email })
       });
       setSuccess("Reset link sent! Please check your inbox securely using the generated link.");
+      setCooldown(20);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -66,8 +76,8 @@ const ForgotPassword = () => {
             <label className="text-sm font-medium text-foreground mb-1.5 block">Email Address</label>
             <Input type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-background border-border focus:ring-2 focus:ring-primary/20" />
           </div>
-          <Button disabled={loading} size="lg" className="w-full h-12 gradient-bg text-primary-foreground border-0 text-base">
-            {loading ? "Processing..." : "Send Reset Link"}
+          <Button disabled={loading || cooldown > 0} size="lg" className="w-full h-12 gradient-bg text-primary-foreground border-0 text-base">
+            {loading ? "Processing..." : cooldown > 0 ? `Send again in ${cooldown}s` : "Send Reset Link"}
           </Button>
         </form>
       </motion.div>
