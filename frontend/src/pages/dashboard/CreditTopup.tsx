@@ -49,19 +49,19 @@ export const CreditTopup = () => {
     let creditsAdded = 0;
     let typeStr = '';
 
-    const isGrowthOrElite = currentPlan.toLowerCase().includes('growth') || currentPlan.toLowerCase().includes('elite') || currentPlan.toLowerCase().includes('pro');
+    const isElite = currentPlan.toLowerCase().includes('elite');
 
     if (actionType === 'renew') {
-       amount = isGrowthOrElite ? 1899 : 599;
+       amount = isElite ? 1899 : 599;
        planStr = currentPlan;
-       creditsAdded = isGrowthOrElite ? 700 : 200;
+       creditsAdded = isElite ? 700 : 200;
        typeStr = 'plan_renewal';
-    } else if (actionType === 'upgrade') {
-      amount = 1899; // Full Elite Plan price
-      planStr = currentPlan.toLowerCase().includes('starter') || currentPlan.toLowerCase().includes('brand') ? 'Elite' : 'Growth';
-      creditsAdded = 700; // Full Elite Plan credits
-      typeStr = 'plan_upgrade';
-    }
+     } else if (actionType === 'upgrade') {
+       amount = 1899; // Full Elite Plan price
+       planStr = 'Elite';
+       creditsAdded = 700; // Full Elite Plan credits
+       typeStr = 'plan_upgrade';
+     }
 
     setShowExpiredModal(false);
     setCheckoutData({
@@ -175,10 +175,9 @@ export const CreditTopup = () => {
             <div className="space-y-4">
               {(() => {
                 const plan = (profile?.userPlan || '').toLowerCase();
-                const isStarterOrBrand = plan.includes('starter') || plan.includes('brand');
-                const isGrowthOrEliteOrPro = plan.includes('growth') || plan.includes('elite') || plan.includes('pro');
+                const isElite = plan.includes('elite');
 
-                if (isStarterOrBrand) {
+                if (!isElite) {
                   return (
                     <>
                       <Button 
@@ -197,7 +196,7 @@ export const CreditTopup = () => {
                       </Button>
                     </>
                   );
-                } else if (isGrowthOrEliteOrPro) {
+                } else {
                   return (
                     <Button 
                       onClick={() => handlePlanAction('renew', profile?.userPlan || 'Elite')} 
@@ -206,12 +205,6 @@ export const CreditTopup = () => {
                     >
                       {processingPlan ? 'Processing...' : 'Renew Elite Plan (₹1899)'}
                     </Button>
-                  );
-                } else {
-                  return (
-                    <p className="text-center text-sm font-bold text-red-500">
-                      Unknown plan. Please manage subscription from settings.
-                    </p>
                   );
                 }
               })()}

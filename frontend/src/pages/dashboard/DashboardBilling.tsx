@@ -126,8 +126,8 @@ const DashboardBilling = () => {
           const currentPrice = plan.basePrice + (isDmEnabled ? 399 : 0);
           
           const currentPlan = (profile?.selectedPlan || '').toLowerCase();
-          const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand');
-          const isElite = currentPlan.includes('elite') || currentPlan.includes('growth');
+          const isStarter = currentPlan.includes('starter');
+          const isElite = currentPlan.includes('elite');
           const isCurrentPlan = (plan.name === 'Starter' && isStarter) || (plan.name === 'Elite' && isElite);
 
           return (

@@ -10,7 +10,7 @@ export const startKeepAlivePoller = () => {
   setInterval(async () => {
     try {
       console.log('Sending keep-alive ping to AI Agents...');
-      const aiRes = await fetch(`${AI_AGENT_URL}/`);
+      const aiRes = await fetch(`${AI_AGENT_URL}/health`);
       if (aiRes.ok) console.log('AI Agent ping successful.');
     } catch (err) {
       console.error('AI Agent ping failed:', err.message);

@@ -175,11 +175,11 @@ export const login = async (req, res) => {
 
     // Send login notification email
     try {
-      // TEMPORARY: Disabled for Render free tier
-      // await sendLoginNotificationEmail({
-      //   to: user.email,
-      //   name: user.name,
-      // });
+      // TEMPORARY: Disabled for Render free tier - Now enabled
+      await sendLoginNotificationEmail({
+        to: user.email,
+        name: user.name,
+      });
     } catch (mailError) {
       console.error('Login notification email failed:', mailError.message);
       // Don't fail login if email fails
@@ -415,12 +415,12 @@ export const verifyOtp = async (req, res) => {
 
     // Send signup notification email
     try {
-      // TEMPORARY: Disabled for Render free tier
-      // await sendSignupNotificationEmail({
-      //   to: user.email,
-      //   name: user.name,
-      //   provider: inferAuthProvider(user),
-      // });
+      // TEMPORARY: Disabled for Render free tier - Now Enabled
+      await sendSignupNotificationEmail({
+        to: user.email,
+        name: user.name,
+        provider: inferAuthProvider(user),
+      });
     } catch (mailError) {
       console.error('Signup notification email failed:', mailError.message);
       // Don't fail verification if email fails
@@ -561,6 +561,14 @@ export const resetPassword = async (req, res) => {
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    // Ensure the new password is not the same as the current password
+    if (user.password) {
+      const isSamePassword = await bcrypt.compare(password, user.password);
+      if (isSamePassword) {
+        return res.status(400).json({ message: 'Your new password must be different from your previously used password.' });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
