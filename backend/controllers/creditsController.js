@@ -3,16 +3,13 @@ import { logActivity } from '../utils/activityLogger.js';
 import Transaction from '../models/Transaction.js';
 import Coupon from '../models/Coupon.js';
 
-// Credit amounts per plan tier (random within range)
+// Credit amounts per plan tier
 const PLAN_CREDITS = {
-  'SyncSocio Starter': { min: 1200, max: 1500 },
-  'SyncSocio PRO':     { min: 2800, max: 3200 },
-  'SyncSocio Elite':   { min: 5500, max: 6000 },
+  'Starter': 200,
+  'Elite': 700,
+  'SyncSocio Starter': 200,
+  'SyncSocio Elite': 700,
 };
-
-function randomInRange(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 // ─── GET credits ─────────────────────────────────────────────────────
 export const getCredits = async (req, res) => {
@@ -32,14 +29,25 @@ export const assignCredits = async (req, res) => {
     const { plan, isDmEnabled, couponCode } = req.body;
     if (!plan) return res.status(400).json({ message: 'Plan is required.' });
 
-    const range = PLAN_CREDITS[plan] || { min: 500, max: 800 };
-    const creditsToAdd = randomInRange(range.min, range.max);
+    let creditsToAdd = PLAN_CREDITS[plan] || PLAN_CREDITS[`SyncSocio ${plan}`] || 200;
+
+    // Check if the user already paid for this plan setup via Razorpay.
+    // If they did, we don't want to double-assign the plan credits.
+    const completedTx = await Transaction.findOne({
+      user: req.user._id,
+      type: 'plan_purchase',
+      status: 'completed'
+    });
+
+    if (completedTx) {
+      creditsToAdd = 0;
+    }
 
     // Calculate billing amount (₹)
     let basePrice = 999;
     const pl = plan.toLowerCase();
-    if (pl.includes('growth') || pl.includes('elite') || pl.includes('pro')) basePrice = 1899;
-    else basePrice = 599; // Starter/Brand plan
+    if (pl.includes('elite')) basePrice = 1899;
+    else basePrice = 599; // Starter plan
     
     let sum = basePrice + (isDmEnabled ? 399 : 0);
     let discountPercentage = 0;

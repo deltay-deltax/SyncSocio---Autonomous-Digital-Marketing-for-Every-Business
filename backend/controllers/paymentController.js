@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
 import BrandProfile from '../models/BrandProfile.js';
+import { sendInvoiceEmail } from '../utils/sendInvoiceEmail.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -100,16 +101,20 @@ export const verifyPayment = async (req, res) => {
           const expiry = new Date();
           expiry.setDate(expiry.getDate() + 30);
           user.planExpiresAt = expiry;
+        } else if (transaction.type === 'dm_addon_purchase') {
+          // DM Addon purchase - no plan change, no credits added
         }
         
         // Auto-update active brand profile plan
-        if (transaction.type === 'plan_purchase' || transaction.type === 'plan_renewal' || transaction.type === 'plan_upgrade') {
+        if (transaction.type === 'plan_purchase' || transaction.type === 'plan_renewal' || transaction.type === 'plan_upgrade' || transaction.type === 'dm_addon_purchase') {
           const brandQuery = user.activeBrandId ? { _id: user.activeBrandId } : { user: user._id };
           const brandProfile = await BrandProfile.findOne(brandQuery);
           if (brandProfile) {
-            brandProfile.selectedPlan = transaction.plan;
-            brandProfile.isPaid = true;
-            if (transaction.type === 'plan_upgrade') {
+            if (transaction.type !== 'dm_addon_purchase') {
+              brandProfile.selectedPlan = transaction.plan;
+              brandProfile.isPaid = true;
+            }
+            if (transaction.type === 'plan_upgrade' || transaction.type === 'dm_addon_purchase') {
               brandProfile.DM_Automation_Service = true;
             }
             await brandProfile.save();
@@ -121,6 +126,29 @@ export const verifyPayment = async (req, res) => {
         }
 
         await user.save();
+
+        // ── Send invoice email (non-blocking) ──────────────────────────
+        sendInvoiceEmail({
+          to: user.email,
+          userName: user.name || user.email,
+          userEmail: user.email,
+          billingAddress: user.billingAddress || billingAddress || {},
+          transactionType: transaction.type,
+          planName: transaction.plan || '',
+          amount: transaction.amount,
+          creditsAdded: transaction.creditsAdded || 0,
+          razorpayPaymentId: transaction.razorpayPaymentId,
+          razorpayOrderId: transaction.razorpayOrderId,
+          planExpiresAt: user.planExpiresAt || null,
+          couponCode: transaction.couponCode || '',
+          discountAmount: transaction.discountAmount || 0,
+          discountPercentage: transaction.discountPercentage || 0,
+          transactionId: String(transaction._id),
+        }).catch((err) =>
+          console.error('[Invoice Email] Failed to send invoice:', err.message)
+        );
+        // ── End invoice email ──────────────────────────────────────────
+
         return res.status(200).json({ 
            success: true, 
            message: 'Payment verified and applied',

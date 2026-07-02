@@ -89,7 +89,7 @@ export const getMetrics = async (req, res) => {
           // Determine base price — Starter=599, Elite=1899
           let basePrice = 599;
           const pl = user.plan.toLowerCase();
-          if (pl.includes('growth') || pl.includes('elite') || pl.includes('pro')) basePrice = 1899;
+          if (pl.includes('elite')) basePrice = 1899;
 
           // Check if DM is enabled
           const brandProfile = await BrandProfile.findOne({ user: user._id });
@@ -157,7 +157,7 @@ export const getMetrics = async (req, res) => {
     activePaidUsers.forEach(u => {
       if (!u.plan) return;
       const pl = u.plan.toLowerCase();
-      if (pl.includes('growth') || pl.includes('elite') || pl.includes('pro')) mrr += 1899;
+      if (pl.includes('elite')) mrr += 1899;
       else mrr += 599; // Starter plan
     });
 
@@ -664,7 +664,7 @@ export const getRevenueAnalytics = async (req, res) => {
       $and: [{ plan: { $ne: '' } }]
     });
     const growthCount = await User.countDocuments({
-      plan: { $regex: /growth|elite/i }
+      plan: { $regex: /elite/i }
     });
     const noPlanCount = await User.countDocuments({
       $or: [{ plan: '' }, { plan: null }]

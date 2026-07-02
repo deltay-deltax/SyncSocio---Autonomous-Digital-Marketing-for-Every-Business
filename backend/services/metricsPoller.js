@@ -102,17 +102,23 @@ export const startMetricsPoller = () => {
                         if (brand.followerHistory.length > 60) brand.followerHistory.shift();
                     }
 
-                    // Save to DB
-                    brand.cachedMedia = cachedMedia;
-                    brand.cachedMetrics = {
-                        userStats,
-                        dashboardReachData: dashboardReachRes.data.data,
-                        currentInsightsData: currentInsightsRes.data.data,
-                        prevInsightsData: prevInsightsRes.data.data
-                    };
-                    brand.lastMetricsUpdate = new Date();
-                    
-                    await brand.save();
+                    // Save to DB using updateOne to prevent Mongoose VersionError
+                    await BrandProfile.updateOne(
+                        { _id: brand._id },
+                        {
+                            $set: {
+                                cachedMedia: cachedMedia,
+                                cachedMetrics: {
+                                    userStats,
+                                    dashboardReachData: dashboardReachRes.data.data,
+                                    currentInsightsData: currentInsightsRes.data.data,
+                                    prevInsightsData: prevInsightsRes.data.data
+                                },
+                                lastMetricsUpdate: new Date(),
+                                followerHistory: brand.followerHistory
+                            }
+                        }
+                    );
                     console.log(`⏱️ [CRON] Successfully updated metrics for brand: ${brand.brandName || brand._id}`);
 
                 } catch (brandError) {
