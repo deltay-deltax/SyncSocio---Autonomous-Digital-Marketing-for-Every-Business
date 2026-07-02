@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, ChevronLeft, ShieldCheck, DollarSign, Building2, ChevronRight,
   Camera, MapPin, FileText, ArrowRight, Check, Globe, Rocket, Users, Compass, Trophy,
@@ -74,6 +74,17 @@ interface LeftPanelContent {
 
 const Onboarding = () => {
   const location = useLocation();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData({ ...formData, logo: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+  };
   const [step, setStep] = useState(() => {
     const searchParams = new URLSearchParams(location.search);
     const stepParam = searchParams.get('step');
@@ -921,7 +932,11 @@ const Onboarding = () => {
 
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Brand Logo (Optional)</label>
-                      <div className="border-2 border-dashed border-border/80 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer group">
+                      <input type="file" ref={logoInputRef} className="hidden" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
+                      <div 
+                        onClick={() => logoInputRef.current?.click()}
+                        className="border-2 border-dashed border-border/80 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer group"
+                      >
                         {formData.logo ? (
                           <div className="flex flex-col items-center">
                             <img src={formData.logo} alt="Brand Logo" className="max-h-16 object-contain mb-3" />

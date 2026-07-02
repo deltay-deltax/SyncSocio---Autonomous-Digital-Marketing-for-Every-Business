@@ -1,17 +1,24 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { 
-  CheckCircle2, 
-  ArrowLeft, 
-  Link, 
-  ShieldCheck, 
-  Layout, 
+import {
+  CheckCircle2,
+  ArrowLeft,
+  Link,
+  ShieldCheck,
+  Layout,
   ChevronRight,
   AlertCircle,
-  Settings
+  Settings,
+  UserCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+const FacebookIcon = ({ size = 24, className = "" }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+);
 
 const InstagramIcon = ({ size = 24, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -37,28 +44,61 @@ const InstagramInstructions = () => {
 
   const steps = [
     {
-      title: "Switch to Professional Account",
-      description: "Meta Graph API cannot 'see' personal accounts. Open Instagram > Settings > Account Type and switch to 'Business' or 'Creator'.",
+      title: "Switch to a Professional Account",
+      description:
+        "Your Instagram account must be a Business or Creator account before it can connect to a Facebook Page.",
       icon: <InstagramIcon className="text-pink-500" size={24} />,
-      details: "Choose a category that fits your brand. Creator is perfect for influencers, Business for brands."
+      details:
+        "Open Instagram → Profile → ☰ → Settings and activity → Account type and tools → Switch to Professional Account. Choose Business (recommended) or Creator."
     },
     {
-      title: "Link to a Facebook Page",
-      description: "Your Instagram must be tethered to a Facebook Page to use the Graph API.",
+      title: "Create a Facebook Page (If You Don't Have One)",
+      description:
+        "A Facebook Page is required to connect your Instagram account and use the Meta Graph API.",
       icon: <Layout className="text-blue-500" size={24} />,
-      details: "Go to IG Profile > Edit Profile > Page. If you don't have one, create a simple 'Internet Company' page."
+      details:
+        "Open Facebook → Menu → Pages → Create New Page. Enter a Page name, choose a category (such as Business or Internet Company), add an optional description, and publish it. A basic Page is enough—you don't need to add any posts."
     },
     {
-      title: "Meta Business Suite Assignment",
-      description: "Ensure your Page and Instagram account are in the same Meta Business Portfolio.",
-      icon: <Settings className="text-gray-400" size={24} />,
-      details: "Go to business.facebook.com > Settings > Accounts. Both assets must be 'Owned by' the same Business Portfolio."
+      title: "Link Instagram & Facebook Page",
+      description:
+        "Connect your Instagram Professional account to your Facebook Page using either of the methods below.",
+      icon: <FacebookIcon className="text-blue-600" size={24} />,
+      details: `Method 1 (Recommended): From Instagram
+
+1. Open the Instagram app.
+2. Go to your Profile.
+3. Tap ☰ → Settings and activity.
+4. Open Accounts Center.
+5. Tap Profiles → Add accounts if your Facebook account isn't already connected.
+6. Return to Accounts Center.
+
+
+Method 2: From Facebook
+
+1. Open the Facebook app or website.
+2. Switch to your Facebook Page.
+3. Go to Page Settings.
+4. Open Linked Accounts (or Instagram).
+5. Click Connect Account.
+6. Log in with your Instagram account.
+7. Allow all requested permissions.`
     },
     {
-      title: "Grant 'Manage Business' Scope",
-      description: "When the Facebook login popup appears, you MUST select 'Manage your Business'.",
+      title: "Accept the Instagram Tester Invitation",
+      description:
+        "SyncSocio is currently undergoing Meta App Review, so your Instagram account must be added as a tester before it can connect.",
+      icon: <UserCheck className="text-purple-500" size={24} />,
+      details:
+        "Our team will add your Instagram account as a tester. Once we notify you:\n\n1. Open Instagram in a web browser (instagram.com).\n2. Click More → Settings.\n3. Open Apps and Websites.\n4. Go to the Tester Invitations tab.\n5. Accept the invitation sent by our app.\n6. After accepting, return to SyncSocio and continue with Facebook Login."
+    },
+    {
+      title: "Continue with Facebook Login",
+      description:
+        "Return to SyncSocio and sign in with Facebook to finish connecting your account.",
       icon: <ShieldCheck className="text-green-500" size={24} />,
-      details: "Without this, Meta hides your business assets (Pages) from the SyncSocio app."
+      details:
+        "Click 'Continue with Facebook', log in using the same Facebook account that owns your Facebook Page, keep all requested Pages, Instagram accounts, and permissions selected, then click Continue. Your connected Instagram Business account should appear automatically."
     }
   ];
 
@@ -70,7 +110,7 @@ const InstagramInstructions = () => {
 
       <div className="max-w-3xl mx-auto relative z-10">
         {/* Back Button */}
-        <button 
+        <button
           onClick={() => navigate('/setup')}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8 group"
         >
@@ -119,10 +159,10 @@ const InstagramInstructions = () => {
                   {step.description}
                 </p>
                 <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-                  <p className="text-xs text-primary/80 leading-relaxed font-medium">
+                  <div className="text-xs text-primary/80 leading-relaxed font-medium whitespace-pre-wrap">
                     <span className="font-bold uppercase tracking-tight mr-2">Tip:</span>
                     {step.details}
-                  </p>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -135,8 +175,8 @@ const InstagramInstructions = () => {
           <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
             You are now ready to hit "Continue with Facebook". SyncSocio will be able to see your business assets and activate your agent immediately.
           </p>
-          <Button 
-            onClick={() => navigate('/setup')} 
+          <Button
+            onClick={() => navigate('/setup')}
             className="gradient-bg text-primary-foreground h-12 px-8 rounded-xl font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-[1.02]"
           >
             I'm Ready, Let's Connect <ChevronRight size={18} />

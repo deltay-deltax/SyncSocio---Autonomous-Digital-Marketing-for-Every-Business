@@ -1729,6 +1729,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 aspect_ratio=request.aspectRatio,
                 idea=request.idea,
                 ref_images=request.refImages or [],
+                products=request.products,
                 ad_template=request.adTemplate,
                 language=request.language,
                 video_kind=request.videoKind,

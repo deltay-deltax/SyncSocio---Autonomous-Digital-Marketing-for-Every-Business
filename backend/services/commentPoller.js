@@ -392,7 +392,7 @@ const pollProfileComments = async (profile) => {
   } catch (error) {
     const metaErr = error?.response?.data?.error || error.message;
     // Don't spam logs for token issues - just log once
-    if (metaErr?.code === 190) {
+    if (metaErr?.code === 190 || metaErr?.code === 100) {
       console.error(`[POLLER] Access token expired or invalid for ${profile.instagramUsername}. Marking as disconnected.`);
       // Mark as disconnected in DB so feed/auditor endpoints stop hitting the dead token
       try {

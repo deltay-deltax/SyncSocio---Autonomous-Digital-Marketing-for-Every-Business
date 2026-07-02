@@ -491,11 +491,7 @@ const DashboardStrategy = () => {
 
   const fileInput = useRef<HTMLInputElement>(null);
 
-  // ── Profile
-  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-  const userId = profile.user || profile._id || 'default';
-  const brandId = profile._id || 'default';
-  const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
+
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | null>(null);
@@ -1940,6 +1936,10 @@ const DashboardStrategy = () => {
                   `${generated.length} on-brand ${generated.length > 1 ? 'creatives' : 'creative'} · ${aspect} · ${languages.find((l) => l.id === language)?.label}`
                 )}
               </p>
+              <div className="flex items-center gap-1.5 mt-3 bg-rose-500/10 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-semibold w-fit border border-rose-500/20">
+                <Heart size={14} className="fill-rose-500/50" />
+                Make sure to heart (save) to protect across all platforms like image, carousel, and video
+              </div>
             </div>
           </div>
           <div className="flex gap-2 relative">

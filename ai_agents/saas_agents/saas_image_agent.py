@@ -443,6 +443,7 @@ def generate_saas_strategy_images(
     aspect_ratio: str,
     idea: Optional[str],
     ref_images: List[str],
+    products: Optional[List[Dict[str, Any]]] = None,
     ad_template: Optional[int] = None,
     language: str = "english",
     video_kind: Optional[str] = "img2video",
@@ -523,8 +524,10 @@ def generate_saas_strategy_images(
             if ad_template is None:
                 t_id = None
 
+            prod = products[i] if (products and i < len(products)) else (products[0] if products else None)
             prompt = build_saas_image_prompt(
                 brand_doc, idea, aspect_ratio,
+                product=prod,
                 ad_template=t_id,
                 custom_directive=c_dir,
                 language=language,
@@ -551,7 +554,7 @@ def generate_saas_strategy_images(
             try:
                 result = generate_fal_image_gpt2(
                     prompt=prompt,
-                    image=None,
+                    image=ref,
                     image_size=fal_size,
                 )
                 return {"image": result["image"], "caption": caption, "type": "image",
@@ -601,14 +604,17 @@ def generate_saas_strategy_images(
             if ref and not ref.startswith("http") and not ref.startswith("data:"):
                 ref = "data:image/jpeg;base64," + ref
 
+            prod = products[index] if (products and index < len(products)) else (products[0] if products else None)
             print(f"[SaaSAgent] ✍️ Drafting {slide_count} slides for carousel {index+1}...")
             slide_texts = build_saas_carousel_slide_prompts(
                 brand_doc, idea, slide_count,
+                product=prod,
                 language=language,
             )
             
             base_image_prompt = build_saas_image_prompt(
                 brand_doc, idea, aspect_ratio,
+                product=prod,
                 ad_template=None,
                 custom_directive="Design a cohesive, premium carousel slide. Embed the SLIDE TEXT directly in the image layout.",
                 language=language,
@@ -696,8 +702,11 @@ def generate_saas_strategy_images(
                 brand_doc, avatar_description, video_script, aspect_ratio, language
             )
         else:
+            prod = products[0] if products else None
             video_prompt = build_saas_video_prompt(
-                brand_doc, idea, aspect_ratio, language
+                brand_doc, idea, aspect_ratio,
+                product=prod,
+                language=language
             )
 
         print(f"\n[SaaSAgent] 🎥 Video ({video_kind}) | Prompt length: {len(video_prompt)}")

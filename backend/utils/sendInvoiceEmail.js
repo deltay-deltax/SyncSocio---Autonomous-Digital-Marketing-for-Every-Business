@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
 // ─── Company / Brand Info ────────────────────────────────────────────────────
 const COMPANY_ADDRESS = {
@@ -77,16 +77,7 @@ const resolvePack = (type, planName, creditsAdded) => {
 const featureRows = (features = []) =>
   features.map((f) => `<tr><td style="padding:5px 0;color:#374151;font-size:13px;"><span style="color:#2563EB;font-weight:700;margin-right:8px;">✓</span>${f}</td></tr>`).join('');
 
-const createTransporter = () => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS)
-    throw new Error('SMTP credentials missing for invoice email.');
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_PORT === '465',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-};
+
 
 // ─── HTML Builder ─────────────────────────────────────────────────────────────
 const buildHTML = (p) => {
@@ -348,12 +339,18 @@ export const sendInvoiceEmail = async (opts) => {
     plan_upgrade: 'Plan Upgrade', plan_renewal: 'Plan Renewal',
   }[transactionType] || 'Purchase';
 
-  const transporter = createTransporter();
-  return transporter.sendMail({
+  if (!process.env.SENDGRID_API_KEY) {
+    throw new Error('SENDGRID_API_KEY missing for invoice email.');
+  }
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+  const msg = {
     to,
     from: `SyncSocio Billing <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
     subject: `Invoice ${invoiceNumber} — ${typeLabel} · ₹${parseFloat(amount).toFixed(2)} Confirmed`,
     text: buildText(params),
     html: buildHTML(params),
-  });
+  };
+
+  return sgMail.send(msg);
 };

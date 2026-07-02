@@ -69,18 +69,20 @@ export const assignCredits = async (req, res) => {
       { new: true, select: 'credits plan' }
     );
 
-    // Create a transaction record
-    await Transaction.create({
-      user: req.user._id,
-      plan: plan,
-      type: 'plan_purchase',
-      amount: finalAmount,
-      creditsAdded: creditsToAdd,
-      discountPercentage,
-      discountAmount,
-      couponCode: couponCode || '',
-      status: 'completed'
-    });
+    // Create a transaction record only if they didn't already get one from Razorpay
+    if (!completedTx) {
+      await Transaction.create({
+        user: req.user._id,
+        plan: plan,
+        type: 'plan_purchase',
+        amount: finalAmount,
+        creditsAdded: creditsToAdd,
+        discountPercentage,
+        discountAmount,
+        couponCode: couponCode || '',
+        status: 'completed'
+      });
+    }
 
     // Create billing notification
     const { createNotification } = await import('../utils/notificationHelper.js');
