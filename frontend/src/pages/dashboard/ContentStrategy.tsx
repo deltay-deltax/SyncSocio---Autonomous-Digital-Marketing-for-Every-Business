@@ -3449,6 +3449,47 @@ const DashboardStrategy = () => {
           )}
         </div>
       )}
+
+      {/* ─── Upgrade / Plan Expired Modal ─── */}
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card w-full max-w-md rounded-[2rem] p-8 border border-border/50 shadow-2xl text-center relative"
+            >
+              <button 
+                onClick={() => setShowUpgradeModal(false)}
+                className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
+              >
+                <X size={14} />
+              </button>
+              
+              <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock size={30} />
+              </div>
+
+              <h2 className="text-xl font-bold mb-2">
+                {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                {upgradeModalReason === 'expired' 
+                  ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
+                  : 'This is an Elite feature. Upgrade to the Elite Plan to unlock UGC/Product Video generation, All-in-One Drops, WhatsApp/Email Campaigns, and E-commerce Listing templates.'}
+              </p>
+
+              <Button 
+                onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/buy-credits'); }} 
+                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
+              >
+                {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
+              </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -4141,46 +4182,6 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
               </div>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showUpgradeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card w-full max-w-md rounded-[2rem] p-8 border border-border/50 shadow-2xl text-center relative"
-            >
-              <button 
-                onClick={() => setShowUpgradeModal(false)}
-                className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
-              >
-                <X size={14} />
-              </button>
-              
-              <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Lock size={30} />
-              </div>
-
-              <h2 className="text-xl font-bold mb-2">
-                {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
-              </h2>
-              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                {upgradeModalReason === 'expired' 
-                  ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
-                  : 'This is an Elite feature. Upgrade to the Elite Plan to unlock UGC/Product Video generation, All-in-One Drops, WhatsApp/Email Campaigns, and E-commerce Listing templates.'}
-              </p>
-
-              <Button 
-                onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/buy-credits'); }} 
-                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
-              >
-                {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
-              </Button>
-            </motion.div>
-          </div>
         )}
       </AnimatePresence>
     </div>
