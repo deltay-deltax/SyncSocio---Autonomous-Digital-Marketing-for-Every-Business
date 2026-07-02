@@ -276,7 +276,7 @@ export default function Analytics() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`capitalize px-2 py-0.5 text-xs rounded-full font-medium ${
-                      spender.user?.plan?.toLowerCase().includes('growth') 
+                      spender.user?.plan?.toLowerCase().includes('elite') 
                         ? 'bg-violet-500/10 text-violet-400' 
                         : 'bg-blue-500/10 text-blue-400'
                     }`}>

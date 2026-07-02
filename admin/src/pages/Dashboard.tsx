@@ -318,7 +318,7 @@ export default function Dashboard() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`capitalize px-2 py-0.5 text-xs rounded-full font-medium ${
-                      t.plan?.toLowerCase().includes('growth')
+                      t.plan?.toLowerCase().includes('elite')
                         ? 'bg-violet-500/10 text-violet-400'
                         : 'bg-blue-500/10 text-blue-400'
                     }`}>

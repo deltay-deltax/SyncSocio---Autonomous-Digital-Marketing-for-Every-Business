@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -538,6 +538,14 @@ const DashboardLayout = () => {
             ? location.pathname === '/dashboard' 
             : location.pathname.startsWith(item.path);
 
+          const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
+          const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+          const isElite = planName.includes('elite');
+          const hasDMAutomationAccess = 
+            !isPlanExpired && 
+            (isElite || profile?.DM_Automation_Service === true);
+          const isLocked = item.label === 'DM Automation' && !hasDMAutomationAccess;
+
           return (
             <NavLink
               key={item.path}
@@ -559,6 +567,9 @@ const DashboardLayout = () => {
               )}
               <item.icon size={18} className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
               <span className="text-sm">{item.label}</span>
+              {isLocked && (
+                <Lock size={12} className="ml-auto text-muted-foreground/60 group-hover:text-muted-foreground" />
+              )}
             </NavLink>
           );
         })}

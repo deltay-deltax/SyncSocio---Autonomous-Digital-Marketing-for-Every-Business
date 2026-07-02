@@ -4,13 +4,16 @@ import {
   Plus, MessageCircle, Zap, ArrowRight, ArrowLeft, Trash2, ToggleLeft, ToggleRight,
   Eye, PenLine, X, Search, MessageSquare, Hash, MousePointerClick,
   Send, Sparkles, Copy, Link2, UserPlus, ExternalLink, MoveDown,
-  Image as ImageIcon, Bot
+  Image as ImageIcon, Bot, Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
+import { Checkout } from '@/components/Checkout';
+import { useToast } from '@/hooks/use-toast';
 
 // ─── TYPES ───
 type ButtonType = 'url' | 'next' | 'follow' | 'visit_profile';
@@ -182,10 +185,97 @@ const triggerLabels = {
 };
 
 const DashboardDMs = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [profile] = useState<any>(() => {
     const stored = localStorage.getItem('syncsocio_profile');
     return stored ? JSON.parse(stored) : null;
   });
+
+  const [checkoutData, setCheckoutData] = useState<any>(null);
+
+  const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
+  const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+  const isElite = planName.includes('elite');
+  const hasDMAutomationAccess = 
+    !isPlanExpired && 
+    (isElite || profile?.DM_Automation_Service === true);
+
+  const handleBuyAddon = () => {
+    setCheckoutData({
+      baseAmount: 399,
+      description: "DM Automation Add-on (Starter Plan)",
+      type: "dm_addon_purchase",
+      planName: "Starter",
+      creditsAdded: 0
+    });
+  };
+
+  const handleCheckoutSuccess = () => {
+    toast({ title: 'Add-on Activated', description: 'DM Automation is now active!' });
+    window.location.reload();
+  };
+
+  if (checkoutData) {
+    return (
+      <div className="max-w-xl mx-auto my-8">
+        <Checkout
+          baseAmount={checkoutData.baseAmount}
+          description={checkoutData.description}
+          type={checkoutData.type}
+          planName={checkoutData.planName}
+          creditsAdded={checkoutData.creditsAdded}
+          onSuccess={handleCheckoutSuccess}
+          onBack={() => setCheckoutData(null)}
+        />
+      </div>
+    );
+  }
+
+  if (!hasDMAutomationAccess) {
+    return (
+      <div className="max-w-md mx-auto my-16 p-8 bg-card border border-border/60 rounded-3xl text-center shadow-lg relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary relative">
+          <Lock size={32} />
+        </div>
+        <h2 className="text-xl font-bold mb-2">DM Automation Locked</h2>
+        <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
+          {isPlanExpired 
+            ? "Your subscription plan has expired. Please renew your plan to reactivate DM Automation."
+            : "DM Automation is a premium service. It is included by default in the Elite Plan, or can be added to the Starter Plan as an add-on for ₹399/mo."
+          }
+        </p>
+        <div className="flex flex-col gap-3">
+          {isPlanExpired ? (
+            <Button 
+              onClick={() => navigate('/dashboard/buy-credits')} 
+              className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90"
+            >
+              Renew Plan
+            </Button>
+          ) : (
+            <>
+              <Button 
+                onClick={handleBuyAddon} 
+                className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90"
+              >
+                Buy DM Automation Add-on (₹399/mo)
+              </Button>
+              <Button 
+                onClick={() => navigate('/dashboard/buy-credits')} 
+                variant="outline"
+                className="w-full h-11 rounded-xl border-border/70 text-foreground font-semibold"
+              >
+                Upgrade to Elite Plan (₹1899/mo)
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const isInstagramConnected = !!profile?.instagramIsConnected && !!profile?.instagramBusinessAccountId && !!profile?.instagramAccessToken;
 
   const [flows, setFlows] = useState<Flow[]>([]);
