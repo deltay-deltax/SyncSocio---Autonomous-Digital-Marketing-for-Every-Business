@@ -7,7 +7,7 @@ import { sendInvoiceEmail } from '../utils/sendInvoiceEmail.js';
 
 export const createOrder = async (req, res) => {
   try {
-    const { amount, currency = 'INR', receipt, type, plan, creditsAdded } = req.body;
+    const { amount, currency = 'INR', receipt, type, plan, creditsAdded, couponCode, discountPercentage, discountAmount } = req.body;
 
     if (!amount || !type) {
       return res.status(400).json({ message: 'Amount and type are required' });
@@ -43,7 +43,10 @@ export const createOrder = async (req, res) => {
       plan: plan || '',
       creditsAdded: creditsAdded || 0,
       razorpayOrderId: order.id,
-      status: 'pending'
+      status: 'pending',
+      couponCode: couponCode || '',
+      discountPercentage: discountPercentage || 0,
+      discountAmount: discountAmount || 0
     });
 
     res.status(200).json({
