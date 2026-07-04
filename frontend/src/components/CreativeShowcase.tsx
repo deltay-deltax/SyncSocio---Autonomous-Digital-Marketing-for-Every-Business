@@ -498,8 +498,8 @@ const CarouselTile = ({
   onItemClick: (idx: number) => void;
 }) => {
   return (
-    <div className={`relative rounded-3xl overflow-hidden border border-border/40 group ${className ?? ""}`}>
-      <div className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className={`relative w-full h-full rounded-3xl overflow-hidden border border-border/40 group ${className ?? ""}`}>
+      <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {items.map((item, idx) => (
           <div 
             key={idx} 

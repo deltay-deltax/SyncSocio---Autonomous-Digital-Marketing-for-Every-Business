@@ -920,28 +920,30 @@ const DashboardSettings = () => {
                 <div className="space-y-4">
                   {/* Instagram Connection */}
                   {profile.instagramIsConnected ? (
-                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden"
-                        style={{
-                          background: profile.instagramProfilePicture ? 'none' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)'
-                        }}>
-                        {profile.instagramProfilePicture ? (
-                          <img src={profile.instagramProfilePicture} className="w-full h-full object-cover" />
-                        ) : (
-                          <InstagramIcon size={28} className="text-white" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-black text-foreground">@{profile.instagramUsername}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden"
+                          style={{
+                            background: profile.instagramProfilePicture ? 'none' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)'
+                          }}>
+                          {profile.instagramProfilePicture ? (
+                            <img src={profile.instagramProfilePicture} className="w-full h-full object-cover" />
+                          ) : (
+                            <InstagramIcon size={28} className="text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-black text-foreground truncate">@{profile.instagramUsername}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest truncate">Active Connection</span>
+                          </div>
                         </div>
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+                        className="w-full sm:w-auto shrink-0 text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
                         onClick={async () => {
                           console.log('🔄 Relink Instagram clicked. Fetching auth URL...');
                           try {
@@ -963,24 +965,26 @@ const DashboardSettings = () => {
                           }
                         }}
                       >
-                        <RefreshCw size={14} className="mr-2" /> Reconnect
+                        <RefreshCw size={14} className="mr-2 shrink-0" /> Reconnect
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
-                        <InstagramIcon size={28} className="text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-black text-foreground">Instagram Business Account</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
+                          <InstagramIcon size={28} className="text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-black text-foreground truncate">Instagram Business Account</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <div className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest truncate">Not Connected</span>
+                          </div>
                         </div>
                       </div>
                       <Button
                         size="sm"
-                        className="gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
+                        className="w-full sm:w-auto shrink-0 gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
                         onClick={() => window.location.href = '/setup'}
                       >
                         Connect
@@ -990,41 +994,45 @@ const DashboardSettings = () => {
 
                   {/* Gmail Connection */}
                   {profile.gmailIsConnected ? (
-                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-muted/25 border border-border/30">
-                        <GoogleIcon size={28} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-black text-foreground">{profile.gmailEmail}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-muted/25 border border-border/30">
+                          <GoogleIcon size={28} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-black text-foreground truncate">{profile.gmailEmail}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest truncate">Active Connection</span>
+                          </div>
                         </div>
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+                        className="w-full sm:w-auto shrink-0 text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
                         onClick={() => handleConnectGmail()}
                       >
-                        <RefreshCw size={14} className="mr-2" /> Reconnect
+                        <RefreshCw size={14} className="mr-2 shrink-0" /> Reconnect
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
-                        <GoogleIcon size={28} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-black text-foreground">Gmail / Email Connection</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
+                          <GoogleIcon size={28} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-black text-foreground truncate">Gmail / Email Connection</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <div className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest truncate">Not Connected</span>
+                          </div>
                         </div>
                       </div>
                       <Button
                         size="sm"
-                        className="gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
+                        className="w-full sm:w-auto shrink-0 gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
                         onClick={() => handleConnectGmail()}
                       >
                         Connect
@@ -1034,21 +1042,23 @@ const DashboardSettings = () => {
 
                   {/* WhatsApp Connection */}
                   {profile.whatsappIsConnected ? (
-                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/30 border border-border/50">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-tr from-[#128C7E] to-[#25D366] border border-green-500/30">
-                        <WhatsAppIcon size={28} className="text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-black text-foreground">{profile.whatsappNumber || 'Connected'}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Connection</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-tr from-[#128C7E] to-[#25D366] border border-green-500/30">
+                          <WhatsAppIcon size={28} className="text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-black text-foreground truncate">{profile.whatsappNumber || 'Connected'}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest truncate">Active Connection</span>
+                          </div>
                         </div>
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+                        className="w-full sm:w-auto shrink-0 text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
                         onClick={async () => {
                           const num = prompt("Step 1/3: Enter your WhatsApp Business Number to reconnect:", profile.whatsappNumber || '');
                           if (num) {
@@ -1085,24 +1095,26 @@ const DashboardSettings = () => {
                           }
                         }}
                       >
-                        <RefreshCw size={14} className="mr-2" /> Reconnect
+                        <RefreshCw size={14} className="mr-2 shrink-0" /> Reconnect
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
-                        <WhatsAppIcon size={28} className="text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-black text-foreground">WhatsApp Business API</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
+                          <WhatsAppIcon size={28} className="text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-black text-foreground truncate">WhatsApp Business API</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <div className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest truncate">Not Connected</span>
+                          </div>
                         </div>
                       </div>
                       <Button
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
+                        className="w-full sm:w-auto shrink-0 bg-green-600 hover:bg-green-700 text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
                         onClick={async () => {
                           const num = prompt("Step 1/3: Enter your WhatsApp Business Number to connect:");
                           if (num) {
