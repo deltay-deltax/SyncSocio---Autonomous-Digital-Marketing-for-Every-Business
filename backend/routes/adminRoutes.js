@@ -27,7 +27,9 @@ import {
   refundTransaction,
   getSystemHealth,
   getWaitlist,
-  deleteWaitlistEntry
+  deleteWaitlistEntry,
+  getMetaTesterRequests,
+  toggleMetaTesterApproval
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -81,5 +83,9 @@ router.get('/system/health', getSystemHealth);
 // ─── Waitlist ─────────────────────────────────────────────────────────────────
 router.get('/waitlist', getWaitlist);
 router.delete('/waitlist/:id', deleteWaitlistEntry);
+
+// ─── Meta Testers ─────────────────────────────────────────────────────────────
+router.get('/meta-testers', getMetaTesterRequests);
+router.put('/meta-testers/:id/approve', toggleMetaTesterApproval);
 
 export default router;
