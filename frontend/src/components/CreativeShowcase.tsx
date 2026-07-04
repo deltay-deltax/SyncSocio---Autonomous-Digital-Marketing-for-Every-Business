@@ -325,7 +325,7 @@ const CreativeShowcase = () => {
               </div>
 
               {/* RIGHT — hero + masonry */}
-              <div className="col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[220px] sm:auto-rows-[150px]">
+              <div className="col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[300px] sm:auto-rows-[150px]">
                 {active === "image" ? (
                   <>
                     <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(2)} />
