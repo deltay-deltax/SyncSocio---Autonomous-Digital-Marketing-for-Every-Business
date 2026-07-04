@@ -571,7 +571,27 @@ router.get('/feed', protect, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Feed Fetch Error:', error.response?.data || error.message);
+        const fbError = error.response?.data?.error;
+        console.error('Feed Fetch Error:', fbError?.message || error.message);
+
+        if (fbError) {
+            // Check for authentication, expired tokens, or missing permissions (code 190, 100, 10, etc.)
+            if (
+                fbError.code === 190 || // Invalid OAuth Access Token
+                fbError.code === 100 || // Unsupported get request / invalid parameter / missing permissions
+                fbError.code === 10 ||  // Permission denied
+                fbError.message?.toLowerCase().includes('permission') ||
+                fbError.message?.toLowerCase().includes('does not exist') ||
+                fbError.type === 'GraphMethodException'
+            ) {
+                return res.status(401).json({
+                    message: 'Instagram connection expired or invalid. Please reconnect.',
+                    requiresReconnect: true,
+                    reason: 'token_expired',
+                    fbError
+                });
+            }
+        }
         res.status(500).json({ message: 'Error fetching feed' });
     }
 });

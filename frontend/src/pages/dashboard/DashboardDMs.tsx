@@ -289,6 +289,7 @@ const DashboardDMs = () => {
   const [isLoadingFlows, setIsLoadingFlows] = useState(false);
   const [isSavingFlow, setIsSavingFlow] = useState(false);
   const [flowError, setFlowError] = useState<string | null>(null);
+  const [reconnectRequired, setReconnectRequired] = useState(false);
   const [automations, setAutomations] = useState<{
     storyMention: { active: boolean; message: string };
     defaultReply: { active: boolean; message: string };
@@ -314,6 +315,10 @@ const DashboardDMs = () => {
           }
         });
         const data = await res.json();
+        if (res.status === 401 && data.requiresReconnect) {
+          setReconnectRequired(true);
+          return;
+        }
         if (data.data) setMedia(data.data);
       } catch (err) {
         console.error('Failed to fetch media:', err);
@@ -612,11 +617,11 @@ const DashboardDMs = () => {
     }
   };
 
-  if (!isInstagramConnected) {
+  if (!isInstagramConnected || reconnectRequired) {
     return (
       <ConnectInstagramFallback 
-        title={`Connect Instagram for ${profile?.brandName || 'this Brand'}`}
-        description="To build auto-replies, keyword triggers, and comment campaigns, you need to connect your Instagram Business account to this specific brand profile."
+        title={reconnectRequired ? `Reconnect Instagram for ${profile?.brandName || 'this Brand'}` : `Connect Instagram for ${profile?.brandName || 'this Brand'}`}
+        description={reconnectRequired ? "Your Instagram integration has expired or lost required permissions. Please reconnect to restore DM Automation and keyword triggers." : "To build auto-replies, keyword triggers, and comment campaigns, you need to connect your Instagram Business account to this specific brand profile."}
       />
     );
   }
