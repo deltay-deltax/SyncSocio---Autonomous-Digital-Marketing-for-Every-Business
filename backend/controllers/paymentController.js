@@ -131,10 +131,11 @@ export const verifyPayment = async (req, res) => {
         await user.save();
 
         // ── Send invoice email (non-blocking) ──────────────────────────
+        const invoiceEmail = billingAddress?.email || user.email;
         sendInvoiceEmail({
-          to: user.email,
-          userName: user.name || user.email,
-          userEmail: user.email,
+          to: invoiceEmail,
+          userName: billingAddress?.fullName || user.name || user.email,
+          userEmail: invoiceEmail,
           billingAddress: user.billingAddress || billingAddress || {},
           transactionType: transaction.type,
           planName: transaction.plan || '',
