@@ -8,6 +8,7 @@ import ApiLog from '../models/ApiLog.js';
 import DeletedUserLog from '../models/DeletedUserLog.js';
 import StrategyCreative from '../models/StrategyCreative.js';
 import VisitorLog from '../models/VisitorLog.js';
+import MetaTester from '../models/MetaTester.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -875,6 +876,81 @@ export const toggleCouponStatus = async (req, res) => {
     return res.status(200).json({ success: true, coupon });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to toggle coupon' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// META TESTERS
+// ─────────────────────────────────────────────────────────────────────────────
+export const getMetaTesterRequests = async (req, res) => {
+  try {
+    const search = req.query.search || '';
+    let query = {};
+    if (search) {
+      // Find matching users
+      const users = await User.find({
+        $or: [
+          { email: { $regex: search, $options: 'i' } },
+          { name: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id');
+      const userIds = users.map(u => u._id);
+
+      // Find matching brand profiles
+      const brands = await BrandProfile.find({
+        brandName: { $regex: search, $options: 'i' }
+      }).select('_id');
+      const brandIds = brands.map(b => b._id);
+
+      query = {
+        $or: [
+          { igHandle: { $regex: search, $options: 'i' } },
+          { userId: { $in: userIds } },
+          { brandId: { $in: brandIds } }
+        ]
+      };
+    }
+    const entries = await MetaTester.find(query)
+      .populate('brandId', 'brandName')
+      .populate('userId', 'email name')
+      .sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, entries, total: entries.length });
+  } catch (error) {
+    console.error('Error fetching meta testers:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch meta testers' });
+  }
+};
+
+export const toggleMetaTesterApproval = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approved } = req.body;
+
+    const testerRequest = await MetaTester.findById(id);
+    if (!testerRequest) {
+      return res.status(404).json({ success: false, message: 'Tester request not found' });
+    }
+
+    testerRequest.status = approved ? 'approved' : 'pending';
+    await testerRequest.save();
+
+    // Update BrandProfile
+    let brandProfile;
+    if (testerRequest.brandId) {
+      brandProfile = await BrandProfile.findById(testerRequest.brandId);
+    } else {
+      brandProfile = await BrandProfile.findOne({ user: testerRequest.userId });
+    }
+
+    if (brandProfile) {
+      brandProfile.isTesterEnabled = approved;
+      await brandProfile.save();
+    }
+
+    return res.status(200).json({ success: true, message: `Tester request ${approved ? 'approved' : 'reset to pending'}` });
+  } catch (error) {
+    console.error('Error toggling meta tester approval:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update approval status' });
   }
 };
 
