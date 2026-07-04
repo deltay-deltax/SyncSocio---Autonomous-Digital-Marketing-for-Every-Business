@@ -10,6 +10,7 @@ import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
 import SystemHealth from './pages/SystemHealth';
 import Waitlist from './pages/Waitlist';
+import Testers from './pages/Testers';
 import './App.css';
 
 // Protected Route for Admin
@@ -39,6 +40,7 @@ function App() {
             <Route path="transactions" element={<Transactions />} />
             <Route path="system-health" element={<SystemHealth />} />
             <Route path="waitlist" element={<Waitlist />} />
+            <Route path="testers" element={<Testers />} />
           </Route>
         </Route>
 

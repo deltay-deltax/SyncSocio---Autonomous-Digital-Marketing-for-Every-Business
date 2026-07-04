@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Ticket, LogOut, Briefcase, BarChart3, ReceiptText, Activity, ClipboardList, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Ticket, LogOut, Briefcase, BarChart3, ReceiptText, Activity, ClipboardList, Menu, X, ShieldCheck } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/coupons', icon: Ticket, label: 'Coupons' },
   { to: '/system-health', icon: Activity, label: 'System Health' },
   { to: '/waitlist', icon: ClipboardList, label: 'Waitlist' },
+  { to: '/testers', icon: ShieldCheck, label: 'Tester' },
 ];
 
 export default function Layout() {

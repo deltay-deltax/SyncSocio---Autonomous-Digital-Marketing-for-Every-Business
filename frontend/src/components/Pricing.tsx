@@ -10,7 +10,7 @@ const plans = [
     basePrice: 599,
     originalPrice: 999,
     period: "/month",
-    description: "Ideal for businesses getting started with visual marketing.",
+    description: "For small businesses, local brands, SaaS startups, and service companies getting started with AI-powered content.",
     features: [
       "200 credits/month",
       "1 active brand profile",
@@ -31,7 +31,7 @@ const plans = [
     basePrice: 1899,
     originalPrice: 2999,
     period: "/month",
-    description: "For brands ready to automate and dominate socials.",
+    description: "For growing D2C and ecommerce brands ready to scale content, automate campaigns, and generate videos — all from one platform.",
     features: [
       "700 credits/month",
       "2 brand profiles",
