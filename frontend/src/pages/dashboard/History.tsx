@@ -282,27 +282,27 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
 
         {/* Content Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-lg", meta.tint)}>
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5">
+            <div className={cn("flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0", meta.tint)}>
                <Icon size={10} />
-               <span className="text-[9px] font-black uppercase tracking-widest">{meta.label}</span>
+               <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">{meta.label}</span>
             </div>
             {isFailed ? (
-               <Badge className="bg-rose-50 text-rose-600 border-0 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg">
+               <Badge className="bg-rose-50 text-rose-600 border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
                  Failed
                </Badge>
             ) : scheduled ? (
-              <Badge className="bg-primary/10 text-primary border-0 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg">
-                Scheduled
-              </Badge>
+               <Badge className="bg-primary/10 text-primary border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
+                 Scheduled
+               </Badge>
             ) : (
-              <Badge className="bg-emerald-50 text-emerald-600 border-0 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg">
-                Published
-              </Badge>
+               <Badge className="bg-emerald-50 text-emerald-600 border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
+                 Published
+               </Badge>
             )}
 
             {/* Platform Icons */}
-            <div className="flex items-center gap-1.5 ml-auto">
+            <div className="flex items-center gap-1 sm:gap-1.5 ml-auto shrink-0">
               {entry.platforms?.instagram !== false && (
                 <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
                   <InstagramIcon size={12} />

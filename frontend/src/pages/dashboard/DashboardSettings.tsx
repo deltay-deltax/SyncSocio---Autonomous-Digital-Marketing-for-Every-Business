@@ -886,10 +886,10 @@ const DashboardSettings = () => {
               </Card>
 
               {/* Spacer to prevent content overlap */}
-              <div className="h-20" />
+              <div className="h-28" />
 
               {/* Fixed save */}
-              <div className="fixed bottom-[73px] lg:bottom-0 left-0 lg:left-64 right-0 z-40 flex items-center justify-between gap-3 border-t border-border bg-background/95 backdrop-blur-xl px-6 py-4 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
+              <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-40 flex items-center justify-between gap-3 border-t border-border bg-background/95 backdrop-blur-xl px-4 sm:px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:pb-4 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
                     <Sparkles size={13} className="text-white" />
@@ -902,7 +902,7 @@ const DashboardSettings = () => {
                 <Button
                   onClick={handleUpdate}
                   disabled={updating}
-                  className="bg-primary text-primary-foreground border-0 text-xs shrink-0 font-black uppercase tracking-widest h-10 px-5 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all"
+                  className="bg-primary text-primary-foreground border-0 text-xs shrink-0 font-black uppercase tracking-widest h-10 px-4 sm:px-5 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all"
                 >
                   <Check size={12} className="mr-1" /> {updating ? 'Updating...' : 'Save Changes'}
                 </Button>
