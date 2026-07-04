@@ -392,7 +392,7 @@ const AssetLibrary = () => {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide w-full pb-2 scroll-smooth select-none shrink-0">
         {(['all', 'image', 'carousel', 'video', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
           const label = f === 'scheduled' ? 'Scheduled & Posted' : f;
@@ -401,7 +401,7 @@ const AssetLibrary = () => {
               key={f}
               onClick={() => setFilter(f)}
               className={cn(
-                'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition capitalize',
+                'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition capitalize shrink-0',
                 filter === f
                   ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
                   : 'bg-card border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
@@ -434,7 +434,7 @@ const AssetLibrary = () => {
             }}
             variant={selectionMode ? "destructive" : "default"}
             className={cn(
-              "ml-auto flex items-center gap-1.5 h-9 rounded-xl text-xs font-semibold px-3.5",
+              "ml-auto flex items-center gap-1.5 h-9 rounded-xl text-xs font-semibold px-3.5 shrink-0",
               !selectionMode && "bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20"
             )}
           >
@@ -445,7 +445,7 @@ const AssetLibrary = () => {
         <button
           onClick={fetchAssets}
           disabled={loading}
-          className={cn("p-2 rounded-xl text-muted-foreground hover:bg-muted transition", assets.length === 0 && "ml-auto", loading && "opacity-50 cursor-not-allowed")}
+          className={cn("p-2 rounded-xl text-muted-foreground hover:bg-muted transition shrink-0", assets.length === 0 && "ml-auto", loading && "opacity-50 cursor-not-allowed")}
           title="Refresh"
         >
           <RefreshCw size={14} className={cn(loading && "animate-spin text-primary")} />
