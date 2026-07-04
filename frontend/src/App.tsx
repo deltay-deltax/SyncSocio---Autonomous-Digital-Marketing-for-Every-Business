@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useCanonical } from './hooks/useCanonical';
 import Index from './pages/LandingPage';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
@@ -36,6 +37,12 @@ import CreditTopup from './pages/dashboard/CreditTopup';
 import DashboardBilling from './pages/dashboard/DashboardBilling';
 import { Toaster } from './components/ui/toaster';
 
+// Thin component to call useCanonical inside BrowserRouter context
+function CanonicalUpdater() {
+  useCanonical();
+  return null;
+}
+
 function App() {
   useEffect(() => {
     // Clear out any old bloated localStorage caches that were causing QuotaExceededError
@@ -71,6 +78,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <CanonicalUpdater />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/onboarding" element={<Onboarding />} />
