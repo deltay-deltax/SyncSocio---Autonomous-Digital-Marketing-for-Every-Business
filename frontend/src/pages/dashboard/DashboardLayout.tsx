@@ -89,10 +89,10 @@ const DashboardLayout = () => {
 
   const startBackgroundGeneration = async (payload: any, creditCost: number, creditReason: string, mode: any) => {
     const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const title = mode === 'all_in_one' ? 'All-in-One Pack' : 
-                  mode === 'whatsapp' ? 'WhatsApp Blast' : 
-                  mode === 'email' ? 'Email Campaign' : 
-                  `${payload.count || 1} ${mode || 'custom'} generation(s)`;
+    const title = mode === 'all_in_one' ? 'All-in-One Pack' :
+      mode === 'whatsapp' ? 'WhatsApp Blast' :
+        mode === 'email' ? 'Email Campaign' :
+          `${payload.count || 1} ${mode || 'custom'} generation(s)`;
 
     const newTask: BgTask = {
       id: taskId,
@@ -126,10 +126,10 @@ const DashboardLayout = () => {
         const posts = data.posts || [];
 
         // Verify if any post failed (image/video missing or contains error message)
-        const failedPost = posts.find((p: any) => 
-          p.error || 
-          (p.type === 'video' && !p.url) || 
-          (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
+        const failedPost = posts.find((p: any) =>
+          p.error ||
+          (p.type === 'video' && !p.url) ||
+          (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) ||
           (p.type !== 'video' && p.type !== 'carousel' && !p.image)
         );
         if (failedPost) {
@@ -180,7 +180,7 @@ const DashboardLayout = () => {
 
   const startBackgroundAllInOne = async (requests: any[], creditCost: number, creditReason: string) => {
     const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    
+
     const newTask: BgTask = {
       id: taskId,
       title: 'All-in-One Package',
@@ -224,10 +224,10 @@ const DashboardLayout = () => {
         });
 
         // Verify if any post failed
-        const failedPost = allPosts.find((p: any) => 
-          p.error || 
-          (p.type === 'video' && !p.url) || 
-          (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) || 
+        const failedPost = allPosts.find((p: any) =>
+          p.error ||
+          (p.type === 'video' && !p.url) ||
+          (p.type === 'carousel' && (!p.slides || p.slides.length === 0)) ||
           (p.type !== 'video' && p.type !== 'carousel' && !p.image)
         );
         if (failedPost) {
@@ -277,11 +277,11 @@ const DashboardLayout = () => {
   };
 
   const startBackgroundEdit = async (
-    previewPost: any, 
-    previewIndex: number, 
+    previewPost: any,
+    previewIndex: number,
     previewSlide: number,
-    fullMediaSrc: string, 
-    editInstruction: string, 
+    fullMediaSrc: string,
+    editInstruction: string,
     aspect: string
   ) => {
     const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -339,7 +339,7 @@ const DashboardLayout = () => {
             updatedPost.image = data.image;
           }
 
-          setBackgroundTasks(prev => prev.map(t => 
+          setBackgroundTasks(prev => prev.map(t =>
             t.id === taskId ? { ...t, status: 'success', posts: [previewPost, updatedPost] } : t
           ));
         } else {
@@ -347,12 +347,12 @@ const DashboardLayout = () => {
         }
       } catch (err: any) {
         console.error('[BgEdit] failed:', err);
-        setBackgroundTasks(prev => prev.map(t => 
+        setBackgroundTasks(prev => prev.map(t =>
           t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t
         ));
       }
     })();
-    
+
     return taskId;
   };
 
@@ -379,7 +379,7 @@ const DashboardLayout = () => {
       try {
         const token = localStorage.getItem('token');
         const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        
+
         const res = await fetch(`${API_BASE}/posts/smart-schedule`, {
           method: 'POST',
           headers: {
@@ -402,7 +402,7 @@ const DashboardLayout = () => {
 
         // Complete the task
         setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'success' } : t));
-        
+
         toast({
           title: isImmediate ? 'Posts published! 🚀' : 'Posts scheduled! 📅',
           description: `Successfully processed ${postIds.length} post(s).`,
@@ -421,7 +421,7 @@ const DashboardLayout = () => {
         });
       }
     })();
-    
+
     return taskId;
   };
 
@@ -470,7 +470,7 @@ const DashboardLayout = () => {
   useEffect(() => {
     const handleOpenModal = () => setIsCreditsModalOpen(true);
     window.addEventListener('open-credits-modal', handleOpenModal);
-    
+
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target && target.textContent && target.textContent.trim().toLowerCase() === 'what are credits?') {
@@ -547,15 +547,15 @@ const DashboardLayout = () => {
         const token = localStorage.getItem('token');
         // Fetch full history and filter locally (more reliable)
         const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/posts/history`;
-        
+
         const res = await fetch(url, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (res.ok) {
           const data = await res.json();
           const now = new Date();
-          
+
           // Filter for upcoming posts
           const scheduled = data
             .filter((i: any) => {
@@ -678,7 +678,7 @@ const DashboardLayout = () => {
           />
           <div className="flex flex-col">
             <span className="font-display text-2xl font-bold tracking-tight text-foreground leading-none">SyncSocio</span>
-            <span className="text-[8px] font-bold text-primary tracking-[0.2em] leading-none uppercase mt-1">Agent as a Service</span>
+
           </div>
         </div>
       </div>
@@ -687,17 +687,17 @@ const DashboardLayout = () => {
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
         {navItems.map((item) => {
           let itemPath = item.path;
-          
+
           const isHome = item.path === '/dashboard';
-          const isActive = isHome 
-            ? location.pathname === '/dashboard' 
+          const isActive = isHome
+            ? location.pathname === '/dashboard'
             : location.pathname.startsWith(item.path);
 
           const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
           const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
           const isElite = planName.includes('elite');
-          const hasDMAutomationAccess = 
-            !isPlanExpired && 
+          const hasDMAutomationAccess =
+            !isPlanExpired &&
             (isElite || profile?.DM_Automation_Service === true);
           const isLocked = item.label === 'DM Automation' && !hasDMAutomationAccess;
 
@@ -799,7 +799,7 @@ const DashboardLayout = () => {
         {/* HEADER */}
         <header className="h-16 border-b border-border/50 bg-white/50 backdrop-blur-sm px-6 flex items-center justify-between relative z-30 shrink-0">
           {showRelinkSuccess && (
-            <motion.div 
+            <motion.div
               initial={{ y: -50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               className="absolute top-full left-0 right-0 h-10 bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] shadow-lg z-50"
@@ -820,7 +820,7 @@ const DashboardLayout = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <BackgroundGenerationsPopover 
+            <BackgroundGenerationsPopover
               tasks={backgroundTasks}
               onView={viewCompletedTask}
               onRemove={removeTask}
@@ -851,20 +851,18 @@ const DashboardLayout = () => {
             {/* ── Credits Badge ──────────────────────────────── */}
             {credits !== null && (
               <div
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${
-                  credits < 50
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${credits < 50
                     ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
                     : credits < 200
-                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
-                    : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700'
-                } ${creditsAnim ? 'scale-110' : 'scale-100'}`}
+                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                      : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700'
+                  } ${creditsAnim ? 'scale-110' : 'scale-100'}`}
                 title={`${credits} credits remaining`}
               >
                 <Zap
                   size={11}
-                  className={`fill-current shrink-0 ${
-                    credits < 50 ? 'text-rose-500' : credits < 200 ? 'text-amber-500' : 'text-violet-500'
-                  }`}
+                  className={`fill-current shrink-0 ${credits < 50 ? 'text-rose-500' : credits < 200 ? 'text-amber-500' : 'text-violet-500'
+                    }`}
                 />
                 <span className="text-[10px] font-black uppercase tracking-widest">
                   {credits.toLocaleString()} <span className="hidden sm:inline opacity-60 font-bold normal-case tracking-normal">credits</span>
@@ -901,7 +899,7 @@ const DashboardLayout = () => {
           <div className="max-w-6xl mx-auto">
             <AnimatePresence>
               {showRelinkSuccess && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -20, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -20, height: 0 }}
@@ -925,9 +923,9 @@ const DashboardLayout = () => {
               )}
             </AnimatePresence>
 
-            <Outlet context={{ 
-              profile, 
-              setProfile, 
+            <Outlet context={{
+              profile,
+              setProfile,
               setShowNotifications,
               backgroundTasks,
               viewingTask,
@@ -971,7 +969,7 @@ const DashboardLayout = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   {unreadCount > 0 && (
-                    <button 
+                    <button
                       onClick={markAllAsRead}
                       className="text-[10px] font-bold text-primary uppercase tracking-wider hover:underline mr-2"
                     >
@@ -996,8 +994,8 @@ const DashboardLayout = () => {
                   notifications.map((n) => {
                     const Icon = getIcon(n.type);
                     return (
-                      <div 
-                        key={n._id} 
+                      <div
+                        key={n._id}
                         onClick={() => !n.isRead && markAsRead(n._id)}
                         className={cn(
                           "p-5 rounded-[2rem] border transition-all cursor-pointer group hover:border-primary/20",

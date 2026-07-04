@@ -258,9 +258,8 @@ export const getDashboardSummary = async (req, res) => {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const recentActivities = await AgentActivity.find({
       user: userId,
-      timestamp: { $gte: sevenDaysAgo },
-      message: /Spent \d+ credits/
-    });
+      timestamp: { $gte: sevenDaysAgo }
+    }).select('message');
 
     let creditsUsedLast7Days = 0;
     recentActivities.forEach(a => {

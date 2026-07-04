@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Image as ImageIcon, Layers, Video, Plus, Shuffle, Sparkles, ArrowLeft,
+  Image as ImageIcon, Layers, Video, Plus, Shuffle, Sparkles, ArrowLeft, ArrowRight,
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
@@ -287,6 +287,241 @@ async function getProductCache(key: string): Promise<any> {
     return new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
   } catch (e) { console.warn('[ProductCache] IDB get failed:', e); return null; }
 }
+
+type Studio = {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: React.ElementType;
+  iconTint: string;
+  iconBg: string;
+  tags: { label: string; tint: string }[];
+  cta: { label: string; tint: string };
+  to: string;
+  image: string;
+  featured?: boolean;
+  wide?: boolean;
+};
+
+const STUDIOS: Studio[] = [
+  {
+    id: "all_in_one",
+    title: "All In One",
+    subtitle: "Generate a complete marketing pack",
+    icon: Wand2,
+    iconTint: "text-indigo-600",
+    iconBg: "bg-indigo-100",
+    tags: [
+      { label: "Post", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
+      { label: "Video", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+      { label: "Carousel", tint: "bg-violet-50 text-violet-700 ring-violet-100" },
+      { label: "Email", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
+      { label: "+ More", tint: "bg-slate-50 text-slate-600 ring-slate-200" },
+    ],
+    cta: { label: "Generate Pack", tint: "text-indigo-600" },
+    to: "/dashboard?mode=all_in_one",
+    image: "/assets/Creatives_icon/studio-allinone.jpg",
+    featured: true,
+  },
+  {
+    id: "image",
+    title: "Image",
+    subtitle: "Single static post",
+    icon: ImageIcon,
+    iconTint: "text-blue-600",
+    iconBg: "bg-blue-100",
+    tags: [
+      { label: "Product", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
+      { label: "Quote", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+      { label: "Offer", tint: "bg-orange-50 text-orange-700 ring-orange-100" },
+    ],
+    cta: { label: "Start Creating", tint: "text-blue-600" },
+    to: "/dashboard?mode=image",
+    image: "/assets/Creatives_icon/studio-image.jpg",
+  },
+  {
+    id: "carousel",
+    title: "Carousel",
+    subtitle: "Multi-slide swipe storytelling",
+    icon: Layers,
+    iconTint: "text-violet-600",
+    iconBg: "bg-violet-100",
+    tags: [
+      { label: "Tips", tint: "bg-violet-50 text-violet-700 ring-violet-100" },
+      { label: "Guide", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
+      { label: "Story", tint: "bg-amber-50 text-amber-700 ring-amber-100" },
+    ],
+    cta: { label: "Build Carousel", tint: "text-violet-600" },
+    to: "/dashboard?mode=carousel",
+    image: "/assets/Creatives_icon/studio-carousel.jpg",
+  },
+  {
+    id: "video",
+    title: "Video",
+    subtitle: "Reel / motion post",
+    icon: Video,
+    iconTint: "text-emerald-600",
+    iconBg: "bg-emerald-100",
+    tags: [
+      { label: "Reels", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+      { label: "AI UGC", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
+      { label: "Motion", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
+    ],
+    cta: { label: "Create Video", tint: "text-emerald-600" },
+    to: "/dashboard?mode=video",
+    image: "/assets/Creatives_icon/studio-video.jpg",
+  },
+  {
+    id: "ecomm",
+    title: "E-Comm Listing",
+    subtitle: "Marketplace-ready creative",
+    icon: ShoppingBag,
+    iconTint: "text-orange-600",
+    iconBg: "bg-orange-100",
+    tags: [
+      { label: "Product", tint: "bg-orange-50 text-orange-700 ring-orange-100" },
+      { label: "Listing", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
+      { label: "Store", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+    ],
+    cta: { label: "Create Listing", tint: "text-orange-600" },
+    to: "/dashboard?mode=ecomm",
+    image: "/assets/Creatives_icon/studio-ecomm.jpg",
+  },
+  {
+    id: "festival",
+    title: "Festival",
+    subtitle: "Calendar-led campaigns",
+    icon: PartyPopper,
+    iconTint: "text-pink-600",
+    iconBg: "bg-pink-100",
+    tags: [
+      { label: "Diwali", tint: "bg-red-50 text-red-700 ring-red-100" },
+      { label: "Rakhi", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
+      { label: "Eid", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+      { label: "+ More", tint: "bg-slate-50 text-slate-600 ring-slate-200" },
+    ],
+    cta: { label: "Browse Festivals", tint: "text-pink-600" },
+    to: "/dashboard?mode=festival",
+    image: "/assets/Creatives_icon/studio-festival.jpg",
+  },
+  {
+    id: "whatsapp",
+    title: "WhatsApp Campaign",
+    subtitle: "Broadcast messages to your list",
+    icon: MessageSquare,
+    iconTint: "text-emerald-600",
+    iconBg: "bg-emerald-100",
+    tags: [
+      { label: "Promotion", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+      { label: "Offer", tint: "bg-orange-50 text-orange-700 ring-orange-100" },
+      { label: "Reminder", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
+    ],
+    cta: { label: "Create Campaign", tint: "text-emerald-600" },
+    to: "/dashboard?mode=whatsapp",
+    image: "/assets/Creatives_icon/studio-whatsapp.png",
+  },
+  {
+    id: "email",
+    title: "Email Campaign",
+    subtitle: "Newsletter & promo blast",
+    icon: Mail,
+    iconTint: "text-violet-600",
+    iconBg: "bg-violet-100",
+    tags: [
+      { label: "Newsletter", tint: "bg-violet-50 text-violet-700 ring-violet-100" },
+      { label: "Offer", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
+      { label: "Update", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
+    ],
+    cta: { label: "Design Email", tint: "text-violet-600" },
+    to: "/dashboard?mode=email",
+    image: "/assets/Creatives_icon/studio-email.jpg",
+  },
+];
+
+const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }> = ({ s, i, onPick }) => {
+  const Icon = s.icon;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: i * 0.04 }}
+      className={cn(s.wide && "md:col-span-3", !s.wide && "md:col-span-2")}
+    >
+      <button
+        onClick={() => onPick(s.id as Mode)}
+        className={cn(
+          "group relative flex w-full h-full text-left flex-col overflow-hidden rounded-3xl border bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant",
+          s.featured
+            ? "border-indigo-200 bg-gradient-to-br from-indigo-50/60 via-white to-white ring-1 ring-indigo-100"
+            : "border-border/60",
+        )}
+      >
+        <div className="grid grid-cols-[minmax(0,1fr)_140px] gap-4 md:grid-cols-[minmax(0,1fr)_180px] w-full h-full">
+          {/* Left */}
+          <div className="flex min-w-0 flex-col">
+            <div
+              className={cn(
+                "flex h-11 w-11 items-center justify-center rounded-2xl shadow-inner shrink-0",
+                s.iconBg,
+              )}
+            >
+              <Icon size={20} className={s.iconTint} />
+            </div>
+            <h3 className="mt-4 font-display text-lg font-black tracking-tight text-foreground">
+              {s.title}
+            </h3>
+            <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+              {s.subtitle}
+            </p>
+
+            <div className="mt-4 flex flex-wrap items-center gap-1.5">
+              {s.tags.map((t) => (
+                <span
+                  key={t.label}
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[10px] font-bold ring-1",
+                    t.tint,
+                  )}
+                >
+                  {t.label}
+                </span>
+              ))}
+            </div>
+
+            <div className="mt-auto pt-5">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[13px] font-bold",
+                  s.cta.tint,
+                )}
+              >
+                {s.cta.label}
+                <ArrowRight
+                  size={14}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </span>
+            </div>
+          </div>
+
+          {/* Right — visual */}
+          <div className="relative flex items-center justify-center">
+            <img
+              src={s.image}
+              alt={`${s.title} preview`}
+              loading="lazy"
+              className={cn(
+                "h-full w-full object-contain transition-transform duration-500",
+                s.id === "video" && "rotate-3",
+                "group-hover:scale-105",
+              )}
+            />
+          </div>
+        </div>
+      </button>
+    </motion.div>
+  );
+};
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
@@ -2235,68 +2470,39 @@ const DashboardStrategy = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   if (stage === 'pick') {
     return (
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-3">
-            <Wand2 size={12} className="text-primary" />
-            <span className="text-[11px] font-semibold text-primary">AI Content Studio</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-tight">
-            What do you want to generate today?
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1.5">Pick a format — SyncSocio opens a tailored brief for it.</p>
-        </div>
+      <div className="relative min-h-screen bg-gradient-hero">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-60" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visibleModes.map((m, i) => {
-            const isPremium = ['all_in_one', 'video', 'ecomm', 'whatsapp', 'email'].includes(m.id);
-            const isLocked = isPlanExpired || (isPremium && !isElite);
-            
-            return (
-              <motion.button
-                key={m.id}
-                onClick={() => handleModeClick(m.id)}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                whileHover={isLocked ? {} : { y: -3 }}
-                className={cn(
-                  "group relative p-6 rounded-2xl border border-border/60 bg-card text-left overflow-hidden hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all",
-                  isLocked && "opacity-75 cursor-pointer hover:border-border/60 hover:shadow-none"
-                )}
-              >
-                {!isLocked && (
-                  <div className={cn('absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity', m.accent)} />
-                )}
-                <div className="relative">
-                  <div className={cn(
-                    "w-12 h-12 rounded-2xl bg-muted text-foreground flex items-center justify-center mb-4 transition",
-                    !isLocked && "group-hover:bg-primary group-hover:text-primary-foreground"
-                  )}>
-                    <m.icon size={20} />
-                  </div>
-                  {isLocked && (
-                    <div className="absolute top-0 right-0 p-1 text-muted-foreground/60">
-                      <Lock size={14} />
-                    </div>
-                  )}
-                  <p className="text-base font-semibold text-foreground flex items-center gap-1.5">
-                    {m.label}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">{m.desc}</p>
-                  {!isLocked ? (
-                    <div className="flex items-center gap-1 mt-4 text-[11px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition">
-                      Open brief <span aria-hidden>→</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 mt-4 text-[11px] font-semibold text-muted-foreground">
-                      Locked <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted font-bold text-muted-foreground/80 uppercase">Premium</span>
-                    </div>
-                  )}
-                </div>
-              </motion.button>
-            );
-          })}
+        <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-16">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3.5 py-1.5 shadow-soft">
+              <Sparkles size={13} className="text-primary" />
+              <span className="text-[11px] font-bold tracking-tight text-primary">
+                AI Content Studio
+              </span>
+            </div>
+            <h1 className="mt-5 font-display text-4xl font-black tracking-tight text-foreground md:text-5xl">
+              What do you want to generate today?
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+              Pick a format — Velocity opens a tailored brief for it.
+            </p>
+          </motion.div>
+
+          {/* Studio grid — 6-col so wide cards can span 3 */}
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-6">
+            {STUDIOS.filter(s => {
+               if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
+               return true;
+            }).map((s, i) => (
+              <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} />
+            ))}
+          </div>
         </div>
       </div>
     );
