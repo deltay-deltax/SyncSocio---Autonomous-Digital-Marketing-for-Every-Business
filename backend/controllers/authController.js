@@ -110,7 +110,7 @@ export const signup = async (req, res) => {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedOtp = hashOtp(otp);
@@ -571,7 +571,7 @@ export const resetPassword = async (req, res) => {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
     user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
@@ -604,7 +604,7 @@ export const setPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
     user.password = hashedPassword;
     await user.save();
 
