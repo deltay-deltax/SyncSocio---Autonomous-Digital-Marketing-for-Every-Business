@@ -135,13 +135,10 @@ export const signup = async (req, res) => {
       });
     }
 
-    try {
-      await sendOtpEmail(user.email, user.name, otp);
-      console.log(`[DEV MODE] OTP for ${user.email} is ${otp}`);
-    } catch (mailError) {
-      console.error('OTP email send failed:', mailError);
-      return res.status(500).json({ message: 'Unable to send verification OTP. Please try again.' });
-    }
+    // Send OTP email asynchronously
+    sendOtpEmail(user.email, user.name, otp)
+      .then(() => console.log(`[DEV MODE] OTP for ${user.email} is ${otp}`))
+      .catch(mailError => console.error('OTP email send failed:', mailError));
 
     res.status(existingUser ? 200 : 201).json({
       message: 'OTP sent to your email. Please verify to complete signup.',
@@ -173,25 +170,21 @@ export const login = async (req, res) => {
       return res.status(403).json({ message: 'Please verify your email before logging in.' });
     }
 
-    // Send login notification email
-    try {
-      // TEMPORARY: Disabled for Render free tier - Now enabled
-      await sendLoginNotificationEmail({
-        to: user.email,
-        name: user.name,
-      });
-    } catch (mailError) {
+    // Send login notification email asynchronously
+    sendLoginNotificationEmail({
+      to: user.email,
+      name: user.name,
+    }).catch(mailError => {
       console.error('Login notification email failed:', mailError.message);
-      // Don't fail login if email fails
-    }
+    });
 
-    // Push notification to UI drawer
-    await createNotification(
+    // Push notification to UI drawer asynchronously
+    createNotification(
       user._id,
       'success',
       'Account Login',
       `Successful login detected from a new session.`
-    );
+    ).catch(err => console.error('Notification creation failed:', err));
 
     res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
@@ -413,18 +406,14 @@ export const verifyOtp = async (req, res) => {
     user.otpExpiry = undefined;
     await user.save();
 
-    // Send signup notification email
-    try {
-      // TEMPORARY: Disabled for Render free tier - Now Enabled
-      await sendSignupNotificationEmail({
-        to: user.email,
-        name: user.name,
-        provider: inferAuthProvider(user),
-      });
-    } catch (mailError) {
+    // Send signup notification email asynchronously
+    sendSignupNotificationEmail({
+      to: user.email,
+      name: user.name,
+      provider: inferAuthProvider(user),
+    }).catch(mailError => {
       console.error('Signup notification email failed:', mailError.message);
-      // Don't fail verification if email fails
-    }
+    });
 
     res.status(200).json({
       message: 'Email verified successfully',
@@ -460,13 +449,10 @@ export const resendOtp = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     await user.save();
 
-    try {
-      await sendOtpEmail(user.email, user.name, otp);
-      console.log(`[DEV MODE] Resent OTP for ${user.email} is ${otp}`);
-    } catch (mailError) {
-      console.error('OTP resend failed:', mailError);
-      return res.status(500).json({ message: 'Unable to resend OTP. Please try again.' });
-    }
+    // Send OTP email asynchronously
+    sendOtpEmail(user.email, user.name, otp)
+      .then(() => console.log(`[DEV MODE] Resent OTP for ${user.email} is ${otp}`))
+      .catch(mailError => console.error('OTP resend failed:', mailError));
 
     res.status(200).json({
       message: 'A new OTP has been sent to your email.',
@@ -532,8 +518,9 @@ export const forgotPassword = async (req, res) => {
         `,
       };
 
-      await sgMail.send(msg);
-      console.log(`Password reset email reliably sent to ${user.email} via SendGrid.`);
+      sgMail.send(msg)
+        .then(() => console.log(`Password reset email reliably sent to ${user.email} via SendGrid.`))
+        .catch(err => console.error('Password reset email failed:', err));
     } else {
       console.warn("SENDGRID_API_KEY is missing. Email skipped.");
     }

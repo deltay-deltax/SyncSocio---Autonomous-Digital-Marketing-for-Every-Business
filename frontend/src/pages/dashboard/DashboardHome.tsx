@@ -257,8 +257,8 @@ const DashboardHome = () => {
       {/* Two columns */}
       <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
         {/* Agent Activity */}
-        <motion.div className="lg:col-span-3" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="border-border/50 h-full flex flex-col">
+        <motion.div className="lg:col-span-3 h-fit" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card className="border-border/50 flex flex-col">
             <CardHeader className="pb-3 px-6 pt-6">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -267,7 +267,7 @@ const DashboardHome = () => {
                 <CardTitle className="text-base">Recent Agent Activity</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="px-6 pb-6 space-y-1 overflow-y-auto pr-2 scrollbar-hide flex-1">
+            <CardContent className="px-6 pb-6 space-y-1 overflow-y-auto pr-2 scrollbar-hide">
               {data.activities?.map((a: any, i: number) => (
                 <motion.div
                   key={i}

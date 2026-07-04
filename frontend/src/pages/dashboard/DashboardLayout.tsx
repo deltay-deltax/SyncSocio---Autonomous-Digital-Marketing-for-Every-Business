@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { CreditsModal } from '@/components/CreditsModal';
 import { BackgroundGenerationsPopover } from '@/components/BackgroundGenerationsPopover';
 import { useToast } from '@/hooks/use-toast';
+import { saveTasksToIDB, loadTasksFromIDB } from '@/lib/idb';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/dashboard' },
@@ -78,7 +79,36 @@ const DashboardLayout = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem('syncsocio_bg_tasks', JSON.stringify(backgroundTasks));
+    // Load heavy background tasks from IndexedDB on mount
+    loadTasksFromIDB().then((idbTasks: any[]) => {
+      if (idbTasks && idbTasks.length > 0) {
+        setBackgroundTasks(prev => {
+          const processed = idbTasks.map((t: BgTask) => 
+            t.status === 'generating' 
+              ? { ...t, status: 'error', error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
+              : t
+          );
+          const newTasksStarted = prev.filter(p => !processed.find((pt: any) => pt.id === p.id));
+          return [...newTasksStarted, ...processed];
+        });
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    try {
+      // Save lightweight metadata to localStorage for instant UI load
+      const lightweightTasks = backgroundTasks.map(t => ({
+        ...t,
+        posts: [] 
+      }));
+      localStorage.setItem('syncsocio_bg_tasks', JSON.stringify(lightweightTasks));
+      
+      // Save the heavy data (including base64 images) to IndexedDB
+      saveTasksToIDB(backgroundTasks);
+    } catch (err) {
+      console.warn('Could not save background tasks:', err);
+    }
     
     // Prevent accidental reload if there's an active generation
     const hasActiveGeneration = backgroundTasks.some(t => t.status === 'generating');
@@ -595,12 +625,12 @@ const DashboardLayout = () => {
           const scheduled = data
             .filter((i: any) => {
               if (i.status === 'failed') return false;
-              if (i.status === 'scheduled') return true;
-              return i.scheduledAt && new Date(i.scheduledAt) > now;
+              if (!i.scheduledAt) return false;
+              return new Date(i.scheduledAt) > now;
             })
             .sort((a: any, b: any) => {
-              const dateA = new Date(a.scheduledAt || a.createdAt).getTime();
-              const dateB = new Date(b.scheduledAt || b.createdAt).getTime();
+              const dateA = new Date(a.scheduledAt).getTime();
+              const dateB = new Date(b.scheduledAt).getTime();
               return dateA - dateB; // Closest first
             });
 

@@ -248,6 +248,8 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
   const isFailed = entry.status === 'failed';
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const thumbUrl = entry.permanentUrl || (type === 'carousel' ? entry.slides?.[0]?.image : null);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -258,15 +260,15 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
         {/* Media Thumbnail - clickable for preview */}
         <div 
           onClick={() => {
-            if (entry.permanentUrl) setPreviewUrl(entry.permanentUrl);
+            if (thumbUrl) setPreviewUrl(thumbUrl);
           }}
-          className={cn("w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0 relative", entry.permanentUrl && "cursor-zoom-in")}
+          className={cn("w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0 relative", thumbUrl && "cursor-zoom-in")}
         >
-          {entry.permanentUrl ? (
+          {thumbUrl ? (
             type === 'reel' ? (
-              <video src={entry.permanentUrl} className="w-full h-full object-cover" muted />
+              <video src={thumbUrl} className="w-full h-full object-cover" muted />
             ) : (
-              <img src={entry.permanentUrl} className="w-full h-full object-cover" />
+              <img src={thumbUrl} className="w-full h-full object-cover" />
             )
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-300">
