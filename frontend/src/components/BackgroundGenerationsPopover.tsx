@@ -8,9 +8,10 @@ interface Props {
   tasks: BgTask[];
   onView: (id: string) => void;
   onRemove: (id: string) => void;
+  onClearAll?: () => void;
 }
 
-export const BackgroundGenerationsPopover: React.FC<Props> = ({ tasks, onView, onRemove }) => {
+export const BackgroundGenerationsPopover: React.FC<Props> = ({ tasks, onView, onRemove, onClearAll }) => {
   const [isOpen, setIsOpen] = useState(false);
   const activeTasks = tasks.filter(t => t.status === 'generating');
   const completedTasks = tasks.filter(t => t.status === 'success');
@@ -49,9 +50,23 @@ export const BackgroundGenerationsPopover: React.FC<Props> = ({ tasks, onView, o
       <PopoverContent align="end" className="w-80 p-0 overflow-hidden shadow-2xl border-border/50">
         <div className="bg-muted/30 px-4 py-3 border-b border-border/50 flex items-center justify-between">
           <h3 className="text-xs font-black uppercase tracking-widest text-foreground">Generation Queue</h3>
-          {tasks.length > 0 && (
-            <span className="text-[10px] font-bold text-muted-foreground">{tasks.length} total</span>
-          )}
+          <div className="flex items-center gap-3">
+            {tasks.length > 0 && (
+              <span className="text-[10px] font-bold text-muted-foreground">{tasks.length} total</span>
+            )}
+            {onClearAll && (completedTasks.length > 0 || tasks.some(t => t.status === 'error')) && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClearAll();
+                  if (activeTasks.length === 0) setIsOpen(false);
+                }}
+                className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wide"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
         </div>
         
         <div className="max-h-[300px] overflow-y-auto">

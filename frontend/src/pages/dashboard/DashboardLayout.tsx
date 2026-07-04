@@ -152,6 +152,13 @@ const DashboardLayout = () => {
     }
   };
 
+  const clearAllTasks = () => {
+    setBackgroundTasks(prev => prev.filter(t => t.status === 'generating'));
+    if (viewingTask?.status !== 'generating') {
+      setViewingTask(null);
+    }
+  };
+
   const startBackgroundGeneration = async (payload: any, creditCost: number, creditReason: string, mode: any) => {
     const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const title = mode === 'all_in_one' ? 'All-in-One Pack' :
@@ -889,6 +896,7 @@ const DashboardLayout = () => {
               tasks={backgroundTasks}
               onView={viewCompletedTask}
               onRemove={removeTask}
+              onClearAll={clearAllTasks}
             />
 
             {brands.length > 0 && (
