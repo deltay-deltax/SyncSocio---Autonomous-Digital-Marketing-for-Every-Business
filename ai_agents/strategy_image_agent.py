@@ -879,6 +879,11 @@ def generate_strategy_images(
                 res_r = _resolve_ref_image(r)
                 if res_r and res_r not in task_refs:
                     task_refs.append(res_r)
+            
+            if brand_doc.get("logo"):
+                res_logo = _resolve_ref_image(brand_doc.get("logo"))
+                if res_logo and res_logo not in task_refs:
+                    task_refs.append(res_logo)
 
             prompt, caption = build_ecomm_image_prompt(
                 brand_doc=brand_doc,
@@ -979,6 +984,11 @@ def generate_strategy_images(
                 res_r = _resolve_ref_image(r)
                 if res_r and res_r not in task_refs:
                     task_refs.append(res_r)
+            
+            if brand_doc.get("logo"):
+                res_logo = _resolve_ref_image(brand_doc.get("logo"))
+                if res_logo and res_logo not in task_refs:
+                    task_refs.append(res_logo)
 
             t_id = _template_for(i)
             c_dir = None
@@ -1094,6 +1104,11 @@ def generate_strategy_images(
                 res_r = _resolve_ref_image(r)
                 if res_r and res_r not in task_refs:
                     task_refs.append(res_r)
+            
+            if brand_doc.get("logo"):
+                res_logo = _resolve_ref_image(brand_doc.get("logo"))
+                if res_logo and res_logo not in task_refs:
+                    task_refs.append(res_logo)
                 
             # 1. Draft the text via LLM
             print(f"[StrategyAgent] ✍️ Drafting {slide_count} slides in {language} for carousel {index+1}...")

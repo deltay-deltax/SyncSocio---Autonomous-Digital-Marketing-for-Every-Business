@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -108,6 +109,14 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: any; label: string; valu
 );
 
 const DashboardSettings = () => {
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; message: string; title?: string; onConfirm: () => void } | null>(null);
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; message: string; title: string; type: 'success' | 'error' | 'info'; onClose?: () => void } | null>(null);
+
+  const { profile, setProfile, setShowNotifications } = useOutletContext<{
+    profile: any;
+    setProfile: (p: any) => void;
+    setShowNotifications?: (show: boolean) => void;
+  }>();
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Brand Profile');
@@ -236,14 +245,20 @@ const DashboardSettings = () => {
 
   const handleRescrape = async () => {
     if (!formData.website.trim()) {
-      alert('Please enter a website URL to rescrape.');
+      setAlertModal({ isOpen: true, message: 'Please enter a website URL to rescrape.', title: 'Missing URL', type: 'error' });
       return;
     }
 
-    if (!confirm(`This will scrape ${formData.website} for new details and import newer products. Do you want to proceed?`)) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      message: `This will scrape ${formData.website} for new details and import newer products. Do you want to proceed?`,
+      title: 'Scrape Website',
+      onConfirm: executeRescrape
+    });
+  };
 
+  const executeRescrape = async () => {
+    setConfirmModal(null);
     setRescraping(true);
     try {
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
@@ -592,12 +607,15 @@ const DashboardSettings = () => {
       const updatedProfile = await res.json();
       setProfile(updatedProfile);
       localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
-      alert('✅ Brand Identity updated successfully! The AI Agent has been notified.');
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      setAlertModal({
+        isOpen: true,
+        title: 'Brand Identity',
+        message: 'Brand Identity updated successfully! The AI Agent has been notified.',
+        type: 'success',
+        onClose: () => window.location.reload()
+      });
     } catch (err: any) {
-      alert('Error: ' + err.message);
+      setAlertModal({ isOpen: true, message: 'Error: ' + err.message, title: 'Update Failed', type: 'error' });
     } finally {
       setUpdating(false);
     }
@@ -1453,24 +1471,30 @@ const DashboardSettings = () => {
                   size="sm"
                   className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
                   onClick={async () => {
-                    if (confirm("⚠️ CRITICAL ACTION: This will permanently delete your account, your brand identity, and ALL metrics. This cannot be undone. Are you absolutely sure?")) {
-                      try {
-                        const token = localStorage.getItem('token');
-                        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                        const res = await fetch(`${apiBase}/profile/terminate`, {
-                          method: 'DELETE',
-                          headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (res.ok) {
-                          localStorage.clear();
-                          window.location.href = '/';
-                        } else {
-                          alert("Failed to terminate account. Please try again.");
+                    setConfirmModal({
+                      isOpen: true,
+                      title: 'CRITICAL ACTION',
+                      message: 'This will permanently delete your account, your brand identity, and ALL metrics. This cannot be undone. Are you absolutely sure?',
+                      onConfirm: async () => {
+                        setConfirmModal(null);
+                        try {
+                          const token = localStorage.getItem('token');
+                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                          const res = await fetch(`${apiBase}/profile/terminate`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          });
+                          if (res.ok) {
+                            localStorage.clear();
+                            window.location.href = '/';
+                          } else {
+                            setAlertModal({ isOpen: true, title: 'Termination Failed', message: 'Failed to terminate account. Please try again.', type: 'error' });
+                          }
+                        } catch (err) {
+                          console.error("Termination failed:", err);
                         }
-                      } catch (err) {
-                        console.error("Termination failed:", err);
                       }
-                    }
+                    });
                   }}
                 >
                   Erase My Entity
@@ -1504,6 +1528,105 @@ const DashboardSettings = () => {
         )}
       </div>
     </div>
+
+    <AnimatePresence>
+      {confirmModal && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setConfirmModal(null)}
+            className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-2xl shadow-primary/10 overflow-hidden"
+          >
+            <div className="p-6 border-b border-border/40">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-primary/10 text-primary">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    {confirmModal.title || 'Are you sure?'}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-widest font-black">Confirmation Required</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-sm font-medium text-foreground leading-relaxed">{confirmModal.message}</p>
+            </div>
+            <div className="p-4 bg-muted/30 flex gap-3 justify-end border-t border-border/40">
+              <Button variant="outline" onClick={() => setConfirmModal(null)} className="rounded-xl h-10 px-6 font-bold text-xs uppercase tracking-wider">Cancel</Button>
+              <Button onClick={confirmModal.onConfirm} className="rounded-xl h-10 px-6 font-bold text-xs uppercase tracking-wider bg-primary hover:bg-primary/90 text-primary-foreground">Proceed</Button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {alertModal && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              if (alertModal.onClose) alertModal.onClose();
+              setAlertModal(null);
+            }}
+            className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-2xl shadow-primary/10 overflow-hidden"
+          >
+            <div className="p-6 border-b border-border/40">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-10 h-10 rounded-2xl flex items-center justify-center",
+                  alertModal.type === 'success' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                )}>
+                  {alertModal.type === 'success' ? <CheckCircle2 size={20} /> : <X size={20} />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    {alertModal.title}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-widest font-black">System Notification</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-sm font-medium text-foreground leading-relaxed">{alertModal.message}</p>
+            </div>
+            <div className="p-4 bg-muted/30 flex justify-end border-t border-border/40">
+              <Button 
+                onClick={() => {
+                  if (alertModal.onClose) alertModal.onClose();
+                  setAlertModal(null);
+                }}
+                className={cn(
+                  "rounded-xl h-10 px-8 font-bold text-xs uppercase tracking-wider text-white",
+                  alertModal.type === 'success' ? "bg-emerald-500 hover:bg-emerald-600" : "bg-rose-500 hover:bg-rose-600"
+                )}
+              >
+                Okay
+              </Button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+
     </div >
   );
 };

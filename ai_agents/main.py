@@ -1720,8 +1720,10 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             print(f"[StrategyImages] 🤖 SaaS mode active for '{brand_doc.get('brandName')}' [{business_category}]")
 
 
+            import asyncio
             # Route to SaaS image agent
-            posts = generate_saas_strategy_images(
+            posts = await asyncio.to_thread(
+                generate_saas_strategy_images,
                 brand_doc=brand_doc,
                 layout=request.layout,
                 count=request.count,
@@ -1737,8 +1739,10 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_script=request.videoScript,
             )
         else:
+            import asyncio
             # 3. Standard D2C route — run the original strategy image agent
-            posts = generate_strategy_images(
+            posts = await asyncio.to_thread(
+                generate_strategy_images,
                 brand_doc=brand_doc,
                 layout=request.layout,
                 count=request.count,
