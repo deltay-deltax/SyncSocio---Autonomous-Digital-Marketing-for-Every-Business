@@ -207,8 +207,13 @@ export const recommendSchedulePosts = async (req, res) => {
     const creatives = await StrategyCreative.find({
       _id: { $in: postIds },
       user: userId,
-      status: 'hearted'
+      status: { $in: ['hearted', 'scheduled', 'posted'] }
     });
+    console.log('[DEBUG] recommendSchedule incoming postIds:', postIds);
+    console.log('[DEBUG] recommendSchedule fetched creatives count:', creatives.length);
+    if (creatives.length > 0) {
+       console.log('[DEBUG] First creative fetched:', creatives[0]._id, creatives[0].status, creatives[0].user);
+    }
 
     if (creatives.length === 0) {
       return res.status(400).json({ message: 'No valid creatives found to recommend schedules for.' });
@@ -300,7 +305,7 @@ export const smartSchedulePosts = async (req, res) => {
     const creatives = await StrategyCreative.find({
       _id: { $in: postIds },
       user: userId,
-      status: 'hearted'
+      status: { $in: ['hearted', 'scheduled', 'posted'] }
     });
 
     if (creatives.length === 0) {

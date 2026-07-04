@@ -301,6 +301,7 @@ type Studio = {
   image: string;
   featured?: boolean;
   wide?: boolean;
+  hoverBorder?: string;
 };
 
 const STUDIOS: Studio[] = [
@@ -322,6 +323,7 @@ const STUDIOS: Studio[] = [
     to: "/dashboard?mode=all_in_one",
     image: "/assets/Creatives_icon/studio-allinone.jpg",
     featured: true,
+    hoverBorder: "hover:border-indigo-400 hover:ring-1 hover:ring-indigo-400",
   },
   {
     id: "image",
@@ -338,6 +340,7 @@ const STUDIOS: Studio[] = [
     cta: { label: "Start Creating", tint: "text-blue-600" },
     to: "/dashboard?mode=image",
     image: "/assets/Creatives_icon/studio-image.jpg",
+    hoverBorder: "hover:border-blue-400 hover:ring-1 hover:ring-blue-400",
   },
   {
     id: "carousel",
@@ -354,6 +357,7 @@ const STUDIOS: Studio[] = [
     cta: { label: "Build Carousel", tint: "text-violet-600" },
     to: "/dashboard?mode=carousel",
     image: "/assets/Creatives_icon/studio-carousel.jpg",
+    hoverBorder: "hover:border-violet-400 hover:ring-1 hover:ring-violet-400",
   },
   {
     id: "video",
@@ -370,6 +374,7 @@ const STUDIOS: Studio[] = [
     cta: { label: "Create Video", tint: "text-emerald-600" },
     to: "/dashboard?mode=video",
     image: "/assets/Creatives_icon/studio-video.jpg",
+    hoverBorder: "hover:border-emerald-400 hover:ring-1 hover:ring-emerald-400",
   },
   {
     id: "ecomm",
@@ -386,6 +391,7 @@ const STUDIOS: Studio[] = [
     cta: { label: "Create Listing", tint: "text-orange-600" },
     to: "/dashboard?mode=ecomm",
     image: "/assets/Creatives_icon/studio-ecomm.jpg",
+    hoverBorder: "hover:border-orange-400 hover:ring-1 hover:ring-orange-400",
   },
   {
     id: "festival",
@@ -403,6 +409,7 @@ const STUDIOS: Studio[] = [
     cta: { label: "Browse Festivals", tint: "text-pink-600" },
     to: "/dashboard?mode=festival",
     image: "/assets/Creatives_icon/studio-festival.jpg",
+    hoverBorder: "hover:border-pink-400 hover:ring-1 hover:ring-pink-400",
   },
   {
     id: "whatsapp",
@@ -419,6 +426,7 @@ const STUDIOS: Studio[] = [
     cta: { label: "Create Campaign", tint: "text-emerald-600" },
     to: "/dashboard?mode=whatsapp",
     image: "/assets/Creatives_icon/studio-whatsapp.png",
+    hoverBorder: "hover:border-emerald-400 hover:ring-1 hover:ring-emerald-400",
   },
   {
     id: "email",
@@ -435,6 +443,7 @@ const STUDIOS: Studio[] = [
     cta: { label: "Design Email", tint: "text-violet-600" },
     to: "/dashboard?mode=email",
     image: "/assets/Creatives_icon/studio-email.jpg",
+    hoverBorder: "hover:border-violet-400 hover:ring-1 hover:ring-violet-400",
   },
 ];
 
@@ -452,8 +461,9 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
         className={cn(
           "group relative flex w-full h-full text-left flex-col overflow-hidden rounded-3xl border bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant",
           s.featured
-            ? "border-indigo-200 bg-gradient-to-br from-indigo-50/60 via-white to-white ring-1 ring-indigo-100"
-            : "border-border/60",
+            ? "border-transparent bg-gradient-to-br from-indigo-50/60 via-white to-white"
+            : "border-transparent",
+          s.hoverBorder
         )}
       >
         <div className="grid grid-cols-[minmax(0,1fr)_140px] gap-4 md:grid-cols-[minmax(0,1fr)_180px] w-full h-full">
@@ -512,8 +522,7 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
               loading="lazy"
               className={cn(
                 "h-full w-full object-contain transition-transform duration-500",
-                s.id === "video" && "rotate-3",
-                "group-hover:scale-105",
+                s.id === "video" && "rotate-3"
               )}
             />
           </div>
@@ -2473,7 +2482,7 @@ const DashboardStrategy = () => {
       <div className="relative min-h-screen bg-gradient-hero">
         <div className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-60" />
 
-        <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-16">
+        <div className="relative mx-auto max-w-6xl px-6 pt-0 pb-10">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -2486,16 +2495,16 @@ const DashboardStrategy = () => {
                 AI Content Studio
               </span>
             </div>
-            <h1 className="mt-5 font-display text-4xl font-black tracking-tight text-foreground md:text-5xl">
+            <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-foreground md:text-5xl">
               What do you want to generate today?
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+            <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
               Pick a format — Velocity opens a tailored brief for it.
             </p>
           </motion.div>
 
           {/* Studio grid — 6-col so wide cards can span 3 */}
-          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-6">
+          <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-6">
             {STUDIOS.filter(s => {
                if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
                return true;

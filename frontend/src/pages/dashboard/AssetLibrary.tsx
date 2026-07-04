@@ -173,20 +173,10 @@ const AssetLibrary = () => {
         const data = await res.json();
         const serverCreatives = data.creatives || [];
         
-        // Fetch current cache to merge, preventing race conditions where the server 
-        // GET response is lagging behind a very recent POST /heart from ContentStrategy.
-        const currentCache = await getCache(cacheKey) || [];
+        // Use server creatives as the source of truth
+        // (Caching is only used for initial instant-load, not merging)
+        const uniqueCreatives = serverCreatives;
         
-        // Combine server and cache, deduplicating by _id (keeping server version if both exist)
-        const combined = [...serverCreatives, ...currentCache];
-        const uniqueCreatives = combined.filter(
-          (item: any, index: number, self: any[]) =>
-            self.findIndex((t) => t._id === item._id) === index
-        );
-        
-        // Sort by createdAt descending
-        uniqueCreatives.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
         setAssets(uniqueCreatives);
         await setCache(cacheKey, uniqueCreatives);
       }

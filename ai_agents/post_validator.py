@@ -579,19 +579,28 @@ def publisher_node(state: PostState) -> PostState:
     scheduled_time_unix = None
     best_time_iso = state.get("best_posting_time")
     
+    is_future = False
+    
     if best_time_iso:
         try:
             # best_time_iso is like "2026-04-22T09:00:00+05:30"
             scheduled_dt = datetime.fromisoformat(best_time_iso)
             now = datetime.now(scheduled_dt.tzinfo)
             
-            # Instagram requires schedule time to be between 20 mins and 75 days in the future
             diff_mins = (scheduled_dt - now).total_seconds() / 60
+            
+            # Instagram will ALWAYS be handled by the Node cron if it's in the future
+            is_future = diff_mins > 0
+            
+            # Facebook native scheduling still requires 20+ mins
             if 20 < diff_mins < (75 * 24 * 60):
                 scheduled_time_unix = int(scheduled_dt.timestamp())
-                print(f"[PUBLISHER] Scheduling post for: {scheduled_dt} (Unix: {scheduled_time_unix})")
+                print(f"[PUBLISHER] Scheduling FB post natively for: {scheduled_dt} (Unix: {scheduled_time_unix})")
             else:
-                print(f"[PUBLISHER] Target time {scheduled_dt} is too close or in past ({diff_mins:.1f} mins). Posting immediately.")
+                if is_future:
+                    print(f"[PUBLISHER] Target time {scheduled_dt} is in the future ({diff_mins:.1f} mins). Node cron will handle it.")
+                else:
+                    print(f"[PUBLISHER] Target time {scheduled_dt} is in the past. Posting immediately.")
         except Exception as te:
             print(f"[PUBLISHER] Scheduling error: {str(te)}. Defaulting to immediate.")
 
@@ -624,8 +633,8 @@ def publisher_node(state: PostState) -> PostState:
         # 3. Instagram Publishing
         platforms = state.get("platforms", {})
         if platforms.get("instagram", True):
-            if scheduled_time_unix:
-                print("[PUBLISHER] ⚠️ Instagram does not support native scheduling. Skipping IG publish here; the backend cron job will handle it.")
+            if is_future:
+                print("[PUBLISHER] ⚠️ Future schedule detected. Skipping IG publish here; the backend cron job will handle it.")
             else:
                 container_url = f"https://graph.facebook.com/v25.0/{ig_id}/media"
                 

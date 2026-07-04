@@ -59,7 +59,42 @@ const DashboardLayout = () => {
   const [brands, setBrands] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const [backgroundTasks, setBackgroundTasks] = useState<BgTask[]>([]);
+  const [backgroundTasks, setBackgroundTasks] = useState<BgTask[]>(() => {
+    try {
+      const saved = localStorage.getItem('syncsocio_bg_tasks');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // If a task was running when the page was refreshed, the connection is lost.
+        return parsed.map((t: BgTask) => 
+          t.status === 'generating' 
+            ? { ...t, status: 'error', error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
+            : t
+        );
+      }
+    } catch (e) {
+      console.error('Error parsing bg tasks from local storage', e);
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('syncsocio_bg_tasks', JSON.stringify(backgroundTasks));
+    
+    // Prevent accidental reload if there's an active generation
+    const hasActiveGeneration = backgroundTasks.some(t => t.status === 'generating');
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasActiveGeneration) {
+        e.preventDefault();
+        // Standard way to trigger the native browser warning dialog
+        e.returnValue = 'You have an active generation running. If you leave, the progress in this window will be lost.';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [backgroundTasks]);
   const [viewingTask, setViewingTask] = useState<BgTask | null>(null);
 
   const viewCompletedTask = (taskId: string) => {
