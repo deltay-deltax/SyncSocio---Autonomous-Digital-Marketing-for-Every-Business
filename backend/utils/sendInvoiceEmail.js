@@ -9,7 +9,7 @@ const COMPANY_ADDRESS = {
   line2: 'Pune, Maharashtra — 411001',
   country: 'India',
   gstin: '27AAAAA0000A1Z5',
-  supportEmail: 'support@syncsocio.in',
+  supportEmail: 'support@syncsocio.com',
 };
 
 // ─── Pack / Plan Labels ───────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ const featureRows = (features = []) =>
 // ─── HTML Builder ─────────────────────────────────────────────────────────────
 const buildHTML = (p) => {
   const isPlan = ['plan_purchase', 'plan_upgrade', 'plan_renewal'].includes(p.transactionType);
-  const dashUrl = (process.env.FRONTEND_BASE_URL || 'https://syncsocio.in').replace(/\/+$/, '');
+  const dashUrl = (process.env.FRONTEND_BASE_URL || 'https://syncsocio.com').replace(/\/+$/, '');
   const typeLabel = { topup:'Credit Top-up', plan_purchase:'Plan Purchase', plan_upgrade:'Plan Upgrade', plan_renewal:'Plan Renewal', dm_addon_purchase: 'DM Automation Add-on' }[p.transactionType] || 'Purchase';
   
   const discountRow = p.discountAmount > 0 
@@ -124,7 +124,7 @@ const buildHTML = (p) => {
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="vertical-align: middle;">
-                    <img src="cid:logo" alt="SyncSocio Logo" style="width: 28px; height: 28px; vertical-align: middle; display: inline-block; margin-right: 10px;" />
+                    <img src="${dashUrl}/SyncSocioLogo.png" alt="SyncSocio Logo" style="width: 28px; height: 28px; vertical-align: middle; display: inline-block; margin-right: 10px;" />
                     <span style="color: #111827; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; vertical-align: middle;">SyncSocio</span>
                     <span style="display: block; color: #9CA3AF; font-size: 9px; font-weight: 700; margin-top: 3px; letter-spacing: 0.5px; text-transform: uppercase;">AGENT AS A SERVICE</span>
                   </td>
@@ -285,7 +285,7 @@ const buildHTML = (p) => {
           <tr>
             <td style="color: #9CA3AF; font-size: 11px; line-height: 1.5; padding: 0 16px;">
               © 2026 SyncSocio Technologies Pvt. Ltd. • Pune, Maharashtra, India<br/>
-              This email contains a secure PDF invoice of your transaction. Need support? Email <a href="mailto:support@syncsocio.in" style="color: #3B82F6; text-decoration: none;">support@syncsocio.in</a>
+              This email contains a secure PDF invoice of your transaction. Need support? Email <a href="mailto:support@syncsocio.com" style="color: #3B82F6; text-decoration: none;">support@syncsocio.com</a>
             </td>
           </tr>
         </table>
@@ -450,7 +450,7 @@ const generatePDFBuffer = (p) => {
          .font('Helvetica')
          .text('This is a system-generated tax invoice and requires no physical signature.', 50, 720, { align: 'center' });
       
-      doc.text('SyncSocio Technologies Pvt. Ltd. • support@syncsocio.in • Pune, Maharashtra, India', 50, 735, { align: 'center' });
+      doc.text('SyncSocio Technologies Pvt. Ltd. • support@syncsocio.com • Pune, Maharashtra, India', 50, 735, { align: 'center' });
 
       doc.end();
     } catch (e) {
@@ -538,15 +538,7 @@ export const sendInvoiceEmail = async (opts) => {
     }
   ];
 
-  if (fs.existsSync(logoPath)) {
-    attachments.push({
-      content: fs.readFileSync(logoPath).toString('base64'),
-      filename: 'SyncSocioLogo.png',
-      type: 'image/png',
-      disposition: 'attachment',
-      content_id: 'logo'
-    });
-  }
+
 
   const msg = {
     to,
