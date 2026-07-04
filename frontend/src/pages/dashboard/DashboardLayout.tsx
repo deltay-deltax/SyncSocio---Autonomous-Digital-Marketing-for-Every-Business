@@ -68,7 +68,7 @@ const DashboardLayout = () => {
         // If a task was running when the page was refreshed, the connection is lost.
         return parsed.map((t: BgTask) => 
           t.status === 'generating' 
-            ? { ...t, status: 'error', error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
+            ? { ...t, status: 'error' as const, error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
             : t
         );
       }
@@ -85,7 +85,7 @@ const DashboardLayout = () => {
         setBackgroundTasks(prev => {
           const processed = idbTasks.map((t: BgTask) => 
             t.status === 'generating' 
-              ? { ...t, status: 'error', error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
+              ? { ...t, status: 'error' as const, error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
               : t
           );
           const newTasksStarted = prev.filter(p => !processed.find((pt: any) => pt.id === p.id));
