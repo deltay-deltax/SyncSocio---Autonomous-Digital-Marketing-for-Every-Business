@@ -70,3 +70,10 @@ class EditMediaRequest(BaseModel):
     type: str
     aspectRatio: Optional[str] = "1:1"
 
+class RefineCopyRequest(BaseModel):
+    userId: str
+    subject: str
+    body: str
+    instruction: str
+    layout: str
+    language: Optional[str] = "english"

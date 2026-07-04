@@ -119,7 +119,10 @@ router.post('/send', protect, async (req, res) => {
 
     const profile = await BrandProfile.findOne({ user: req.user._id });
     const brandName = profile?.brandName || 'SyncSocio';
-    const senderEmail = profile?.gmailEmail || process.env.SMTP_USER || 'noreply@syncsocio.com';
+    // The user's actual email where they should receive replies
+    const userEmail = profile?.gmailEmail || req.user.email; 
+    // The verified SendGrid sender (MUST be an authenticated domain in SendGrid)
+    const verifiedSender = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@syncsocio.com';
 
     // Verify SendGrid API Key is configured
     if (!process.env.SENDGRID_API_KEY) {
@@ -127,7 +130,15 @@ router.post('/send', protect, async (req, res) => {
     }
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-    const hasImage = typeof image === 'string' && image.startsWith('data:');
+    console.log("[CampaignSend] Received image starts with:", image ? image.substring(0, 50) : "UNDEFINED/NULL");
+
+    const hasBase64Image = typeof image === 'string' && image.startsWith('data:');
+    const hasHttpImage = typeof image === 'string' && image.startsWith('http');
+    const hasImage = hasBase64Image || hasHttpImage;
+
+    const imgTag = hasBase64Image
+      ? '<img src="cid:campaign-hero" style="width: 100%; border-radius: 12px; margin-bottom: 20px; display: block;" />'
+      : (hasHttpImage ? `<img src="${image}" style="width: 100%; border-radius: 12px; margin-bottom: 20px; display: block;" />` : '');
 
     // Throttled/sequential sending helper to mimic professional campaign blasting
     const sendWithThrottle = async () => {
@@ -135,24 +146,25 @@ router.post('/send', protect, async (req, res) => {
         const recipient = recipients[i];
         
         const mailOptions = {
-          from: `"${brandName}" <${senderEmail}>`,
+          from: `"${brandName}" <${verifiedSender}>`,
+          replyTo: userEmail,
           to: recipient,
           subject: subject,
           html: isHtml
-            ? cleanBody
+            ? `<div style="max-width: 600px; margin: 0 auto; padding: 10px;">${hasImage ? imgTag : ''}${cleanBody}</div>`
             : `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px;">
-              ${hasImage ? '<img src="cid:campaign-hero" style="width: 100%; border-radius: 12px; margin-bottom: 20px; display: block;" />' : ''}
+              ${imgTag}
               <div style="font-size: 14px; line-height: 1.6; color: #1a202c; white-space: pre-wrap;">${cleanBody}</div>
               <div style="margin-top: 30px; border-top: 1px solid #edf2f7; padding-top: 15px; font-size: 10px; color: #a0aec0; text-align: center;">
                 Sent via ${brandName} | Auto-generated Campaign
               </div>
             </div>
           `.replace(/[\r\n]+/g, ' ').replace(/>\s+</g, '><').trim(),
-          attachments: hasImage ? [{
-            filename: 'hero.png',
+          attachments: hasBase64Image ? [{
+            filename: 'hero.jpg',
             content: image.split(',')[1],
-            type: 'image/png',
+            type: image.match(/data:(.*?);/)?.[1] || 'image/jpeg',
             disposition: 'inline',
             content_id: 'campaign-hero'
           }] : undefined

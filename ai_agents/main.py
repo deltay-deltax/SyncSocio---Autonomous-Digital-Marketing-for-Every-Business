@@ -22,12 +22,12 @@ from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_video_minimax, generate_fal_video_wan, generate_fal_image_gpt2
 from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
-from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest
+from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
 from plan_agent import generate_weekly_plan
 from caption_agent import generate_captions_and_hashtags
-from strategy_image_agent import generate_strategy_images
+from strategy_image_agent import generate_strategy_images, refine_campaign_copy
 import shutil
 from langchain_google_genai import ChatGoogleGenerativeAI
 from google import genai
@@ -1908,6 +1908,29 @@ async def api_generate_ugc_script(request: UGCScriptRequest):
         print(f"[UGCScript] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/refine-campaign-copy")
+async def api_refine_campaign_copy(request: RefineCopyRequest):
+    """
+    Refines existing text copy (email/whatsapp) via Gemini based on a user instruction.
+    Preserves structural HTML if it's an email.
+    """
+    try:
+        brand_doc = await db["brandprofiles"].find_one({"user": ObjectId(request.userId)})
+        if not brand_doc:
+            raise HTTPException(status_code=404, detail="Brand not found")
+
+        result = refine_campaign_copy(
+            brand_doc=brand_doc,
+            subject=request.subject,
+            body=request.body,
+            instruction=request.instruction,
+            layout=request.layout,
+            language=request.language
+        )
+        return {"status": "success", "data": result}
+    except Exception as e:
+        print(f"❌ Error refining copy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/edit-strategy-media")
 async def api_edit_strategy_media(request: EditMediaRequest):

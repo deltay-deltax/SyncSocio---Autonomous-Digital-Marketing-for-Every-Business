@@ -204,11 +204,7 @@ const DashboardSettings = () => {
     }
   }, [location.search]);
 
-  const { profile, setProfile, setShowNotifications } = useOutletContext<{
-    profile: any;
-    setProfile: (p: any) => void;
-    setShowNotifications?: (show: boolean) => void;
-  }>();
+
   const [updating, setUpdating] = useState(false);
   const [rescraping, setRescraping] = useState(false);
   const [checkoutData, setCheckoutData] = useState<any>(null);

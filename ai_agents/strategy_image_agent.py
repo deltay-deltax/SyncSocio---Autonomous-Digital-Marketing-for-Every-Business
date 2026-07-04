@@ -514,6 +514,8 @@ Description: {product.get('description', '')}
             "The CTA link must be styled as a beautiful, prominent, centered button with border-radius, padding, background-color, and white text. "
             "Do NOT include surrounding <html>, <head>, or <body> tags — only return the inner <div> structure. "
             "If a Website URL is provided in the details, you MUST wrap it inside the CTA button href. "
+            "If a 'Brand Logo Reference' URL is provided in the details, you MUST include it at the very top of the email as a centered <img src='...'> tag with max-width: 150px. Use the exact URL provided. "
+            "If the Brand Logo Reference is NOT a valid URL (e.g. if it says uploaded), DO NOT output an <img> tag for the logo. Instead, use a styled <h1> tag with the Brand Name. "
             f"Strict Footer Rule: The footer of the email MUST NOT assume or invent any shipping details, discounts (like 'free shipping on orders above ₹499'), or other unverified policies. It must consist strictly and only of: "
             f"1. A clean values/USP line featuring 2-3 genuine short brand USPs or generic D2C values (e.g., '🌱 Natural Actives • 🩺 Dermatologically Tested • 🐰 Cruelty-Free' for skincare/beauty, or appropriate genuine ones for other categories). "
             f"2. A direct text disclaimer: 'You\'re receiving this because you signed up for {brand_name} updates.'"
@@ -609,6 +611,48 @@ def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str
             "body": f"Hey there,\n\nCheck out our latest release!\n\n{idea if idea else ''}\n\nBest,\nTeam {brand_name}"
         }
 
+
+def refine_campaign_copy(brand_doc: Dict[str, Any], subject: str, body: str, instruction: str, layout: str, language: str = "english") -> Dict[str, str]:
+    """Uses Gemini Flash to refine existing email or whatsapp copy based on an instruction."""
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+    
+    brand_name = brand_doc.get("brandName", "the brand")
+    tone = brand_doc.get("brandTone", "engaging")
+    
+    sys_msg = (
+        f"You are a master copywriter for {brand_name}. Your tone is {tone}.\n"
+        f"You are refining an existing {layout} campaign.\n"
+        "Return a JSON object with 'subject' and 'body'.\n"
+    )
+    if layout == "email":
+        sys_msg += "IMPORTANT: The body MUST be valid HTML. Preserve the exact HTML structure, div tags, inline styles, and styling classes of the original copy. Only rewrite the text content itself based on the instructions."
+    else:
+        sys_msg += "IMPORTANT: The body should be plain text formatted for WhatsApp."
+        
+    user_msg = (
+        f"Current Subject: {subject}\n\n"
+        f"Current Body:\n{body}\n\n"
+        f"Refinement Instruction from user: {instruction}\n\n"
+        f"Please rewrite the subject and body to fulfill the user's instruction. Ensure the language is {language}.\n"
+        "Output ONLY valid JSON."
+    )
+    
+    try:
+        response = llm.invoke([SystemMessage(content=sys_msg), HumanMessage(content=user_msg)])
+        content = response.content
+        if isinstance(content, list):
+            content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+        text = content.strip()
+        if text.startswith("```json"): text = text[7:]
+        if text.startswith("```"): text = text[3:]
+        if text.endswith("```"): text = text[:-3]
+        return json.loads(text.strip())
+    except Exception as e:
+        print(f"[CopyAgent] ❌ Refine LLM failed: {e}")
+        return {
+            "subject": subject,
+            "body": body
+        }
 
 
 def build_ecomm_image_prompt(
@@ -1139,6 +1183,7 @@ def generate_strategy_images(
                     image=task_refs,
                     count=slide_count,
                     slide_prompts=enriched_slide_prompts,
+                    image_size=fal_size,
                 )
                 return {
                     "slides":  slides,          # list of {image: base64}

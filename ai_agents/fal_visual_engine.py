@@ -114,6 +114,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             edit_arguments = {
                 "prompt": prompt,
                 "image_urls": data_urls,
+                "image_size": image_size,
                 "quality": "low",
             }
             try:
@@ -134,10 +135,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                         "prompt": prompt,
                         "image_url": data_urls[0],
                         "strength": 0.5,
-                        "image_size": {
-                            "width": 1024,
-                            "height": 1280 if "portrait" in image_size else 1024
-                        }
+                        "image_size": image_size
                     }
                     result = fal_client.subscribe(
                         "fal-ai/flux/dev/image-to-image",
@@ -197,7 +195,7 @@ def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = 
     return generate_fal_image_gpt2(prompt=prompt, image=image)
 
 
-def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: int = 3, slide_prompts: List[str] = None):
+def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: int = 3, slide_prompts: List[str] = None, image_size: str = "portrait_4_3"):
     """
     Generates carousel images using GPT-Image-2 (Text-to-Image / Edit) via FAL.ai.
     Uses openai/gpt-image-2/edit for image-to-image when a product reference image is present.
@@ -238,6 +236,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                 arguments = {
                     "prompt": slide_prompt,
                     "image_urls": data_urls,
+                    "image_size": image_size,
                     "quality": "low",
                 }
                 model_endpoint = "openai/gpt-image-2/edit"
@@ -245,7 +244,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                 # Use GPT-Image-2 text-to-image
                 arguments = {
                     "prompt": slide_prompt,
-                    "image_size": "portrait_4_3",
+                    "image_size": image_size,
                     "quality": "low",
                 }
                 model_endpoint = "fal-ai/gpt-image-2"

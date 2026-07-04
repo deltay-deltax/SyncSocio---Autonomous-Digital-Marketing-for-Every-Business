@@ -1654,6 +1654,33 @@ const DashboardStrategy = () => {
         } items)`;
       // ─────────────────────────────────────────────────────────────────
 
+      if (currentMode === 'whatsapp' || currentMode === 'email') {
+        try {
+          const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (data.status === 'success' && data.posts && data.posts.length > 0) {
+            setGenerated(data.posts);
+            const first = data.posts[0];
+            setCampaignImage(imgSrc(first.image) || '');
+            if (currentMode === 'email') setCampaignSubject(first.subject || '');
+            setCampaignBody(first.caption || '');
+            setStage('results');
+          } else {
+            setGenError(data.detail || 'Generation failed. Try again.');
+            setStage('builder');
+          }
+        } catch (err: any) {
+          console.error('[Strategy] Generation error:', err);
+          setGenError(err.message || 'Something went wrong');
+          setStage('builder');
+        }
+        return;
+      }
+
       if (startBackgroundGeneration) {
         const tId = await startBackgroundGeneration(payload, creditCost, creditReason, currentMode);
         setCurrentTaskId(tId);
@@ -1900,30 +1927,32 @@ const DashboardStrategy = () => {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center">
-          <p className="text-sm font-medium text-muted-foreground mb-4">Don't want to wait?</p>
-          <Button
-            variant="outline"
-            className="rounded-full shadow-sm hover:shadow"
-            onClick={() => {
-              setStage('builder');
-              setCurrentTaskId(null);
-              // Reset all fields so the user has a fresh slate
-              setIdea('');
-              setSelectedProducts([]);
-              setUploads([]);
-              setVideoScript('');
-              setAvatarDescription('');
-              setSelectedCampaignCreative(null);
-              setSelectedCampaignComputerImage(null);
-              setActiveCampaignImageSource(null);
-            }}
-          >
-            {currentTaskId && backgroundTasks?.find(t => t.id === currentTaskId)?.mode === 'edit_media' 
-              ? 'Run in background' 
-              : 'Generate more in background'}
-          </Button>
-        </div>
+        {mode !== 'whatsapp' && mode !== 'email' && (
+          <div className="mt-12 flex flex-col items-center">
+            <p className="text-sm font-medium text-muted-foreground mb-4">Don't want to wait?</p>
+            <Button
+              variant="outline"
+              className="rounded-full shadow-sm hover:shadow"
+              onClick={() => {
+                setStage('builder');
+                setCurrentTaskId(null);
+                // Reset all fields so the user has a fresh slate
+                setIdea('');
+                setSelectedProducts([]);
+                setUploads([]);
+                setVideoScript('');
+                setAvatarDescription('');
+                setSelectedCampaignCreative(null);
+                setSelectedCampaignComputerImage(null);
+                setActiveCampaignImageSource(null);
+              }}
+            >
+              {currentTaskId && backgroundTasks?.find(t => t.id === currentTaskId)?.mode === 'edit_media' 
+                ? 'Run in background' 
+                : 'Generate more in background'}
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -4121,6 +4150,50 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
 }) => {
   const isWA = mode === 'whatsapp';
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const { toast } = useToast();
+
+  const [showRefineModal, setShowRefineModal] = useState(false);
+  const [refineInstruction, setRefineInstruction] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+
+  const handleRefine = async () => {
+    if (!refineInstruction.trim()) return;
+    const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+    const userId = profile.user || profile._id;
+    if (!userId) {
+      toast({ title: "User session not found", variant: "destructive" });
+      return;
+    }
+
+    setIsRefining(true);
+    try {
+      const res = await fetch(`${AI_BASE}/refine-campaign-copy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          subject,
+          body,
+          instruction: refineInstruction,
+          layout: mode
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setSubject(data.data.subject);
+        setBody(data.data.body);
+        setShowRefineModal(false);
+        setRefineInstruction('');
+        toast({ title: "Copy refined successfully! ✨" });
+      } else {
+        toast({ title: data.detail || "Failed to refine copy", variant: "destructive" });
+      }
+    } catch (e) {
+      toast({ title: "Error refining copy", variant: "destructive" });
+    } finally {
+      setIsRefining(false);
+    }
+  };
 
   const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -4167,7 +4240,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
               <Heart size={14} /> Save hero image
             </Button>
           )}
-          <Button onClick={regenerate} variant="outline" size="sm" className="rounded-xl gap-2">
+          <Button onClick={() => setShowRefineModal(true)} variant="outline" size="sm" className="rounded-xl gap-2">
             <RefreshCw size={14} /> Regenerate
           </Button>
         </div>
@@ -4249,7 +4322,13 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">{brandName}</p>
-                    <p className="text-[11px] text-muted-foreground">{subject || '✨ New drop just landed'}</p>
+                    <input
+                      className="text-[11px] text-muted-foreground bg-transparent border border-transparent hover:border-border focus:border-border outline-none focus:ring-2 focus:ring-primary/20 rounded px-1 -ml-1 w-full max-w-[280px] transition-all"
+                      value={subject || ''}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="✨ New drop just landed (Email Subject)"
+                      title="Click to edit email subject"
+                    />
                   </div>
                 </div>
                 {image && (
@@ -4257,11 +4336,23 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 )}
                 {body.includes('<') && (body.includes('</') || body.includes('/>')) ? (
                   <div
-                    className="text-xs text-foreground leading-relaxed email-html-preview"
+                    className="text-xs text-foreground leading-relaxed email-html-preview outline-none focus:ring-2 focus:ring-primary/20 rounded-xl transition-all"
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={(e) => setBody(e.currentTarget.innerHTML)}
                     dangerouslySetInnerHTML={{ __html: body }}
+                    title="Click to edit email body"
                   />
                 ) : (
-                  <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{body}</pre>
+                  <pre 
+                    className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed outline-none focus:ring-2 focus:ring-primary/20 rounded-xl transition-all p-2"
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={(e) => setBody(e.currentTarget.innerText)}
+                    title="Click to edit email body"
+                  >
+                    {body}
+                  </pre>
                 )}
               </div>
             </div>
@@ -4271,22 +4362,24 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
         {/* EDITOR + RECIPIENTS */}
         <div className="space-y-4">
           {/* Edit body */}
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              {isWA ? 'Edit message' : 'Edit email body'}
-            </p>
-            <Input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder={isWA ? "WhatsApp Heading (e.g., Flat ₹100 OFF for you!)" : "Email subject line…"}
-              className="rounded-xl border-border/60 bg-card h-10 text-sm mb-2"
-            />
-            <Textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="min-h-[160px] rounded-2xl border-border/60 bg-card resize-none text-sm leading-relaxed"
-            />
-          </div>
+          {isWA && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                Edit message
+              </p>
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="WhatsApp Heading (e.g., Flat ₹100 OFF for you!)"
+                className="rounded-xl border-border/60 bg-card h-10 text-sm mb-2"
+              />
+              <Textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                className="min-h-[160px] rounded-2xl border-border/60 bg-card resize-none text-sm leading-relaxed"
+              />
+            </div>
+          )}
 
           {/* Recipients */}
           <div>
@@ -4559,6 +4652,57 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                   className="rounded-xl px-6 h-10 text-xs font-bold"
                 >
                   Save & Import
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showRefineModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && setShowRefineModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl flex flex-col p-6 space-y-4"
+            >
+              <div>
+                <h3 className="text-base font-black text-foreground">Refine Copy with AI ✨</h3>
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Tell the AI how to rewrite the text. The layout and image will remain unchanged.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Textarea
+                  value={refineInstruction}
+                  onChange={(e) => setRefineInstruction(e.target.value)}
+                  placeholder="e.g. Translate this into Spanish, or make it sound more urgent..."
+                  className="rounded-xl border-border/80 bg-muted/20 h-24 text-sm font-semibold resize-none"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRefineModal(false)}
+                  disabled={isRefining}
+                  className="rounded-xl px-5 h-10 text-xs font-bold border-border/70"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleRefine}
+                  disabled={!refineInstruction.trim() || isRefining}
+                  className="rounded-xl px-6 h-10 text-xs font-bold gap-2"
+                >
+                  {isRefining ? <RefreshCw size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                  {isRefining ? 'Refining...' : 'Refine Copy'}
                 </Button>
               </div>
             </motion.div>
