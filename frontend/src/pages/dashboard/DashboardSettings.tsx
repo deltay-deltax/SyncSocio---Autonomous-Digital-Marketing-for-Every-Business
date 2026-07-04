@@ -1238,7 +1238,16 @@ const DashboardSettings = () => {
                     </div>
                     <div className="text-right">
                        <span className="block text-xs font-black text-foreground">₹{tx.amount}</span>
-                       {tx.creditsAdded > 0 && <span className="block text-[10px] font-bold text-emerald-600">+{tx.creditsAdded} credits</span>}
+                       {tx.creditsAdded > 0 && (
+                         <span className={cn(
+                           "block text-[10px] font-bold",
+                           tx.status === 'completed' ? "text-emerald-600" : 
+                           tx.status === 'failed' ? "text-red-500/70 line-through" : 
+                           "text-muted-foreground"
+                         )}>
+                           +{tx.creditsAdded} credits
+                         </span>
+                       )}
                     </div>
                   </div>
                 ))}
