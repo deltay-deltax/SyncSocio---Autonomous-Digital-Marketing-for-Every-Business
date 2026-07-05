@@ -161,7 +161,7 @@ function DashboardFAQ() {
             Help Center
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-tight">
-            Frequently asked<br/>
+            Frequently asked<br />
             <span className="text-primary">questions.</span>
           </h1>
           <p className="mt-4 text-sm text-muted-foreground max-w-md mx-auto font-medium leading-relaxed">
@@ -178,29 +178,26 @@ function DashboardFAQ() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: i * 0.05 }}
-                className={`rounded-[1.5rem] border transition-all overflow-hidden ${
-                  isOpen
-                    ? "border-primary/20 bg-white shadow-xl shadow-primary/5"
-                    : "border-border/40 bg-white/40 hover:border-border hover:bg-white/70"
-                }`}
+                className={`rounded-[1.5rem] border transition-all overflow-hidden ${isOpen
+                  ? "border-primary/20 bg-white shadow-xl shadow-primary/5"
+                  : "border-border/40 bg-white/40 hover:border-border hover:bg-white/70"
+                  }`}
               >
                 <button
                   onClick={() => setOpenIndex(isOpen ? null : i)}
                   className="w-full flex items-center justify-between gap-4 px-7 py-5 text-left"
                 >
                   <span
-                    className={`text-base font-bold tracking-tight transition-colors ${
-                      isOpen ? "text-foreground" : "text-foreground/90"
-                    }`}
+                    className={`text-base font-bold tracking-tight transition-colors ${isOpen ? "text-foreground" : "text-foreground/90"
+                      }`}
                   >
                     {item.q}
                   </span>
                   <span
-                    className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                      isOpen
-                        ? "bg-primary text-white rotate-45"
-                        : "bg-muted text-muted-foreground"
-                    }`}
+                    className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${isOpen
+                      ? "bg-primary text-white rotate-45"
+                      : "bg-muted text-muted-foreground"
+                      }`}
                   >
                     <Plus size={16} strokeWidth={2.5} />
                   </span>
@@ -252,8 +249,8 @@ function DashboardFAQ() {
                 {
                   icon: Mail,
                   label: "Email us",
-                  value: "supportsyncsocio@gmail.com",
-                  href: "mailto:supportsyncsocio@gmail.com",
+                  value: "support@syncsocio.com",
+                  href: "mailto:support@syncsocio.com",
                 },
                 {
                   icon: Phone,
@@ -264,8 +261,8 @@ function DashboardFAQ() {
                 {
                   icon: MapPin,
                   label: "Visit",
-                  value: "548 Market St, SF",
-                  href: "#",
+                  value: "AECS Layout ,Kundalahali, Bangalore, Karnataka, 560037",
+
                 },
               ].map((c, i) => (
                 <a
@@ -290,7 +287,7 @@ function DashboardFAQ() {
           </div>
 
           <p className="mt-8 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/50">
-            Mon–Fri · 9am – 6pm PST · We're just one message away.
+            Mon–Sat · 9am – 9pm IST · We're just one message away.
           </p>
         </motion.div>
       </div>
