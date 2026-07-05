@@ -49,10 +49,6 @@ const FAQS = [
 
   // ── Strategy & Planning ───────────────────────────────────────────────────
   {
-    q: "How does the Content Mix work?",
-    a: "Content Mix generates a balanced 7-day posting plan: typically 3 Reels, 2 Images, and 2 Carousels. Each slot comes with a format, optimal posting time, topic idea, and a ready-to-use AI prompt. You can regenerate any slot or customize the mix before generating visuals.",
-  },
-  {
     q: "How does SyncSocio decide the best time for me to post?",
     a: "We connect to the Instagram Graph API and analyze when your actual followers are online and most active. The 'Peak Hour' shown in your dashboard is specific to your audience — not a generic industry average.",
   },
@@ -112,6 +108,40 @@ const FAQS = [
     q: "Where do my generated posts get saved?",
     a: "Every post you save is stored in the Asset Library — organized by type (image, carousel, video) and date. You can re-download, reuse, or schedule any saved asset at any time. Nothing expires.",
   },
+
+  // ── Setup & Configuration ──────────────────────────────────────────────────
+  {
+    q: "How do I set up a business email for campaigns?",
+    a: (
+      <span>
+        To set up a business email, you need to configure your SMTP settings or verify your domain to allow SyncSocio to send emails on your behalf. Watch our step-by-step video guide here:{" "}
+        <a
+          href="https://youtu.be/6C93iRe5l34"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline font-bold break-all"
+        >
+          https://youtu.be/6C93iRe5l34
+        </a>
+      </span>
+    ),
+  },
+  {
+    q: "How do I set up my Instagram Business or Creator account?",
+    a: (
+      <span>
+        To connect SyncSocio, you need an Instagram Business or Creator account linked to a Facebook Page. You can follow our detailed setup guide at{" "}
+        <a
+          href="https://www.syncsocio.com/instagram-setup"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline font-bold break-all"
+        >
+          https://www.syncsocio.com/instagram-setup
+        </a>
+      </span>
+    ),
+  },
 ];
 
 function DashboardFAQ() {
@@ -119,7 +149,7 @@ function DashboardFAQ() {
 
   return (
     <div className="min-h-screen bg-transparent">
-      <div className="max-w-3xl mx-auto px-6 py-10">
+      <div className="max-w-4xl mx-auto px-6 py-10">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -228,8 +258,8 @@ function DashboardFAQ() {
                 {
                   icon: Phone,
                   label: "Call us",
-                  value: "+1 (415) 287-0420",
-                  href: "tel:+14152870420",
+                  value: "+91 89717 42263",
+                  href: "tel:+918971742263",
                 },
                 {
                   icon: MapPin,
@@ -241,7 +271,7 @@ function DashboardFAQ() {
                 <a
                   key={i}
                   href={c.href}
-                  className="group flex flex-col items-start gap-4 p-5 rounded-2xl border border-border/50 bg-slate-50/50 hover:border-primary/30 hover:bg-white transition-all hover:shadow-md"
+                  className="group flex flex-col items-start gap-4 p-4 lg:p-5 min-h-[145px] w-full rounded-2xl border border-border/50 bg-slate-50/50 hover:border-primary/30 hover:bg-white transition-all hover:shadow-md"
                 >
                   <span className="w-10 h-10 rounded-xl bg-white text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors border border-border/50 shadow-sm">
                     <c.icon size={18} />
@@ -250,7 +280,7 @@ function DashboardFAQ() {
                     <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
                       {c.label}
                     </div>
-                    <div className="text-[13px] font-bold text-foreground">
+                    <div className="text-[11.5px] lg:text-[13px] font-bold text-foreground break-normal">
                       {c.value}
                     </div>
                   </div>
