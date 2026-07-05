@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
 import BrandProfile from '../models/BrandProfile.js';
-import { sendInvoiceEmail } from '../utils/sendInvoiceEmail.js';
+import { sendInvoiceEmail, generatePDFBuffer, genInvoiceNo, fmtDate, resolvePack } from '../utils/sendInvoiceEmail.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -190,5 +190,50 @@ export const getPaymentHistory = async (req, res) => {
   } catch (error) {
     console.error('Error fetching payment history:', error);
     res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+};
+
+export const downloadInvoice = async (req, res) => {
+  try {
+    const { transactionId } = req.params;
+    const transaction = await Transaction.findById(transactionId);
+    if (!transaction) {
+      return res.status(404).send('Invoice not found');
+    }
+    const user = await User.findById(transaction.user);
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    const invoiceNumber = genInvoiceNo(transaction._id);
+    const invoiceDate = fmtDate(transaction.createdAt);
+    const packMeta = resolvePack(transaction.type, transaction.plan, transaction.creditsAdded);
+
+    const params = {
+      invoiceNumber,
+      invoiceDate,
+      userName: user.billingAddress?.fullName || user.name || user.email,
+      userEmail: user.billingAddress?.email || user.email,
+      billingAddress: user.billingAddress || {},
+      packMeta,
+      amount: transaction.amount,
+      creditsAdded: transaction.creditsAdded || 0,
+      razorpayPaymentId: transaction.razorpayPaymentId,
+      razorpayOrderId: transaction.razorpayOrderId,
+      planExpiresAt: user.planExpiresAt || null,
+      couponCode: transaction.couponCode || '',
+      discountAmount: transaction.discountAmount || 0,
+      discountPercentage: transaction.discountPercentage || 0,
+      transactionId: String(transaction._id),
+    };
+
+    const pdfBuffer = await generatePDFBuffer(params);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice_${invoiceNumber}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error downloading invoice:', error);
+    res.status(500).send('Internal server error');
   }
 };
