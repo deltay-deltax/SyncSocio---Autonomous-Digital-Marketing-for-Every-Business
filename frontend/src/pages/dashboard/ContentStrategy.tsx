@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -1429,6 +1429,17 @@ const DashboardStrategy = () => {
 
   const sendCampaign = async () => {
     if (!recipients.length) return;
+
+    // Client-side guard: check domain verification status before sending
+    if (mode === 'email' && !profile?.email_domain_verified) {
+      toast({
+        title: '⚠️ Email setup required',
+        description: 'Verify your email domain in Settings → Email Setup before sending campaigns.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setSendStatus('sending');
 
     try {
@@ -1457,7 +1468,18 @@ const DashboardStrategy = () => {
       if (res.ok) {
         setSendStatus('sent');
       } else {
-        throw new Error('Failed to send campaign');
+        // Handle specific backend error codes
+        const errData = await res.json().catch(() => ({}));
+        if (errData.code === 'EMAIL_DOMAIN_NOT_VERIFIED') {
+          toast({
+            title: '⚠️ Email setup required',
+            description: 'Verify your email domain in Settings → Email Setup before sending campaigns.',
+            variant: 'destructive'
+          });
+          setSendStatus('idle');
+          return;
+        }
+        throw new Error(errData.message || 'Failed to send campaign');
       }
     } catch (err: any) {
       console.error(err);
@@ -1469,6 +1491,7 @@ const DashboardStrategy = () => {
       setSendStatus('idle');
     }
   };
+
 
   const generate = async (overrides?: { idea?: string; count?: number; products?: any[]; layout?: string; aspect?: string; language?: string }) => {
     setStage('generating');
@@ -4322,12 +4345,22 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">{brandName}</p>
-                    <input
-                      className="text-[11px] text-muted-foreground bg-transparent border border-transparent hover:border-border focus:border-border outline-none focus:ring-2 focus:ring-primary/20 rounded px-1 -ml-1 w-full max-w-[280px] transition-all"
+                    <textarea
+                      className="text-[11px] text-muted-foreground bg-transparent border border-transparent hover:border-border focus:border-border outline-none focus:ring-2 focus:ring-primary/20 rounded px-1 -ml-1 w-full max-w-[280px] transition-all resize-none"
                       value={subject || ''}
-                      onChange={(e) => setSubject(e.target.value)}
+                      onChange={(e) => {
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                        setSubject(e.target.value);
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
                       placeholder="✨ New drop just landed (Email Subject)"
                       title="Click to edit email subject"
+                      rows={1}
+                      style={{ minHeight: '20px', overflow: 'hidden' }}
                     />
                   </div>
                 </div>
@@ -4582,27 +4615,67 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           </div>
 
           {/* Send button */}
-          <Button
-            onClick={sendCampaign}
-            disabled={!recipients.length || sendStatus !== 'idle'}
-            size="lg"
-            className={cn(
-              'w-full h-12 rounded-2xl font-bold gap-2',
-              sendStatus === 'sent'
-                ? 'bg-emerald-500 hover:bg-emerald-500 text-white'
-                : isWA
-                  ? 'bg-[#25D366] hover:bg-[#20bb5a] text-white'
-                  : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
-            )}
-          >
-            {sendStatus === 'sending' ? (
-              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending…</>
-            ) : sendStatus === 'sent' ? (
-              <><CheckCheck size={16} /> Sent to {recipients.length} recipients!</>
-            ) : (
-              <><Send size={16} /> {isWA ? `Send WhatsApp blast` : `Send email campaign`}{recipients.length > 0 ? ` → ${recipients.length}` : ''}</>
-            )}
-          </Button>
+          {(() => {
+            const cachedProfile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+            const isEmailMode = mode === 'email';
+            const isDomainVerified = !isEmailMode || cachedProfile?.email_domain_verified === true;
+
+            if (isEmailMode && !isDomainVerified) {
+              return (
+                <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                      <AlertTriangle size={15} className="text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground">Email domain setup required</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Before you can send campaigns, verify your sending domain so emails land in inboxes.
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href="/dashboard/settings"
+                    className="w-full h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-amber-500 text-white hover:bg-amber-600 transition-all"
+                  >
+                    Go to Settings → Email Setup
+                  </a>
+                </div>
+              );
+            }
+
+            return (
+              <>
+                {isEmailMode && cachedProfile?.email_from && (
+                  <p className="text-center text-[11px] text-muted-foreground font-medium">
+                    📨 Sending from: <span className="font-mono text-foreground">{cachedProfile.email_from}</span>
+                  </p>
+                )}
+                <Button
+                  onClick={sendCampaign}
+                  disabled={!recipients.length || sendStatus !== 'idle'}
+                  size="lg"
+                  className={cn(
+                    'w-full h-12 rounded-2xl font-bold gap-2',
+                    sendStatus === 'sent'
+                      ? 'bg-emerald-500 hover:bg-emerald-500 text-white'
+                      : isWA
+                        ? 'bg-[#25D366] hover:bg-[#20bb5a] text-white'
+                        : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+                  )}
+                >
+                  {sendStatus === 'sending' ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending…</>
+                  ) : sendStatus === 'sent' ? (
+                    <><CheckCheck size={16} /> Sent to {recipients.length} recipients!</>
+                  ) : (
+                    <><Send size={16} /> {isWA ? `Send WhatsApp blast` : `Send email campaign`}{recipients.length > 0 ? ` → ${recipients.length}` : ''}</>
+                  )}
+                </Button>
+              </>
+            );
+          })()}
+
         </div>
       </div>
 

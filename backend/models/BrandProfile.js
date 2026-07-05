@@ -133,7 +133,33 @@ const brandProfileSchema = new mongoose.Schema({
   isTesterEnabled: {
     type: Boolean,
     default: false
-  }
+  },
+
+  // ── Email Domain Authentication (SendGrid per-brand domain) ──────────────
+  email_from: { type: String, default: '' },
+  email_domain: { type: String, default: '' },
+  sendgrid_domain_id: { type: Number, default: null },
+  email_domain_verified: { type: Boolean, default: false },
+  email_verified_at: { type: Date, default: null },
+  dns_records: {
+    mail_cname: {
+      host: { type: String, default: '' },
+      data: { type: String, default: '' },
+      valid: { type: Boolean, default: false }
+    },
+    dkim1: {
+      host: { type: String, default: '' },
+      data: { type: String, default: '' },
+      valid: { type: Boolean, default: false }
+    },
+    dkim2: {
+      host: { type: String, default: '' },
+      data: { type: String, default: '' },
+      valid: { type: Boolean, default: false }
+    }
+  },
+  email_setup_started_at: { type: Date, default: null },
+  email_setup_step: { type: Number, default: 1 }
 }, { timestamps: true });
 
 export default mongoose.model('BrandProfile', brandProfileSchema);

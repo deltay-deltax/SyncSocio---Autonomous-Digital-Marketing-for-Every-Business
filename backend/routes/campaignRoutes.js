@@ -119,10 +119,19 @@ router.post('/send', protect, async (req, res) => {
 
     const profile = await BrandProfile.findOne({ user: req.user._id });
     const brandName = profile?.brandName || 'SyncSocio';
-    // The user's actual email where they should receive replies
-    const userEmail = profile?.gmailEmail || req.user.email; 
-    // The verified SendGrid sender (MUST be an authenticated domain in SendGrid)
-    const verifiedSender = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@syncsocio.com';
+
+    // ── DOMAIN VERIFICATION GUARD ────────────────────────────────────────────
+    if (!profile?.email_domain_verified) {
+      return res.status(403).json({
+        code: 'EMAIL_DOMAIN_NOT_VERIFIED',
+        message: 'Your email domain is not verified yet. Please complete email setup before sending campaigns.',
+        action: 'Go to Settings → Email Setup'
+      });
+    }
+
+    // Use brand's verified from address (set during domain authentication)
+    const fromEmail = profile.email_from;
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Verify SendGrid API Key is configured
     if (!process.env.SENDGRID_API_KEY) {
@@ -146,8 +155,12 @@ router.post('/send', protect, async (req, res) => {
         const recipient = recipients[i];
         
         const mailOptions = {
-          from: `"${brandName}" <${verifiedSender}>`,
-          replyTo: userEmail,
+          // ── CHANGED: Use brand's verified from address ──
+          from: {
+            email: fromEmail,   // e.g. hello@minimalist.in
+            name: brandName     // e.g. Minimalist
+          },
+          // ───────────────────────────────────────────────
           to: recipient,
           subject: subject,
           html: isHtml
@@ -200,6 +213,7 @@ router.post('/send', protect, async (req, res) => {
     res.status(500).json({ message: 'Server error sending email campaign' });
   }
 });
+
 
 import axios from 'axios';
 import FormData from 'form-data';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp } from 'lucide-react';
+import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, Copy, CheckCheck, ArrowRight, Shield, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkout } from '@/components/Checkout';
@@ -50,7 +50,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-const settingsTabs = ['Brand Profile', 'Connected Accounts', 'Posting Preferences', 'Plan & Billing', 'Legal & Privacy', 'Danger Zone'];
+const settingsTabs = ['Brand Profile', 'Connected Accounts', 'Email Setup', 'Posting Preferences', 'Plan & Billing', 'Legal & Privacy', 'Danger Zone'];
 
 const industries = [
   'Baby & Kids',
@@ -1531,6 +1531,12 @@ const DashboardSettings = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* ─── EMAIL SETUP TAB ─────────────────────────────────────────────── */}
+        {activeTab === 'Email Setup' && (
+          <EmailSetupWizard profile={profile} />
+        )}
+
       </div>
     </div>
 
@@ -1633,6 +1639,465 @@ const DashboardSettings = () => {
     </AnimatePresence>
 
     </div >
+  );
+};
+
+// \u2500\u2500 EmailSetupWizard Component \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+const PERSONAL_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','yahoo.in','rediffmail.com','icloud.com','live.com','msn.com','aol.com'];
+
+const EmailSetupWizard = ({ profile }: { profile: any }) => {
+  const { toast } = useToast();
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [fromEmail, setFromEmail] = useState('');
+  const [domain, setDomain] = useState('');
+  const [dnsRecords, setDnsRecords] = useState<any[]>([]);
+  const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [copiedRow, setCopiedRow] = useState<string | null>(null);
+
+  // Fetch status on mount
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.step) setStep(data.step);
+          if (data.email_from) setFromEmail(data.email_from);
+          if (data.domain) setDomain(data.domain);
+          if (data.dns_records) setDnsRecords(data.dns_records);
+          if (data.verified_at) setVerifiedAt(data.verified_at);
+        }
+      } catch (err) {
+        console.error('Email setup status fetch failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStatus();
+  }, []);
+
+  // Auto-poll every 2 minutes when on Step 2
+  useEffect(() => {
+    if (step !== 2) return;
+    const interval = setInterval(async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.step >= 3 && data.verified) {
+            setStep(3);
+            if (data.verified_at) setVerifiedAt(data.verified_at);
+            clearInterval(interval);
+          }
+          if (data.dns_records) setDnsRecords(data.dns_records);
+        }
+      } catch {}
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [step]);
+
+  const handleStart = async () => {
+    const emailDomain = fromEmail.split('@')[1]?.toLowerCase() || '';
+    if (PERSONAL_DOMAINS.includes(emailDomain)) {
+      toast({ title: 'Personal email not supported', description: 'Please use a business email like hello@yourbrand.com', variant: 'destructive' });
+      return;
+    }
+    if (!fromEmail.includes('@') || !emailDomain.includes('.')) {
+      toast({ title: 'Invalid email', description: 'Please enter a valid email address.', variant: 'destructive' });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/campaigns/email-setup/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ from_email: fromEmail })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to start setup');
+      setDomain(data.domain);
+      setDnsRecords(data.dns_records || []);
+      setStep(2);
+      toast({ title: '✅ DNS records generated!', description: 'Add these 3 records to your domain registrar.' });
+    } catch (err: any) {
+      toast({ title: 'Setup failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/campaigns/email-setup/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Verification failed');
+      if (data.verified) {
+        setStep(3);
+        setVerifiedAt(new Date().toISOString());
+        toast({ title: '🎉 Domain verified!', description: `Campaigns will now send from ${fromEmail}` });
+      } else {
+        if (data.updated_dns) setDnsRecords(formatDnsDisplay(data.updated_dns));
+        toast({
+          title: 'Not verified yet',
+          description: data.message || 'DNS records not detected. This can take up to 48 hours.',
+          variant: 'destructive'
+        });
+      }
+    } catch (err: any) {
+      toast({ title: 'Verification failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const formatDnsDisplay = (raw: any) => {
+    if (!raw) return [];
+    const purposes = ['Mail server routing', 'Email authentication (DKIM 1)', 'Email authentication (DKIM 2)'];
+    return ['mail_cname','dkim1','dkim2'].map((key, i) => ({
+      type: 'CNAME',
+      host: raw[key]?.host || '',
+      value: raw[key]?.data || '',
+      valid: raw[key]?.valid || false,
+      purpose: purposes[i]
+    }));
+  };
+
+  const copyRow = (text: string, id: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedRow(id);
+      setTimeout(() => setCopiedRow(null), 2000);
+    });
+  };
+
+  const copyAllCsv = () => {
+    const csv = ['Type,Host,Value,Purpose', ...dnsRecords.map(r =>
+      `${r.type},"${r.host}","${r.value}","${r.purpose}"`
+    )].join('\n');
+    navigator.clipboard.writeText(csv);
+    toast({ title: 'Copied!', description: 'All DNS records copied as CSV.' });
+  };
+
+  const REGISTRAR_LINKS = [
+    { name: 'GoDaddy', url: 'https://dcc.godaddy.com/manage' },
+    { name: 'Namecheap', url: 'https://ap.www.namecheap.com/domains/list/' },
+    { name: 'Cloudflare', url: 'https://dash.cloudflare.com/' },
+    { name: 'Other ↗', url: 'https://docs.sendgrid.com/ui/account-and-settings/how-to-set-up-domain-authentication' },
+  ];
+
+  const stepLabels = ['Enter Email', 'Add DNS Records', 'Verified'];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-500">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-blue-500/10 via-background to-indigo-500/5 p-6 shadow-sm">
+        <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/10 blur-3xl -z-0" />
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Mail size={18} className="text-primary" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-foreground">Email Sender Setup</h3>
+              <p className="text-xs text-muted-foreground">Send campaigns from your own domain</p>
+            </div>
+          </div>
+
+          {/* Step progress */}
+          <div className="flex items-center gap-2 mt-4">
+            {stepLabels.map((label, i) => {
+              const sNum = i + 1;
+              const isActive = step === sNum;
+              const isDone = step > sNum;
+              return (
+                <div key={label} className="flex items-center gap-2">
+                  <div className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all',
+                    isDone ? 'bg-emerald-500/15 text-emerald-600' :
+                    isActive ? 'bg-primary/15 text-primary' :
+                    'bg-muted text-muted-foreground'
+                  )}>
+                    {isDone ? <CheckCheck size={12} /> : <span className="w-3 h-3 rounded-full border-2 border-current inline-block" />}
+                    {label}
+                  </div>
+                  {i < stepLabels.length - 1 && (
+                    <div className={cn('h-px w-6 rounded-full', step > sNum ? 'bg-emerald-400' : 'bg-border')} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* \u2500\u2500\u2500 STEP 1 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+      <AnimatePresence mode="wait">
+        {step === 1 && (
+          <motion.div key="step1" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                  <Inbox size={14} className="text-primary" /> Your Sending Email
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Enter the email address you want to send campaigns from. This must be a business email — your domain will be authenticated with SendGrid so emails land in inboxes, not spam.
+                </p>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Sending Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={fromEmail}
+                    onChange={e => setFromEmail(e.target.value.toLowerCase())}
+                    onKeyDown={e => e.key === 'Enter' && handleStart()}
+                    placeholder="hello@yourbrand.com"
+                    className="w-full h-11 rounded-xl border border-border/60 bg-background px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                  />
+                </div>
+
+                {/* Warning banner */}
+                <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+                  <AlertTriangle size={14} className="text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-amber-700">Gmail and personal emails not supported</p>
+                    <p className="text-[11px] text-amber-600/80 mt-0.5">
+                      Use a business email like <span className="font-mono">hello@yourbrand.com</span>. 
+                      Get one free at <a href="https://www.zoho.com/mail/" target="_blank" rel="noreferrer" className="underline">zoho.com/mail</a> or 
+                      Google Workspace from ₹125/month.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleStart}
+                  disabled={submitting || !fromEmail}
+                  className={cn(
+                    'w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all',
+                    'bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20',
+                    (submitting || !fromEmail) && 'opacity-50 cursor-not-allowed'
+                  )}
+                >
+                  {submitting ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Setting up...</>
+                  ) : (
+                    <>Continue <ArrowRight size={16} /></>
+                  )}
+                </button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* \u2500\u2500\u2500 STEP 2 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+        {step === 2 && (
+          <motion.div key="step2" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-4">
+            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Shield size={14} className="text-primary" /> Add DNS Records
+                  </CardTitle>
+                  <button onClick={copyAllCsv} className="flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 transition">
+                    <Copy size={11} /> Copy all as CSV
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Add these <strong>3 CNAME records</strong> to your domain registrar for{' '}
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-foreground">{domain}</code>:
+                  </p>
+                </div>
+
+                {/* DNS Records Table */}
+                <div className="rounded-2xl border border-border/50 overflow-hidden">
+                  <div className="grid grid-cols-[60px_1fr_1fr_40px] gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/30 px-4 py-2.5 border-b border-border/40">
+                    <span>Type</span>
+                    <span>Host</span>
+                    <span>Value</span>
+                    <span className="text-right">Status</span>
+                  </div>
+                  {dnsRecords.map((record: any, i: number) => (
+                    <div key={i} className="grid grid-cols-[60px_1fr_1fr_40px] gap-2 px-4 py-3 border-b border-border/30 last:border-b-0 items-center hover:bg-muted/10 transition-colors">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-foreground">{record.type}</span>
+                      </div>
+                      
+                      {/* Host with Copy */}
+                      <div className="min-w-0 pr-2 group/host flex items-start justify-between gap-1">
+                        <div className="min-w-0">
+                          <code className="text-[11px] font-mono text-foreground/80 break-all leading-tight block">{record.host || '—'}</code>
+                          <span className="text-[9px] text-muted-foreground/60">{record.purpose}</span>
+                        </div>
+                        <button
+                          onClick={() => copyRow(record.host, `host-${i}`)}
+                          className="w-6 h-6 rounded-lg hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary transition opacity-0 group-hover/host:opacity-100 shrink-0"
+                          title="Copy Host"
+                        >
+                          {copiedRow === `host-${i}` ? <CheckCheck size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                      
+                      {/* Value with Copy */}
+                      <div className="min-w-0 pr-2 group/val flex items-start justify-between gap-1">
+                        <div className="min-w-0">
+                          <code className="text-[11px] font-mono text-foreground/80 break-all leading-tight block">{record.value || '—'}</code>
+                        </div>
+                        <button
+                          onClick={() => copyRow(record.value, `val-${i}`)}
+                          className="w-6 h-6 rounded-lg hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary transition opacity-0 group-hover/val:opacity-100 shrink-0"
+                          title="Copy Value"
+                        >
+                          {copiedRow === `val-${i}` ? <CheckCheck size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                      
+                      {/* Status */}
+                      <div className="flex justify-end items-center pr-1">
+                        {record.valid
+                          ? <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center"><CheckCircle2 size={12} className="text-emerald-500" /></div>
+                          : <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-400" title="Pending verification" />
+                        }
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Status legend */}
+                <div className="flex items-center gap-4 text-[11px] font-medium text-muted-foreground">
+                  <span className="flex items-center gap-1"><CheckCircle2 size={11} className="text-emerald-500" /> Verified</span>
+                  <span className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full border-2 border-amber-400" /> Pending</span>
+                </div>
+
+                {/* Registrar links */}
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Where to add these?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {REGISTRAR_LINKS.map(r => (
+                      <a key={r.name} href={r.url} target="_blank" rel="noreferrer"
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center gap-1">
+                        {r.name} <ExternalLink size={10} className="opacity-50" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 space-y-3">
+                  <button
+                    onClick={handleVerify}
+                    disabled={verifying}
+                    className={cn(
+                      'w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all',
+                      'bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20',
+                      verifying && 'opacity-60 cursor-not-allowed'
+                    )}
+                  >
+                    {verifying ? (
+                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Checking records...</>
+                    ) : (
+                      <><CheckCircle2 size={16} /> I've added them — Verify now</>
+                    )}
+                  </button>
+                  <p className="text-center text-[11px] text-muted-foreground">
+                    ⏱ Checking automatically every 10 min in background · DNS can take up to 48 hours
+                  </p>
+                  <button
+                    onClick={() => { setStep(1); setDnsRecords([]); }}
+                    className="w-full text-[11px] font-semibold text-muted-foreground hover:text-foreground transition text-center"
+                  >
+                    ← Change sending email
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* \u2500\u2500\u2500 STEP 3 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+        {step === 3 && (
+          <motion.div key="step3" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+            <Card className="rounded-[2rem] border-emerald-500/20 overflow-hidden shadow-sm">
+              <CardContent className="p-8 space-y-6">
+                {/* Success hero */}
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 size={32} className="text-emerald-500" />
+                  </div>
+                  <h3 className="text-xl font-black text-foreground">Email domain verified!</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Your campaigns will now send from:</p>
+                  <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20">
+                    <Mail size={14} className="text-primary" />
+                    <code className="text-sm font-bold text-primary font-mono">{fromEmail}</code>
+                  </div>
+                  {verifiedAt && (
+                    <p className="text-[11px] text-muted-foreground/60 mt-2">
+                      Verified {new Date(verifiedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+
+                {/* Status badges */}
+                <div className="grid grid-cols-1 gap-3">
+                  {[
+                    { icon: CheckCircle2, label: 'Deliverability', value: 'Professional', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+                    { icon: Shield, label: 'Spam protection', value: 'Active — DKIM + CNAME', color: 'text-blue-600', bg: 'bg-blue-500/10' },
+                    { icon: Zap, label: 'DKIM signing', value: 'Enabled', color: 'text-violet-600', bg: 'bg-violet-500/10' },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-center gap-4 p-4 rounded-2xl bg-muted/10 border border-border/30">
+                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', item.bg)}>
+                        <item.icon size={16} className={item.color} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{item.label}</p>
+                        <p className="text-sm font-bold text-foreground">{item.value}</p>
+                      </div>
+                      <CheckCircle2 size={14} className="text-emerald-500 ml-auto" />
+                    </div>
+                  ))}
+                </div>
+
+                <a
+                  href="/dashboard/strategy?mode=email"
+                  className="w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20 transition-all"
+                >
+                  Start sending campaigns <ArrowRight size={16} />
+                </a>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
