@@ -2046,6 +2046,7 @@ const EmailSetupWizard = ({ profile }: { profile: any }) => {
             </Card>
           </motion.div>
         )}
+        </AnimatePresence>
         </>
       )}
     </div>

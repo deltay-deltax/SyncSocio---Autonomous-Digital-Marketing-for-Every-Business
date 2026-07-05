@@ -13,6 +13,10 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: 'Amount and type are required' });
     }
 
+    if (amount < 1) {
+      return res.status(400).json({ message: 'Minimum amount must be 1 INR (100 paise)' });
+    }
+
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
         console.error('Razorpay keys not found in environment variables');
         return res.status(500).json({ message: 'Payment gateway configuration error' });
