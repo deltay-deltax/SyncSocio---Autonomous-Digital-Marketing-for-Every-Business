@@ -1135,6 +1135,7 @@ def generate_strategy_images(
 
     # ── CAROUSEL ───────────────────────────────
     elif layout == "carousel":
+        fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
         def run_carousel_task(index):
             prod = assigned_products[index]
             
