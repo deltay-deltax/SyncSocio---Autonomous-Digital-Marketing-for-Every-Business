@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { HexColorPicker } from "react-colorful";
 import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, Copy, CheckCheck, ArrowRight, Shield, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -2089,81 +2090,82 @@ const ChipGroup = ({ options, value, onChange, small }: { options: string[]; val
   </div>
 );
 
-// ── Native color picker — fully bypasses React event pool ──
+// ── Custom color picker — completely avoids Chrome's native buggy <input type="color"> ──
 const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
-  const swatchRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLInputElement>(null);
-  const colorRef = useRef<HTMLInputElement>(null);
-  const cbRef = useRef(onChange);
-  cbRef.current = onChange;
+  const [isOpen, setIsOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Sync external value into DOM without re-render, only if it differs
+  // Close when clicking outside
   useEffect(() => {
-    if (swatchRef.current) swatchRef.current.style.backgroundColor = value;
-    if (textRef.current && textRef.current.value !== value) textRef.current.value = value;
-    if (colorRef.current && colorRef.current.value !== value) colorRef.current.value = value;
-  }, [value]);
-
-  // Attach native event listeners to completely avoid React synthetic event overhead
-  useEffect(() => {
-    const inputEl = colorRef.current;
-    if (!inputEl) return;
-
-    let rafId: number | null = null;
-
-    // Native input event fires smoothly during drag without React overhead
-    // We throttle this with requestAnimationFrame to prevent eye-dropper event floods
-    const handleInput = (e: Event) => {
-      if (rafId) return; // already queued a frame
-      rafId = requestAnimationFrame(() => {
-        const v = (e.target as HTMLInputElement).value;
-        if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
-        if (textRef.current) textRef.current.value = v;
-        rafId = null;
-      });
+    if (!isOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
     };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isOpen]);
 
-    // Native change event fires ONLY when the color picker popup is closed
-    const handleChange = (e: Event) => {
-      cbRef.current((e.target as HTMLInputElement).value);
-    };
-
-    inputEl.addEventListener('input', handleInput);
-    inputEl.addEventListener('change', handleChange);
-    
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      inputEl.removeEventListener('input', handleInput);
-      inputEl.removeEventListener('change', handleChange);
-    };
-  }, []);
-
-  // Text input: commit on blur
-  const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
-      if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
-      if (colorRef.current && colorRef.current.value !== v) colorRef.current.value = v;
-      cbRef.current(v);
+      onChange(v);
+    }
+  };
+
+  const handleEyeDropper = async () => {
+    if (!('EyeDropper' in window)) {
+      alert('Your browser does not support the EyeDropper API.');
+      return;
+    }
+    try {
+      const eyeDropper = new (window as any).EyeDropper();
+      const result = await eyeDropper.open();
+      if (result && result.sRGBHex) {
+        onChange(result.sRGBHex);
+      }
+    } catch (e) {
+      console.log('EyeDropper cancelled');
     }
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-input bg-background px-2 py-1.5">
-      <div ref={swatchRef} className="relative w-8 h-8 rounded-md overflow-hidden border border-border shrink-0" style={{ backgroundColor: value }}>
-        <input 
-          ref={colorRef}
-          type="color" 
-          defaultValue={value} 
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-        />
-      </div>
-      <Input 
-        ref={textRef as any}
-        defaultValue={value} 
-        onBlur={handleTextBlur}
-        className="border-0 h-8 px-1 text-sm font-mono focus-visible:ring-0" 
+    <div className="relative flex items-center gap-2 rounded-lg border border-input bg-background px-2 py-1.5" ref={popoverRef}>
+      <button 
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative w-8 h-8 rounded-md overflow-hidden border border-border shrink-0 cursor-pointer shadow-sm hover:scale-105 transition-transform" 
+        style={{ backgroundColor: value }}
+        title="Open color picker"
       />
+      
+      {/* Eye Dropper Button (if supported) */}
+      {'EyeDropper' in window && (
+        <button
+          type="button"
+          onClick={handleEyeDropper}
+          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          title="Pick color from screen"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg>
+        </button>
+      )}
+
+      <Input 
+        defaultValue={value}
+        key={value} // forces re-render of input when external value changes
+        onBlur={handleTextChange}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleTextChange(e as any) }}
+        className="border-0 h-8 px-1 text-sm font-mono focus-visible:ring-0 flex-1" 
+      />
+
+      {isOpen && (
+        <div className="absolute top-[calc(100%+8px)] left-0 z-[150] p-3 rounded-xl border border-border bg-popover shadow-xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Color</div>
+          <HexColorPicker color={value} onChange={onChange} />
+        </div>
+      )}
     </div>
   );
 };
