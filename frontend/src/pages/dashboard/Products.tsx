@@ -82,6 +82,35 @@ function imgSrc(b64: string) {
   return `data:image/jpeg;base64,${b64}`;
 }
 
+const cleanPriceValue = (val: any): string => {
+  if (val === undefined || val === null) return '';
+  const str = String(val);
+  // Remove currency symbols (₹, $, Rs., etc.), commas, and extra whitespace, keeping numbers and decimal point
+  return str.replace(/[₹$A-Za-z\s,]/g, '').trim();
+};
+
+const formatPriceDisplay = (val: any, isSaas: boolean): string => {
+  if (val === undefined || val === null) return '';
+  const str = String(val);
+  if (!str) return '';
+  if (isSaas) return str;
+  const numericStr = cleanPriceValue(str);
+  const num = parseFloat(numericStr);
+  if (!isNaN(num)) {
+    return `₹${num.toLocaleString('en-IN')}`;
+  }
+  return str.startsWith('₹') ? str : `₹${str}`;
+};
+
+const getDiscountPercentage = (priceStr: any, offerPriceStr: any): number | null => {
+  const priceNum = parseFloat(cleanPriceValue(priceStr));
+  const offerPriceNum = parseFloat(cleanPriceValue(offerPriceStr));
+  if (!isNaN(priceNum) && !isNaN(offerPriceNum) && priceNum > 0) {
+    return Math.round((1 - offerPriceNum / priceNum) * 100);
+  }
+  return null;
+};
+
 // ── Product Form Modal ───────────────────────────────────────────────────────
 const ProductForm: React.FC<{
   initial?: Product;
@@ -106,7 +135,14 @@ const ProductForm: React.FC<{
   ];
   const isSaas = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
 
-  const [form, setForm] = useState<Product>(initial ?? emptyProduct());
+  const [form, setForm] = useState<Product>(() => {
+    const f = initial ?? emptyProduct();
+    if (!isSaas) {
+      f.price = cleanPriceValue(f.price);
+      f.offerPrice = cleanPriceValue(f.offerPrice);
+    }
+    return f;
+  });
   const [saving, setSaving] = useState(false);
   const [imgPreview, setImgPreview] = useState(initial?.imageBase64 || '');
   const [link, setLink] = useState('');
@@ -139,8 +175,8 @@ const ProductForm: React.FC<{
         name: data.name || f.name,
         serviceProvider: data.serviceProvider || f.serviceProvider || '',
         description: data.description || f.description,
-        price: data.price || f.price,
-        offerPrice: data.offerPrice || f.offerPrice,
+        price: isSaas ? (data.price || f.price) : cleanPriceValue(data.price || f.price),
+        offerPrice: isSaas ? (data.offerPrice || f.offerPrice) : cleanPriceValue(data.offerPrice || f.offerPrice),
         keyBenefit: data.keyBenefit || f.keyBenefit,
         imageBase64: data.imageBase64 || f.imageBase64
       }));
@@ -217,6 +253,10 @@ const ProductForm: React.FC<{
                   {scraping ? <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin" /> : 'Scrape'}
                 </Button>
               </div>
+              <p className="text-[10px] text-muted-foreground/75 mt-2 flex items-center gap-1">
+                <span className="text-amber-500 font-bold shrink-0">⚠️ Note:</span>
+                <span>AI agents may make mistakes while scraping. Please verify scraped details before saving.</span>
+              </p>
             </div>
           )}
 
@@ -532,6 +572,10 @@ const Products = () => {
               ? "Add your services & features — SyncSocio will use them to generate targeted ad creatives." 
               : "Add your products — SyncSocio will use them to generate targeted ad creatives."}
           </p>
+          <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-500 text-[11px] font-medium leading-normal shadow-sm">
+            <span className="text-amber-500 font-black uppercase tracking-wider shrink-0">⚠️ Important Notice:</span>
+            <span>AI agents may make mistakes while parsing or scraping details. Please verify the information yourself.</span>
+          </div>
         </div>
         <Button
           onClick={() => { setEditing(null); setShowForm(true); }}
@@ -677,17 +721,17 @@ const Products = () => {
                   <div className="flex items-center gap-2 mb-2">
                     {p.offerPrice && (
                       <span className="text-sm font-black text-primary">
-                        {isSaas ? p.offerPrice : `₹${p.offerPrice}`}
+                        {formatPriceDisplay(p.offerPrice, isSaas)}
                       </span>
                     )}
                     {p.price && (
                       <span className={cn('text-xs font-medium', p.offerPrice ? 'text-muted-foreground line-through' : 'text-foreground font-bold')}>
-                        {isSaas ? p.price : `₹${p.price}`}
+                        {formatPriceDisplay(p.price, isSaas)}
                       </span>
                     )}
-                    {!isSaas && p.offerPrice && p.price && (
+                    {!isSaas && p.offerPrice && p.price && getDiscountPercentage(p.price, p.offerPrice) !== null && (
                       <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
-                        {Math.round((1 - parseFloat(p.offerPrice) / parseFloat(p.price)) * 100)}% off
+                        {getDiscountPercentage(p.price, p.offerPrice)}% off
                       </span>
                     )}
                   </div>

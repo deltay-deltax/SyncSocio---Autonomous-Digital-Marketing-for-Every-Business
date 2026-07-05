@@ -1937,7 +1937,7 @@ const DashboardStrategy = () => {
                 : `SyncSocio AI is generating ${count} on-brand ${mode === 'video' ? 'videos' : mode === 'carousel' ? 'carousels' : 'posts'}…`}
         </p>
         <p className="text-xs text-muted-foreground/60 mb-6">
-          {mode === 'all_in_one' ? 'Since we are running them in parallel, this takes 2 - 5 mins' : 'This may take 15–30 seconds'}
+          This may take a few moments
         </p>
         <div className="flex gap-2">
           {[0, 1, 2].map((i) => (

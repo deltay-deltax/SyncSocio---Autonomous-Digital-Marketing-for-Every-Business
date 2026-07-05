@@ -717,6 +717,7 @@ def generate_saas_strategy_images(
                     image=ref,
                     count=slide_count,
                     slide_prompts=enriched_slide_prompts,
+                    image_size=fal_size,
                 )
                 return {"slides": slides, "caption": caption, "type": "carousel", "index": index}
             except Exception as e:
