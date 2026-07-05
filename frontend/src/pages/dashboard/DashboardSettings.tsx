@@ -2091,19 +2091,24 @@ const ChipGroup = ({ options, value, onChange, small }: { options: string[]; val
 
 const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
   const [localColor, setLocalColor] = useState(value);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
+  // Sync external value changes into local state
   useEffect(() => {
     setLocalColor(value);
   }, [value]);
 
+  // Debounce: only call parent onChange 300ms after user stops moving the picker
   useEffect(() => {
     const handler = setTimeout(() => {
       if (localColor !== value) {
-        onChange(localColor);
+        onChangeRef.current(localColor);
       }
-    }, 150);
+    }, 300);
     return () => clearTimeout(handler);
-  }, [localColor, onChange, value]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localColor]);
 
   return (
     <div className="flex items-center gap-2 rounded-lg border border-input bg-background px-2 py-1.5">
