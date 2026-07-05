@@ -8,26 +8,66 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
-// ── Debounced color picker — isolates rapid onChange so parent doesn't re-render on every drag ──
+// ── Zero-rerender color picker — live preview via DOM refs, React state only on commit ──
 const ColorInput = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
-  const [local, setLocal] = React.useState(value);
+  const swatchRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLInputElement>(null);
+  const colorRef = useRef<HTMLInputElement>(null);
   const cbRef = useRef(onChange);
   cbRef.current = onChange;
-  useEffect(() => { setLocal(value); }, [value]);
+
+  // Sync external value into DOM without re-render
   useEffect(() => {
-    const t = setTimeout(() => { cbRef.current(local); }, 300);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [local]);
+    if (swatchRef.current) swatchRef.current.style.backgroundColor = value;
+    if (textRef.current) textRef.current.value = value;
+    if (colorRef.current) colorRef.current.value = value;
+  }, [value]);
+
+  // Live preview: update DOM directly (zero React re-renders during drag)
+  const handleColorInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const v = (e.target as HTMLInputElement).value;
+    if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
+    if (textRef.current) textRef.current.value = v;
+  };
+
+  // Commit to React state only when picker closes
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    cbRef.current(e.target.value);
+  };
+
+  // Text input: commit on blur
+  const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+      if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
+      if (colorRef.current) colorRef.current.value = v;
+      cbRef.current(v);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">{label}</label>
       <div className="flex items-center gap-3 p-2 bg-muted/20 rounded-xl border border-border/50 group hover:border-primary/30 transition-all">
-        <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border/50 shadow-inner shrink-0 shadow-black/10" style={{ backgroundColor: local }}>
-          <input type="color" value={local} onChange={e => setLocal(e.target.value)} className="absolute inset-[-4px] w-[200%] h-[200%] cursor-pointer bg-transparent border-0 p-0" />
+        <div ref={swatchRef} className="relative w-10 h-10 rounded-lg overflow-hidden border border-border/50 shadow-inner shrink-0 shadow-black/10" style={{ backgroundColor: value }}>
+          <input
+            ref={colorRef}
+            type="color"
+            defaultValue={value}
+            onInput={handleColorInput}
+            onChange={handleColorChange}
+            className="absolute inset-[-4px] w-[200%] h-[200%] cursor-pointer bg-transparent border-0 p-0"
+          />
         </div>
         <div className="flex flex-col min-w-0">
-          <input type="text" placeholder="#000000" value={local} onChange={e => setLocal(e.target.value)} className="w-full bg-transparent text-foreground text-[10px] font-black outline-none uppercase tracking-widest" />
+          <input
+            ref={textRef}
+            type="text"
+            placeholder="#000000"
+            defaultValue={value}
+            onBlur={handleTextBlur}
+            className="w-full bg-transparent text-foreground text-[10px] font-black outline-none uppercase tracking-widest"
+          />
           <span className="text-[7px] font-black text-muted-foreground uppercase opacity-50">Pick Color</span>
         </div>
       </div>
