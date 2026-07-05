@@ -1559,6 +1559,22 @@ const EmailSetupWizard = ({ profile }: { profile: any }) => {
   const [submitting, setSubmitting] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [copiedRow, setCopiedRow] = useState<string | null>(null);
+  const [useGeneric, setUseGeneric] = useState(profile?.use_generic_email_sender || false);
+
+  const handleToggleGeneric = async (val: boolean) => {
+    setUseGeneric(val);
+    const token = localStorage.getItem('token');
+    try {
+      await fetch(`${apiBase}/profile/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ use_generic_email_sender: val })
+      });
+      toast({ title: 'Preferences saved', description: val ? 'Now sending via SyncSocio network' : 'Switched to custom domain mode' });
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Fetch status on mount
   useEffect(() => {
@@ -1729,33 +1745,67 @@ const EmailSetupWizard = ({ profile }: { profile: any }) => {
           </div>
 
           {/* Step progress */}
-          <div className="flex items-center gap-2 mt-4">
-            {stepLabels.map((label, i) => {
-              const sNum = i + 1;
-              const isActive = step === sNum;
-              const isDone = step > sNum;
-              return (
-                <div key={label} className="flex items-center gap-2">
-                  <div className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all',
-                    isDone ? 'bg-emerald-500/15 text-emerald-600' :
-                    isActive ? 'bg-primary/15 text-primary' :
-                    'bg-muted text-muted-foreground'
-                  )}>
-                    {isDone ? <CheckCheck size={12} /> : <span className="w-3 h-3 rounded-full border-2 border-current inline-block" />}
-                    {label}
+          {!useGeneric && (
+            <div className="flex items-center gap-2 mt-4">
+              {stepLabels.map((label, i) => {
+                const sNum = i + 1;
+                const isActive = step === sNum;
+                const isDone = step > sNum;
+                return (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all',
+                      isDone ? 'bg-emerald-500/15 text-emerald-600' :
+                      isActive ? 'bg-primary/15 text-primary' :
+                      'bg-muted text-muted-foreground'
+                    )}>
+                      {isDone ? <CheckCheck size={12} /> : <span className="w-3 h-3 rounded-full border-2 border-current inline-block" />}
+                      {label}
+                    </div>
+                    {i < stepLabels.length - 1 && (
+                      <div className={cn('h-px w-6 rounded-full', step > sNum ? 'bg-emerald-400' : 'bg-border')} />
+                    )}
                   </div>
-                  {i < stepLabels.length - 1 && (
-                    <div className={cn('h-px w-6 rounded-full', step > sNum ? 'bg-emerald-400' : 'bg-border')} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Sender Mode Toggle */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <button onClick={() => handleToggleGeneric(true)} className={`flex-1 p-5 rounded-[2rem] border transition-all text-left ${useGeneric ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-lg' : 'border-border/50 bg-background hover:bg-muted/30'}`}>
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${useGeneric ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <h4 className={`text-sm font-black ${useGeneric ? 'text-primary' : 'text-foreground'}`}>SyncSocio Network</h4>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground">EASY & FAST</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">Send campaigns instantly from creatives@syncsocio.com. No DNS setup required.</p>
+        </button>
+
+        <button onClick={() => handleToggleGeneric(false)} className={`flex-1 p-5 rounded-[2rem] border transition-all text-left ${!useGeneric ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-lg' : 'border-border/50 bg-background hover:bg-muted/30'}`}>
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${!useGeneric ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              <Globe size={18} />
+            </div>
+            <div>
+              <h4 className={`text-sm font-black ${!useGeneric ? 'text-primary' : 'text-foreground'}`}>Custom Domain</h4>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground">PROFESSIONAL</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">Send campaigns from your own domain for full white-labeling and high deliverability.</p>
+        </button>
+      </div>
+
+
       {/* \u2500\u2500\u2500 STEP 1 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+      {!useGeneric && (
+      <>
       <AnimatePresence mode="wait">
         {step === 1 && (
           <motion.div key="step1" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
@@ -1996,7 +2046,8 @@ const EmailSetupWizard = ({ profile }: { profile: any }) => {
             </Card>
           </motion.div>
         )}
-      </AnimatePresence>
+        </>
+      )}
     </div>
   );
 };
@@ -2035,11 +2086,28 @@ const ChipGroup = ({ options, value, onChange, small }: { options: string[]; val
   </div>
 );
 
-const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
-  <div className="flex items-center gap-2 rounded-lg border border-input bg-background px-2 py-1.5">
-    <div className="relative w-8 h-8 rounded-md overflow-hidden border border-border shrink-0" style={{ backgroundColor: value }}>
-      <input type="color" value={value} onChange={e => onChange(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const [localColor, setLocalColor] = useState(value);
+
+  useEffect(() => {
+    setLocalColor(value);
+  }, [value]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (localColor !== value) {
+        onChange(localColor);
+      }
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [localColor, onChange, value]);
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-input bg-background px-2 py-1.5">
+      <div className="relative w-8 h-8 rounded-md overflow-hidden border border-border shrink-0" style={{ backgroundColor: localColor }}>
+        <input type="color" value={localColor} onChange={e => setLocalColor(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+      </div>
+      <Input value={localColor} onChange={e => setLocalColor(e.target.value)} className="border-0 h-8 px-1 text-sm font-mono focus-visible:ring-0" />
     </div>
-    <Input value={value} onChange={e => onChange(e.target.value)} className="border-0 h-8 px-1 text-sm font-mono focus-visible:ring-0" />
-  </div>
-);
+  );
+};

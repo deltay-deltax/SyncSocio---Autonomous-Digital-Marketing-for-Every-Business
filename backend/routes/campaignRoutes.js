@@ -121,16 +121,17 @@ router.post('/send', protect, async (req, res) => {
     const brandName = profile?.brandName || 'SyncSocio';
 
     // ── DOMAIN VERIFICATION GUARD ────────────────────────────────────────────
-    if (!profile?.email_domain_verified) {
+    let fromEmail = profile.email_from;
+
+    if (profile?.use_generic_email_sender) {
+      fromEmail = 'creatives@syncsocio.com';
+    } else if (!profile?.email_domain_verified) {
       return res.status(403).json({
         code: 'EMAIL_DOMAIN_NOT_VERIFIED',
         message: 'Your email domain is not verified yet. Please complete email setup before sending campaigns.',
         action: 'Go to Settings → Email Setup'
       });
     }
-
-    // Use brand's verified from address (set during domain authentication)
-    const fromEmail = profile.email_from;
     // ─────────────────────────────────────────────────────────────────────────
 
     // Verify SendGrid API Key is configured

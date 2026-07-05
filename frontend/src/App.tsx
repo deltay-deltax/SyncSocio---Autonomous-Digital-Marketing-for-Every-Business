@@ -63,7 +63,8 @@ function App() {
       const sessionToken = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem('velocity_visit_tracked', 'true');
       
-      fetch('http://localhost:5050/api/analytics/visit', {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      fetch(`${API_BASE}/analytics/visit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
