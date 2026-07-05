@@ -4,11 +4,11 @@ import path from 'path';
 import PDFDocument from 'pdfkit';
 
 // ─── Company / Brand Info ────────────────────────────────────────────────────
-const COMPANY_ADDRESS = {
-  line1: 'SyncSocio Technologies Pvt. Ltd.',
-  line2: 'Pune, Maharashtra — 411001',
-  country: 'India',
-  gstin: '27AAAAA0000A1Z5',
+export const COMPANY_ADDRESS = {
+  line1: 'SyncSocio',
+  line2: 'AECS Layout, Kundalahali, Bangalore, Karnataka, 560037',
+  country: '',
+  gstin: '',
   supportEmail: 'support@syncsocio.com',
 };
 
@@ -56,7 +56,7 @@ const PLAN_META = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const genInvoiceNo = (id) => {
+export const genInvoiceNo = (id) => {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -64,12 +64,12 @@ const genInvoiceNo = (id) => {
   return `SS-${y}${m}-${s}`;
 };
 
-const fmtDate = (d) =>
+export const fmtDate = (d) =>
   (d ? new Date(d) : new Date()).toLocaleDateString('en-IN', {
     day: '2-digit', month: 'long', year: 'numeric',
   });
 
-const resolvePack = (type, planName, creditsAdded) => {
+export const resolvePack = (type, planName, creditsAdded) => {
   if (type === 'topup') {
     return TOPUP_META[creditsAdded] || { label: `${creditsAdded} Credit Top-up`, subtitle: `${creditsAdded} AI Credits`, icon: '⚡', features: [] };
   }
@@ -86,6 +86,7 @@ const featureRows = (features = []) =>
 const buildHTML = (p) => {
   const isPlan = ['plan_purchase', 'plan_upgrade', 'plan_renewal'].includes(p.transactionType);
   const dashUrl = (process.env.FRONTEND_BASE_URL || 'https://syncsocio.com').replace(/\/+$/, '');
+  const apiBaseUrl = (process.env.BACKEND_URL || 'https://syncsocio-backend-87zk.onrender.com').replace(/\/+$/, '');
   const typeLabel = { topup:'Credit Top-up', plan_purchase:'Plan Purchase', plan_upgrade:'Plan Upgrade', plan_renewal:'Plan Renewal', dm_addon_purchase: 'DM Automation Add-on' }[p.transactionType] || 'Purchase';
   
   const discountRow = p.discountAmount > 0 
@@ -104,6 +105,15 @@ const buildHTML = (p) => {
   const billingCntry  = p.billingAddress?.country     || 'India';
 
   const originalPrice = parseFloat(p.amount || 0) + parseFloat(p.discountAmount || 0);
+
+  let logoPath = path.join(__dirname, '../../frontend/public/SyncSocioLogo.png');
+  if (!fs.existsSync(logoPath)) {
+    logoPath = path.join(process.cwd(), '../frontend/public/SyncSocioLogo.png');
+  }
+  if (!fs.existsSync(logoPath)) {
+    logoPath = path.join(process.cwd(), 'frontend/public/SyncSocioLogo.png');
+  }
+  const logoSrc = fs.existsSync(logoPath) ? 'cid:logo' : `${dashUrl}/SyncSocioLogo.png`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -124,9 +134,8 @@ const buildHTML = (p) => {
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="vertical-align: middle;">
-                    <img src="${dashUrl}/SyncSocioLogo.png" alt="SyncSocio Logo" style="width: 28px; height: 28px; vertical-align: middle; display: inline-block; margin-right: 10px;" />
+                    <img src="${logoSrc}" alt="SyncSocio Logo" style="width: 28px; height: 28px; vertical-align: middle; display: inline-block; margin-right: 10px;" />
                     <span style="color: #111827; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; vertical-align: middle;">SyncSocio</span>
-                    <span style="display: block; color: #9CA3AF; font-size: 9px; font-weight: 700; margin-top: 3px; letter-spacing: 0.5px; text-transform: uppercase;">AGENT AS A SERVICE</span>
                   </td>
                   <td align="right" style="vertical-align: middle; color: #9CA3AF; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;">
                     TAX INVOICE / RECEIPT
@@ -271,7 +280,7 @@ const buildHTML = (p) => {
 
               <!-- DOWNLOAD INVOICE CTA -->
               <div style="margin-top: 32px; text-align: center;">
-                <a href="${dashUrl}/dashboard" style="display: inline-block; background-color: #3B82F6; color: #FFFFFF; font-size: 13px; font-weight: 700; text-decoration: none; padding: 12px 32px; border-radius: 99px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);">
+                <a href="${apiBaseUrl}/api/payment/invoice/${p.transactionId}/download" style="display: inline-block; background-color: #3B82F6; color: #FFFFFF; font-size: 13px; font-weight: 700; text-decoration: none; padding: 12px 32px; border-radius: 99px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);">
                   Download receipt / invoice
                 </a>
               </div>
@@ -284,7 +293,7 @@ const buildHTML = (p) => {
         <table width="560" cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px; text-align: center;">
           <tr>
             <td style="color: #9CA3AF; font-size: 11px; line-height: 1.5; padding: 0 16px;">
-              © 2026 SyncSocio Technologies Pvt. Ltd. • Pune, Maharashtra, India<br/>
+              © 2026 SyncSocio<br/>
               This email contains a secure PDF invoice of your transaction. Need support? Email <a href="mailto:support@syncsocio.com" style="color: #3B82F6; text-decoration: none;">support@syncsocio.com</a>
             </td>
           </tr>
@@ -298,7 +307,7 @@ const buildHTML = (p) => {
 };
 
 // ─── PDF Document Builder ───────────────────────────────────────────────────
-const generatePDFBuffer = (p) => {
+export const generatePDFBuffer = (p) => {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -324,9 +333,12 @@ const generatePDFBuffer = (p) => {
       const originalPrice = parseFloat(p.amount || 0) + parseFloat(p.discountAmount || 0);
 
       // ─── BRAND HEADER (Minimalist Layout) ───────────────────────────────────
-      let logoPath = path.join(process.cwd(), '../frontend/public/SyncSocioLogo.png');
+      let logoPath = path.join(__dirname, '../../frontend/public/SyncSocioLogo.png');
       if (!fs.existsSync(logoPath)) {
-        logoPath = '/Users/himanshunikam/Desktop/Velocity_AaaS_MajorProject/frontend/public/SyncSocioLogo.png';
+        logoPath = path.join(process.cwd(), '../frontend/public/SyncSocioLogo.png');
+      }
+      if (!fs.existsSync(logoPath)) {
+        logoPath = path.join(process.cwd(), 'frontend/public/SyncSocioLogo.png');
       }
 
       if (fs.existsSync(logoPath)) {
@@ -337,11 +349,6 @@ const generatePDFBuffer = (p) => {
          .fontSize(22)
          .font('Helvetica-Bold')
          .text('SyncSocio', 95, 30);
-      
-      doc.fontSize(8)
-         .fillColor(lightTextColor)
-         .font('Helvetica-Bold')
-         .text('AGENT AS A SERVICE', 95, 54, { characterSpacing: 1 });
 
       doc.fontSize(12)
          .fillColor(lightTextColor)
@@ -370,10 +377,9 @@ const generatePDFBuffer = (p) => {
 
       // Right Column: Company Info
       doc.fillColor(textColor).fontSize(10).font('Helvetica-Bold').text('From', 350, 110);
-      doc.font('Helvetica').fontSize(9).text('SyncSocio Technologies Pvt. Ltd.', 350, 128);
-      doc.text('Pune, Maharashtra — 411001', 350, 143);
-      doc.text('India', 350, 158);
-      doc.fillColor(lightTextColor).fontSize(9).text('GSTIN: 27AAAAA0000A1Z5', 350, 173);
+      doc.font('Helvetica').fontSize(9).text('SyncSocio', 350, 128);
+      doc.text('AECS Layout, Kundalahali,', 350, 143);
+      doc.text('Bangalore, Karnataka, 560037', 350, 158);
 
       // Divider
       doc.moveTo(50, 200).lineTo(545, 200).strokeColor(borderColor).stroke();
@@ -435,7 +441,7 @@ const generatePDFBuffer = (p) => {
       doc.fillColor(lightTextColor).font('Helvetica').text('Tax (0% GST):', 300, summaryY, { width: 150, align: 'right' });
       doc.fillColor(textColor).font('Helvetica-Bold').text('INR 0.00', 460, summaryY, { width: 75, align: 'right' });
 
-      // Final Total Banner
+      // Final Divider
       summaryY += 24;
       doc.rect(300, summaryY - 8, 245, 30).fill(lightBgColor);
       doc.rect(300, summaryY - 8, 245, 30).strokeColor(borderColor).stroke();
@@ -450,7 +456,7 @@ const generatePDFBuffer = (p) => {
          .font('Helvetica')
          .text('This is a system-generated tax invoice and requires no physical signature.', 50, 720, { align: 'center' });
       
-      doc.text('SyncSocio Technologies Pvt. Ltd. • support@syncsocio.com • Pune, Maharashtra, India', 50, 735, { align: 'center' });
+      doc.text('SyncSocio • support@syncsocio.com', 50, 735, { align: 'center' });
 
       doc.end();
     } catch (e) {
@@ -482,7 +488,7 @@ const buildText = (p) => {
     `Order ID:   ${p.razorpayOrderId   || '—'}`,
     '',
     `Questions? ${COMPANY_ADDRESS.supportEmail}`,
-    `© ${new Date().getFullYear()} SyncSocio Technologies Pvt. Ltd., Pune, India`,
+    `© ${new Date().getFullYear()} SyncSocio`,
   ].filter(Boolean).join('\n');
 };
 
@@ -507,6 +513,7 @@ export const sendInvoiceEmail = async (opts) => {
     invoiceNumber, invoiceDate, userName, userEmail, billingAddress,
     packMeta, amount, creditsAdded, transactionType, razorpayPaymentId,
     razorpayOrderId, planExpiresAt, couponCode, discountAmount, discountPercentage,
+    transactionId,
   };
 
   const typeLabel = {
@@ -524,9 +531,12 @@ export const sendInvoiceEmail = async (opts) => {
   const pdfBuffer = await generatePDFBuffer(params);
 
   // Resolve logo path dynamically
-  let logoPath = path.join(process.cwd(), '../frontend/public/SyncSocioLogo.png');
+  let logoPath = path.join(__dirname, '../../frontend/public/SyncSocioLogo.png');
   if (!fs.existsSync(logoPath)) {
-    logoPath = '/Users/himanshunikam/Desktop/Velocity_AaaS_MajorProject/frontend/public/SyncSocioLogo.png';
+    logoPath = path.join(process.cwd(), '../frontend/public/SyncSocioLogo.png');
+  }
+  if (!fs.existsSync(logoPath)) {
+    logoPath = path.join(process.cwd(), 'frontend/public/SyncSocioLogo.png');
   }
 
   const attachments = [
@@ -538,7 +548,15 @@ export const sendInvoiceEmail = async (opts) => {
     }
   ];
 
-
+  if (fs.existsSync(logoPath)) {
+    attachments.push({
+      content: fs.readFileSync(logoPath).toString('base64'),
+      filename: 'SyncSocioLogo.png',
+      type: 'image/png',
+      disposition: 'inline',
+      content_id: 'logo'
+    });
+  }
 
   const msg = {
     to,
