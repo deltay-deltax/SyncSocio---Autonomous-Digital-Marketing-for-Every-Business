@@ -550,7 +550,7 @@ export const sendManualEmail = async (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
     await sgMail.send({
-      from: `Velocity Admin <${process.env.SMTP_FROM_EMAIL || 'admin@velocity.com'}>`,
+      from: `SyncSocio Admin <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
       to: user.email,
       subject: subject || 'Message from Admin',
       text: message,

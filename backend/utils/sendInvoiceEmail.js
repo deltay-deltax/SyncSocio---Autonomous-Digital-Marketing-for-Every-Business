@@ -542,7 +542,7 @@ export const sendInvoiceEmail = async (opts) => {
 
   const msg = {
     to,
-    from: `SyncSocio Billing <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    from: `SyncSocio Billing <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
     subject: `Invoice ${invoiceNumber} — ${typeLabel} · INR ${parseFloat(amount).toFixed(2)} Confirmed`,
     text: buildText(params),
     html: buildHTML(params),

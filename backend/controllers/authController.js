@@ -41,7 +41,7 @@ const sendOtpEmail = async (email, name, otp) => {
 
   const msg = {
     to: email,
-    from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
     subject: 'Your SyncSocio verification code',
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 520px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
@@ -485,7 +485,7 @@ export const forgotPassword = async (req, res) => {
       const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/resetpassword/${resetToken}`;
       const msg = {
         to: user.email,
-        from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
         subject: '🔒 Reset Your SyncSocio Password',
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">

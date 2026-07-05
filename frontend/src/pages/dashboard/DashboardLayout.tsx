@@ -78,6 +78,8 @@ const DashboardLayout = () => {
     return [];
   });
 
+  const [isIDBLoaded, setIsIDBLoaded] = useState(false);
+
   useEffect(() => {
     // Load heavy background tasks from IndexedDB on mount
     loadTasksFromIDB().then((idbTasks: any[]) => {
@@ -92,10 +94,13 @@ const DashboardLayout = () => {
           return [...newTasksStarted, ...processed];
         });
       }
+      setIsIDBLoaded(true);
     });
   }, []);
 
   useEffect(() => {
+    if (!isIDBLoaded) return; // Prevent overwriting IDB with localStorage's stripped data on mount
+
     try {
       // Save lightweight metadata to localStorage for instant UI load
       const lightweightTasks = backgroundTasks.map(t => ({

@@ -80,7 +80,7 @@ export const sendSignupWelcomeEmail = async ({ to, name, provider, plan }) => {
 
   const msg = {
     to,
-    from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
     subject: `Welcome to SyncSocio, ${userName}!`,
     text: textBody,
     html: `
@@ -151,7 +151,7 @@ export const sendSignupNotificationEmail = async ({ to, name, provider }) => {
 
   const msg = {
     to,
-    from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
     subject: `Welcome to SyncSocio, ${userName}!`,
     text: textBody,
     html: `
@@ -216,7 +216,7 @@ export const sendLoginNotificationEmail = async ({ to, name }) => {
 
   const msg = {
     to,
-    from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+    from: `SyncSocio <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
     subject: `Welcome back to SyncSocio, ${userName}!`,
     text: textBody,
     html: `
