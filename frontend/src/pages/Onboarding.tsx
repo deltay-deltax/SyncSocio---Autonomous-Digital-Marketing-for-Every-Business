@@ -8,6 +8,33 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
+// ── Debounced color picker — isolates rapid onChange so parent doesn't re-render on every drag ──
+const ColorInput = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
+  const [local, setLocal] = React.useState(value);
+  const cbRef = useRef(onChange);
+  cbRef.current = onChange;
+  useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => {
+    const t = setTimeout(() => { cbRef.current(local); }, 300);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [local]);
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">{label}</label>
+      <div className="flex items-center gap-3 p-2 bg-muted/20 rounded-xl border border-border/50 group hover:border-primary/30 transition-all">
+        <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border/50 shadow-inner shrink-0 shadow-black/10" style={{ backgroundColor: local }}>
+          <input type="color" value={local} onChange={e => setLocal(e.target.value)} className="absolute inset-[-4px] w-[200%] h-[200%] cursor-pointer bg-transparent border-0 p-0" />
+        </div>
+        <div className="flex flex-col min-w-0">
+          <input type="text" placeholder="#000000" value={local} onChange={e => setLocal(e.target.value)} className="w-full bg-transparent text-foreground text-[10px] font-black outline-none uppercase tracking-widest" />
+          <span className="text-[7px] font-black text-muted-foreground uppercase opacity-50">Pick Color</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface LogoProps {
   active: boolean;
 }
@@ -887,53 +914,16 @@ const Onboarding = () => {
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Brand Colors</label>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Primary Color</label>
-                          <div className="flex items-center gap-3 p-2 bg-muted/20 rounded-xl border border-border/50 group hover:border-primary/30 transition-all">
-                            <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border/50 shadow-inner shrink-0 shadow-black/10">
-                              <input 
-                                type="color" 
-                                value={formData.primaryColor} 
-                                onChange={(e) => setFormData({...formData, primaryColor: e.target.value})}
-                                className="absolute inset-[-4px] w-[200%] h-[200%] cursor-pointer bg-transparent border-0 p-0" 
-                              />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                               <input 
-                                 type="text" 
-                                 placeholder="#000000" 
-                                 value={formData.primaryColor}
-                                 onChange={(e) => setFormData({...formData, primaryColor: e.target.value})}
-                                 className="w-full bg-transparent text-foreground text-[10px] font-black outline-none uppercase tracking-widest" 
-                               />
-                               <span className="text-[7px] font-black text-muted-foreground uppercase opacity-50">Pick Color</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Secondary Color</label>
-                          <div className="flex items-center gap-3 p-2 bg-muted/20 rounded-xl border border-border/50 group hover:border-primary/30 transition-all">
-                            <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border/50 shadow-inner shrink-0 shadow-black/10">
-                              <input 
-                                type="color" 
-                                value={formData.secondaryColor} 
-                                onChange={(e) => setFormData({...formData, secondaryColor: e.target.value})}
-                                className="absolute inset-[-4px] w-[200%] h-[200%] cursor-pointer bg-transparent border-0 p-0" 
-                              />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                               <input 
-                                 type="text" 
-                                 placeholder="#000000" 
-                                 value={formData.secondaryColor}
-                                 onChange={(e) => setFormData({...formData, secondaryColor: e.target.value})}
-                                 className="w-full bg-transparent text-foreground text-[10px] font-black outline-none uppercase tracking-widest" 
-                               />
-                               <span className="text-[7px] font-black text-muted-foreground uppercase opacity-50">Pick Color</span>
-                            </div>
-                          </div>
-                        </div>
+                        <ColorInput
+                          label="Primary Color"
+                          value={formData.primaryColor}
+                          onChange={v => setFormData(prev => ({ ...prev, primaryColor: v }))}
+                        />
+                        <ColorInput
+                          label="Secondary Color"
+                          value={formData.secondaryColor}
+                          onChange={v => setFormData(prev => ({ ...prev, secondaryColor: v }))}
+                        />
                       </div>
                     </div>
 
