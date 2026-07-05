@@ -170,13 +170,21 @@ export const login = async (req, res) => {
       return res.status(403).json({ message: 'Please verify your email before logging in.' });
     }
 
-    // Send login notification email asynchronously
-    sendLoginNotificationEmail({
-      to: user.email,
-      name: user.name,
-    }).catch(mailError => {
-      console.error('Login notification email failed:', mailError.message);
-    });
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    if (user.lastLogin && user.lastLogin < oneMonthAgo) {
+      // Send login notification email asynchronously
+      sendLoginNotificationEmail({
+        to: user.email,
+        name: user.name,
+      }).catch(mailError => {
+        console.error('Login notification email failed:', mailError.message);
+      });
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
 
     // Push notification to UI drawer asynchronously
     createNotification(
@@ -218,7 +226,7 @@ export const googleLogin = async (req, res) => {
     }
     let isNewUser = false;
     if (!user) {
-      user = await User.create({ name, email, googleId, isVerified: true });
+      user = await User.create({ name, email, googleId, isVerified: true, lastLogin: new Date() });
       isNewUser = true;
     } else {
       if (isSignup) {
@@ -246,16 +254,23 @@ export const googleLogin = async (req, res) => {
     if (isNewUser) {
       // Email will be sent when user selects plan on Setup page
     } else {
-      // Send login notification for returning users
-      try {
-        // TEMPORARY: Disabled for Render free tier
-        // await sendLoginNotificationEmail({
-        //   to: user.email,
-        //   name: user.name,
-        // });
-      } catch (mailError) {
-        console.error('Google login notification email failed:', mailError.message);
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+      if (user.lastLogin && user.lastLogin < oneMonthAgo) {
+        // Send login notification for returning users
+        try {
+          // TEMPORARY: Disabled for Render free tier
+          // await sendLoginNotificationEmail({
+          //   to: user.email,
+          //   name: user.name,
+          // });
+        } catch (mailError) {
+          console.error('Google login notification email failed:', mailError.message);
+        }
       }
+      user.lastLogin = new Date();
+      await user.save();
     }
 
     if (isNewUser && !user.password) {
@@ -304,7 +319,7 @@ export const appleLogin = async (req, res) => {
     }
     let isNewUser = false;
     if (!user) {
-      user = await User.create({ name, email, appleId, isVerified: true });
+      user = await User.create({ name, email, appleId, isVerified: true, lastLogin: new Date() });
       isNewUser = true;
     } else {
       if (isSignup) {
@@ -332,16 +347,23 @@ export const appleLogin = async (req, res) => {
     if (isNewUser) {
       // Email will be sent when user selects plan on Setup page
     } else {
-      // Send login notification for returning users
-      try {
-        // TEMPORARY: Disabled for Render free tier
-        // await sendLoginNotificationEmail({
-        //   to: user.email,
-        //   name: user.name,
-        // });
-      } catch (mailError) {
-        console.error('Apple login notification email failed:', mailError.message);
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+      if (user.lastLogin && user.lastLogin < oneMonthAgo) {
+        // Send login notification for returning users
+        try {
+          // TEMPORARY: Disabled for Render free tier
+          // await sendLoginNotificationEmail({
+          //   to: user.email,
+          //   name: user.name,
+          // });
+        } catch (mailError) {
+          console.error('Apple login notification email failed:', mailError.message);
+        }
       }
+      user.lastLogin = new Date();
+      await user.save();
     }
     
     if (isNewUser && !user.password) {
@@ -404,6 +426,7 @@ export const verifyOtp = async (req, res) => {
     user.isVerified = true;
     user.otpCode = undefined;
     user.otpExpiry = undefined;
+    user.lastLogin = new Date();
     await user.save();
 
     // Send signup notification email asynchronously

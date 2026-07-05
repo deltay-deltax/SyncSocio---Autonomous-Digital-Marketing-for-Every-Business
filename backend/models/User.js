@@ -74,6 +74,9 @@ const userSchema = new mongoose.Schema({
   isBlocked: {
     type: Boolean,
     default: false
+  },
+  lastLogin: {
+    type: Date
   }
 }, { timestamps: true });
 
