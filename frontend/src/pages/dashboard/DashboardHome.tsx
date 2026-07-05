@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap, X, Send, Package, MessageSquare, Plus, Globe } from 'lucide-react';
+import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap, X, Send, Package, BarChart2, Plus, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -171,10 +171,10 @@ const DashboardHome = () => {
       bgColor: 'bg-teal-500/10'
     },
     {
-      label: 'Active DM Flows',
-      value: workspaceStats.totalFlows.toString(),
-      desc: 'Automated comment flows',
-      icon: MessageSquare,
+      label: 'Scheduled Posts',
+      value: workspaceStats.totalFlows?.toString() || '0',
+      desc: 'Queued for publishing',
+      icon: BarChart2,
       gradient: 'from-blue-500/15 to-blue-500/5',
       iconColor: 'text-blue-500',
       bgColor: 'bg-blue-500/10'
@@ -418,11 +418,11 @@ const DashboardHome = () => {
                 <Plus size={14} className="mr-2" /> Create SaaS Strategy Creative
               </Button>
               <Button
-                onClick={() => navigate('/dashboard/dms')}
+                onClick={() => navigate('/dashboard/history')}
                 variant="outline"
                 className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
               >
-                <MessageSquare size={14} className="mr-2 text-primary" /> Configure DM Automations
+                <BarChart2 size={14} className="mr-2 text-primary" /> View Post History
               </Button>
               <Button
                 onClick={() => navigate('/dashboard/strategy')}
