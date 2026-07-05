@@ -487,9 +487,12 @@ const Onboarding = () => {
                     </div>
                   )}
 
-                  <p className="text-[10px] text-muted-foreground/50 font-medium italic mt-8 text-center px-2">
-                    Note: The scraping agent may make mistakes. Please verify all extracted details and product types in the next steps.
-                  </p>
+                  <div className="mt-8 flex items-start justify-center gap-2 bg-amber-500/10 border border-amber-500/20 py-2.5 px-4 rounded-xl max-w-xl mx-auto">
+                    <span className="text-amber-500 text-xs">⚠️</span>
+                    <p className="text-[11px] text-amber-600/90 font-medium">
+                      <strong>Note:</strong> The scraping agent may make mistakes. Please verify all extracted details and product types in the next steps.
+                    </p>
+                  </div>
                 </div>
               )}
 
