@@ -486,6 +486,10 @@ const Onboarding = () => {
                       </div>
                     </div>
                   )}
+
+                  <p className="text-[10px] text-muted-foreground/50 font-medium italic mt-8 text-center px-2">
+                    Note: The scraping agent may make mistakes. Please verify all extracted details and product types in the next steps.
+                  </p>
                 </div>
               )}
 
