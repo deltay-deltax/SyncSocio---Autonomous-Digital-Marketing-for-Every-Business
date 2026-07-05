@@ -955,6 +955,7 @@ const DashboardSettings = () => {
 
 
                   {/* WhatsApp Connection */}
+                  {/*
                   {profile.whatsappIsConnected ? (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
                       <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
@@ -1072,6 +1073,7 @@ const DashboardSettings = () => {
                       </Button>
                     </div>
                   )}
+                  */}
               </div>
             </CardContent>
             </Card>

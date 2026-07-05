@@ -15,12 +15,12 @@ const plans = [
       "200 credits/month",
       "1 active brand profile",
       "All image generation types",
+      "UGC video generation",
+      "Product video generation",
+      "E-commerce listing generator",
       "Festival calendar",
-      "Hinglish + 5 languages",
-      "Caption + hashtags — free",
-      "Schedule up to 30 posts",
-      "Post scheduling — free",
-      "Analytics dashboard — free",
+      "English + 13 languages",
+      "Schedule posts",
       "Email support",
     ],
     popular: false,
@@ -37,12 +37,8 @@ const plans = [
       "2 brand profiles",
       "Everything in Starter",
       "All-in-One Drop feature",
-      "AI Mode (Auto Generate)",
-      "E-commerce listing generator",
       "UGC video generation",
       "Product video generation",
-      "DM Automation",
-      "WhatsApp campaign generator",
       "Best time to post analysis",
       "Priority generation",
       "WhatsApp support",
@@ -105,11 +101,10 @@ const Pricing = () => {
                 initial={{ opacity: 0, y: 40 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className={`relative rounded-2xl p-8 hover-lift transition-all flex flex-col ${
-                  plan.popular
-                    ? "bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]"
-                    : "glass-card"
-                }`}
+                className={`relative rounded-2xl p-8 hover-lift transition-all flex flex-col ${plan.popular
+                  ? "bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]"
+                  : "glass-card"
+                  }`}
               >
                 {plan.popular && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold" style={{ background: "hsl(214, 100%, 97%)", color: "hsl(221, 83%, 53%)" }}>
@@ -123,10 +118,10 @@ const Pricing = () => {
                 <div className="flex flex-col gap-1 mb-6">
                   <div className="flex items-center gap-2">
                     <span className={`text-lg line-through ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"}`}>
-                      ₹{plan.originalPrice + (isDmEnabled ? 399 : 0)}
+                      ₹{plan.originalPrice}
                     </span>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                      {Math.round((((plan.originalPrice + (isDmEnabled ? 399 : 0)) - currentPrice) / (plan.originalPrice + (isDmEnabled ? 399 : 0))) * 100)}% OFF
+                      {Math.round(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
                     </span>
                   </div>
                   <div className="flex items-baseline gap-1">
@@ -137,32 +132,7 @@ const Pricing = () => {
                   </div>
                 </div>
 
-                {/* DM Automation Toggle */}
-                {plan.name === 'Starter' && (
-                  <div className={`flex items-center justify-between p-4 rounded-xl mb-8 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
-                    <div className="flex items-center gap-3">
-                      <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
-                      <div>
-                        <p className={`text-sm font-bold ${plan.popular ? "text-white" : "text-foreground"}`}>DM Automation</p>
-                        <p className={`text-xs ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>+₹399 / month</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleToggle(plan.name)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                        isDmEnabled 
-                          ? (plan.popular ? 'bg-white' : 'bg-primary') 
-                          : (plan.popular ? 'bg-primary-foreground/30' : 'bg-input')
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                          isDmEnabled ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                )}
+
 
                 <ul className="space-y-4 mb-8 flex-1">
                   {plan.features.map((feature) => (
@@ -180,11 +150,10 @@ const Pricing = () => {
                 </ul>
                 <Button
                   onClick={() => handleSelectPlan(plan.name)}
-                  className={`w-full mt-auto ${
-                    plan.popular
-                      ? "bg-card text-primary hover:bg-card/90 font-bold"
-                      : "gradient-bg text-primary-foreground border-0 font-bold"
-                  }`}
+                  className={`w-full mt-auto ${plan.popular
+                    ? "bg-card text-primary hover:bg-card/90 font-bold"
+                    : "gradient-bg text-primary-foreground border-0 font-bold"
+                    }`}
                   size="lg"
                 >
                   {plan.cta}
@@ -214,7 +183,7 @@ const Pricing = () => {
         >
           <h3 className="text-2xl font-bold mb-2">Need extra credits?</h3>
           <p className="text-sm text-muted-foreground mb-10">Get instant top-ups to power your creative campaigns without upgrading your monthly plan.</p>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
             {topups.map((topup) => (
               <div key={topup.credits} className="glass-card rounded-2xl p-6 flex flex-col justify-between hover-lift transition-all text-center">
@@ -225,8 +194,8 @@ const Pricing = () => {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-foreground mb-4">₹{topup.price}</p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center"
                     onClick={() => navigate('/login')}
                   >

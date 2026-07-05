@@ -765,13 +765,7 @@ const AssetLibrary = () => {
               creative{selectedAssetIds.length > 1 ? 's' : ''} selected
             </div>
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={handlePostNow}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs rounded-xl px-4 h-9 shadow-md shadow-emerald-500/15 border-0"
-              >
-                Post Now
-              </Button>
+
               <Button
                 size="sm"
                 onClick={() => setShowScheduleModal(true)}
@@ -903,6 +897,13 @@ const AssetLibrary = () => {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2">
+                    <Button
+                      onClick={handlePostNow}
+                      disabled={fetchingRecommendations || (!platforms.instagram && !platforms.facebook)}
+                      className="bg-emerald-500 hover:bg-emerald-600 border-0 text-white font-black uppercase tracking-widest text-[10px] h-11 rounded-xl shadow-lg shadow-emerald-500/20 px-6"
+                    >
+                      Post Now
+                    </Button>
                     <Button
                       onClick={handleFetchRecommendations}
                       disabled={fetchingRecommendations || (!platforms.instagram && !platforms.facebook)}

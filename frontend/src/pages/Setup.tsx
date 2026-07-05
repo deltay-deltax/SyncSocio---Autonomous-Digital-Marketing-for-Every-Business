@@ -69,7 +69,7 @@ const plans: Plan[] = [
       "E-commerce listing generator",
       "UGC video generation",
       "Product video generation",
-      "DM Automation",
+
       "WhatsApp campaign generator",
       "Best time to post analysis",
       "Priority generation",
@@ -720,8 +720,8 @@ const Setup = () => {
                 
                 {recommendedPlan === plan.name && (
                   <div className={cn(
-                    "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md border",
-                    plan.popular ? "bg-emerald-500 text-white border-emerald-400" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                    'absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md border',
+                    plan.popular ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                   )}>
                     <Sparkles size={10} /> Recommended for you
                   </div>
@@ -741,10 +741,10 @@ const Setup = () => {
                 {plan.originalPrice && (
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-sm line-through ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"}`}>
-                      ₹{plan.originalPrice + (isDmEnabled ? 399 : 0)}
+                      ₹{plan.originalPrice}
                     </span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                      {Math.round((((plan.originalPrice + (isDmEnabled ? 399 : 0)) - currentPrice) / (plan.originalPrice + (isDmEnabled ? 399 : 0))) * 100)}% OFF
+                      {Math.round(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
                     </span>
                   </div>
                 )}
@@ -760,32 +760,7 @@ const Setup = () => {
                   {plan.postsPerMonth}
                 </p>
 
-                {/* DM Automation Toggle */}
-                {plan.name === 'Starter' && (
-                  <div className={`flex items-center justify-between p-4 rounded-xl mb-6 ${plan.popular ? "bg-white/10" : "bg-muted/50"}`}>
-                    <div className="flex items-center gap-3">
-                      <BotMessageSquare size={20} className={plan.popular ? "text-primary-foreground" : "text-primary"} />
-                      <div className="text-left">
-                        <p className={`text-sm font-bold ${plan.popular ? "text-white" : "text-foreground"}`}>DM Automation</p>
-                        <p className={`text-xs ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>+₹399 / month</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleToggle(plan.name)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                        isDmEnabled 
-                          ? (plan.popular ? 'bg-white' : 'bg-primary') 
-                          : (plan.popular ? 'bg-primary-foreground/30' : 'bg-input')
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                          isDmEnabled ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                )}
+
 
                 <ul className="space-y-2 mb-6 flex-1 text-left">
                   {plan.features.map((f) => (
@@ -794,12 +769,7 @@ const Setup = () => {
                       <span>{f}</span>
                     </li>
                   ))}
-                  {isDmEnabled && (
-                    <li className="flex items-start gap-2 text-xs font-bold">
-                      <Check size={14} className={`shrink-0 mt-0.5 ${plan.popular ? 'text-primary-foreground' : 'text-primary'}`} />
-                      <span>Automated DM Replies & Lead Capture</span>
-                    </li>
-                  )}
+
                 </ul>
 
               <Button

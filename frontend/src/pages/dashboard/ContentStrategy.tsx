@@ -55,7 +55,7 @@ const modes: { id: Mode; label: string; icon: any; desc: string; accent: string 
   { id: 'video', label: 'Video', icon: Video, desc: 'Reel / motion post', accent: 'from-amber-500/20 to-orange-500/10' },
   { id: 'ecomm', label: 'E-Comm Listing', icon: ShoppingBag, desc: 'Marketplace-ready creative', accent: 'from-emerald-500/20 to-teal-500/10' },
   { id: 'festival', label: 'Festival', icon: PartyPopper, desc: 'Calendar-led campaigns', accent: 'from-violet-500/20 to-indigo-500/10' },
-  { id: 'whatsapp', label: 'WhatsApp Campaign', icon: MessageSquare, desc: 'Broadcast to your list', accent: 'from-green-500/20 to-emerald-500/10' },
+  // { id: 'whatsapp', label: 'WhatsApp Campaign', icon: MessageSquare, desc: 'Broadcast to your list', accent: 'from-green-500/20 to-emerald-500/10' },
   { id: 'email', label: 'Email Campaign', icon: Mail, desc: 'Newsletter & promo blast', accent: 'from-blue-500/20 to-indigo-500/10' },
 ];
 
@@ -315,9 +315,6 @@ const STUDIOS: Studio[] = [
     tags: [
       { label: "Post", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
       { label: "Video", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
-      { label: "Carousel", tint: "bg-violet-50 text-violet-700 ring-violet-100" },
-      { label: "Email", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
-      { label: "+ More", tint: "bg-slate-50 text-slate-600 ring-slate-200" },
     ],
     cta: { label: "Generate Pack", tint: "text-indigo-600" },
     to: "/dashboard?mode=all_in_one",
@@ -334,7 +331,6 @@ const STUDIOS: Studio[] = [
     iconBg: "bg-blue-100",
     tags: [
       { label: "Product", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
-      { label: "Quote", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
       { label: "Offer", tint: "bg-orange-50 text-orange-700 ring-orange-100" },
     ],
     cta: { label: "Start Creating", tint: "text-blue-600" },
@@ -352,7 +348,6 @@ const STUDIOS: Studio[] = [
     tags: [
       { label: "Tips", tint: "bg-violet-50 text-violet-700 ring-violet-100" },
       { label: "Guide", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
-      { label: "Story", tint: "bg-amber-50 text-amber-700 ring-amber-100" },
     ],
     cta: { label: "Build Carousel", tint: "text-violet-600" },
     to: "/dashboard?mode=carousel",
@@ -369,7 +364,6 @@ const STUDIOS: Studio[] = [
     tags: [
       { label: "Reels", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
       { label: "AI UGC", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
-      { label: "Motion", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
     ],
     cta: { label: "Create Video", tint: "text-emerald-600" },
     to: "/dashboard?mode=video",
@@ -386,7 +380,6 @@ const STUDIOS: Studio[] = [
     tags: [
       { label: "Product", tint: "bg-orange-50 text-orange-700 ring-orange-100" },
       { label: "Listing", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
-      { label: "Store", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
     ],
     cta: { label: "Create Listing", tint: "text-orange-600" },
     to: "/dashboard?mode=ecomm",
@@ -402,8 +395,6 @@ const STUDIOS: Studio[] = [
     iconBg: "bg-pink-100",
     tags: [
       { label: "Diwali", tint: "bg-red-50 text-red-700 ring-red-100" },
-      { label: "Rakhi", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
-      { label: "Eid", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
       { label: "+ More", tint: "bg-slate-50 text-slate-600 ring-slate-200" },
     ],
     cta: { label: "Browse Festivals", tint: "text-pink-600" },
@@ -411,6 +402,7 @@ const STUDIOS: Studio[] = [
     image: "/assets/Creatives_icon/studio-festival.jpg",
     hoverBorder: "hover:border-pink-400 hover:ring-1 hover:ring-pink-400",
   },
+  /*
   {
     id: "whatsapp",
     title: "WhatsApp Campaign",
@@ -428,6 +420,7 @@ const STUDIOS: Studio[] = [
     image: "/assets/Creatives_icon/studio-whatsapp.png",
     hoverBorder: "hover:border-emerald-400 hover:ring-1 hover:ring-emerald-400",
   },
+  */
   {
     id: "email",
     title: "Email Campaign",
@@ -438,7 +431,6 @@ const STUDIOS: Studio[] = [
     tags: [
       { label: "Newsletter", tint: "bg-violet-50 text-violet-700 ring-violet-100" },
       { label: "Offer", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
-      { label: "Update", tint: "bg-blue-50 text-blue-700 ring-blue-100" },
     ],
     cta: { label: "Design Email", tint: "text-violet-600" },
     to: "/dashboard?mode=email",
@@ -454,77 +446,76 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: i * 0.04 }}
-      className={cn(s.wide && "md:col-span-3", !s.wide && "md:col-span-2")}
+      className={cn("h-full", s.wide && "md:col-span-3", !s.wide && "md:col-span-2")}
     >
       <button
         onClick={() => onPick(s.id as Mode)}
         className={cn(
-          "group relative flex w-full h-full text-left flex-col overflow-hidden rounded-3xl border bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant",
+          "group relative flex flex-col w-full h-full min-h-[210px] text-left overflow-hidden rounded-3xl border bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant",
           s.featured
             ? "border-transparent bg-gradient-to-br from-indigo-50/60 via-white to-white"
             : "border-transparent",
           s.hoverBorder
         )}
       >
-        <div className="grid grid-cols-[minmax(0,1fr)_140px] gap-4 md:grid-cols-[minmax(0,1fr)_180px] w-full h-full">
-          {/* Left */}
-          <div className="flex min-w-0 flex-col">
-            <div
-              className={cn(
-                "flex h-11 w-11 items-center justify-center rounded-2xl shadow-inner shrink-0",
-                s.iconBg,
-              )}
-            >
-              <Icon size={20} className={s.iconTint} />
-            </div>
-            <h3 className="mt-4 font-display text-lg font-black tracking-tight text-foreground">
-              {s.title}
-            </h3>
-            <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
-              {s.subtitle}
-            </p>
+        {/* Right image — absolutely positioned so it never affects left column height */}
+        <div className="absolute right-0 top-0 bottom-0 w-[140px] md:w-[170px] flex items-center justify-center pointer-events-none">
+          <img
+            src={s.image}
+            alt={`${s.title} preview`}
+            loading="lazy"
+            className={cn(
+              "h-full w-full object-contain transition-transform duration-500",
+              s.id === "video" && "rotate-3"
+            )}
+          />
+        </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-1.5">
-              {s.tags.map((t) => (
-                <span
-                  key={t.label}
-                  className={cn(
-                    "rounded-full px-2.5 py-0.5 text-[10px] font-bold ring-1",
-                    t.tint,
-                  )}
-                >
-                  {t.label}
-                </span>
-              ))}
-            </div>
+        {/* Left content — pr ensures it never overlaps the image */}
+        <div className="flex flex-col flex-1 min-w-0 pr-[150px] md:pr-[180px]">
+          <div
+            className={cn(
+              "flex h-11 w-11 items-center justify-center rounded-2xl shadow-inner shrink-0",
+              s.iconBg,
+            )}
+          >
+            <Icon size={20} className={s.iconTint} />
+          </div>
+          <h3 className="mt-3 font-display text-base font-black tracking-tight text-foreground leading-tight">
+            {s.title}
+          </h3>
+          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+            {s.subtitle}
+          </p>
 
-            <div className="mt-auto pt-5">
+          {/* Pills — single row, no wrap */}
+          <div className="mt-3 flex items-center gap-1.5 flex-nowrap">
+            {s.tags.map((t) => (
               <span
+                key={t.label}
                 className={cn(
-                  "inline-flex items-center gap-1.5 text-[13px] font-bold",
-                  s.cta.tint,
+                  "whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-bold ring-1 shrink-0",
+                  t.tint,
                 )}
               >
-                {s.cta.label}
-                <ArrowRight
-                  size={14}
-                  className="transition-transform group-hover:translate-x-1"
-                />
+                {t.label}
               </span>
-            </div>
+            ))}
           </div>
 
-          {/* Right — visual */}
-          <div className="relative flex items-center justify-center">
-            <img
-              src={s.image}
-              alt={`${s.title} preview`}
-              loading="lazy"
+          <div className="mt-auto pt-4">
+            <span
               className={cn(
-                "h-full w-full object-contain transition-transform duration-500",
-                s.id === "video" && "rotate-3"
+                "inline-flex items-center gap-1.5 text-[12px] font-bold",
+                s.cta.tint,
               )}
-            />
+            >
+              {s.cta.label}
+              <ArrowRight
+                size={13}
+                className="transition-transform group-hover:translate-x-1"
+              />
+            </span>
           </div>
         </div>
       </button>
@@ -1026,7 +1017,7 @@ const DashboardStrategy = () => {
         try {
           localStorage.removeItem(cacheKey);
           localStorage.removeItem(ASSET_CACHE_KEY);
-        } catch (e) {}
+        } catch (e) { }
       }
     } catch (err) {
       console.error('[Strategy] Fetch creatives error:', err);
@@ -1672,8 +1663,8 @@ const DashboardStrategy = () => {
         creditCost = currentCount * 5;  // image / festival
       }
       const creditReason = `${currentMode} generation (${currentMode === 'ecomm' ? ecommTotal
-          : currentMode === 'carousel' ? `${currentCount} × ${slideCount} slides`
-            : currentCount
+        : currentMode === 'carousel' ? `${currentCount} × ${slideCount} slides`
+          : currentCount
         } items)`;
       // ─────────────────────────────────────────────────────────────────
 
@@ -1872,7 +1863,7 @@ const DashboardStrategy = () => {
     if (!previewPost || previewIndex === null) return;
     setIsApplyingEdit(true);
     setStage('generating');
-    
+
     let baseMedia = '';
     if (previewPost.type === 'carousel' && previewPost.slides && previewPost.slides.length > 0) {
       baseMedia = previewPost.slides[previewSlide]?.image || '';
@@ -1970,8 +1961,8 @@ const DashboardStrategy = () => {
                 setActiveCampaignImageSource(null);
               }}
             >
-              {currentTaskId && backgroundTasks?.find(t => t.id === currentTaskId)?.mode === 'edit_media' 
-                ? 'Run in background' 
+              {currentTaskId && backgroundTasks?.find(t => t.id === currentTaskId)?.mode === 'edit_media'
+                ? 'Run in background'
                 : 'Generate more in background'}
             </Button>
           </div>
@@ -2556,10 +2547,10 @@ const DashboardStrategy = () => {
           </motion.div>
 
           {/* Studio grid — 6-col so wide cards can span 3 */}
-          <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-6">
+          <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-6 md:auto-rows-[210px]">
             {STUDIOS.filter(s => {
-               if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
-               return true;
+              if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
+              return true;
             }).map((s, i) => (
               <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} />
             ))}
@@ -2709,9 +2700,9 @@ const DashboardStrategy = () => {
           )}
 
           {(mode !== 'video' || videoKind === 'ai-ugc') && (
-            <LanguagePicker 
-              language={language} 
-              setLanguage={setLanguage} 
+            <LanguagePicker
+              language={language}
+              setLanguage={setLanguage}
               country={profile?.location?.country}
               isAiUgc={mode === 'video' && videoKind === 'ai-ugc'}
             />
@@ -3887,19 +3878,19 @@ const DashboardStrategy = () => {
       <AnimatePresence>
         {showUpgradeModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-card w-full max-w-md rounded-[2rem] p-8 border border-border/50 shadow-2xl text-center relative"
             >
-              <button 
+              <button
                 onClick={() => setShowUpgradeModal(false)}
                 className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
               >
                 <X size={14} />
               </button>
-              
+
               <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
                 <Lock size={30} />
               </div>
@@ -3908,13 +3899,13 @@ const DashboardStrategy = () => {
                 {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
               </h2>
               <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                {upgradeModalReason === 'expired' 
+                {upgradeModalReason === 'expired'
                   ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
                   : 'This is an Elite feature. Upgrade to the Elite Plan to unlock UGC/Product Video generation, All-in-One Drops, WhatsApp/Email Campaigns, and E-commerce Listing templates.'}
               </p>
 
-              <Button 
-                onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/buy-credits'); }} 
+              <Button
+                onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/buy-credits'); }}
                 className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
               >
                 {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
@@ -4377,7 +4368,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                     title="Click to edit email body"
                   />
                 ) : (
-                  <pre 
+                  <pre
                     className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed outline-none focus:ring-2 focus:ring-primary/20 rounded-xl transition-all p-2"
                     contentEditable
                     suppressContentEditableWarning

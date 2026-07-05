@@ -79,7 +79,7 @@ const CampaignChannels = () => {
                     />
                   )}
                   <Icon size={14} className="relative z-10 text-primary" />
-                  <span className="relative z-10 capitalize">{c === "whatsapp" ? "WhatsApp" : "Email Campaign"}</span>
+                  <span className="relative z-10 capitalize">{c === "whatsapp" ? "WhatsApp (Coming Soon)" : "Email Campaign"}</span>
                 </button>
               );
             })}

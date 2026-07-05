@@ -326,15 +326,7 @@ const DashboardHome = () => {
                     <InstagramIcon size={13} />
                   </div>
 
-                  {/* WhatsApp Icon */}
-                  <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all",
-                    profile?.whatsappIsConnected
-                      ? "bg-emerald-600 shadow-md shadow-emerald-600/25"
-                      : "bg-slate-200 text-slate-400 grayscale opacity-400"
-                  )}>
-                    <WhatsAppIcon size={13} />
-                  </div>
+
 
                   {/* Google Icon */}
                   <div className={cn(

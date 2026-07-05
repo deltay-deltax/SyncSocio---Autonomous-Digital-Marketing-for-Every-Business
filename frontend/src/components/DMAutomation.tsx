@@ -70,7 +70,7 @@ const DMAutomation = () => {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4"
           >
             <MessageCircle size={16} />
-            DM Automation Engine
+            DM Automation Engine <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-600 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">in Meta Approval Process</span>
           </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}

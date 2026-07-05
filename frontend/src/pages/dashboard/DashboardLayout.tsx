@@ -20,7 +20,7 @@ const navItems = [
   { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
   { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
   { label: 'Creatives', icon: Library, path: '/dashboard/assets' },
-  { label: 'DM Automation', icon: MessageCircle, path: '/dashboard/dms' },
+  // { label: 'DM Automation', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'History', icon: Clock, path: '/dashboard/history' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
   { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },

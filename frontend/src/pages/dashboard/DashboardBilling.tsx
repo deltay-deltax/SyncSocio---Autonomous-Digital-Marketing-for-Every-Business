@@ -43,7 +43,7 @@ const plans = [
       "E-commerce listing generator",
       "UGC video generation",
       "Product video generation",
-      "DM Automation",
+
       "WhatsApp campaign generator",
       "Best time to post analysis",
       "Priority generation",
@@ -171,10 +171,10 @@ const DashboardBilling = () => {
               <div className="flex flex-col gap-1 mb-6">
                 <div className="flex items-center gap-2">
                   <span className={`text-lg line-through ${plan.popular ? "text-white/60" : "text-muted-foreground/60"}`}>
-                    ₹{plan.originalPrice + (isDmEnabled ? 399 : 0)}
+                    ₹{plan.originalPrice}
                   </span>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                    {Math.round((((plan.originalPrice + (isDmEnabled ? 399 : 0)) - currentPrice) / (plan.originalPrice + (isDmEnabled ? 399 : 0))) * 100)}% OFF
+                    {Math.round(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1">
@@ -184,31 +184,7 @@ const DashboardBilling = () => {
                   </span>
                 </div>
               </div>
-              {/* DM Automation Toggle */}
-              {plan.name === 'Starter' && (
-                <div className="flex items-center justify-between p-4 rounded-xl mb-8 bg-muted/40 border border-border/30">
-                  <div className="flex items-center gap-3">
-                    <BotMessageSquare size={18} className="text-blue-500" />
-                    <div>
-                      <p className="text-sm font-bold text-foreground">DM Automation</p>
-                      <p className="text-xs text-muted-foreground">+₹399 / month</p>
-                    </div>
-                  </div>
-                  <button
-                    disabled={isCurrentPlan}
-                    onClick={() => handleToggle(plan.name)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                      isDmEnabled ? 'bg-blue-500' : 'bg-input'
-                    } ${isCurrentPlan ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-sm ring-0 transition-transform ${
-                        isDmEnabled ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-              )}
+
 
               <ul className="space-y-3.5 mb-8 flex-1 mt-2">
                 {plan.features.map((feature) => {
@@ -223,12 +199,7 @@ const DashboardBilling = () => {
                     </li>
                   );
                 })}
-                {isDmEnabled && plan.name === 'Starter' && (
-                  <li className="flex items-start gap-3 text-[13px] font-bold">
-                    <Check size={16} className={`shrink-0 mt-0.5 ${plan.popular ? "text-white" : "text-blue-500"}`} />
-                    <span>Automated DM Replies & Lead Capture</span>
-                  </li>
-                )}
+
               </ul>
               
               <Button

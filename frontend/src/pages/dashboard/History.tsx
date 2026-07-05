@@ -106,9 +106,9 @@ const History: React.FC = () => {
 
   // Filter items that have been through the publisher
   const processedItems = items.filter(i => i.status === 'published' || i.status === 'failed' || i.status === 'scheduled');
-  
+
   const failed = processedItems.filter(i => i.status === 'failed');
-  
+
   const scheduled = processedItems.filter(i => {
     if (i.status === 'failed') return false;
     // If explicitly scheduled status
@@ -117,7 +117,7 @@ const History: React.FC = () => {
     if (i.scheduledAt && new Date(i.scheduledAt) > now) return true;
     return false;
   });
-  
+
   const published = processedItems.filter(i => {
     if (i.status !== 'published') return false;
     // If it's a published post but has a future date, it's still "active" in scheduled
@@ -164,9 +164,9 @@ const History: React.FC = () => {
           </div>
         ) : processedItems.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
-             <Inbox className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-             <h3 className="text-xl font-bold text-slate-900">No posts yet</h3>
-             <p className="text-slate-500 text-sm mt-1">Start by optimizing a post in the Content Mix.</p>
+            <Inbox className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-slate-900">No posts yet</h3>
+            <p className="text-slate-500 text-sm mt-1">Start by optimizing a post in the Content Mix.</p>
           </div>
         ) : (
           <div className="space-y-10">
@@ -181,7 +181,7 @@ const History: React.FC = () => {
                   <span className="text-[11px] font-medium text-slate-400">— Going live soon</span>
                 </div>
                 <div className="space-y-3">
-                   {scheduled.map(item => <HistoryRow key={item._id} entry={item} scheduled />)}
+                  {scheduled.map(item => <HistoryRow key={item._id} entry={item} scheduled />)}
                 </div>
               </div>
             )}
@@ -199,7 +199,7 @@ const History: React.FC = () => {
                   <span className="text-[11px] font-medium text-slate-400">— Already live</span>
                 </div>
                 <div className="space-y-4">
-                   {published.map(item => <HistoryRow key={item._id} entry={item} />)}
+                  {published.map(item => <HistoryRow key={item._id} entry={item} />)}
                 </div>
               </div>
             )}
@@ -216,7 +216,7 @@ const History: React.FC = () => {
                   <span className="text-[11px] font-medium text-slate-400">— Failed attempts</span>
                 </div>
                 <div className="space-y-4 opacity-80">
-                   {failed.map(item => <HistoryRow key={item._id} entry={item} />)}
+                  {failed.map(item => <HistoryRow key={item._id} entry={item} />)}
                 </div>
               </div>
             )}
@@ -258,7 +258,7 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
     >
       <div className="p-4 md:p-5 flex items-center gap-4 md:gap-6">
         {/* Media Thumbnail - clickable for preview */}
-        <div 
+        <div
           onClick={() => {
             if (thumbUrl) setPreviewUrl(thumbUrl);
           }}
@@ -272,13 +272,13 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
             )
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-300">
-               <Icon size={24} />
+              <Icon size={24} />
             </div>
           )}
           {entry.isAgentAssisted && (
-             <div className="absolute top-1.5 right-1.5 bg-primary text-white p-1 rounded-lg shadow-lg">
-                <Zap size={8} fill="currentColor" />
-             </div>
+            <div className="absolute top-1.5 right-1.5 bg-primary text-white p-1 rounded-lg shadow-lg">
+              <Zap size={8} fill="currentColor" />
+            </div>
           )}
         </div>
 
@@ -286,21 +286,21 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5">
             <div className={cn("flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0", meta.tint)}>
-               <Icon size={10} />
-               <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">{meta.label}</span>
+              <Icon size={10} />
+              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">{meta.label}</span>
             </div>
             {isFailed ? (
-               <Badge className="bg-rose-50 text-rose-600 border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
-                 Failed
-               </Badge>
+              <Badge className="bg-rose-50 text-rose-600 border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
+                Failed
+              </Badge>
             ) : scheduled ? (
-               <Badge className="bg-primary/10 text-primary border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
-                 Scheduled
-               </Badge>
+              <Badge className="bg-primary/10 text-primary border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
+                Scheduled
+              </Badge>
             ) : (
-               <Badge className="bg-emerald-50 text-emerald-600 border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
-                 Published
-               </Badge>
+              <Badge className="bg-emerald-50 text-emerald-600 border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg shrink-0">
+                Published
+              </Badge>
             )}
 
             {/* Platform Icons */}
@@ -312,7 +312,7 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
               )}
               {entry.platforms?.facebook && (
                 <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
                 </div>
               )}
             </div>
@@ -323,23 +323,23 @@ function HistoryRow({ entry, scheduled }: { entry: any; scheduled?: boolean }) {
           </h3>
 
           <div className="flex items-center gap-4 mt-1.5 text-slate-400 flex-wrap font-medium">
-             <span className="flex items-center gap-1.5 text-[11px]">
-               <Calendar size={12} className="text-slate-300" /> {formatDateTime(entry.scheduledAt || entry.createdAt)}
-             </span>
-             <span className="flex items-center gap-1.5 text-[11px]">
-               <Clock size={12} className="text-slate-300" /> {relativeTime(entry.scheduledAt || entry.createdAt)}
-             </span>
-             {entry.mediaUrls && entry.mediaUrls.length > 0 && (
-                <span className="hidden sm:flex items-center gap-1.5 text-[11px] truncate max-w-[150px]">
-                  <FileText size={12} className="text-slate-300" /> {entry.mediaUrls[0].split('\\').pop().split('/').pop()}
-                </span>
-             )}
+            <span className="flex items-center gap-1.5 text-[11px]">
+              <Calendar size={12} className="text-slate-300" /> {formatDateTime(entry.scheduledAt || entry.createdAt)}
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px]">
+              <Clock size={12} className="text-slate-300" /> {relativeTime(entry.scheduledAt || entry.createdAt)}
+            </span>
+            {entry.mediaUrls && entry.mediaUrls.length > 0 && (
+              <span className="hidden sm:flex items-center gap-1.5 text-[11px] truncate max-w-[150px]">
+                <FileText size={12} className="text-slate-300" /> {entry.mediaUrls[0].split('\\').pop().split('/').pop()}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Actions/Link */}
         <div className="hidden sm:block">
-           <ChevronRight size={20} className="text-slate-200 group-hover:text-primary transition-colors" />
+          <ChevronRight size={20} className="text-slate-200 group-hover:text-primary transition-colors" />
         </div>
       </div>
 
