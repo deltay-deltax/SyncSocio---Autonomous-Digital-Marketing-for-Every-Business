@@ -2089,13 +2089,12 @@ const ChipGroup = ({ options, value, onChange, small }: { options: string[]; val
   </div>
 );
 
-// ── Zero-rerender color picker — live preview via DOM refs, debounced React state commit ──
+// ── Native color picker — fully bypasses React event pool ──
 const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
   const swatchRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLInputElement>(null);
   const colorRef = useRef<HTMLInputElement>(null);
   const cbRef = useRef(onChange);
-  const timeoutRef = useRef<NodeJS.Timeout>();
   cbRef.current = onChange;
 
   // Sync external value into DOM without re-render, only if it differs
@@ -2105,17 +2104,31 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
     if (colorRef.current && colorRef.current.value !== value) colorRef.current.value = value;
   }, [value]);
 
-  // Live preview: update DOM directly + debounce parent update (prevents re-render storm and picker closing)
-  const handleColorInput = (e: React.FormEvent<HTMLInputElement>) => {
-    const v = (e.target as HTMLInputElement).value;
-    if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
-    if (textRef.current) textRef.current.value = v;
+  // Attach native event listeners to completely avoid React synthetic event overhead
+  useEffect(() => {
+    const inputEl = colorRef.current;
+    if (!inputEl) return;
+
+    // Native input event fires smoothly during drag without React overhead
+    const handleInput = (e: Event) => {
+      const v = (e.target as HTMLInputElement).value;
+      if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
+      if (textRef.current) textRef.current.value = v;
+    };
+
+    // Native change event fires ONLY when the color picker popup is closed
+    const handleChange = (e: Event) => {
+      cbRef.current((e.target as HTMLInputElement).value);
+    };
+
+    inputEl.addEventListener('input', handleInput);
+    inputEl.addEventListener('change', handleChange);
     
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      cbRef.current(v);
-    }, 300);
-  };
+    return () => {
+      inputEl.removeEventListener('input', handleInput);
+      inputEl.removeEventListener('change', handleChange);
+    };
+  }, []);
 
   // Text input: commit on blur
   const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -2134,7 +2147,6 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
           ref={colorRef}
           type="color" 
           defaultValue={value} 
-          onInput={handleColorInput}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
         />
       </div>

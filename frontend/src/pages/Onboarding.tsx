@@ -8,13 +8,12 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
-// ── Zero-rerender color picker — live preview via DOM refs, debounced React state commit ──
+// ── Native color picker — fully bypasses React event pool ──
 const ColorInput = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
   const swatchRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLInputElement>(null);
   const colorRef = useRef<HTMLInputElement>(null);
   const cbRef = useRef(onChange);
-  const timeoutRef = useRef<NodeJS.Timeout>();
   cbRef.current = onChange;
 
   // Sync external value into DOM without re-render, only if it differs
@@ -24,17 +23,31 @@ const ColorInput = ({ label, value, onChange }: { label: string; value: string; 
     if (colorRef.current && colorRef.current.value !== value) colorRef.current.value = value;
   }, [value]);
 
-  // Live preview: update DOM directly + debounce parent update (prevents re-render storm and picker closing)
-  const handleColorInput = (e: React.FormEvent<HTMLInputElement>) => {
-    const v = (e.target as HTMLInputElement).value;
-    if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
-    if (textRef.current) textRef.current.value = v;
+  // Attach native event listeners to completely avoid React synthetic event overhead
+  useEffect(() => {
+    const inputEl = colorRef.current;
+    if (!inputEl) return;
 
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      cbRef.current(v);
-    }, 300);
-  };
+    // Native input event fires smoothly during drag without React overhead
+    const handleInput = (e: Event) => {
+      const v = (e.target as HTMLInputElement).value;
+      if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
+      if (textRef.current) textRef.current.value = v;
+    };
+
+    // Native change event fires ONLY when the color picker popup is closed
+    const handleChange = (e: Event) => {
+      cbRef.current((e.target as HTMLInputElement).value);
+    };
+
+    inputEl.addEventListener('input', handleInput);
+    inputEl.addEventListener('change', handleChange);
+
+    return () => {
+      inputEl.removeEventListener('input', handleInput);
+      inputEl.removeEventListener('change', handleChange);
+    };
+  }, []);
 
   // Text input: commit on blur
   const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -55,7 +68,6 @@ const ColorInput = ({ label, value, onChange }: { label: string; value: string; 
             ref={colorRef}
             type="color"
             defaultValue={value}
-            onInput={handleColorInput}
             className="absolute inset-[-4px] w-[200%] h-[200%] cursor-pointer bg-transparent border-0 p-0"
           />
         </div>
