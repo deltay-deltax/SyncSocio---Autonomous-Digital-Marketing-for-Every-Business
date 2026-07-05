@@ -423,9 +423,9 @@ const HeroTile = ({
       className={`relative rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
     >
       {item.isVideo || item.src.endsWith(".mp4") ? (
-        <video ref={videoRef} src={item.src} loop muted playsInline className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110" />
+        <video ref={videoRef} src={item.src} loop muted playsInline className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110 bg-muted/40" />
       ) : (
-        <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110" />
+        <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110 bg-muted/40" />
       )}
     <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-700 mix-blend-overlay`} />
 
@@ -469,9 +469,9 @@ const Tile = ({
       className={`relative rounded-2xl sm:rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
     >
       {item.isVideo || item.src.endsWith(".mp4") ? (
-        <video ref={videoRef} src={item.src} loop muted playsInline className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+        <video ref={videoRef} src={item.src} loop muted playsInline className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 bg-muted/40" />
       ) : (
-        <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+        <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 bg-muted/40" />
       )}
     <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay`} />
 
@@ -515,9 +515,9 @@ const CarouselTile = ({
             }}
           >
             {item.isVideo || item.src.endsWith(".mp4") ? (
-              <video src={item.src} loop muted playsInline className="w-full h-full object-cover" />
+              <video src={item.src} loop muted playsInline className="w-full h-full object-cover bg-muted/40" />
             ) : (
-              <img src={item.src} alt={item.caption} loading="lazy" className="w-full h-full object-cover" />
+              <img src={item.src} alt={item.caption} loading="lazy" className="w-full h-full object-cover bg-muted/40" />
             )}
             <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay pointer-events-none`} />
           </div>
