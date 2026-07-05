@@ -2109,11 +2109,18 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
     const inputEl = colorRef.current;
     if (!inputEl) return;
 
+    let rafId: number | null = null;
+
     // Native input event fires smoothly during drag without React overhead
+    // We throttle this with requestAnimationFrame to prevent eye-dropper event floods
     const handleInput = (e: Event) => {
-      const v = (e.target as HTMLInputElement).value;
-      if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
-      if (textRef.current) textRef.current.value = v;
+      if (rafId) return; // already queued a frame
+      rafId = requestAnimationFrame(() => {
+        const v = (e.target as HTMLInputElement).value;
+        if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
+        if (textRef.current) textRef.current.value = v;
+        rafId = null;
+      });
     };
 
     // Native change event fires ONLY when the color picker popup is closed
@@ -2125,6 +2132,7 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
     inputEl.addEventListener('change', handleChange);
     
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       inputEl.removeEventListener('input', handleInput);
       inputEl.removeEventListener('change', handleChange);
     };
