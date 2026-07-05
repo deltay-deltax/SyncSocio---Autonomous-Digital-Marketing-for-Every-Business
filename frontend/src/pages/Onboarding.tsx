@@ -8,31 +8,32 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
-// ── Zero-rerender color picker — live preview via DOM refs, React state only on commit ──
+// ── Zero-rerender color picker — live preview via DOM refs, debounced React state commit ──
 const ColorInput = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
   const swatchRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLInputElement>(null);
   const colorRef = useRef<HTMLInputElement>(null);
   const cbRef = useRef(onChange);
+  const timeoutRef = useRef<NodeJS.Timeout>();
   cbRef.current = onChange;
 
-  // Sync external value into DOM without re-render
+  // Sync external value into DOM without re-render, only if it differs
   useEffect(() => {
     if (swatchRef.current) swatchRef.current.style.backgroundColor = value;
-    if (textRef.current) textRef.current.value = value;
-    if (colorRef.current) colorRef.current.value = value;
+    if (textRef.current && textRef.current.value !== value) textRef.current.value = value;
+    if (colorRef.current && colorRef.current.value !== value) colorRef.current.value = value;
   }, [value]);
 
-  // Live preview: update DOM directly (zero React re-renders during drag)
+  // Live preview: update DOM directly + debounce parent update (prevents re-render storm and picker closing)
   const handleColorInput = (e: React.FormEvent<HTMLInputElement>) => {
     const v = (e.target as HTMLInputElement).value;
     if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
     if (textRef.current) textRef.current.value = v;
-  };
 
-  // Commit to React state only when picker closes
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    cbRef.current(e.target.value);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      cbRef.current(v);
+    }, 300);
   };
 
   // Text input: commit on blur
@@ -40,7 +41,7 @@ const ColorInput = ({ label, value, onChange }: { label: string; value: string; 
     const v = e.target.value;
     if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
       if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
-      if (colorRef.current) colorRef.current.value = v;
+      if (colorRef.current && colorRef.current.value !== v) colorRef.current.value = v;
       cbRef.current(v);
     }
   };
@@ -55,7 +56,6 @@ const ColorInput = ({ label, value, onChange }: { label: string; value: string; 
             type="color"
             defaultValue={value}
             onInput={handleColorInput}
-            onChange={handleColorChange}
             className="absolute inset-[-4px] w-[200%] h-[200%] cursor-pointer bg-transparent border-0 p-0"
           />
         </div>
