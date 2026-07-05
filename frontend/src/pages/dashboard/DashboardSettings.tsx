@@ -2089,33 +2089,61 @@ const ChipGroup = ({ options, value, onChange, small }: { options: string[]; val
   </div>
 );
 
+// ── Zero-rerender color picker — live preview via DOM refs, React state only on commit ──
 const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
-  const [localColor, setLocalColor] = useState(value);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  const swatchRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLInputElement>(null);
+  const colorRef = useRef<HTMLInputElement>(null);
+  const cbRef = useRef(onChange);
+  cbRef.current = onChange;
 
-  // Sync external value changes into local state
+  // Sync external value into DOM without re-render
   useEffect(() => {
-    setLocalColor(value);
+    if (swatchRef.current) swatchRef.current.style.backgroundColor = value;
+    if (textRef.current) textRef.current.value = value;
+    if (colorRef.current) colorRef.current.value = value;
   }, [value]);
 
-  // Debounce: only call parent onChange 300ms after user stops moving the picker
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (localColor !== value) {
-        onChangeRef.current(localColor);
-      }
-    }, 300);
-    return () => clearTimeout(handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localColor]);
+  // Live preview: update DOM directly (zero React re-renders during drag)
+  const handleColorInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const v = (e.target as HTMLInputElement).value;
+    if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
+    if (textRef.current) textRef.current.value = v;
+  };
+
+  // Commit to React state only when picker closes
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    cbRef.current(e.target.value);
+  };
+
+  // Text input: commit on blur
+  const handleTextBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+      if (swatchRef.current) swatchRef.current.style.backgroundColor = v;
+      if (colorRef.current) colorRef.current.value = v;
+      cbRef.current(v);
+    }
+  };
 
   return (
     <div className="flex items-center gap-2 rounded-lg border border-input bg-background px-2 py-1.5">
-      <div className="relative w-8 h-8 rounded-md overflow-hidden border border-border shrink-0" style={{ backgroundColor: localColor }}>
-        <input type="color" value={localColor} onChange={e => setLocalColor(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+      <div ref={swatchRef} className="relative w-8 h-8 rounded-md overflow-hidden border border-border shrink-0" style={{ backgroundColor: value }}>
+        <input 
+          ref={colorRef}
+          type="color" 
+          defaultValue={value} 
+          onInput={handleColorInput}
+          onChange={handleColorChange}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+        />
       </div>
-      <Input value={localColor} onChange={e => setLocalColor(e.target.value)} className="border-0 h-8 px-1 text-sm font-mono focus-visible:ring-0" />
+      <Input 
+        ref={textRef as any}
+        defaultValue={value} 
+        onBlur={handleTextBlur}
+        className="border-0 h-8 px-1 text-sm font-mono focus-visible:ring-0" 
+      />
     </div>
   );
 };

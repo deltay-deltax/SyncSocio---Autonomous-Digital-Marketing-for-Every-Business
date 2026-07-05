@@ -385,18 +385,18 @@ const DashboardHome = () => {
                 );
               })()}
 
-              {(!profile?.selectedPlan || 
-                profile.selectedPlan.toLowerCase().includes('starter') || 
-                profile.selectedPlan.toLowerCase().includes('brand') || 
-                profile.selectedPlan.toLowerCase().includes('free') || 
+              {(!profile?.selectedPlan ||
+                profile.selectedPlan.toLowerCase().includes('starter') ||
+                profile.selectedPlan.toLowerCase().includes('brand') ||
+                profile.selectedPlan.toLowerCase().includes('free') ||
                 profile.selectedPlan === '') && (
-                <Button
-                  onClick={() => navigate('/dashboard/billing')}
-                  className="w-full rounded-xl py-5 text-xs font-bold bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white shadow-md shadow-primary/25 border-0 transition-all hover:scale-[1.02]"
-                >
-                  <Zap size={14} className="mr-2 fill-white" /> Upgrade Plan
-                </Button>
-              )}
+                  <Button
+                    onClick={() => navigate('/dashboard/billing')}
+                    className="w-full rounded-xl py-5 text-xs font-bold bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white shadow-md shadow-primary/25 border-0 transition-all hover:scale-[1.02]"
+                  >
+                    <Zap size={14} className="mr-2 fill-white" /> Upgrade Plan
+                  </Button>
+                )}
             </CardContent>
           </Card>
 
@@ -415,7 +415,7 @@ const DashboardHome = () => {
                 onClick={() => navigate('/dashboard/strategy')}
                 className="w-full justify-start rounded-xl py-5 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md shadow-primary/25 border-0"
               >
-                <Plus size={14} className="mr-2" /> Create SaaS Strategy Creative
+                <Plus size={14} className="mr-2" /> Create  Strategy Creative
               </Button>
               <Button
                 onClick={() => navigate('/dashboard/history')}
