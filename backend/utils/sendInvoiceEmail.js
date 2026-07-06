@@ -6,7 +6,7 @@ import PDFDocument from 'pdfkit';
 // ─── Company / Brand Info ────────────────────────────────────────────────────
 export const COMPANY_ADDRESS = {
   line1: 'SyncSocio',
-  line2: 'AECS Layout, Kundalahali, Bangalore, Karnataka, 560037',
+  line2: 'AECS Layout, Kundalahalli, Bengaluru, Karnataka 560037',
   country: '',
   gstin: '',
   supportEmail: 'support@syncsocio.com',
@@ -106,14 +106,7 @@ const buildHTML = (p) => {
 
   const originalPrice = parseFloat(p.amount || 0) + parseFloat(p.discountAmount || 0);
 
-  let logoPath = path.join(__dirname, '../../frontend/public/SyncSocioLogo.png');
-  if (!fs.existsSync(logoPath)) {
-    logoPath = path.join(process.cwd(), '../frontend/public/SyncSocioLogo.png');
-  }
-  if (!fs.existsSync(logoPath)) {
-    logoPath = path.join(process.cwd(), 'frontend/public/SyncSocioLogo.png');
-  }
-  const logoSrc = fs.existsSync(logoPath) ? 'cid:logo' : `${dashUrl}/SyncSocioLogo.png`;
+  const logoSrc = `https://syncsocio.com/SyncSocioLogo.png`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -378,8 +371,8 @@ export const generatePDFBuffer = (p) => {
       // Right Column: Company Info
       doc.fillColor(textColor).fontSize(10).font('Helvetica-Bold').text('From', 350, 110);
       doc.font('Helvetica').fontSize(9).text('SyncSocio', 350, 128);
-      doc.text('AECS Layout, Kundalahali,', 350, 143);
-      doc.text('Bangalore, Karnataka, 560037', 350, 158);
+      doc.text('AECS Layout, Kundalahalli,', 350, 143);
+      doc.text('Bengaluru, Karnataka 560037', 350, 158);
 
       // Divider
       doc.moveTo(50, 200).lineTo(545, 200).strokeColor(borderColor).stroke();
@@ -530,15 +523,6 @@ export const sendInvoiceEmail = async (opts) => {
   // Generate the PDF Buffer
   const pdfBuffer = await generatePDFBuffer(params);
 
-  // Resolve logo path dynamically
-  let logoPath = path.join(__dirname, '../../frontend/public/SyncSocioLogo.png');
-  if (!fs.existsSync(logoPath)) {
-    logoPath = path.join(process.cwd(), '../frontend/public/SyncSocioLogo.png');
-  }
-  if (!fs.existsSync(logoPath)) {
-    logoPath = path.join(process.cwd(), 'frontend/public/SyncSocioLogo.png');
-  }
-
   const attachments = [
     {
       content: pdfBuffer.toString('base64'),
@@ -547,16 +531,6 @@ export const sendInvoiceEmail = async (opts) => {
       disposition: 'attachment'
     }
   ];
-
-  if (fs.existsSync(logoPath)) {
-    attachments.push({
-      content: fs.readFileSync(logoPath).toString('base64'),
-      filename: 'SyncSocioLogo.png',
-      type: 'image/png',
-      disposition: 'inline',
-      content_id: 'logo'
-    });
-  }
 
   const msg = {
     to,
