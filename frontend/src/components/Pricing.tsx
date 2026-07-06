@@ -14,7 +14,7 @@ const plans = [
     features: [
       "200 credits/month",
       "1 active brand profile",
-      "Import or Add Up to 12 Products",
+      "Import or Add Up to 50 Products",
       "All image generation types",
       "UGC video generation",
       "Product video generation",
@@ -36,7 +36,7 @@ const plans = [
     features: [
       "700 credits/month",
       "2 brand profiles",
-      "Import or Add Up to 30 Products",
+      "Import or Add Up to 100 Products",
       "Everything in Starter",
       "All-in-One Drop feature",
       "UGC video generation",

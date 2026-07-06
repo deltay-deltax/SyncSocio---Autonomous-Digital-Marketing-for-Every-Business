@@ -303,8 +303,16 @@ const DashboardSettings = () => {
         }
       });
 
-      // 4. Save newly scraped products sequentially
-      const scrapedProducts = scraped.products || [];
+      // 4. Save newly scraped products sequentially, respecting plan limits
+      let scrapedProducts = scraped.products || [];
+      const p = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+      const planName = (p.userPlan || p.selectedPlan || '').toLowerCase();
+      const productLimit = planName.includes('elite') ? 100 : 50;
+      
+      if (scrapedProducts.length > productLimit) {
+        scrapedProducts = scrapedProducts.slice(0, productLimit);
+      }
+
       if (scrapedProducts.length > 0) {
         for (const prod of scrapedProducts) {
           try {
