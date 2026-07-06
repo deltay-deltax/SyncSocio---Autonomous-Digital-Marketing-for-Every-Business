@@ -199,8 +199,8 @@ const CreativeShowcase = () => {
         <div className="max-w-6xl mx-auto mb-10">
           {/* Mobile Dropdown */}
           <div className="sm:hidden relative">
-            <button 
-              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/50 bg-card/80 backdrop-blur-md font-black uppercase tracking-wider text-foreground"
             >
               <div className="flex items-center gap-3">
@@ -211,7 +211,7 @@ const CreativeShowcase = () => {
             </button>
             <AnimatePresence>
               {isMenuOpen && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                   className="absolute top-full left-0 right-0 mt-2 p-1.5 rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl z-50 shadow-xl flex flex-col gap-1"
                 >
@@ -221,9 +221,8 @@ const CreativeShowcase = () => {
                       <button
                         key={f.id}
                         onClick={() => { setActive(f.id); setIsMenuOpen(false); }}
-                        className={`flex items-center justify-between p-3 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${
-                          isActive ? `bg-gradient-to-br ${f.accent} text-white` : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                        }`}
+                        className={`flex items-center justify-between p-3 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${isActive ? `bg-gradient-to-br ${f.accent} text-white` : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          }`}
                       >
                         <span className="flex items-center gap-2">
                           <f.icon size={14} />
@@ -248,9 +247,8 @@ const CreativeShowcase = () => {
                 <button
                   key={f.id}
                   onClick={() => setActive(f.id)}
-                  className={`relative flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${
-                    isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`relative flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {isActive && (
                     <motion.span
@@ -263,9 +261,8 @@ const CreativeShowcase = () => {
                     <f.icon size={14} />
                     <span className="whitespace-nowrap">{f.label}</span>
                     <span
-                      className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
-                        isActive ? "bg-white/25 text-white" : "bg-muted text-muted-foreground"
-                      }`}
+                      className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${isActive ? "bg-white/25 text-white" : "bg-muted text-muted-foreground"
+                        }`}
                     >
                       {f.count}
                     </span>
@@ -339,7 +336,7 @@ const CreativeShowcase = () => {
               </div>
 
               {/* RIGHT — hero + masonry */}
-              <div className={active === "carousel" 
+              <div className={active === "carousel"
                 ? "col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-5 items-start"
                 : "col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[300px] sm:auto-rows-[150px]"}>
                 {active === "image" ? (
@@ -397,7 +394,7 @@ const CreativeShowcase = () => {
               {[
                 { v: "5", l: "Formats", s: "Image · Carousel · Video · E-Comm · Festival" },
                 { v: "40+", l: "Festivals mapped", s: "Diwali, Holi, Eid, X-mas & more" },
-                { v: "14", l: "Languages", s: "English · Hinglish · Hindi · Tamil · Kannada & 9 more" },
+                { v: "14", l: "Languages", s: "English · Hinglish · Hindi · Tamil · Kannada · Nepali & 8 more" },
                 { v: "2 min", l: "Avg time", s: "Idea → ready-to-post creative" },
               ].map((s, i) => (
                 <motion.div
@@ -417,7 +414,7 @@ const CreativeShowcase = () => {
           </div>
         </div>
       </div>
-      
+
       {enlargedIndex !== null && (
         <Lightbox items={items} initialIndex={enlargedIndex} onClose={() => setEnlargedIndex(null)} />
       )}
@@ -441,8 +438,8 @@ const HeroTile = ({
     <motion.div
       whileHover={{ y: -3 }}
       onClick={onClick}
-      onMouseEnter={() => videoRef.current?.play().catch(()=>{})}
-      onMouseLeave={() => { if(videoRef.current){ videoRef.current.pause(); videoRef.current.currentTime=0; } }}
+      onMouseEnter={() => videoRef.current?.play().catch(() => { })}
+      onMouseLeave={() => { if (videoRef.current) { videoRef.current.pause(); videoRef.current.currentTime = 0; } }}
       className={`relative rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
     >
       {item.isVideo || item.src.endsWith(".mp4") ? (
@@ -450,20 +447,20 @@ const HeroTile = ({
       ) : (
         <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110 bg-muted/40" />
       )}
-    <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-700 mix-blend-overlay`} />
+      <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-700 mix-blend-overlay`} />
 
-    {item.isVideo && (
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <motion.div
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="w-16 h-16 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-2xl"
-        >
-          <Play size={24} className="text-neutral-900 fill-neutral-900 ml-1" />
-        </motion.div>
-      </div>
-    )}
-  </motion.div>
+      {item.isVideo && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="w-16 h-16 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-2xl"
+          >
+            <Play size={24} className="text-neutral-900 fill-neutral-900 ml-1" />
+          </motion.div>
+        </div>
+      )}
+    </motion.div>
   );
 };
 
@@ -487,8 +484,8 @@ const Tile = ({
     <motion.div
       whileHover={{ y: -3 }}
       onClick={onClick}
-      onMouseEnter={() => videoRef.current?.play().catch(()=>{})}
-      onMouseLeave={() => { if(videoRef.current){ videoRef.current.pause(); videoRef.current.currentTime=0; } }}
+      onMouseEnter={() => videoRef.current?.play().catch(() => { })}
+      onMouseLeave={() => { if (videoRef.current) { videoRef.current.pause(); videoRef.current.currentTime = 0; } }}
       className={`relative rounded-2xl sm:rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
     >
       {item.isVideo || item.src.endsWith(".mp4") ? (
@@ -496,16 +493,16 @@ const Tile = ({
       ) : (
         <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 bg-muted/40" />
       )}
-    <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay`} />
+      <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay`} />
 
-    {item.isVideo && (
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-xl">
-          <Play size={14} className="text-neutral-900 fill-neutral-900 ml-0.5" />
+      {item.isVideo && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-xl">
+            <Play size={14} className="text-neutral-900 fill-neutral-900 ml-0.5" />
+          </div>
         </div>
-      </div>
-    )}
-  </motion.div>
+      )}
+    </motion.div>
   );
 };
 
@@ -524,13 +521,13 @@ const CarouselTile = ({
     <div className={`relative w-full rounded-3xl overflow-hidden border border-border/40 group ${className?.includes('aspect-') || className?.includes('h-') ? "" : "h-full"} ${className ?? ""}`}>
       <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {items.map((item, idx) => (
-          <div 
-            key={idx} 
-            className="relative min-w-full h-full snap-center shrink-0 cursor-pointer" 
+          <div
+            key={idx}
+            className="relative min-w-full h-full snap-center shrink-0 cursor-pointer"
             onClick={() => onItemClick(idx)}
             onMouseEnter={(e) => {
               const video = e.currentTarget.querySelector('video');
-              if (video) video.play().catch(()=>{});
+              if (video) video.play().catch(() => { });
             }}
             onMouseLeave={(e) => {
               const video = e.currentTarget.querySelector('video');
@@ -562,7 +559,7 @@ const CarouselTile = ({
 const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialIndex: number, onClose: () => void }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft = initialIndex * scrollRef.current.clientWidth;
@@ -574,7 +571,7 @@ const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialInde
     const videos = scrollRef.current.querySelectorAll('video');
     videos.forEach((vid, i) => {
       if (i === currentIndex) {
-        vid.play().catch(()=>{});
+        vid.play().catch(() => { });
       } else {
         vid.pause();
       }
@@ -599,9 +596,9 @@ const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialInde
 
   return (
     <AnimatePresence>
-      <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] flex flex-col bg-background"
       >
@@ -617,51 +614,51 @@ const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialInde
             }}
           />
         </div>
-        <button 
+        <button
           className="absolute top-6 right-6 z-50 p-2.5 text-white hover:text-white bg-black/40 hover:bg-black/60 border border-white/10 shadow-2xl rounded-full transition-all backdrop-blur-md"
           onClick={onClose}
         >
           <X size={24} />
         </button>
 
-        <button 
+        <button
           className="absolute left-6 top-1/2 -translate-y-1/2 z-50 p-3 text-white hover:text-white bg-black/40 hover:bg-black/60 border border-white/10 shadow-2xl rounded-full transition-all backdrop-blur-md hidden sm:block"
           onClick={(e) => { e.stopPropagation(); scrollByAmount(-1); }}
         >
           <ChevronLeft size={32} />
         </button>
 
-        <button 
+        <button
           className="absolute right-6 top-1/2 -translate-y-1/2 z-50 p-3 text-white hover:text-white bg-black/40 hover:bg-black/60 border border-white/10 shadow-2xl rounded-full transition-all backdrop-blur-md hidden sm:block"
           onClick={(e) => { e.stopPropagation(); scrollByAmount(1); }}
         >
           <ChevronRight size={32} />
         </button>
 
-        <div 
+        <div
           ref={scrollRef}
           onScroll={handleScroll}
           className="flex-1 w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {items.map((item, idx) => (
-            <div 
-              key={idx} 
+            <div
+              key={idx}
               className="w-full h-full shrink-0 snap-center flex items-center justify-center p-4 sm:p-12 cursor-pointer"
               onClick={onClose}
             >
               {item.isVideo || item.src.endsWith(".mp4") ? (
-                <video 
+                <video
                   src={item.src}
                   controls
                   playsInline
-                  className="max-w-full max-h-full rounded-2xl shadow-2xl" 
-                  onClick={(e) => e.stopPropagation()} 
+                  className="max-w-full max-h-full rounded-2xl shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
                 />
               ) : (
-                <img 
-                  src={item.src} 
-                  className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl cursor-default" 
-                  onClick={(e) => e.stopPropagation()} 
+                <img
+                  src={item.src}
+                  className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl cursor-default"
+                  onClick={(e) => e.stopPropagation()}
                 />
               )}
             </div>
