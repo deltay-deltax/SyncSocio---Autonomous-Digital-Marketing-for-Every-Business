@@ -1868,7 +1868,40 @@ const DashboardStrategy = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+  };
+
+  const isHeroImageSaved = React.useMemo(() => {
+    if (!campaignImage) return false;
+    return creativeLibrary.some(creative => {
+      if (creative.type !== 'image') return false;
+      return creative.thumbnailBase64 === campaignImage;
+    });
+  }, [campaignImage, creativeLibrary]);
+
+  const handleSaveCampaignImage = async () => {
+    if (!campaignImage) return;
+
+    const isAlreadySaved = creativeLibrary.some(creative => {
+      if (creative.type !== 'image') return false;
+      return creative.thumbnailBase64 === campaignImage;
+    });
+
+    if (isAlreadySaved) {
+      toast({
+        title: "Already Saved",
+        description: "This campaign image is already saved in your assets library.",
+      });
+      return;
     }
+
+    const post: GeneratedPost = {
+      type: 'image',
+      image: campaignImage,
+      caption: campaignBody || `Campaign Creative: ${campaignSubject || idea || 'WhatsApp/Email Campaign'}`,
+      sectionType: 'image'
+    };
+
+    await handleHeart(post, 9999);
   };
 
   const handleDoubleTap = (post: GeneratedPost, index: number) => {
@@ -2054,6 +2087,8 @@ const DashboardStrategy = () => {
         listNameInput={listNameInput}
         setListNameInput={setListNameInput}
         handleSaveImportedList={handleSaveImportedList}
+        saveHeroImage={handleSaveCampaignImage}
+        isHeroImageSaved={isHeroImageSaved}
       />
     );
   }
@@ -4067,6 +4102,7 @@ interface CampaignResultsProps {
   back: () => void;
   regenerate: () => void;
   saveHeroImage?: () => void;
+  isHeroImageSaved?: boolean;
   savedLists: any[];
   setSavedLists: React.Dispatch<React.SetStateAction<any[]>>;
   selectedListId: string;
@@ -4208,7 +4244,7 @@ const COUNTRY_CODES = [
 const CampaignResults: React.FC<CampaignResultsProps> = ({
   mode, brandName, image, subject, setSubject, body, setBody,
   recipients, setRecipients, newRecipient, setNewRecipient, whatsappCountryCode, setWhatsappCountryCode, addRecipient,
-  recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage,
+  recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage, isHeroImageSaved,
   savedLists, setSavedLists, selectedListId, setSelectedListId,
   showListNameModal, setShowListNameModal, listNameInput, setListNameInput, handleSaveImportedList,
 }) => {
@@ -4300,8 +4336,20 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
         </div>
         <div className="flex gap-2">
           {saveHeroImage && (
-            <Button onClick={saveHeroImage} variant="outline" size="sm" className="rounded-xl gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20">
-              <Heart size={14} /> Save hero image
+            <Button
+              onClick={saveHeroImage}
+              disabled={isHeroImageSaved}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "rounded-xl gap-2 transition",
+                isHeroImageSaved
+                  ? "text-rose-500 border-rose-500/20 bg-rose-500/10 cursor-not-allowed"
+                  : "text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20"
+              )}
+            >
+              <Heart size={14} className={cn(isHeroImageSaved && "fill-rose-500")} />
+              {isHeroImageSaved ? 'Saved' : 'Save hero image'}
             </Button>
           )}
           <Button onClick={() => setShowRefineModal(true)} variant="outline" size="sm" className="rounded-xl gap-2">
