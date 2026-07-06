@@ -3988,33 +3988,62 @@ const DashboardStrategy = () => {
       </AnimatePresence>
 
       {/* ─── Generate button ─── */}
-      {mode !== 'festival' && (
-        <div className="sticky bottom-4 lg:bottom-0 lg:static pt-2">
-          <Button
-            onClick={() => generate()}
-            disabled={!canGenerate}
-            size="lg"
-            className={cn(
-              'w-full h-14 rounded-2xl text-base font-bold gap-2 transition-all',
-              canGenerate
-                ? 'bg-gradient-to-r from-primary to-primary/80 hover:shadow-2xl hover:shadow-primary/30'
-                : 'opacity-50 cursor-not-allowed'
+      {mode !== 'festival' && (() => {
+        const isEmailMode = mode === 'email';
+        const isEmailSetupDone = !isEmailMode || profile?.use_generic_email_sender === true || profile?.email_domain_verified === true;
+
+        if (isEmailMode && !isEmailSetupDone) {
+          return (
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 space-y-3 mt-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={15} className="text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">Email domain setup required</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Before you can send campaigns, verify your sending domain or use SyncSocio Network so emails land in inboxes.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/dashboard/settings?tab=Email Setup"
+                className="w-full h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-amber-500 text-white hover:bg-amber-600 transition-all text-center animate-pulse"
+              >
+                Go to Settings → Email Setup
+              </a>
+            </div>
+          );
+        }
+
+        return (
+          <div className="sticky bottom-4 lg:bottom-0 lg:static pt-2">
+            <Button
+              onClick={() => generate()}
+              disabled={!canGenerate}
+              size="lg"
+              className={cn(
+                'w-full h-14 rounded-2xl text-base font-bold gap-2 transition-all',
+                canGenerate
+                  ? 'bg-gradient-to-r from-primary to-primary/80 hover:shadow-2xl hover:shadow-primary/30'
+                  : 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              <Sparkles size={18} />
+              {mode === 'all_in_one' ? 'Generate All-in-One Pack' :
+                mode === 'whatsapp' ? 'Generate WhatsApp message' :
+                  mode === 'email' ? 'Generate email campaign' :
+                    mode === 'video' ? 'Generate 1 video' :
+                      `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
+            </Button>
+            {!canGenerate && mode !== 'ecomm' && mode !== 'all_in_one' && (
+              <p className="text-[11px] text-muted-foreground text-center mt-2">
+                Tell us your idea to start ✨
+              </p>
             )}
-          >
-            <Sparkles size={18} />
-            {mode === 'all_in_one' ? 'Generate All-in-One Pack' :
-              mode === 'whatsapp' ? 'Generate WhatsApp message' :
-                mode === 'email' ? 'Generate email campaign' :
-                  mode === 'video' ? 'Generate 1 video' :
-                    `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
-          </Button>
-          {!canGenerate && mode !== 'ecomm' && mode !== 'all_in_one' && (
-            <p className="text-[11px] text-muted-foreground text-center mt-2">
-              Tell us your idea to start ✨
-            </p>
-          )}
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* ─── Upgrade / Plan Expired Modal ─── */}
       <AnimatePresence>
@@ -4764,31 +4793,6 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           {(() => {
             const cachedProfile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
             const isEmailMode = mode === 'email';
-            const isDomainVerified = !isEmailMode || cachedProfile?.email_domain_verified === true;
-
-            if (isEmailMode && !isDomainVerified) {
-              return (
-                <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-                      <AlertTriangle size={15} className="text-amber-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-foreground">Email domain setup required</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Before you can send campaigns, verify your sending domain so emails land in inboxes.
-                      </p>
-                    </div>
-                  </div>
-                  <a
-                    href="/dashboard/settings"
-                    className="w-full h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-amber-500 text-white hover:bg-amber-600 transition-all"
-                  >
-                    Go to Settings → Email Setup
-                  </a>
-                </div>
-              );
-            }
 
             return (
               <>
