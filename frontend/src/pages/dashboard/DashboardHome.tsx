@@ -331,7 +331,7 @@ const DashboardHome = () => {
                   {/* Google Icon */}
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center bg-white border transition-all",
-                    profile?.gmailIsConnected
+                    (profile?.gmailIsConnected || profile?.use_generic_email_sender || profile?.email_domain_verified)
                       ? "border-border shadow-sm"
                       : "grayscale opacity-400 bg-slate-100 border-slate-200"
                   )}>
