@@ -151,6 +151,9 @@ AD_TEMPLATE_DIRECTIVES: Dict[int, Dict[str, str]] = {
         ),
     },
 
+    # ── Generic formats for when a user selects a track but no sub-format ──
+    100: {"label": "Custom Text-led", "track": "text_led"},
+    
     # ── Text-led formats (101–104) — name tells the model what to create ────────
     101: {"label": "Outcome-led",   "track": "text_led"},
     102: {"label": "Stat-led",       "track": "text_led"},
@@ -160,6 +163,8 @@ AD_TEMPLATE_DIRECTIVES: Dict[int, Dict[str, str]] = {
     # ── UI/Image-led formats (105–106) — ref screenshot anchors the output ───
     105: {"label": "Feature Callout", "track": "image_led"},
     106: {"label": "Dashboard Hero",  "track": "image_led"},
+    
+    110: {"label": "Custom Image-led", "track": "image_led"},
 }
 
 
@@ -218,9 +223,9 @@ def _select_ref_images(ref_images: List[str], count: int) -> List[Optional[str]]
 
 
 # IDs for image-led formats that require a reference screenshot
-_IMAGE_LED_TEMPLATE_IDS = {105, 106}
+_IMAGE_LED_TEMPLATE_IDS = {105, 106, 110}
 # IDs for text-led formats — no dashboard/UI imagery expected
-_TEXT_LED_TEMPLATE_IDS  = {101, 102, 103, 104}
+_TEXT_LED_TEMPLATE_IDS  = {100, 101, 102, 103, 104}
 
 
 def is_image_led_template(ad_template: Optional[int]) -> bool:
@@ -288,8 +293,8 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
         t = AD_TEMPLATE_DIRECTIVES[ad_template]
         label = t["label"]
         track = t.get("track", "")
-        # New SaaS formats (101-106): just name the format, let the model interpret it
-        if ad_template >= 101:
+        # New SaaS formats (100-110): just name the format, let the model interpret it
+        if ad_template >= 100:
             if track == "image_led":
                 template_block = (
                     f"\nAd Format: {label}."
@@ -299,8 +304,10 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
             else:
                 template_block = (
                     f"\nAd Format: {label}.\n"
-                    f"This is a purely typographic, text-led ad. "
-                    f"Do NOT include any UI screenshots, dashboards, product shots, or illustrations.\n"
+                    f"CRITICAL INSTRUCTION: This is a typographic, text-led design, but you CAN use minimal vector icons, charts, infographics, or geometric shapes to enhance the layout. "
+                    f"Use a clean solid or smooth gradient background. "
+                    f"Focus entirely on beautiful, large, high-impact typography and clean graphic elements. "
+                    f"ABSOLUTELY NO people, NO workspaces, NO UI screenshots, NO product shots, and NO complex illustrations.\n"
                 )
         else:
             # Legacy D2C-style SaaS templates (1-8): use full directive
@@ -311,13 +318,16 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
 
     platform_instruction = "Make it feel native to Instagram feed."
 
+    is_text_led = ad_template and ad_template >= 100 and AD_TEMPLATE_DIRECTIVES.get(ad_template, {}).get("track") == "text_led"
+    quality_str = "Clean, minimalist, premium typographic design." if is_text_led else "Premium, photorealistic, commercial quality."
+
     return f"""{block}
 {product_block}
 {idea_str}{template_block}
 Create a high-converting service business ad creative.
 {platform_instruction}
 {logo_inst}
-Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
+Aspect ratio: {aspect}. {quality_str}
 Any text overlays, labels, or copy displayed in the image must be in {language}."""
 
 
@@ -591,9 +601,11 @@ def generate_saas_strategy_images(
             
             if is_text_led_template(t_id):
                 _track = "text_led"
-                # Text-led formats are purely typographic — strip ref images entirely
-                effective_ref = None
-                include_logo_in_prompt = False  # Explicitly tell AI not to draw a logo
+                # Text-led formats are purely typographic, but they can still feature the brand logo
+                effective_ref = [resolved_logo] if resolved_logo else []
+                if not effective_ref:
+                    effective_ref = None
+                include_logo_in_prompt = True
                 print(f"\n[SaaSAgent] 🔤 Image {index+1}/{count} | track=TEXT-LED | template={template_label}")
             elif is_image_led_template(t_id):
                 _track = "image_led"

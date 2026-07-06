@@ -2092,10 +2092,19 @@ const ChipGroup = ({ options, value, onChange, small }: { options: string[]; val
 );
 
 // ── Professional Color Picker — centered modal, portal-rendered, never clipped ──
+const getContrastColor = (hex: string) => {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
+  const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
+  const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
+  return ((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128 ? '#0f172a' : '#ffffff';
+};
+
 const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState(value);        // uncommitted color while modal is open
   const [hexInput, setHexInput] = useState(value);  // raw hex string for the text field
+  const textColor = getContrastColor(draft);
 
   // Sync draft ↔ external value when modal opens / value changes externally
   useEffect(() => {
@@ -2186,16 +2195,19 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
               style={{ backgroundColor: draft }}
             >
               <div className="absolute inset-0 flex items-center justify-between px-4">
-                <span className="text-white/90 text-xs font-black uppercase tracking-widest drop-shadow">
+                <span 
+                  className="text-xs font-black uppercase tracking-widest drop-shadow-sm transition-colors"
+                  style={{ color: textColor }}
+                >
                   Pick Color
                 </span>
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="w-6 h-6 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition-colors"
+                  className="w-6 h-6 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-                    fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    fill="none" stroke={textColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
@@ -2244,8 +2256,8 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
                 <button
                   type="button"
                   onClick={handleApply}
-                  className="flex-1 py-2 rounded-xl text-sm font-bold text-white transition-all shadow-md hover:opacity-90 active:scale-95"
-                  style={{ backgroundColor: draft }}
+                  className="flex-1 py-2 rounded-xl text-sm font-bold transition-all shadow-md hover:opacity-90 active:scale-95"
+                  style={{ backgroundColor: draft, color: textColor }}
                 >
                   Apply
                 </button>

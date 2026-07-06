@@ -1639,9 +1639,9 @@ const DashboardStrategy = () => {
         }),
         ...((currentMode === 'image' || currentMode === 'festival') && {
           // SaaS brands: use saasFormatId (101-106) when a format is selected
-          // D2C brands: use the regular adTemplate (1-10)
+          // If a track is selected but no specific format, use 100 for generic Text-led, 110 for generic Image-led
           adTemplate: isSaasMode && currentMode === 'image'
-            ? (saasFormatId ?? null)
+            ? (saasFormatId ?? (saasFormatTrack === 'text_led' ? 100 : saasFormatTrack === 'image_led' ? 110 : null))
             : (currentCount === 8 ? -1 : adTemplate),
         }),
         videoKind: currentMode === 'video' ? videoKind : undefined,
