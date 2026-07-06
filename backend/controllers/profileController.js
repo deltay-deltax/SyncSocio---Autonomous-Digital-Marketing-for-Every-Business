@@ -260,3 +260,27 @@ export const requestMetaTester = async (req, res) => {
     res.status(500).json({ message: 'Server error requesting Meta tester access.' });
   }
 };
+
+export const updateProfile = async (req, res) => {
+  try {
+    let profile = null;
+    if (req.user.activeBrandId) {
+      profile = await BrandProfile.findOneAndUpdate(
+        { user: req.user._id, _id: req.user.activeBrandId },
+        { $set: req.body },
+        { new: true }
+      );
+    }
+    if (!profile) {
+      profile = await BrandProfile.findOneAndUpdate(
+        { user: req.user._id },
+        { $set: req.body },
+        { new: true }
+      );
+    }
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+    res.status(200).json(profile);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error updating profile' });
+  }
+};

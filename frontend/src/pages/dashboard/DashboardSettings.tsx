@@ -1446,7 +1446,7 @@ const DashboardSettings = () => {
 
         {/* ─── EMAIL SETUP TAB ─────────────────────────────────────────────── */}
         {activeTab === 'Email Setup' && (
-          <EmailSetupWizard profile={profile} />
+          <EmailSetupWizard profile={profile} setProfile={setProfile} />
         )}
 
       </div>
@@ -1558,7 +1558,7 @@ const DashboardSettings = () => {
 
 const PERSONAL_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','yahoo.in','rediffmail.com','icloud.com','live.com','msn.com','aol.com'];
 
-const EmailSetupWizard = ({ profile }: { profile: any }) => {
+const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: (p: any) => void }) => {
   const { toast } = useToast();
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
@@ -1573,8 +1573,17 @@ const EmailSetupWizard = ({ profile }: { profile: any }) => {
   const [copiedRow, setCopiedRow] = useState<string | null>(null);
   const [useGeneric, setUseGeneric] = useState(profile?.use_generic_email_sender || false);
 
+  useEffect(() => {
+    if (profile) {
+      setUseGeneric(profile.use_generic_email_sender || false);
+    }
+  }, [profile]);
+
   const handleToggleGeneric = async (val: boolean) => {
     setUseGeneric(val);
+    if (setProfile) {
+      setProfile({ ...profile, use_generic_email_sender: val });
+    }
     const token = localStorage.getItem('token');
     try {
       await fetch(`${apiBase}/profile/me`, {

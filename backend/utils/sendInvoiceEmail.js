@@ -2,6 +2,10 @@ import sgMail from '@sendgrid/mail';
 import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ─── Company / Brand Info ────────────────────────────────────────────────────
 export const COMPANY_ADDRESS = {

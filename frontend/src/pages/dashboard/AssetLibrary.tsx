@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Masonry from 'react-masonry-css';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const breakpointColumnsObj = {
   default: 4,
@@ -117,12 +118,47 @@ const typeIcon: Record<string, any> = {
 
 const AssetLibrary = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { startBackgroundSchedule } = useOutletContext<{
     startBackgroundSchedule?: (postIds: string[], platforms: any, schedules?: any[], startDate?: string, endDate?: string) => Promise<string>;
   }>() || {};
   const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
   const brandId = profile._id || 'default';
   const cacheKey = `syncsocio_strategy_assets_${brandId}`;
+
+  // Enforce scheduled posts limits based on plan
+  const planName = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
+  const isElite = planName.includes('elite');
+  const scheduleLimit = isElite ? Infinity : 30;
+
+  const [assets, setAssets] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+
+  // Count active scheduled assets (posts waiting in queue to be published)
+  const activeScheduledCount = React.useMemo(() => {
+    const now = new Date();
+    return assets.filter(a => a.status === 'scheduled' && (!a.scheduledAt || new Date(a.scheduledAt) > now)).length;
+  }, [assets]);
+
+  const validateScheduleLimit = (schedules: { scheduledAt: string }[]): boolean => {
+    if (isElite) return true;
+
+    // Count how many are currently active in the queue
+    const currentActiveCount = activeScheduledCount;
+    const newSchedulesCount = schedules.length;
+
+    if (currentActiveCount + newSchedulesCount > 30) {
+      toast({
+        title: "Queue Limit Reached",
+        description: `Your Starter plan allows up to 30 scheduled posts in your active queue. You currently have ${currentActiveCount} scheduled, and you are trying to schedule ${newSchedulesCount} more. Please upgrade to the Elite plan for unlimited queue size.`,
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
@@ -143,8 +179,7 @@ const AssetLibrary = () => {
   const [platforms, setPlatforms] = useState({ instagram: true, facebook: false });
   const [schedulingInProgress, setSchedulingInProgress] = useState<boolean>(false);
 
-  const [assets, setAssets] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+
 
   useEffect(() => {
     const loadCached = async () => {
@@ -259,6 +294,8 @@ const AssetLibrary = () => {
         };
       });
 
+      if (!validateScheduleLimit(schedules)) return;
+
       if (startBackgroundSchedule) {
         startBackgroundSchedule(selectedAssetIds, platforms, schedules, startDate, endDate);
       }
@@ -282,6 +319,8 @@ const AssetLibrary = () => {
         id,
         scheduledAt: new Date().toISOString()
       }));
+
+      if (!validateScheduleLimit(schedules)) return;
 
       if (startBackgroundSchedule) {
         startBackgroundSchedule(selectedAssetIds, platforms, schedules, undefined, undefined);
@@ -395,7 +434,9 @@ const AssetLibrary = () => {
       <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide w-full pb-2 scroll-smooth select-none shrink-0">
         {(['all', 'image', 'carousel', 'video', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
-          const label = f === 'scheduled' ? 'Scheduled & Posted' : f;
+          const label = f === 'scheduled' 
+            ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}` 
+            : f;
           return (
             <button
               key={f}
