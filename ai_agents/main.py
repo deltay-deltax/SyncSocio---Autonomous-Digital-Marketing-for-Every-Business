@@ -1620,11 +1620,21 @@ Product Details:
 {product_related_all}
 
 Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
+                
+                features_product = True
+                if isinstance(sp, dict):
+                    features_product = sp.get("features_product", True)
+                
                 print("\n" + "="*80)
                 print(f"[CAROUSEL GENERATOR] Endpoint Slide {i+1} Prompt:")
                 print(ideogram_prompt)
+                print(f"Features Product: {features_product}")
                 print("="*80 + "\n")
-                slides_results.append(ideogram_prompt)
+                
+                slides_results.append({
+                    "prompt": ideogram_prompt,
+                    "features_product": features_product
+                })
                 current_context = f"Primary: {primary_color}, Secondary: {secondary_color}, Tone: {brand_tone}"
 
             # Generate carousel with Ideogram (image-to-image based on user product image)
