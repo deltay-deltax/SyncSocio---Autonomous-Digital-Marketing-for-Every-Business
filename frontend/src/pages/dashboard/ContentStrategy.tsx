@@ -1868,6 +1868,7 @@ const DashboardStrategy = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
   };
 
   const isHeroImageSaved = React.useMemo(() => {
