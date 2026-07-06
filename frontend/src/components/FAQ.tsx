@@ -1,6 +1,7 @@
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const LANDING_FAQS = [
   {
@@ -98,7 +99,17 @@ const FAQ = () => {
                       <div className="px-6 pb-6 pt-0">
                         <div className="h-px bg-border/40 mb-4" />
                         <p className="text-sm font-medium leading-relaxed text-muted-foreground">
-                          {item.a}
+                          {i === 3 ? (
+                            <>
+                              Yes. Our Starter plan supports 1 active brand profile, while the Elite plan supports up to 2 brand profiles. Each brand has its own{" "}
+                              <Link to="/signup" className="text-muted-foreground hover:text-muted-foreground cursor-default">
+                                isolated
+                              </Link>{" "}
+                              Brand DNA, image upload library, and analytics dashboards.
+                            </>
+                          ) : (
+                            item.a
+                          )}
                         </p>
                       </div>
                     </motion.div>
