@@ -1027,6 +1027,53 @@ const DashboardStrategy = () => {
     }
   };
 
+  // Fetch creative library on mount or brand change
+  React.useEffect(() => {
+    if (brandId) {
+      fetchCreativeLibrary();
+    }
+  }, [brandId]);
+
+  // Sync savedIndices when generated posts or creativeLibrary changes
+  React.useEffect(() => {
+    if (generated.length === 0) {
+      setSavedIndices(new Set());
+      return;
+    }
+
+    const newSavedIndices = new Set<number>();
+
+    generated.forEach((post, idx) => {
+      const isAlreadySaved = creativeLibrary.some(creative => {
+        if (post.type !== creative.type) return false;
+
+        // Match by caption if present
+        if (post.caption && creative.caption) {
+          if (post.caption.trim() === creative.caption.trim()) return true;
+        }
+
+        // Match by image/video URL
+        if (post.type === 'image') {
+          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) return true;
+        } else if (post.type === 'video') {
+          if (post.url && creative.videoUrl && post.url === creative.videoUrl) return true;
+          if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) return true;
+        } else if (post.type === 'carousel') {
+          const postImg = post.slides?.[0]?.image;
+          const creativeImg = creative.slides?.[0]?.image || creative.thumbnailBase64;
+          if (postImg && creativeImg && postImg === creativeImg) return true;
+        }
+        return false;
+      });
+
+      if (isAlreadySaved) {
+        newSavedIndices.add(idx);
+      }
+    });
+
+    setSavedIndices(newSavedIndices);
+  }, [generated, creativeLibrary]);
+
   const pickRandom = () => {
     const targetLimit = mode === 'ecomm' ? 1 : count;
     if (products.length > 0) {
@@ -1763,6 +1810,7 @@ const DashboardStrategy = () => {
           const cached = await getCache(cacheKey) || [];
           cached.unshift(data.creative);
           await setCache(cacheKey, cached);
+          setCreativeLibrary(cached);
         } catch (e) {
           console.error('[Strategy] IndexedDB save error:', e);
         }
