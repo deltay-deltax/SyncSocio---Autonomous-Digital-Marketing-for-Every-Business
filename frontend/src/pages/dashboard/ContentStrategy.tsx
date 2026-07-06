@@ -1073,7 +1073,7 @@ const DashboardStrategy = () => {
       setLanguage('english');
     }
     if (m === 'image') setCount(4);
-    if (m === 'carousel') setCount(2);
+    if (m === 'carousel') setCount(1);
     if (m === 'video') {
       setCount(1);
       setAspect('9:16');
@@ -1639,9 +1639,9 @@ const DashboardStrategy = () => {
         }),
         ...((currentMode === 'image' || currentMode === 'festival') && {
           // SaaS brands: use saasFormatId (101-106) when a format is selected
-          // D2C brands: use the regular adTemplate (1-10)
+          // If a track is selected but no specific format, use 100 for generic Text-led, 110 for generic Image-led
           adTemplate: isSaasMode && currentMode === 'image'
-            ? (saasFormatId ?? null)
+            ? (saasFormatId ?? (saasFormatTrack === 'text_led' ? 100 : saasFormatTrack === 'image_led' ? 110 : null))
             : (currentCount === 8 ? -1 : adTemplate),
         }),
         videoKind: currentMode === 'video' ? videoKind : undefined,
@@ -2629,27 +2629,29 @@ const DashboardStrategy = () => {
           {mode !== 'video' && (
             <section className="mb-6">
               <div className="p-5 rounded-2xl border border-border/60 bg-gradient-to-br from-card to-muted/30 space-y-5">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
-                    {mode === 'image' ? 'Post count' : mode === 'carousel' ? 'Carousels' : 'Videos'}
-                  </p>
-                  <div className="flex gap-2 flex-wrap">
-                    {standardCounts.map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => setCount(c)}
-                        className={cn(
-                          'flex-1 sm:flex-none sm:w-20 py-2.5 rounded-xl text-sm font-semibold transition',
-                          count === c
-                            ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                            : 'bg-card border border-border text-foreground hover:border-primary/40'
-                        )}
-                      >
-                        {c}
-                      </button>
-                    ))}
+                {mode !== 'carousel' && (
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
+                      {mode === 'image' ? 'Post count' : 'Videos'}
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      {standardCounts.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setCount(c)}
+                          className={cn(
+                            'flex-1 sm:flex-none sm:w-20 py-2.5 rounded-xl text-sm font-semibold transition',
+                            count === c
+                              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                              : 'bg-card border border-border text-foreground hover:border-primary/40'
+                          )}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {mode === 'carousel' && (
                   <div>

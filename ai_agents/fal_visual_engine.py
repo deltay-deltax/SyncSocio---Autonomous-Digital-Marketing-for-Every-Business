@@ -224,14 +224,20 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
         from concurrent.futures import ThreadPoolExecutor
 
         def generate_slide(i):
+            features_product = True
             if slide_prompts and i < len(slide_prompts):
-                slide_prompt = slide_prompts[i]
+                sp = slide_prompts[i]
+                if isinstance(sp, dict):
+                    slide_prompt = sp.get("prompt", "")
+                    features_product = sp.get("features_product", True)
+                else:
+                    slide_prompt = sp
             else:
                 slide_prompt = f"{base_prompt}, slide {i+1} of {actual_count}"
             
-            print(f"FAL ENGINE (gpt-image-2): Generating Carousel Slide {i+1}/{actual_count}...")
+            print(f"FAL ENGINE (gpt-image-2): Generating Carousel Slide {i+1}/{actual_count} (features_product: {features_product})...")
             
-            if len(data_urls) > 0:
+            if len(data_urls) > 0 and features_product:
                 # Use GPT-Image-2 edit (image-to-image)
                 arguments = {
                     "prompt": slide_prompt,
@@ -256,7 +262,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                 )
             except Exception as e:
                 # Fallback path if edit fails
-                if len(data_urls) > 0:
+                if len(data_urls) > 0 and features_product:
                     print(f"[FAL] openai/gpt-image-2/edit failed for slide {i+1}: {e}. Trying fal-ai/gpt-image-2/edit...")
                     try:
                         result = fal_client.subscribe(

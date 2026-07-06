@@ -470,6 +470,7 @@ def visual_illustrator_node(state: GraphState):
             - Focus on lighting, textures, material physics, and placement.
             - For text overlays: Provide a unique 'headline', 'subtext', and 'position' for each slide.
             - DO NOT use meta-labels like 'Headline:' or 'Subject:' in the image description itself.
+            - PRODUCT TARGETING: Only set "features_product" to true if the product is explicitly required visually in this slide. For titles, text-heavy steps, or non-product scenes, set it to false.
             
             OUTPUT FORMAT: RETURN ONLY VALID JSON.
             {{
@@ -477,6 +478,7 @@ def visual_illustrator_node(state: GraphState):
               "slides": [
                 {{
                   "slide_scene_variation": "...",
+                  "features_product": true,
                   "headline": "...",
                   "subtext": "...",
                   "position": "..."

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HexColorPicker } from "react-colorful";
 import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, Copy, CheckCheck, ArrowRight, Shield, Inbox } from 'lucide-react';
@@ -2090,82 +2091,190 @@ const ChipGroup = ({ options, value, onChange, small }: { options: string[]; val
   </div>
 );
 
-// ── Custom color picker — completely avoids Chrome's native buggy <input type="color"> ──
+// ── Professional Color Picker — centered modal, portal-rendered, never clipped ──
+const getContrastColor = (hex: string) => {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
+  const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
+  const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
+  return ((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128 ? '#0f172a' : '#ffffff';
+};
+
 const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const [draft, setDraft] = useState(value);        // uncommitted color while modal is open
+  const [hexInput, setHexInput] = useState(value);  // raw hex string for the text field
+  const textColor = getContrastColor(draft);
 
-  // Close when clicking outside
+  // Sync draft ↔ external value when modal opens / value changes externally
+  useEffect(() => {
+    if (!isOpen) {
+      setDraft(value);
+      setHexInput(value);
+    }
+  }, [value, isOpen]);
+
+  const handlePickerChange = (color: string) => {
+    setDraft(color);
+    setHexInput(color);
+  };
+
+  const commitHex = (raw: string) => {
+    const v = raw.startsWith('#') ? raw : '#' + raw;
+    if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+      setDraft(v);
+      setHexInput(v);
+    } else {
+      setHexInput(draft); // reset to last valid
+    }
+  };
+
+  const handleApply = () => {
+    onChange(draft);
+    setIsOpen(false);
+  };
+
+  const handleCancel = () => {
+    setDraft(value);
+    setHexInput(value);
+    setIsOpen(false);
+  };
+
+  // Close on Escape
   useEffect(() => {
     if (!isOpen) return;
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [isOpen]);
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
-      onChange(v);
-    }
-  };
-
-  const handleEyeDropper = async () => {
-    if (!('EyeDropper' in window)) {
-      alert('Your browser does not support the EyeDropper API.');
-      return;
-    }
-    try {
-      const eyeDropper = new (window as any).EyeDropper();
-      const result = await eyeDropper.open();
-      if (result && result.sRGBHex) {
-        onChange(result.sRGBHex);
-      }
-    } catch (e) {
-      console.log('EyeDropper cancelled');
-    }
-  };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, value]);
 
   return (
-    <div className="relative flex items-center gap-2 rounded-lg border border-input bg-background px-2 py-1.5" ref={popoverRef}>
-      <button 
+    <>
+      {/* ── Trigger row — entire area is clickable ── */}
+      <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative w-8 h-8 rounded-md overflow-hidden border border-border shrink-0 cursor-pointer shadow-sm hover:scale-105 transition-transform" 
-        style={{ backgroundColor: value }}
-        title="Open color picker"
-      />
-      
-      {/* Eye Dropper Button (if supported) */}
-      {'EyeDropper' in window && (
-        <button
-          type="button"
-          onClick={handleEyeDropper}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-          title="Pick color from screen"
+        onClick={() => setIsOpen(true)}
+        className="w-full flex items-center gap-3 rounded-xl border border-input bg-background px-3 py-2.5 hover:border-primary/50 hover:bg-muted/30 transition-all group cursor-pointer"
+      >
+        {/* Color swatch */}
+        <span
+          className="w-9 h-9 rounded-lg border-2 border-white/20 shadow-md shrink-0 ring-1 ring-border transition-transform group-hover:scale-105"
+          style={{ backgroundColor: value }}
+        />
+        {/* Hex value */}
+        <span className="flex-1 text-left text-sm font-mono font-semibold text-foreground uppercase tracking-wider">
+          {value}
+        </span>
+        {/* Edit icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+
+      {/* ── Modal — portal-rendered at body, always centered ── */}
+      {isOpen && createPortal(
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            display: 'grid', placeItems: 'center',
+            backdropFilter: 'blur(6px)',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) handleCancel(); }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg>
-        </button>
-      )}
+          <div
+            className="relative rounded-2xl border border-border bg-popover shadow-2xl overflow-hidden"
+            style={{ width: '300px', animation: 'colorPickerIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both' }}
+          >
+            {/* Header — live color preview */}
+            <div
+              className="h-16 w-full transition-colors duration-150 relative"
+              style={{ backgroundColor: draft }}
+            >
+              <div className="absolute inset-0 flex items-center justify-between px-4">
+                <span 
+                  className="text-xs font-black uppercase tracking-widest drop-shadow-sm transition-colors"
+                  style={{ color: textColor }}
+                >
+                  Pick Color
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="w-6 h-6 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                    fill="none" stroke={textColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
 
-      <Input 
-        defaultValue={value}
-        key={value} // forces re-render of input when external value changes
-        onBlur={handleTextChange}
-        onKeyDown={(e) => { if (e.key === 'Enter') handleTextChange(e as any) }}
-        className="border-0 h-8 px-1 text-sm font-mono focus-visible:ring-0 flex-1" 
-      />
+            <div className="p-4">
+              {/* Hex input — big, obvious, always at top */}
+              <div className="mb-4 flex items-center gap-2 rounded-xl border-2 border-border bg-muted/30 px-3 py-2.5 focus-within:border-primary focus-within:bg-background transition-all">
+                <span className="text-base font-black text-muted-foreground select-none">#</span>
+                <input
+                  type="text"
+                  value={hexInput.replace(/^#/, '')}
+                  onChange={e => setHexInput('#' + e.target.value)}
+                  onBlur={e => commitHex('#' + e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') commitHex('#' + (e.target as HTMLInputElement).value); }}
+                  onFocus={e => e.target.select()}
+                  autoFocus
+                  className="flex-1 bg-transparent text-base font-mono font-bold text-foreground outline-none uppercase tracking-widest"
+                  placeholder="000000"
+                  maxLength={6}
+                  spellCheck={false}
+                />
+                <span
+                  className="w-6 h-6 rounded-md border border-border/50 shrink-0 shadow-sm transition-colors duration-150"
+                  style={{ backgroundColor: draft }}
+                />
+              </div>
 
-      {isOpen && (
-        <div className="absolute top-[calc(100%+8px)] left-0 z-[150] p-3 rounded-xl border border-border bg-popover shadow-xl animate-in fade-in zoom-in-95 duration-200">
-          <div className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Color</div>
-          <HexColorPicker color={value} onChange={onChange} />
-        </div>
+              {/* Color wheel */}
+              <HexColorPicker
+                color={draft}
+                onChange={handlePickerChange}
+                style={{ width: '100%', height: '180px' }}
+              />
+
+              {/* Actions */}
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="flex-1 py-2 rounded-xl border border-border text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  className="flex-1 py-2 rounded-xl text-sm font-bold transition-all shadow-md hover:opacity-90 active:scale-95"
+                  style={{ backgroundColor: draft, color: textColor }}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Keyframe animation */}
+          <style>{`
+            @keyframes colorPickerIn {
+              from { opacity: 0; transform: scale(0.88) translateY(12px); }
+              to   { opacity: 1; transform: scale(1) translateY(0); }
+            }
+          `}</style>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
