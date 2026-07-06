@@ -15,6 +15,7 @@ import { useNavigate, useOutletContext, useLocation, useBlocker } from 'react-ro
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
 import Masonry from 'react-masonry-css';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 import { useToast } from '@/hooks/use-toast';
 
 const breakpointColumnsObj = {
@@ -1831,16 +1832,9 @@ const DashboardStrategy = () => {
     }
   };
 
-  const handleDownload = async (post: GeneratedPost, index: number) => {
-    const isVideo = post.type === 'video';
-    const displaySrc = isVideo ? (post.url || post.thumbnail) : (post.type === 'carousel' ? post.slides?.[0]?.image : post.image);
-    if (!displaySrc) return;
-
-    const srcUrl = isVideo && post.url ? post.url : imgSrc(displaySrc);
-    const filename = `${brandName || 'syncsocio'}_creative_${index + 1}.${isVideo && post.url ? 'mp4' : 'jpg'}`;
-
+  const downloadSingleFile = async (srcUrl: string, filename: string) => {
     try {
-      if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:')) {
+      if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:') || srcUrl.startsWith('data:')) {
         const response = await fetch(srcUrl);
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
@@ -1860,7 +1854,7 @@ const DashboardStrategy = () => {
         document.body.removeChild(link);
       }
     } catch (err) {
-      console.error(isVideo ? 'Failed to download video:' : 'Failed to download image:', err);
+      console.error('Failed to download single file:', err);
       const link = document.createElement('a');
       link.href = srcUrl;
       link.target = '_blank';
@@ -1869,6 +1863,68 @@ const DashboardStrategy = () => {
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const handleDownload = async (post: GeneratedPost, index: number) => {
+    if (post.type === 'carousel' && post.slides && post.slides.length > 0) {
+      try {
+        const zip = new JSZip();
+        toast({
+          title: "Preparing Download",
+          description: `Packaging ${post.slides.length} slides into a ZIP...`,
+        });
+
+        for (let i = 0; i < post.slides.length; i++) {
+          const slide = post.slides[i];
+          const slideSrc = imgSrc(slide.image);
+          const response = await fetch(slideSrc);
+          const blobData = await response.blob();
+
+          let extension = 'jpg';
+          if (blobData.type === 'image/png') extension = 'png';
+          else if (blobData.type === 'image/webp') extension = 'webp';
+          else if (blobData.type === 'image/gif') extension = 'gif';
+
+          zip.file(`slide_${i + 1}.${extension}`, blobData);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipFilename = `${brandName || 'syncsocio'}_carousel_${index + 1}.zip`;
+        const blobUrl = URL.createObjectURL(zipBlob);
+
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = zipFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        toast({
+          title: "Download Started",
+          description: "Your carousel ZIP has been downloaded successfully.",
+        });
+      } catch (err) {
+        console.error('Failed to generate ZIP for carousel:', err);
+        toast({
+          title: "Download Failed",
+          description: "Could not create ZIP. Downloading the first slide instead.",
+          variant: "destructive"
+        });
+        const firstSrc = imgSrc(post.slides[0].image);
+        await downloadSingleFile(firstSrc, `${brandName || 'syncsocio'}_creative_${index + 1}_slide_1.jpg`);
+      }
+      return;
+    }
+
+    const isVideo = post.type === 'video';
+    const displaySrc = isVideo ? (post.url || post.thumbnail) : (post.type === 'carousel' ? post.slides?.[0]?.image : post.image);
+    if (!displaySrc) return;
+
+    const srcUrl = isVideo && post.url ? post.url : imgSrc(displaySrc);
+    const filename = `${brandName || 'syncsocio'}_creative_${index + 1}.${isVideo && post.url ? 'mp4' : 'jpg'}`;
+
+    await downloadSingleFile(srcUrl, filename);
   };
 
   const isHeroImageSaved = React.useMemo(() => {

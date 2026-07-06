@@ -67,27 +67,41 @@ const mocks: Record<string, Item[]> = {
     { src: "/assets/landing/static7.jpg", caption: "", tag: "" },
     { src: "/assets/landing/static8.jpg", caption: "", tag: "" },
     { src: "/assets/landing/static9.jpg", caption: "", tag: "" },
+    { src: "/assets/landing/static10.png", caption: "", tag: "" },
   ],
   carousel: [
-    { src: "/assets/landing/car1.jpg", caption: "5 secrets nobody tells you", tag: "Slide 1/5" },
-    { src: "/assets/landing/car2.jpg", caption: "Focus on progress, not perfection", tag: "Slide 2/5" },
-    { src: "/assets/landing/car3.jpg", caption: "Save this for later", tag: "Slide 5/5" },
-    { src: "/assets/landing/car4.jpg", caption: "Bonus cover slide", tag: "Cover" },
-    { src: "/assets/landing/car5.jpg", caption: "Behind the scenes", tag: "Slide 1/3" },
-    { src: "/assets/landing/car6.jpg", caption: "Our creative process", tag: "Slide 2/3" },
-    { src: "/assets/landing/car7.jpg", caption: "Step 1: Ideation", tag: "Step 1" },
-    { src: "/assets/landing/car8.jpg", caption: "Step 2: Design", tag: "Step 2" },
-    { src: "/assets/landing/car9.jpg", caption: "Step 3: Publish", tag: "Step 3" },
+    // Carousel 1: car1 - car5
+    { src: "/assets/landing/car1.jpg", caption: "Focus on progress, not perfection", tag: "Slide 1/5" },
+    { src: "/assets/landing/car2.jpg", caption: "Track your milestones daily", tag: "Slide 2/5" },
+    { src: "/assets/landing/car3.jpg", caption: "Analyze your creative growth", tag: "Slide 3/5" },
+    { src: "/assets/landing/car4.jpg", caption: "Scale your organic reach", tag: "Slide 4/5" },
+    { src: "/assets/landing/car5.jpg", caption: "Save this strategy for later", tag: "Slide 5/5" },
+    // Carousel 2: car56 - car6
+    { src: "/assets/landing/car56.jpg", caption: "Behind the scenes look", tag: "Slide 1/2" },
+    { src: "/assets/landing/car6.jpg", caption: "Our full creative process", tag: "Slide 2/2" },
+    // Carousel 3: slide 1 - 5
+    { src: "/assets/landing/slide_1.jpg", caption: "5 secrets nobody tells you", tag: "Slide 1/5" },
+    { src: "/assets/landing/slide_2.jpg", caption: "Hook your audience immediately", tag: "Slide 2/5" },
+    { src: "/assets/landing/slide_3.jpg", caption: "Deliver high value content", tag: "Slide 3/5" },
+    { src: "/assets/landing/slide_4.jpg", caption: "Add a clear call to action", tag: "Slide 4/5" },
+    { src: "/assets/landing/slide_5.jpg", caption: "Share and save this post", tag: "Slide 5/5" },
+    // Carousel 4: ss1 - ss3
+    { src: "/assets/landing/ss1.jpg", caption: "Step 1: Ideation", tag: "Step 1" },
+    { src: "/assets/landing/ss2.jpg", caption: "Step 2: Design", tag: "Step 2" },
+    { src: "/assets/landing/ss3.jpg", caption: "Step 3: Publish", tag: "Step 3" },
+    // Carousel 5: lip1 - lip3
+    { src: "/assets/landing/lip1.jpg", caption: "Lip balm shade 1", tag: "Slide 1/3" },
+    { src: "/assets/landing/lip2.jpg", caption: "Lip balm shade 2", tag: "Slide 2/3" },
+    { src: "/assets/landing/lip3.jpg", caption: "Lip balm shade 3", tag: "Slide 3/3" },
   ],
   video: [
     { src: "/assets/landing/v1.mp4", caption: "AI UGC creator speaking in Hinglish.", tag: "0:15 · UGC", isVideo: true },
     { src: "/assets/landing/v2.mp4", caption: "Trending audio synced with motion.", tag: "Reel", isVideo: true },
-    { src: "/assets/landing/v3.mp4", caption: "Product close-up cutaway.", tag: "B-roll", isVideo: true },
+    { src: "/assets/landing/v8.mp4", caption: "Customer testimonial.", tag: "Review", isVideo: true },
     { src: "/assets/landing/v4.mp4", caption: "Image → cinematic slow-mo splash.", tag: "Img2Video", isVideo: true },
     { src: "/assets/landing/v5.mp4", caption: "Dynamic text overlays.", tag: "Promo", isVideo: true },
     { src: "/assets/landing/v6.mp4", caption: "Unboxing experience.", tag: "UGC", isVideo: true },
     { src: "/assets/landing/v7.mp4", caption: "Behind the scenes.", tag: "BTS", isVideo: true },
-    { src: "/assets/landing/v8.mp4", caption: "Customer testimonial.", tag: "Review", isVideo: true },
   ],
   ecomm: [
     // ecomm9 10 11 12 (for hero carousel)
@@ -325,7 +339,9 @@ const CreativeShowcase = () => {
               </div>
 
               {/* RIGHT — hero + masonry */}
-              <div className="col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[300px] sm:auto-rows-[150px]">
+              <div className={active === "carousel" 
+                ? "col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-5 items-start"
+                : "col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[300px] sm:auto-rows-[150px]"}>
                 {active === "image" ? (
                   <>
                     <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(2)} />
@@ -336,9 +352,9 @@ const CreativeShowcase = () => {
                 ) : ["video", "festival"].includes(active) ? (
                   <>
                     <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
-                    <Tile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => setEnlargedIndex(0)} />
+                    <Tile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(0)} />
                     <Tile item={items[1]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(1)} />
-                    <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => setEnlargedIndex(2)} />
+                    <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(2)} />
                   </>
                 ) : active === "ecomm" ? (
                   <>
@@ -349,10 +365,17 @@ const CreativeShowcase = () => {
                   </>
                 ) : active === "carousel" ? (
                   <>
-                    <CarouselTile items={items.slice(0, 2)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
-                    <CarouselTile items={items.slice(2, 4)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 2)} />
-                    <CarouselTile items={items.slice(4, 6)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
-                    <CarouselTile items={items.slice(6, 9)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 6)} />
+                    {/* Left Column */}
+                    <div className="flex flex-col gap-6 sm:gap-5">
+                      <CarouselTile items={items.slice(0, 5)} accent={current.accent} className="aspect-square w-full" onItemClick={(idx) => setEnlargedIndex(idx)} />
+                      <CarouselTile items={items.slice(7, 12)} accent={current.accent} className="aspect-square w-full" onItemClick={(idx) => setEnlargedIndex(idx + 7)} />
+                      <CarouselTile items={items.slice(15, 18)} accent={current.accent} className="aspect-square w-full" onItemClick={(idx) => setEnlargedIndex(idx + 15)} />
+                    </div>
+                    {/* Right Column */}
+                    <div className="flex flex-col gap-6 sm:gap-5">
+                      <CarouselTile items={items.slice(5, 7)} accent={current.accent} className="aspect-square w-full" onItemClick={(idx) => setEnlargedIndex(idx + 5)} />
+                      <CarouselTile items={items.slice(12, 15)} accent={current.accent} className="aspect-[9/16] w-full" onItemClick={(idx) => setEnlargedIndex(idx + 12)} />
+                    </div>
                   </>
                 ) : (
                   <>
@@ -374,8 +397,8 @@ const CreativeShowcase = () => {
               {[
                 { v: "5", l: "Formats", s: "Image · Carousel · Video · E-Comm · Festival" },
                 { v: "40+", l: "Festivals mapped", s: "Diwali, Holi, Eid, X-mas & more" },
-                { v: "5", l: "Languages", s: "English · Hinglish · Hindi · Tamil · Kannada" },
-                { v: "<30s", l: "Per asset", s: "Idea → ready-to-post creative" },
+                { v: "14", l: "Languages", s: "English · Hinglish · Hindi · Tamil · Kannada & 9 more" },
+                { v: "2 min", l: "Avg time", s: "Idea → ready-to-post creative" },
               ].map((s, i) => (
                 <motion.div
                   key={s.l}
@@ -498,7 +521,7 @@ const CarouselTile = ({
   onItemClick: (idx: number) => void;
 }) => {
   return (
-    <div className={`relative w-full h-full rounded-3xl overflow-hidden border border-border/40 group ${className ?? ""}`}>
+    <div className={`relative w-full rounded-3xl overflow-hidden border border-border/40 group ${className?.includes('aspect-') || className?.includes('h-') ? "" : "h-full"} ${className ?? ""}`}>
       <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {items.map((item, idx) => (
           <div 
