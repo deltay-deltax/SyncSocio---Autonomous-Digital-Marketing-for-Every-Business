@@ -154,9 +154,28 @@ export const Checkout: React.FC<CheckoutProps> = ({
       };
 
       const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', (response: any) => {
+      rzp.on('payment.failed', async (response: any) => {
         setIsProcessing(false);
         toast({ title: 'Payment Failed', description: response.error.description, variant: 'destructive' });
+
+        try {
+          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+          await fetch(`${API_BASE}/payment/fail`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              razorpayOrderId: response.error.metadata?.order_id,
+              razorpayPaymentId: response.error.metadata?.payment_id,
+              reason: response.error.description,
+              billingAddress: billing
+            })
+          });
+        } catch (e) {
+          console.error('[Checkout] Failed to report payment failure to backend:', e);
+        }
       });
       rzp.open();
     } catch (err: any) {

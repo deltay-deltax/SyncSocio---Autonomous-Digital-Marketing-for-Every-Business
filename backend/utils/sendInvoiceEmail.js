@@ -502,48 +502,202 @@ export const sendInvoiceEmail = async (opts) => {
     discountPercentage = 0, transactionId,
   } = opts;
 
-  const invoiceNumber = genInvoiceNo(transactionId);
-  const invoiceDate   = fmtDate(new Date());
-  const packMeta      = resolvePack(transactionType, planName, creditsAdded);
+  console.log(`[Invoice Email] 🚀 Preparing tax invoice email for recipient: ${to}`);
+  console.log(`[Invoice Email] Transaction details: Type=${transactionType}, Plan=${planName || 'N/A'}, Amount=INR ${amount}, Credits=${creditsAdded}`);
 
-  const params = {
-    invoiceNumber, invoiceDate, userName, userEmail, billingAddress,
-    packMeta, amount, creditsAdded, transactionType, razorpayPaymentId,
-    razorpayOrderId, planExpiresAt, couponCode, discountAmount, discountPercentage,
-    transactionId,
-  };
+  try {
+    const invoiceNumber = genInvoiceNo(transactionId);
+    const invoiceDate   = fmtDate(new Date());
+    const packMeta      = resolvePack(transactionType, planName, creditsAdded);
 
+    const params = {
+      invoiceNumber, invoiceDate, userName, userEmail, billingAddress,
+      packMeta, amount, creditsAdded, transactionType, razorpayPaymentId,
+      razorpayOrderId, planExpiresAt, couponCode, discountAmount, discountPercentage,
+      transactionId,
+    };
+
+    const typeLabel = {
+      topup: 'Credit Top-up', plan_purchase: 'Plan Purchase',
+      plan_upgrade: 'Plan Upgrade', plan_renewal: 'Plan Renewal',
+      dm_addon_purchase: 'DM Automation Add-on'
+    }[transactionType] || 'Purchase';
+
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('[Invoice Email] ❌ SENDGRID_API_KEY is missing in environmental variables.');
+      throw new Error('SENDGRID_API_KEY missing for invoice email.');
+    }
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+    console.log(`[Invoice Email] 📄 Generating invoice PDF buffer (Invoice No: ${invoiceNumber})...`);
+    const pdfBuffer = await generatePDFBuffer(params);
+    console.log(`[Invoice Email] ✅ PDF buffer generated successfully. Size: ${pdfBuffer.length} bytes.`);
+
+    const attachments = [
+      {
+        content: pdfBuffer.toString('base64'),
+        filename: `invoice_${invoiceNumber}.pdf`,
+        type: 'application/pdf',
+        disposition: 'attachment'
+      }
+    ];
+
+    const msg = {
+      to,
+      from: `SyncSocio Billing <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
+      subject: `Invoice ${invoiceNumber} — ${typeLabel} · INR ${parseFloat(amount).toFixed(2)} Confirmed`,
+      text: buildText(params),
+      html: buildHTML(params),
+      attachments
+    };
+
+    console.log(`[Invoice Email] ✉️ Dispatching mail via SendGrid API...`);
+    const res = await sgMail.send(msg);
+    console.log(`[Invoice Email] 🎉 Invoice email successfully dispatched! SendGrid Response status:`, res?.[0]?.statusCode || 'OK');
+    return res;
+  } catch (err) {
+    console.error(`[Invoice Email] ❌ Execution failed! Error details:`, err);
+    throw err;
+  }
+};
+
+const buildFailedHTML = (p) => {
+  const logoSrc = `https://syncsocio.com/SyncSocioLogo.png`;
+  const dashUrl = (process.env.FRONTEND_BASE_URL || 'https://syncsocio.com').replace(/\/+$/, '');
   const typeLabel = {
     topup: 'Credit Top-up', plan_purchase: 'Plan Purchase',
     plan_upgrade: 'Plan Upgrade', plan_renewal: 'Plan Renewal',
     dm_addon_purchase: 'DM Automation Add-on'
-  }[transactionType] || 'Purchase';
+  }[p.transactionType] || 'Purchase';
 
-  if (!process.env.SENDGRID_API_KEY) {
-    throw new Error('SENDGRID_API_KEY missing for invoice email.');
-  }
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Failed - SyncSocio</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F9FAFB; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F9FAFB; padding: 32px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); width: 560px; max-width: 560px;">
+          
+          <!-- BRAND HEADER -->
+          <tr>
+            <td style="background-color: #FFFFFF; padding: 32px; border-bottom: 1px solid #F3F4F6; vertical-align: middle;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <img src="${logoSrc}" alt="SyncSocio Logo" style="width: 28px; height: 28px; vertical-align: middle; display: inline-block; margin-right: 10px;" />
+                    <span style="color: #111827; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; vertical-align: middle;">SyncSocio</span>
+                  </td>
+                  <td align="right" style="vertical-align: middle; color: #EF4444; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;">
+                    PAYMENT FAILED
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-  // Generate the PDF Buffer
-  const pdfBuffer = await generatePDFBuffer(params);
+          <!-- FAIL MESSAGE -->
+          <tr>
+            <td style="padding: 32px 32px 20px 32px; text-align: center;">
+              <div style="width: 48px; height: 48px; background-color: #FEF2F2; border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                <span style="color: #EF4444; font-size: 24px; font-weight: bold; line-height: 48px;">✕</span>
+              </div>
+              <h2 style="margin: 0 0 8px 0; color: #111827; font-size: 20px; font-weight: 800;">Transaction Declined / Failed</h2>
+              <p style="margin: 0; color: #4B5563; font-size: 14px; line-height: 1.6;">
+                We were unable to process your payment of <strong>INR ${parseFloat(p.amount).toFixed(2)}</strong> for the <strong>${p.planName || typeLabel}</strong>. 
+                Don't worry, no funds were deducted from your account. If any amount was temporarily debited, it will be automatically refunded by your bank within 3-5 business days.
+              </p>
+            </td>
+          </tr>
 
-  const attachments = [
-    {
-      content: pdfBuffer.toString('base64'),
-      filename: `invoice_${invoiceNumber}.pdf`,
-      type: 'application/pdf',
-      disposition: 'attachment'
+          <!-- ORDER DETAILS -->
+          <tr>
+            <td style="padding: 0 32px 24px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F9FAFB; padding: 20px; border-radius: 12px; border: 1px solid #F3F4F6;">
+                <tr>
+                  <td width="40%" style="color: #6B7280; font-size: 12px; padding: 4px 0; font-weight: 500;">Payment Gateway</td>
+                  <td style="color: #111827; font-size: 12px; padding: 4px 0; font-weight: 600;">RAZORPAY</td>
+                </tr>
+                <tr>
+                  <td style="color: #6B7280; font-size: 12px; padding: 4px 0; font-weight: 500;">Order ID</td>
+                  <td style="color: #111827; font-size: 12px; padding: 4px 0; font-weight: 600; font-family: monospace;">${p.razorpayOrderId || '—'}</td>
+                </tr>
+                ${p.razorpayPaymentId ? `
+                <tr>
+                  <td style="color: #6B7280; font-size: 12px; padding: 4px 0; font-weight: 500;">Payment ID</td>
+                  <td style="color: #111827; font-size: 12px; padding: 4px 0; font-weight: 600; font-family: monospace;">${p.razorpayPaymentId}</td>
+                </tr>` : ''}
+                <tr>
+                  <td style="color: #6B7280; font-size: 12px; padding: 4px 0; font-weight: 500;">Attempt Date</td>
+                  <td style="color: #111827; font-size: 12px; padding: 4px 0; font-weight: 600;">${p.invoiceDate}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- RETRY ACTION -->
+          <tr>
+            <td style="background-color: #F9FAFB; padding: 32px; border-radius: 0 0 16px 16px; text-align: center;">
+              <p style="margin: 0 0 16px 0; color: #4B5563; font-size: 13px;">Please verify your payment details and try again.</p>
+              <a href="${dashUrl}/dashboard/buy-credits" style="display: inline-block; background-color: #EF4444; color: #FFFFFF; font-size: 13px; font-weight: 700; text-decoration: none; padding: 12px 32px; border-radius: 99px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);">
+                Retry Payment
+              </a>
+            </td>
+          </tr>
+
+        </table>
+
+        <!-- FOOTER -->
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px; text-align: center;">
+          <tr>
+            <td style="color: #9CA3AF; font-size: 11px; line-height: 1.5; padding: 0 16px;">
+              © 2026 SyncSocio<br/>
+              Need assistance? Contact us at <a href="mailto:support@syncsocio.com" style="color: #EF4444; text-decoration: none;">support@syncsocio.com</a>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+};
+
+export const sendPaymentFailedEmail = async (opts) => {
+  const { to, userName, userEmail, transactionType, planName, amount, razorpayPaymentId, razorpayOrderId, transactionId } = opts;
+  
+  console.log(`[Invoice Email] 🚨 Preparing payment failed email for recipient: ${to}`);
+  
+  try {
+    const invoiceDate = fmtDate(new Date());
+    const params = {
+      invoiceDate, userName, userEmail, transactionType, planName, amount, razorpayPaymentId, razorpayOrderId, transactionId
+    };
+
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('[Invoice Email] ❌ SENDGRID_API_KEY is missing in environmental variables.');
+      throw new Error('SENDGRID_API_KEY missing for invoice email.');
     }
-  ];
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-  const msg = {
-    to,
-    from: `SyncSocio Billing <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
-    subject: `Invoice ${invoiceNumber} — ${typeLabel} · INR ${parseFloat(amount).toFixed(2)} Confirmed`,
-    text: buildText(params),
-    html: buildHTML(params),
-    attachments
-  };
+    const msg = {
+      to,
+      from: `SyncSocio Billing <${process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com'}>`,
+      subject: `Payment Failed ❌ Order Attempt for ${planName || 'Credits'} Declined`,
+      html: buildFailedHTML(params)
+    };
 
-  return sgMail.send(msg);
+    console.log(`[Invoice Email] ✉️ Dispatching failure mail via SendGrid API...`);
+    const res = await sgMail.send(msg);
+    console.log(`[Invoice Email] 🚨 Failure email successfully dispatched! Status:`, res?.[0]?.statusCode || 'OK');
+    return res;
+  } catch (err) {
+    console.error(`[Invoice Email] ❌ Failure email failed to send:`, err);
+    throw err;
+  }
 };
