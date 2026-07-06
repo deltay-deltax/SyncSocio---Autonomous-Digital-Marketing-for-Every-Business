@@ -786,7 +786,7 @@ const DashboardStrategy = () => {
 
   React.useEffect(() => {
     if (mode) {
-      const isPremium = ['all_in_one', 'video', 'ecomm', 'whatsapp', 'email'].includes(mode);
+      const isPremium = ['all_in_one'].includes(mode);
       if (isPlanExpired) {
         setStage('pick');
         setMode(null);
@@ -802,7 +802,7 @@ const DashboardStrategy = () => {
   }, [mode, isPlanExpired, isElite]);
 
   const handleModeClick = (mId: Mode) => {
-    const isPremium = ['all_in_one', 'video', 'ecomm', 'whatsapp', 'email'].includes(mId);
+    const isPremium = ['all_in_one'].includes(mId);
 
     if (isPlanExpired) {
       setUpgradeModalReason('expired');
@@ -3951,7 +3951,7 @@ const DashboardStrategy = () => {
               <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
                 {upgradeModalReason === 'expired'
                   ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
-                  : 'This is an Elite feature. Upgrade to the Elite Plan to unlock UGC/Product Video generation, All-in-One Drops, WhatsApp/Email Campaigns, and E-commerce Listing templates.'}
+                  : 'This is an Elite feature. Upgrade to the Elite Plan to unlock the All-in-One Drops feature.'}
               </p>
 
               <Button
