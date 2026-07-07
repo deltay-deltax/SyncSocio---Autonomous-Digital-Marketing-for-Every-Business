@@ -138,17 +138,17 @@ export const CreditsContent = () => {
 
       {/* Section 4 - Always Free */}
       <div className="space-y-4">
-        <div className="rounded-3xl p-6 md:p-8 bg-emerald-500/[0.03] border border-emerald-500/20 shadow-md">
+        <div className="rounded-3xl p-4 sm:p-6 md:p-8 bg-emerald-500/[0.03] border border-emerald-500/20 shadow-md">
           <h4 className="text-base font-bold text-emerald-600 flex items-center gap-2 mb-6">
             <CheckCircle2 size={20} className="text-emerald-500" />
             Always Free — Never Uses Credits
           </h4>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             {FREE_FEATURES.map((item) => {
               const IconComp = iconMap[item.iconName] || PenTool;
               return (
-                <div key={item.title} className="p-4 rounded-2xl bg-background border border-border/40 flex items-center gap-3 hover:border-emerald-500/20 hover:shadow-sm transition-all group">
+                <div key={item.title} className="p-3.5 sm:p-4 rounded-2xl bg-background border border-border/40 flex items-center gap-3 hover:border-emerald-500/20 hover:shadow-sm transition-all group">
                   <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <IconComp size={16} />
                   </div>
