@@ -844,7 +844,7 @@ const DashboardStrategy = () => {
     setIsGeneratingScript(true);
     try {
       // Pick first product from uploads or products list for context
-      const firstProduct = products[0] || {};
+      const firstProduct = selectedProducts[0] || products[0] || {};
       const payload = {
         brandName: profile.brandName || '',
         brandTone: profile.brandTone || '',
@@ -1162,7 +1162,11 @@ const DashboardStrategy = () => {
   const canGenerate = (() => {
     if (!mode) return false;
     if (mode === 'all_in_one') {
-      return selectedProducts.length > 0 || uploads.length > 0;
+      const hasProduct = selectedProducts.length > 0 || uploads.length > 0;
+      const hasTitle = idea.trim().length > 0;
+      const hasAvatar = avatarDescription.trim().length > 0;
+      const hasScript = videoScript.trim().length > 0;
+      return hasProduct && hasTitle && hasAvatar && hasScript;
     }
     if (mode === 'video' && videoKind === 'ai-ugc') {
       return avatarDescription.trim().length > 0 && videoScript.trim().length > 0;
@@ -3436,6 +3440,77 @@ const DashboardStrategy = () => {
                 </motion.div>
               ))}
             </div>
+          </section>
+
+          {/* Language Selection */}
+          <LanguagePicker
+            language={language}
+            setLanguage={setLanguage}
+            country={profile?.location?.country}
+            isAiUgc={false}
+          />
+
+          {/* Carousel Title / Creative Theme */}
+          <section className="mb-6">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Carousel Title / Campaign Theme <span className="text-destructive">*</span>
+            </p>
+            <Input
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder="e.g. Summer Collection Launch, Pastel Colors, 20% discount"
+              className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
+            />
+          </section>
+
+          {/* Avatar Description */}
+          <section className="mb-6">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Avatar description <span className="text-destructive">*</span>
+            </p>
+            <Input
+              value={avatarDescription}
+              onChange={(e) => setAvatarDescription(e.target.value)}
+              placeholder="e.g. A 25-year-old friendly female creator speaking in a bright modern kitchen."
+              className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
+            />
+          </section>
+
+          {/* Video Script */}
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Video script <span className="text-destructive">*</span>
+              </p>
+              <button
+                type="button"
+                onClick={generateAiScript}
+                disabled={isGeneratingScript}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide border transition-all duration-200
+                  bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/30 text-violet-600 dark:text-violet-400
+                  hover:from-violet-500/20 hover:to-blue-500/20 hover:border-violet-400/60 hover:scale-105
+                  disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100
+                  shadow-sm"
+              >
+                {isGeneratingScript ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+                    <span>Writing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={11} />
+                    <span>Generate with AI</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <Textarea
+              value={videoScript}
+              onChange={(e) => setVideoScript(e.target.value)}
+              placeholder="Write or generate a short 8-second script for the avatar to speak..."
+              className="min-h-[100px] rounded-2xl border-border/60 bg-card resize-none text-sm leading-relaxed focus-visible:ring-primary"
+            />
           </section>
         </div>
       )}
