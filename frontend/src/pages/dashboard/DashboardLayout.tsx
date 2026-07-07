@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock } from 'lucide-react';
+import { EditorProvider, useEditor } from '@/contexts/EditorContext';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ const navItems = [
   { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
   { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
   { label: 'Creatives', icon: Library, path: '/dashboard/assets' },
+  { label: 'AI Editor', icon: Paintbrush, path: '/dashboard/editor' },
   // { label: 'DM Automation', icon: MessageCircle, path: '/dashboard/dms' },
   { label: 'History', icon: Clock, path: '/dashboard/history' },
   { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
@@ -38,7 +40,8 @@ export type BgTask = {
   createdAt: number;
 };
 
-const DashboardLayout = () => {
+const DashboardLayoutContent = () => {
+  const { unread, setUnread } = useEditor();
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -47,6 +50,12 @@ const DashboardLayout = () => {
     const stored = localStorage.getItem('syncsocio_profile');
     return stored ? JSON.parse(stored) : null;
   });
+
+  useEffect(() => {
+    if (location.pathname === '/dashboard/editor') {
+      setUnread(false);
+    }
+  }, [location.pathname, setUnread]);
   const [loading, setLoading] = useState(() => !localStorage.getItem('syncsocio_profile'));
   const [showRelinkSuccess, setShowRelinkSuccess] = useState(false);
   const [nextScheduled, setNextScheduled] = useState<any>(null);
@@ -799,6 +808,9 @@ const DashboardLayout = () => {
               )}
               <item.icon size={18} className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
               <span className="text-sm">{item.label}</span>
+              {item.label === 'AI Editor' && unread && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-white shadow-sm" />
+              )}
               {isLocked && (
                 <Lock size={12} className="ml-auto text-muted-foreground/60 group-hover:text-muted-foreground" />
               )}
@@ -1112,6 +1124,14 @@ const DashboardLayout = () => {
 
       <CreditsModal isOpen={isCreditsModalOpen} onClose={() => setIsCreditsModalOpen(false)} />
     </div>
+  );
+};
+
+const DashboardLayout = () => {
+  return (
+    <EditorProvider>
+      <DashboardLayoutContent />
+    </EditorProvider>
   );
 };
 

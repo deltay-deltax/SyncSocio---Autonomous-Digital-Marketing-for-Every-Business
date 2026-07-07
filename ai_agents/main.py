@@ -1,3 +1,4 @@
+from models import ProductEditRequest
 import os
 import sys
 if hasattr(sys.stdout, 'reconfigure'):
@@ -1985,6 +1986,58 @@ async def api_edit_strategy_media(request: EditMediaRequest):
         print(f"[EditMedia] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/product-image-editor")
+async def api_product_image_editor(request: ProductEditRequest):
+    """
+    Edits a product image to match a reference image style using GPT-Image-2.
+    """
+    try:
+        print(f"\n[ProductEditor] 📥 Request received")
+
+        # Construct prompt based on whether product exists
+        if request.prod_image and request.prod_info:
+            prompt = (
+                f"Apply the style, lighting, and composition of the reference image to the product image.\n"
+                f"Generate the output with the same orientation and aspect ratio as the reference image.\n"
+                f"Brand Guidelines: {request.brand_dna}\n"
+                f"Product Details: {request.prod_info}\n"
+                f"User Instruction: {request.instruction}"
+            )
+            # generate_fal_image_gpt2 accepts a list of images (reference + product)
+            images = [request.ref_image, request.prod_image]
+        else:
+            prompt = (
+                f"Edit the image according to the instruction.\n"
+                f"Generate the output with the same orientation and aspect ratio as the reference image.\n"
+                f"Brand Guidelines: {request.brand_dna}\n"
+                f"User Instruction: {request.instruction}"
+            )
+            images = [request.ref_image]
+        
+        # Map aspect ratio to FAL's image size
+        size_map = {
+            "1:1": "square_hd",
+            "4:5": "portrait_4_3",
+            "9:16": "portrait_16_9",
+            "16:9": "landscape_16_9",
+            "2:3": "portrait_4_3"
+        }
+        image_size = size_map.get(request.aspectRatio or "1:1", "square_hd")
+        
+        res = generate_fal_image_gpt2(
+            prompt=prompt,
+            image=images,
+            image_size=image_size
+        )
+        
+        return {
+            "status": "success",
+            "image": res.get("image")
+        }
+
+    except Exception as e:
+        print(f"[ProductEditor] ❌ Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

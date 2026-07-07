@@ -23,6 +23,7 @@ import DashboardFeed from './pages/dashboard/DashboardFeed';
 import DashboardAnalytics from './pages/dashboard/DashboardAnalytics';
 import DashboardAds from './pages/dashboard/DashboardAds';
 import DashboardSettings from './pages/dashboard/DashboardSettings';
+import EditorPage from './pages/dashboard/Editor';
 import ContentStrategy from './pages/dashboard/ContentStrategy';
 import PostOptimizer from './pages/PostOptimizer';
 import DashboardDMs from './pages/dashboard/DashboardDMs';
@@ -114,6 +115,7 @@ function App() {
             <Route path="credits" element={<CreditsExplainer />} />
             <Route path="buy-credits" element={<CreditTopup />} />
             <Route path="billing" element={<DashboardBilling />} />
+            <Route path="editor" element={<EditorPage />} />
           </Route>
         </Route>
 
