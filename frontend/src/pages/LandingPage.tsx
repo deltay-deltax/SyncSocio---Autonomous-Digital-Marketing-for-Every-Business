@@ -87,7 +87,7 @@ const Index = () => {
       <HowItWorks />
       <DMAutomation />
       <CampaignChannels />
-      <Pricing />
+      <Pricing onWaitlistClick={() => setIsWaitlistOpen(true)} />
       <FAQ />
       <CTASection 
         onWaitlistClick={() => setIsWaitlistOpen(true)} 

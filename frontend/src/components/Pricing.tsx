@@ -57,7 +57,11 @@ const topups = [
   { credits: 700, price: 1699, per_credit: 2.42 },
 ];
 
-const Pricing = () => {
+interface PricingProps {
+  onWaitlistClick: () => void;
+}
+
+const Pricing = ({ onWaitlistClick }: PricingProps) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const navigate = useNavigate();
@@ -72,8 +76,7 @@ const Pricing = () => {
   };
 
   const handleSelectPlan = (planName: string) => {
-    const isDmEnabled = dmToggles[planName];
-    navigate(`/signup?plan=${encodeURIComponent(planName)}&dm=${isDmEnabled}`);
+    onWaitlistClick();
   };
 
   return (
@@ -200,7 +203,7 @@ const Pricing = () => {
                   <Button
                     variant="outline"
                     className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center"
-                    onClick={() => navigate('/login')}
+                    onClick={onWaitlistClick}
                   >
                     Buy Top-up
                   </Button>
