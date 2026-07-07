@@ -29,7 +29,8 @@ router.post('/scrape-product', async (req, res) => {
         // but this project seems to use axios or fetch in other places. 
         // I will use axios as it is imported elsewhere or standard fetch.
         // Wait, looking at aiRoutes.js, it uses express. Let's use standard fetch (Node 18+).
-        const response = await fetch('http://127.0.0.1:8000/scrape-single-product', {
+        const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+        const response = await fetch(`${aiServiceUrl}/scrape-single-product`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url, businessCategory })
@@ -93,7 +94,8 @@ router.post('/edit-product-image', async (req, res) => {
         const brand_dna = profile ? JSON.stringify(profile) : "None";
 
         // 3. Make fetch call to python service
-        const response = await fetch('http://127.0.0.1:8000/product-image-editor', {
+        const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+        const response = await fetch(`${aiServiceUrl}/product-image-editor`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
