@@ -1429,7 +1429,7 @@ const DashboardSettings = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-muted"
+                  className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-black hover:text-white hover:border-black transition-colors"
                   onClick={() => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('syncsocio_profile');
