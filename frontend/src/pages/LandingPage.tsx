@@ -76,6 +76,9 @@ const Index = () => {
           </div>
         </div>
       )}
+      <div className="bg-primary/90 px-4 py-2 text-center text-xs sm:text-sm font-medium text-primary-foreground backdrop-blur-md relative z-50">
+        🚀 We are launching soon! Stay tuned for early access.
+      </div>
       <Navbar />
       <HeroSection 
         onWaitlistClick={() => setIsWaitlistOpen(true)} 
