@@ -68,6 +68,7 @@ const mocks: Record<string, Item[]> = {
     { src: "/assets/landing/static8.jpg", caption: "", tag: "" },
     { src: "/assets/landing/static9.jpg", caption: "", tag: "" },
     { src: "/assets/landing/static10.png", caption: "", tag: "" },
+    { src: "/assets/landing/static11.jpg", caption: "", tag: "" },
   ],
   carousel: [
     // Carousel 1: car1 - car5
