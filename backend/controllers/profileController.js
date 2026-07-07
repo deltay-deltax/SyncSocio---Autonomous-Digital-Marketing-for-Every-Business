@@ -255,16 +255,20 @@ export const requestMetaTester = async (req, res) => {
     });
 
     try {
+      console.log(`[TEST] Creating Meta Tester request for user ${req.user._id}`);
       const userDoc = await User.findById(req.user._id);
       if (userDoc) {
+        console.log(`[TEST] Found user ${userDoc.email}, triggering sendMetaTesterAdminNotification...`);
         await sendMetaTesterAdminNotification({
           userName: userDoc.name,
           userEmail: userDoc.email,
           igHandle
         });
+      } else {
+        console.warn(`[TEST] User ${req.user._id} not found in DB. Skipping email notification.`);
       }
     } catch (emailErr) {
-      console.error('Failed to send Meta Tester admin notification:', emailErr);
+      console.error('[TEST] Exception caught while triggering Meta Tester admin notification:', emailErr);
     }
 
     res.status(201).json({ success: true, request: testerRequest });

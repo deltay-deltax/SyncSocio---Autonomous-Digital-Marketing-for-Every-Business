@@ -295,8 +295,10 @@ export const sendMetaTesterAdminNotification = async ({ userName, userEmail, igH
   };
 
   try {
+    console.log(`[TEST] Attempting to send Meta Tester email to ${toEmail} from ${fromEmail} for user ${userName} (${userEmail})`);
     await sgMail.send(msg);
+    console.log(`[TEST] Meta Tester email successfully sent to ${toEmail}`);
   } catch (error) {
-    console.error(`Failed to send Meta Tester notification to admin:`, error.response?.body || error);
+    console.error(`[TEST] Failed to send Meta Tester notification to admin:`, error.response?.body || error);
   }
 };
