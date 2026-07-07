@@ -8,7 +8,7 @@ import DMFlow from '../models/DMFlow.js';
 import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import Notification from '../models/Notification.js';
 import PostAnalysis from '../models/PostAnalysis.js';
-import { sendSignupWelcomeEmail } from '../utils/sendWelcomeEmail.js';
+import { sendSignupWelcomeEmail, sendMetaTesterAdminNotification } from '../utils/sendWelcomeEmail.js';
 import { createNotification } from '../utils/notificationHelper.js';
 import { uploadBase64ToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload.js';
 
@@ -253,6 +253,19 @@ export const requestMetaTester = async (req, res) => {
       brandId: req.user.activeBrandId || undefined,
       igHandle
     });
+
+    try {
+      const userDoc = await User.findById(req.user._id);
+      if (userDoc) {
+        await sendMetaTesterAdminNotification({
+          userName: userDoc.name,
+          userEmail: userDoc.email,
+          igHandle
+        });
+      }
+    } catch (emailErr) {
+      console.error('Failed to send Meta Tester admin notification:', emailErr);
+    }
 
     res.status(201).json({ success: true, request: testerRequest });
   } catch (error) {

@@ -66,6 +66,50 @@ FESTIVAL_SAAS_REFRAMES = {
         "75 years of independence — and the next wave of Indian businesses is here",
         "Freedom means choosing how you grow. Here's how we help",
     ],
+    "republic_day": [
+        "A republic is built on collaboration. So is every great product. Here's our philosophy",
+        "Celebrating the constitution of growth. Here are our governing principles",
+    ],
+    "ganesh_chaturthi": [
+        "Every new beginning requires removing obstacles. Here's how we clear the path for clients",
+        "Starting something new this season? Here is our framework for launch success",
+    ],
+    "navratri": [
+        "9 days of devotion. 9 principles we use to scale our clients' businesses",
+        "Energy, focus, and rhythm. The Navratri traits that also build great companies",
+    ],
+    "dussehra": [
+        "Victory over inefficiency. How our software slays the biggest productivity demons",
+        "The triumph of good strategy over bad execution. A recent case study",
+    ],
+    "labour_day": [
+        "Behind every great service is a team of builders. Celebrating our workforce today",
+        "The future of work isn't just AI — it's empowering the people who drive it",
+    ],
+    "womens_day": [
+        "To the women building the future of business: we celebrate your leadership today",
+        "Diversity isn't a metric, it's a growth engine. Our thoughts on Women's Day",
+    ],
+    "eid_fitr": [
+        "After a month of discipline comes the celebration of results. Eid Mubarak from our team",
+        "Patience, community, and gratitude. The values we reflect on this Eid",
+    ],
+    "nepali_new_year": [
+        "Naya Barsa, new goals. Here is the framework we use to scale our clients this year",
+        "Reflecting on the past year's wins. Here's what we are building for the digital future",
+    ],
+    "dashain": [
+        "Victory over inefficiency. How our latest solutions slay the biggest productivity demons",
+        "Taking a pause to celebrate. Wishing our clients and community a prosperous Dashain",
+    ],
+    "tihar": [
+        "Season of light and new beginnings. Here's how we're lighting up growth for our clients",
+        "Tihar: a celebration of prosperity. Wishing you and your team immense success",
+    ],
+    "teej": [
+        "Celebrating the women building the future of business and leadership",
+        "Strength, dedication, and focus. The traits we celebrate this Teej",
+    ],
     "default": [
         "Every milestone is an opportunity to reflect and re-set",
         "Here's what this season taught us about growing smarter",

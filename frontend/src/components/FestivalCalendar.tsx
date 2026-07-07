@@ -77,6 +77,27 @@ export const FESTIVALS_2026: Festival[] = [
       {id:'sustainability', label:'Sustainability', emoji:'🌱', description:'Eco-friendly brand angle'},
       {id:'offer', label:'Simple Offer', emoji:'🏷️', description:'No frills honest discount'},
     ]},
+  { id:'labour_day', name:'Labour Day', date:'2026-05-01', type:'national', emoji:'🛠️',
+    angles:[
+      {id:'team', label:'Team Spotlight', emoji:'👥', description:'Showcase your hardworking team'},
+      {id:'appreciation', label:'Appreciation', emoji:'🙌', description:'Thanking workers and staff'},
+      {id:'offer', label:'Labour Day Offer', emoji:'🏷️', description:'Long weekend sale'},
+    ]},
+  { id:'ambedkar_jayanti', name:'Ambedkar Jayanti', date:'2026-04-14', type:'national', emoji:'⚖️',
+    angles:[
+      {id:'respect', label:'Tribute', emoji:'🙏', description:'Respectful brand message'},
+      {id:'equality', label:'Equality', emoji:'🤝', description:'Brand values of equality'},
+    ]},
+  { id:'buddha_purnima', name:'Buddha Purnima', date:'2026-05-01', type:'national', emoji:'🧘',
+    angles:[
+      {id:'peace', label:'Inner Peace', emoji:'🕊️', description:'Calm and mindfulness'},
+      {id:'values', label:'Brand Values', emoji:'🤍', description:'Simplicity theme'},
+    ]},
+  { id:'guru_nanak_jayanti', name:'Guru Nanak Jayanti', date:'2026-11-24', type:'national', emoji:'ੴ',
+    angles:[
+      {id:'blessings', label:'Blessings', emoji:'✨', description:'Auspicious wishes'},
+      {id:'community', label:'Community', emoji:'🤝', description:'Giving back theme'},
+    ]},
   // COMMERCE
   { id:'new_year', name:'New Year', date:'2026-01-01', type:'commerce', emoji:'🎆',
     angles:[
@@ -114,6 +135,24 @@ export const FESTIVALS_2026: Festival[] = [
       {id:'gift', label:'Gift for Kids', emoji:'🎁', description:'Treat the little ones'},
       {id:'offer', label:'Family Offer', emoji:'🏷️', description:'Family discount campaign'},
     ]},
+  { id:'friendship_day', name:'Friendship Day', date:'2026-08-02', type:'commerce', emoji:'👯',
+    angles:[
+      {id:'gift', label:'Gift for Friends', emoji:'🎁', description:'Perfect gift for your bestie'},
+      {id:'bogo', label:'BOGO Offer', emoji:'👯', description:'Buy one for you, one for friend'},
+      {id:'emotional', label:'Friendship Bond', emoji:'❤️', description:'Celebrate brand community'},
+    ]},
+  { id:'halloween', name:'Halloween', date:'2026-10-31', type:'commerce', emoji:'🎃',
+    angles:[
+      {id:'spooky', label:'Spooky Fun', emoji:'👻', description:'Fun and quirky brand post'},
+      {id:'offer', label:'Scary Good Deals', emoji:'🏷️', description:'Halloween flash sale'},
+      {id:'engagement', label:'Trick or Treat', emoji:'🍬', description:'Engaging giveaway or contest'},
+    ]},
+  { id:'new_years_eve', name:"New Year's Eve", date:'2026-12-31', type:'commerce', emoji:'🥂',
+    angles:[
+      {id:'celebration', label:'NYE Party', emoji:'🎉', description:'Get ready for the party'},
+      {id:'recap', label:'Year in Review', emoji:'📅', description:'Brand year recap'},
+      {id:'offer', label:'Year End Sale', emoji:'🏷️', description:'Last sale of the year'},
+    ]},
   // HINDU
   { id:'makar_sankranti', name:'Makar Sankranti', date:'2026-01-14', type:'hindu', emoji:'🪁',
     angles:[
@@ -121,25 +160,25 @@ export const FESTIVALS_2026: Festival[] = [
       {id:'offer', label:'Sankranti Offer', emoji:'🏷️', description:'Harvest season discount'},
       {id:'emotional', label:'Festival Feels', emoji:'🌾', description:'Celebrate the harvest'},
     ]},
-  { id:'vasant_panchami', name:'Vasant Panchami', date:'2026-02-02', type:'hindu', emoji:'🌼',
+  { id:'vasant_panchami', name:'Vasant Panchami', date:'2026-01-23', type:'hindu', emoji:'🌼',
     angles:[
       {id:'spring', label:'Spring Vibes', emoji:'🌸', description:'Spring skincare refresh'},
       {id:'offer', label:'Spring Offer', emoji:'🏷️', description:'Season change sale'},
       {id:'emotional', label:'Saraswati Blessings', emoji:'📚', description:'Knowledge and beauty'},
     ]},
-  { id:'mahashivratri', name:'Mahashivratri', date:'2026-02-26', type:'hindu', emoji:'🔱',
+  { id:'mahashivratri', name:'Mahashivratri', date:'2026-02-15', type:'hindu', emoji:'🔱',
     angles:[
       {id:'spiritual', label:'Spiritual Calm', emoji:'🕉️', description:'Peace and purity angle'},
       {id:'offer', label:'Shivratri Offer', emoji:'🏷️', description:'Festival discount'},
       {id:'emotional', label:'Divine Glow', emoji:'✨', description:'Inner and outer glow'},
     ]},
-  { id:'holi', name:'Holi', date:'2026-03-14', type:'hindu', emoji:'🌈',
+  { id:'holi', name:'Holi', date:'2026-03-04', type:'hindu', emoji:'🌈',
     angles:[
       {id:'color', label:'Color Your Feed', emoji:'🌈', description:'Vibrant colorful creative'},
       {id:'skincare', label:'Post-Holi Care', emoji:'💧', description:'Protect skin from colors'},
       {id:'offer', label:'Holi Offer', emoji:'🏷️', description:'Festival of colors sale'},
     ]},
-  { id:'ram_navami', name:'Ram Navami', date:'2026-04-06', type:'hindu', emoji:'🙏',
+  { id:'ram_navami', name:'Ram Navami', date:'2026-03-26', type:'hindu', emoji:'🙏',
     angles:[
       {id:'values', label:'Brand Values', emoji:'💛', description:'Truth and purity in brand'},
       {id:'offer', label:'Festival Offer', emoji:'🏷️', description:'Ram Navami discount'},
@@ -151,59 +190,76 @@ export const FESTIVALS_2026: Festival[] = [
       {id:'gift', label:'Auspicious Gift', emoji:'🎁', description:'Gift on this golden day'},
       {id:'offer', label:'Akshaya Offer', emoji:'🏷️', description:'Auspicious day sale'},
     ]},
-  { id:'raksha_bandhan', name:'Raksha Bandhan', date:'2026-08-09', type:'hindu', emoji:'🎀',
+  { id:'raksha_bandhan', name:'Raksha Bandhan', date:'2026-08-28', type:'hindu', emoji:'🎀',
     angles:[
       {id:'gift', label:'Gift for Sister', emoji:'🎁', description:'Perfect Rakhi gift'},
       {id:'gift_brother', label:'Gift from Brother', emoji:'❤️', description:'Brother gifting sister'},
       {id:'offer', label:'Rakhi Offer', emoji:'🏷️', description:'Festival gifting discount'},
     ]},
-  { id:'janmashtami', name:'Janmashtami', date:'2026-08-16', type:'hindu', emoji:'🦚',
+  { id:'janmashtami', name:'Janmashtami', date:'2026-09-04', type:'hindu', emoji:'🦚',
     angles:[
       {id:'divine', label:'Divine Beauty', emoji:'🦚', description:'Celestial glow campaign'},
       {id:'offer', label:'Janmashtami Offer', emoji:'🏷️', description:'Festival discount'},
       {id:'emotional', label:'Celebration', emoji:'✨', description:'Joyful festival campaign'},
     ]},
-  { id:'ganesh_chaturthi', name:'Ganesh Chaturthi', date:'2026-08-27', type:'hindu', emoji:'🐘',
+  { id:'ganesh_chaturthi', name:'Ganesh Chaturthi', date:'2026-09-14', type:'hindu', emoji:'🐘',
     angles:[
       {id:'new_beginning', label:'New Beginnings', emoji:'🐘', description:'Ganpati blessings for brand'},
       {id:'offer', label:'Ganesh Offer', emoji:'🏷️', description:'Auspicious festival sale'},
       {id:'emotional', label:'Festive Joy', emoji:'🎉', description:'Celebration mood campaign'},
     ]},
-  { id:'navratri', name:'Navratri', date:'2026-09-22', type:'hindu', emoji:'💃',
+  { id:'navratri', name:'Navratri', date:'2026-10-11', type:'hindu', emoji:'💃',
     angles:[
       {id:'glow', label:'Festive Glow', emoji:'✨', description:'Look good for Navratri nights'},
       {id:'offer', label:'Navratri Offer', emoji:'🏷️', description:'9 nights of deals'},
       {id:'emotional', label:'Garba Vibes', emoji:'💃', description:'Energy and celebration'},
     ]},
-  { id:'dussehra', name:'Dussehra', date:'2026-10-02', type:'hindu', emoji:'🏹',
+  { id:'dussehra', name:'Dussehra', date:'2026-10-20', type:'hindu', emoji:'🏹',
     angles:[
       {id:'victory', label:'Victory of Good', emoji:'🏹', description:'Overcome skin problems angle'},
       {id:'offer', label:'Dussehra Offer', emoji:'🏷️', description:'Victory day sale'},
       {id:'emotional', label:'Celebration', emoji:'🎆', description:'Festive triumph mood'},
     ]},
-  { id:'dhanteras', name:'Dhanteras', date:'2026-10-18', type:'hindu', emoji:'🪙',
+  { id:'dhanteras', name:'Dhanteras', date:'2026-11-06', type:'hindu', emoji:'🪙',
     angles:[
       {id:'investment', label:'Invest in Skin', emoji:'🪙', description:'Best day to invest in skincare'},
       {id:'gift', label:'Auspicious Gift', emoji:'🎁', description:'Gift on Dhanteras'},
       {id:'offer', label:'Dhanteras Deal', emoji:'🏷️', description:'Auspicious shopping day'},
     ]},
-  { id:'diwali', name:'Diwali', date:'2026-10-19', type:'hindu', emoji:'🪔',
+  { id:'diwali', name:'Diwali', date:'2026-11-08', type:'hindu', emoji:'🪔',
     angles:[
       {id:'offer', label:'Diwali Sale', emoji:'🏷️', description:'Festival of lights sale'},
       {id:'emotional', label:'Glow this Diwali', emoji:'✨', description:'Celebratory brand moment'},
       {id:'gift', label:'Diwali Gift', emoji:'🎁', description:'Position product as Diwali gift'},
     ]},
-  { id:'bhai_dooj', name:'Bhai Dooj', date:'2026-10-21', type:'hindu', emoji:'🤝',
+  { id:'bhai_dooj', name:'Bhai Dooj', date:'2026-11-11', type:'hindu', emoji:'🤝',
     angles:[
       {id:'gift', label:'Gift for Sister', emoji:'🎁', description:'Brother gifting sister'},
       {id:'offer', label:'Bhai Dooj Offer', emoji:'🏷️', description:'Sibling bonding sale'},
       {id:'emotional', label:'Sibling Love', emoji:'❤️', description:'Celebrate sibling bond'},
     ]},
-  { id:'chhath_puja', name:'Chhath Puja', date:'2026-10-24', type:'hindu', emoji:'🌅',
+  { id:'chhath_puja', name:'Chhath Puja', date:'2026-11-15', type:'hindu', emoji:'🌅',
     angles:[
       {id:'purity', label:'Purity Angle', emoji:'☀️', description:'Sun and purity brand theme'},
       {id:'offer', label:'Chhath Offer', emoji:'🏷️', description:'Festival discount'},
       {id:'emotional', label:'Devotion', emoji:'🙏', description:'Spiritual celebration campaign'},
+    ]},
+  { id:'gudi_padwa', name:'Gudi Padwa', date:'2026-03-19', type:'hindu', emoji:'🌸',
+    angles:[
+      {id:'new_year', label:'Marathi New Year', emoji:'✨', description:'New beginnings and growth'},
+      {id:'offer', label:'Gudi Padwa Offer', emoji:'🏷️', description:'Auspicious day sale'},
+      {id:'traditional', label:'Traditional Roots', emoji:'🕉️', description:'Connect with heritage'},
+    ]},
+  { id:'karwa_chauth', name:'Karwa Chauth', date:'2026-10-29', type:'hindu', emoji:'🌙',
+    angles:[
+      {id:'glow', label:'Fasting Glow', emoji:'✨', description:'Look beautiful for the moon'},
+      {id:'gift', label:'Gift for Wife', emoji:'🎁', description:'Husband gifting wife angle'},
+      {id:'offer', label:'Karwa Chauth Deal', emoji:'🏷️', description:'Pre-festival beauty/fashion sale'},
+    ]},
+  { id:'mahavir_jayanti', name:'Mahavir Jayanti', date:'2026-03-31', type:'hindu', emoji:'🕊️',
+    angles:[
+      {id:'peace', label:'Non-violence', emoji:'🤍', description:'Peaceful brand message'},
+      {id:'values', label:'Values', emoji:'🌿', description:'Eco-friendly or vegan theme'},
     ]},
   // REGIONAL
   { id:'pongal', name:'Pongal', date:'2026-01-14', type:'regional', emoji:'🌾',
@@ -212,54 +268,73 @@ export const FESTIVALS_2026: Festival[] = [
       {id:'offer', label:'Pongal Offer', emoji:'🏷️', description:'Pongal sale for South India'},
       {id:'emotional', label:'Festival Feels', emoji:'☀️', description:'Tamil celebration mood'},
     ]},
-  { id:'baisakhi', name:'Baisakhi', date:'2026-04-13', type:'regional', emoji:'🌻',
+  { id:'baisakhi', name:'Baisakhi', date:'2026-04-14', type:'regional', emoji:'🌻',
     angles:[
       {id:'harvest', label:'Harvest Season', emoji:'🌻', description:'Punjab harvest celebration'},
       {id:'offer', label:'Baisakhi Offer', emoji:'🏷️', description:'Harvest festival sale'},
       {id:'emotional', label:'Celebration', emoji:'🎉', description:'Bhangra vibes campaign'},
     ]},
-  { id:'onam', name:'Onam', date:'2026-09-05', type:'regional', emoji:'🌸',
+  { id:'onam', name:'Onam', date:'2026-08-26', type:'regional', emoji:'🌸',
     angles:[
       {id:'kerala', label:'Kerala Pride', emoji:'🌸', description:"God's own country campaign"},
       {id:'offer', label:'Onam Offer', emoji:'🏷️', description:'Onam harvest sale'},
       {id:'gift', label:'Onam Gift', emoji:'🎁', description:'Gift for Onam celebration'},
     ]},
-  { id:'ugadi', name:'Ugadi', date:'2026-03-30', type:'regional', emoji:'🌿',
+  { id:'ugadi', name:'Ugadi', date:'2026-03-19', type:'regional', emoji:'🌿',
     angles:[
       {id:'new_year', label:'Telugu New Year', emoji:'🌿', description:'New year new beginning'},
       {id:'offer', label:'Ugadi Offer', emoji:'🏷️', description:'South Indian new year sale'},
       {id:'emotional', label:'Fresh Start', emoji:'✨', description:'New year celebration'},
     ]},
-  { id:'bihu', name:'Bihu', date:'2026-04-14', type:'regional', emoji:'🌾',
+  { id:'bihu', name:'Bihu', date:'2026-04-15', type:'regional', emoji:'🌾',
     angles:[
       {id:'harvest', label:'Assam Harvest', emoji:'🌾', description:'Northeast India celebration'},
       {id:'offer', label:'Bihu Offer', emoji:'🏷️', description:'Bihu festival sale'},
       {id:'emotional', label:'Cultural Pride', emoji:'🎵', description:'Bihu dance vibes'},
     ]},
-  { id:'durga_puja', name:'Durga Puja', date:'2026-10-01', type:'regional', emoji:'🌺',
+  { id:'durga_puja', name:'Durga Puja', date:'2026-10-18', type:'regional', emoji:'🌺',
     angles:[
       {id:'power', label:'Goddess Energy', emoji:'🌺', description:'Shakti and strength angle'},
       {id:'offer', label:'Pujo Offer', emoji:'🏷️', description:'Bengali festival sale'},
       {id:'emotional', label:'Pujo Vibes', emoji:'✨', description:'Kolkata celebration mood'},
     ]},
+  { id:'shivaji_jayanti', name:'Shivaji Jayanti', date:'2026-02-19', type:'regional', emoji:'🚩',
+    angles:[
+      {id:'pride', label:'Maratha Pride', emoji:'🚩', description:'Regional pride post'},
+      {id:'strength', label:'Strength', emoji:'💪', description:'Bold brand message'},
+    ]},
+  { id:'rath_yatra', name:'Rath Yatra', date:'2026-07-16', type:'regional', emoji:'🛕',
+    angles:[
+      {id:'blessings', label:'Divine Journey', emoji:'🙏', description:'Auspicious wishes'},
+      {id:'celebration', label:'Festive Joy', emoji:'✨', description:'Odisha celebration mood'},
+    ]},
   // MUSLIM
-  { id:'eid_fitr', name:'Eid ul-Fitr', date:'2026-03-31', type:'muslim', emoji:'🌙',
+  { id:'eid_fitr', name:'Eid ul-Fitr', date:'2026-03-21', type:'muslim', emoji:'🌙',
     angles:[
       {id:'gift', label:'Eid Gift', emoji:'🎁', description:'Perfect Eid gift for loved ones'},
       {id:'celebration', label:'Eid Mubarak', emoji:'🌙', description:'Celebratory Eid campaign'},
       {id:'offer', label:'Eid Offer', emoji:'🏷️', description:'Eid festival discount'},
     ]},
-  { id:'eid_adha', name:'Eid ul-Adha', date:'2026-06-07', type:'muslim', emoji:'🐑',
+  { id:'eid_adha', name:'Eid ul-Adha', date:'2026-05-27', type:'muslim', emoji:'🐑',
     angles:[
       {id:'gift', label:'Bakrid Gift', emoji:'🎁', description:'Gift your loved ones'},
       {id:'celebration', label:'Eid Mubarak', emoji:'🌙', description:'Festival celebration post'},
       {id:'offer', label:'Bakrid Offer', emoji:'🏷️', description:'Eid al-Adha sale'},
     ]},
-  { id:'muharram', name:'Muharram', date:'2026-07-06', type:'muslim', emoji:'🌙',
+  { id:'muharram', name:'Muharram', date:'2026-06-26', type:'muslim', emoji:'🌙',
     angles:[
       {id:'respectful', label:'Respectful Post', emoji:'🕊️', description:'Thoughtful brand message'},
       {id:'values', label:'Brand Values', emoji:'💚', description:'Peace and reflection theme'},
       {id:'offer', label:'Gentle Offer', emoji:'🏷️', description:'Subtle respectful campaign'},
+    ]},
+  { id:'ramadan_start', name:'Ramadan Starts', date:'2026-02-19', type:'muslim', emoji:'🌙',
+    angles:[
+      {id:'wishes', label:'Ramadan Mubarak', emoji:'🌙', description:'Holy month wishes'},
+      {id:'fasting', label:'Fasting Routine', emoji:'Dates', description:'Healthy routine during fast'},
+    ]},
+  { id:'milad_un_nabi', name:'Milad un-Nabi', date:'2026-08-26', type:'muslim', emoji:'🕌',
+    angles:[
+      {id:'respectful', label:'Respectful Post', emoji:'🕊️', description:'Thoughtful brand message'},
     ]},
   // CHRISTIAN
   { id:'good_friday', name:'Good Friday', date:'2026-04-03', type:'christian', emoji:'✝️',
@@ -589,139 +664,55 @@ function imgSrc(src: string | null | undefined): string {
 
 export const FESTIVALS_NEPAL_2083: Festival[] = [
   // NATIONAL
-  { id:'nepali_new_year', name:'Nepali New Year', date:'2026-04-14', type:'national', emoji:'🌄',
-    angles:[
-      {id:'new_year', label:'New Beginnings', emoji:'✨', description:'Start the year fresh'},
-      {id:'offer', label:'New Year Offer', emoji:'🏷️', description:'Baisakh special discount'},
-      {id:'cultural', label:'Cultural Pride', emoji:'🇳🇵', description:'Celebrate Nepali heritage'},
-    ]},
-  { id:'republic_day_np', name:'Republic Day', date:'2026-05-29', type:'national', emoji:'🇳🇵',
-    angles:[
-      {id:'pride', label:'National Pride', emoji:'🇳🇵', description:'Proud to be Nepali'},
-      {id:'offer', label:'Republic Offer', emoji:'🏷️', description:'Patriotic sale campaign'},
-    ]},
-  { id:'constitution_day', name:'Constitution Day', date:'2026-09-19', type:'national', emoji:'📜',
-    angles:[
-      {id:'pride', label:'National Pride', emoji:'🇳🇵', description:'Celebrate our constitution'},
-    ]},
-  // HINDU
-  { id:'buddha_jayanti', name:'Buddha Jayanti', date:'2026-05-01', type:'hindu', emoji:'🕊️',
-    angles:[
-      {id:'peace', label:'Peace & Harmony', emoji:'🌸', description:'Spread peace and calm'},
-      {id:'values', label:'Brand Values', emoji:'🙏', description:'Compassionate brand message'},
-    ]},
-  { id:'rakshya_bandhan', name:'Janai Purnima / Rakhi', date:'2026-08-28', type:'hindu', emoji:'🧵',
-    angles:[
-      {id:'bond', label:'Sibling Bond', emoji:'👫', description:'Celebrate the bond of love'},
-      {id:'gift', label:'Gift Angle', emoji:'🎁', description:'Perfect gift for sibling'},
-      {id:'offer', label:'Special Offer', emoji:'🏷️', description:'Festival discount'},
-    ]},
-  { id:'krishna_janmashtami', name:'Krishna Janmashtami', date:'2026-09-04', type:'hindu', emoji:'🦚',
-    angles:[
-      {id:'joy', label:'Joy & Celebration', emoji:'✨', description:'Festive joy and mischief'},
-      {id:'offer', label:'Festive Offer', emoji:'🏷️', description:'Special discount'},
-    ]},
-  { id:'teej', name:'Haritalika Teej', date:'2026-09-14', type:'hindu', emoji:'💃',
-    angles:[
-      {id:'women', label:'Women Empowerment', emoji:'🌺', description:'Celebrate womanhood'},
-      {id:'fashion', label:'Festive Fashion', emoji:'👗', description:'Get ready for Teej'},
-      {id:'offer', label:'Teej Special', emoji:'🏷️', description:'Discounts for women'},
-    ]},
-  { id:'dashain_phulpati', name:'Phulpati', date:'2026-10-17', type:'hindu', emoji:'🌿',
-    angles:[
-      {id:'cultural', label:'Cultural Tradition', emoji:'🌸', description:'Bringing the sacred flowers'},
-      {id:'offer', label:'Festive Offer', emoji:'🏷️', description:'Dashain offer starts'},
-    ]},
-  { id:'dashain_ashtami', name:'Maha Ashtami', date:'2026-10-19', type:'hindu', emoji:'🐐',
-    angles:[
-      {id:'power', label:'Strength & Devotion', emoji:'💪', description:'Worship of Goddess Durga'},
-      {id:'offer', label:'Special Offer', emoji:'🏷️', description:'Maha Ashtami deals'},
-    ]},
-  { id:'dashain_navami', name:'Maha Navami', date:'2026-10-20', type:'hindu', emoji:'⚔️',
-    angles:[
-      {id:'blessings', label:'Divine Blessings', emoji:'🙏', description:'Final day of Navratri'},
-      {id:'offer', label:'Navami Special', emoji:'🏷️', description:'Last minute Dashain shopping'},
-    ]},
-  { id:'dashain', name:'Bijaya Dashami (Tika)', date:'2026-10-21', type:'hindu', emoji:'🌾',
-    angles:[
-      {id:'family', label:'Family Reunion', emoji:'👨‍👩‍👧‍👦', description:'Celebrate with loved ones'},
-      {id:'blessings', label:'Tika & Blessings', emoji:'🔴', description:'Elder blessings'},
-      {id:'offer', label:'Dashain Dhamaka', emoji:'🏷️', description:'Biggest sale of the year'},
-    ]},
-  { id:'dhanteras', name:'Dhanteras', date:'2026-11-06', type:'hindu', emoji:'🪙',
-    angles:[
-      {id:'wealth', label:'Wealth & Prosperity', emoji:'💰', description:'Auspicious day for purchases'},
-      {id:'offer', label:'Dhanteras Offer', emoji:'🏷️', description:'Discounts on jewelry & goods'},
-    ]},
-  { id:'tihar', name:'Tihar / Deepawali', date:'2026-11-11', type:'hindu', emoji:'🪔',
-    angles:[
-      {id:'light', label:'Festival of Lights', emoji:'✨', description:'Illuminate your life'},
-      {id:'siblings', label:'Bhai Tika', emoji:'👫', description:'Celebrate sibling bond'},
-      {id:'offer', label:'Tihar Offer', emoji:'🏷️', description:'Festive discount'},
-    ]},
-  { id:'chhath', name:'Chhath Parva', date:'2026-11-15', type:'hindu', emoji:'🌅',
-    angles:[
-      {id:'devotion', label:'Purity & Devotion', emoji:'🙏', description:'Sun god worship'},
-      {id:'nature', label:'Nature Connection', emoji:'🌿', description:'Eco-friendly celebration'},
-    ]},
-  { id:'maghe_sankranti', name:'Maghe Sankranti', date:'2027-01-15', type:'hindu', emoji:'🍠',
-    angles:[
-      {id:'warmth', label:'Warmth & Health', emoji:'☀️', description:'Healthy winter treats'},
-      {id:'fresh_start', label:'New Season', emoji:'🌱', description:'Welcome warmer days'},
-    ]},
-  { id:'shivaratri', name:'Maha Shivaratri', date:'2027-03-06', type:'hindu', emoji:'🔱',
-    angles:[
-      {id:'power', label:'Strength & Power', emoji:'💪', description:'Channel inner strength'},
-      {id:'spiritual', label:'Spiritual Connection', emoji:'🕉️', description:'Connect with the divine'},
-    ]},
+  { id:'nepali_new_year', name:'Nepali New Year', date:'2026-04-14', type:'national', emoji:'🌄', angles:[{id:'new_year', label:'New Beginnings', emoji:'✨', description:'Start the year fresh'},{id:'offer', label:'New Year Offer', emoji:'🏷️', description:'Baisakh special discount'},{id:'cultural', label:'Cultural Pride', emoji:'🇳🇵', description:'Celebrate Nepali heritage'}] },
+  { id:'republic_day_np', name:'Ganatantra Diwas', date:'2026-05-29', type:'national', emoji:'🇳🇵', angles:[{id:'pride', label:'National Pride', emoji:'🇳🇵', description:'Proud to be Nepali'},{id:'offer', label:'Republic Offer', emoji:'🏷️', description:'Patriotic sale campaign'}] },
+  { id:'constitution_day', name:'Constitution Day', date:'2026-09-19', type:'national', emoji:'📜', angles:[{id:'pride', label:'National Pride', emoji:'🇳🇵', description:'Celebrate our constitution'}] },
+  { id:'democracy_day', name:'National Democracy Day', date:'2026-02-19', type:'national', emoji:'🕊️', angles:[{id:'pride', label:'Democracy Day', emoji:'🇳🇵', description:'Celebrate democracy'}] },
+  { id:'majdoor_divas', name:'Majdoor Divas', date:'2026-05-01', type:'national', emoji:'🛠️', angles:[{id:'team', label:'Team Spotlight', emoji:'👥', description:'Showcase your hardworking team'}] },
+  
+  // HINDU & MAJOR
+  { id:'maghe_sankranti', name:'Maghe Sankranti', date:'2026-01-15', type:'hindu', emoji:'🍠', angles:[{id:'warmth', label:'Warmth & Health', emoji:'☀️', description:'Healthy winter treats'},{id:'fresh_start', label:'New Season', emoji:'🌱', description:'Welcome warmer days'}] },
+  { id:'shivaratri', name:'Maha Shivaratri', date:'2026-02-15', type:'hindu', emoji:'🔱', angles:[{id:'power', label:'Strength & Power', emoji:'💪', description:'Channel inner strength'},{id:'spiritual', label:'Spiritual Connection', emoji:'🕉️', description:'Connect with the divine'}] },
+  { id:'fagu_purnima', name:'Fagu Purnima (Holi)', date:'2026-03-02', type:'hindu', emoji:'🎨', angles:[{id:'colors', label:'Festival of Colors', emoji:'🌈', description:'Vibrant celebrations'},{id:'offer', label:'Holi Special', emoji:'🏷️', description:'Colorful discounts'}] },
+  { id:'ram_navami', name:'Ram Navami', date:'2026-03-27', type:'hindu', emoji:'🙏', angles:[{id:'blessings', label:'Divine Blessings', emoji:'✨', description:'Auspicious day post'}] },
+  { id:'buddha_jayanti', name:'Buddha Jayanti', date:'2026-05-01', type:'hindu', emoji:'🕊️', angles:[{id:'peace', label:'Peace & Harmony', emoji:'🌸', description:'Spread peace and calm'}] },
+  { id:'rakshya_bandhan', name:'Janai Purnima / Rakhi', date:'2026-08-28', type:'hindu', emoji:'🧵', angles:[{id:'bond', label:'Sibling Bond', emoji:'👫', description:'Celebrate the bond of love'},{id:'offer', label:'Special Offer', emoji:'🏷️', description:'Festival discount'}] },
+  { id:'krishna_janmashtami', name:'Krishna Janmashtami', date:'2026-09-04', type:'hindu', emoji:'🦚', angles:[{id:'joy', label:'Joy & Celebration', emoji:'✨', description:'Festive joy and mischief'}] },
+  { id:'teej', name:'Hartalika Teej', date:'2026-09-14', type:'hindu', emoji:'💃', angles:[{id:'women', label:'Women Empowerment', emoji:'🌺', description:'Celebrate womanhood'},{id:'offer', label:'Teej Special', emoji:'🏷️', description:'Discounts for women'}] },
+  
+  // DASHAIN
+  { id:'dashain_ghatasthapana', name:'Ghatasthapana', date:'2026-10-11', type:'hindu', emoji:'🌱', angles:[{id:'blessings', label:'Dashain Begins', emoji:'🙏', description:'Welcome Dashain'}] },
+  { id:'dashain_phulpati', name:'Phulpati', date:'2026-10-17', type:'hindu', emoji:'🌿', angles:[{id:'cultural', label:'Cultural Tradition', emoji:'🌸', description:'Bringing the sacred flowers'}] },
+  { id:'dashain_ashtami', name:'Maha Ashtami', date:'2026-10-19', type:'hindu', emoji:'🐐', angles:[{id:'power', label:'Strength & Devotion', emoji:'💪', description:'Worship of Goddess Durga'}] },
+  { id:'dashain_navami', name:'Maha Navami', date:'2026-10-20', type:'hindu', emoji:'⚔️', angles:[{id:'blessings', label:'Divine Blessings', emoji:'🙏', description:'Final day of Navratri'}] },
+  { id:'dashain', name:'Bijaya Dashami (Tika)', date:'2026-10-21', type:'hindu', emoji:'🌾', angles:[{id:'family', label:'Family Reunion', emoji:'👨‍👩‍👧‍👦', description:'Celebrate with loved ones'},{id:'offer', label:'Dashain Dhamaka', emoji:'🏷️', description:'Biggest sale of the year'}] },
+  
+  // TIHAR & CHHATH
+  { id:'tihar_laxmi', name:'Laxmi Puja (Tihar)', date:'2026-11-08', type:'hindu', emoji:'🪔', angles:[{id:'light', label:'Festival of Lights', emoji:'✨', description:'Illuminate your life'},{id:'offer', label:'Tihar Offer', emoji:'🏷️', description:'Festive discount'}] },
+  { id:'tihar_govardhan', name:'Gobhardan Pujan', date:'2026-11-09', type:'hindu', emoji:'🐮', angles:[{id:'culture', label:'Nature & Culture', emoji:'🌿', description:'Celebrate nature'}] },
+  { id:'tihar_bhai_tika', name:'Bhai Tika', date:'2026-11-10', type:'hindu', emoji:'👫', angles:[{id:'siblings', label:'Sibling Love', emoji:'❤️', description:'Celebrate sibling bond'}] },
+  { id:'chhath', name:'Chhat Parwa', date:'2026-11-15', type:'hindu', emoji:'🌅', angles:[{id:'devotion', label:'Purity & Devotion', emoji:'🙏', description:'Sun god worship'}] },
+  
   // REGIONAL / ETHNIC
-  { id:'udhauli', name:'Udhauli / Yomari Punhi', date:'2026-12-24', type:'regional', emoji:'🥟',
-    angles:[
-      {id:'harvest', label:'Harvest Festival', emoji:'🌾', description:'Celebrate the harvest'},
-      {id:'culture', label:'Cultural Heritage', emoji:'🎭', description:'Ethnic traditions'},
-    ]},
-  { id:'tamu_lhosar', name:'Tamu Lhosar', date:'2026-12-30', type:'regional', emoji:'🎉',
-    angles:[
-      {id:'new_year', label:'Gurung New Year', emoji:'🎊', description:'Celebrate new beginnings'},
-    ]},
-  { id:'sonam_lhosar', name:'Sonam Lhosar', date:'2027-02-07', type:'regional', emoji:'🐉',
-    angles:[
-      {id:'new_year', label:'Tamang New Year', emoji:'🎊', description:'Celebrate new beginnings'},
-    ]},
-  { id:'gyalpo_lhosar', name:'Gyalpo Lhosar', date:'2027-03-09', type:'regional', emoji:'🏔️',
-    angles:[
-      {id:'new_year', label:'Sherpa New Year', emoji:'🎊', description:'Celebrate new beginnings'},
-    ]},
-  { id:'fagu_purnima', name:'Fagu Purnima (Holi)', date:'2027-03-21', type:'regional', emoji:'🎨',
-    angles:[
-      {id:'colors', label:'Festival of Colors', emoji:'🌈', description:'Vibrant celebrations'},
-      {id:'joy', label:'Joy & Unity', emoji:'🤗', description:'Bring people together'},
-      {id:'offer', label:'Holi Special', emoji:'🏷️', description:'Colorful discounts'},
-    ]},
+  { id:'sonam_lhosar', name:'Sonam Losar', date:'2026-01-19', type:'regional', emoji:'🐉', angles:[{id:'new_year', label:'Tamang New Year', emoji:'🎊', description:'Celebrate new beginnings'}] },
+  { id:'gyalpo_lhosar', name:'Gyalpo Losar', date:'2026-02-18', type:'regional', emoji:'🏔️', angles:[{id:'new_year', label:'Sherpa New Year', emoji:'🎊', description:'Celebrate new beginnings'}] },
+  { id:'godhe_yatra', name:'Godhe Yatra', date:'2026-03-18', type:'regional', emoji:'🐎', angles:[{id:'culture', label:'Kathmandu Festival', emoji:'🏰', description:'Tradition and culture'}] },
+  { id:'ubhauli_parva', name:'Ubhauli Parva', date:'2026-05-01', type:'regional', emoji:'🥁', angles:[{id:'harvest', label:'Kirat Festival', emoji:'🌾', description:'Celebrate the season'}] },
+  { id:'gai_jatra', name:'Gai Jatra', date:'2026-08-29', type:'regional', emoji:'🐄', angles:[{id:'culture', label:'Remembrance & Joy', emoji:'✨', description:'Honoring loved ones'}] },
+  { id:'gaura_parba', name:'Gaura Parba', date:'2026-09-04', type:'regional', emoji:'🌿', angles:[{id:'culture', label:'Sudurpaschim Pride', emoji:'🏔️', description:'Regional celebration'}] },
+  { id:'jitiya_parwa', name:'Jitiya Parwa', date:'2026-10-04', type:'regional', emoji:'🌅', angles:[{id:'culture', label:'Mithila Festival', emoji:'🌸', description:'Fasting and blessings'}] },
+  { id:'phalgunanda_jayanti', name:'Phalgunanda Jayanti', date:'2026-11-11', type:'regional', emoji:'🕊️', angles:[{id:'respect', label:'Tribute', emoji:'🙏', description:'Respectful post'}] },
+  { id:'tamu_lhosar', name:'Tamu Lhosar', date:'2026-12-30', type:'regional', emoji:'🎉', angles:[{id:'new_year', label:'Gurung New Year', emoji:'🎊', description:'Celebrate new beginnings'}] },
+  
+  // MUSLIM & CHRISTIAN
+  { id:'ramadan_start_np', name:'Ramadan Starts', date:'2026-02-19', type:'muslim', emoji:'🌙', angles:[{id:'wishes', label:'Ramadan Mubarak', emoji:'🌙', description:'Holy month wishes'}] },
+  { id:'eid_fitr_np', name:'Ramjan Edul Fikra', date:'2026-03-20', type:'muslim', emoji:'🌙', angles:[{id:'celebration', label:'Eid Mubarak', emoji:'✨', description:'Celebratory Eid campaign'}] },
+  { id:'eid_adha_np', name:'Edul Aajaha', date:'2026-05-27', type:'muslim', emoji:'🐑', angles:[{id:'celebration', label:'Eid Mubarak', emoji:'🌙', description:'Festival celebration post'}] },
+  { id:'christmas_np', name:'Christmas Day', date:'2026-12-25', type:'christian', emoji:'🎄', angles:[{id:'joy', label:'Merry Christmas', emoji:'🎁', description:'Festive cheer'}] },
+  
   // COMMERCE
-  { id:'new_year_commerce', name:'New Year', date:'2026-01-01', type:'commerce', emoji:'🎆',
-    angles:[
-      {id:'resolution', label:'New Year Resolution', emoji:'✨', description:'Start the year strong'},
-      {id:'offer', label:'New Year Offer', emoji:'🏷️', description:'Kickoff sale'},
-    ]},
-  { id:'valentines_commerce', name:"Valentine's Day", date:'2026-02-14', type:'commerce', emoji:'❤️',
-    angles:[
-      {id:'gift', label:'Gift Angle', emoji:'🎁', description:"Perfect Valentine's gift"},
-      {id:'offer', label:'Valentine Offer', emoji:'🏷️', description:'Love-themed discount'},
-    ]},
-  { id:'womens_day_commerce', name:"Women's Day", date:'2026-03-08', type:'commerce', emoji:'💜',
-    angles:[
-      {id:'empowerment', label:'Empowerment', emoji:'💪', description:"Celebrate women's strength"},
-      {id:'offer', label:"Women's Day Special", emoji:'🏷️', description:'Special discount'},
-    ]},
-  { id:'mothers_day_commerce', name:"Mother's Day", date:'2026-05-10', type:'commerce', emoji:'🌷',
-    angles:[
-      {id:'gift', label:'Gift for Mom', emoji:'🎁', description:"Perfect Mother's Day gift"},
-    ]},
-  { id:'fathers_day_commerce', name:"Father's Day", date:'2026-06-21', type:'commerce', emoji:'👔',
-    angles:[
-      {id:'gift', label:'Gift for Dad', emoji:'🎁', description:"Perfect Father's Day gift"},
-    ]},
+  { id:'nari_dibas', name:'Nari Dibas (Women\'s Day)', date:'2026-03-08', type:'commerce', emoji:'💜', angles:[{id:'empowerment', label:'Empowerment', emoji:'💪', description:"Celebrate women's strength"},{id:'offer', label:"Women's Day Special", emoji:'🏷️', description:'Special discount'}] },
+  { id:'valentines_commerce', name:"Valentine's Day", date:'2026-02-14', type:'commerce', emoji:'❤️', angles:[{id:'gift', label:'Gift Angle', emoji:'🎁', description:"Perfect Valentine's gift"}] },
 ];
 
 export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'english', isSaas = false, onGenerate, products }) => {
@@ -747,10 +738,14 @@ export const FestivalCalendar: React.FC<Props> = ({ brand = {}, language = 'engl
   // SaaS-only: campaign focus input (replaces product picker)
   const [campaignFocus, setCampaignFocus] = useState<string>('');
 
-  const activeFestivals = useMemo(
-    () => brand?.country?.toLowerCase() === 'nepal' ? FESTIVALS_NEPAL_2083 : FESTIVALS_2026,
-    [brand?.country]
-  );
+  const activeFestivals = useMemo(() => {
+    const country = brand?.country?.toLowerCase();
+    if (country === 'nepal') return FESTIVALS_NEPAL_2083;
+    if (country === 'india') return FESTIVALS_2026;
+    
+    // For global users (not India/Nepal), hide Indian-specific categories
+    return FESTIVALS_2026.filter((f) => !['hindu', 'regional', 'national'].includes(f.type));
+  }, [brand?.country]);
 
   const filtered = useMemo(
     () => activeFestivals.filter((f) => filter === 'all' || f.type === filter),
