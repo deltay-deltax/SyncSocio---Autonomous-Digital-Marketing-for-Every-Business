@@ -113,7 +113,7 @@ export const getDashboardSummary = async (req, res) => {
 
             if (topPostData) {
                 topPostInfo = {
-                  image: topPostData.media_url || topPostData.thumbnail_url,
+                  image: topPostData.media_type === 'VIDEO' && topPostData.thumbnail_url ? topPostData.thumbnail_url : (topPostData.media_url || topPostData.thumbnail_url),
                   caption: topPostData.caption || 'Top Post',
                   views: topPostData.views,
                   likes: topPostData.like_count || 0,

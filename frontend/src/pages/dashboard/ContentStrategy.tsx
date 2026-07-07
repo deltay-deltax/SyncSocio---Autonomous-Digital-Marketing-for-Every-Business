@@ -817,6 +817,7 @@ const DashboardStrategy = () => {
       return;
     }
 
+    setShowUpgradeModal(false);
     openMode(mId);
   };
 
@@ -2661,46 +2662,91 @@ const DashboardStrategy = () => {
     );
   }
 
+  const renderUpgradeModal = () => (
+    <AnimatePresence>
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-card w-full max-w-md rounded-[2rem] p-8 border border-border/50 shadow-2xl text-center relative"
+          >
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
+            >
+              <X size={14} />
+            </button>
+
+            <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock size={30} />
+            </div>
+
+            <h2 className="text-xl font-bold mb-2">
+              {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              {upgradeModalReason === 'expired'
+                ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
+                : 'This is an Elite feature. Upgrade to the Elite Plan to unlock the All-in-One Drops feature.'}
+            </p>
+
+            <Button
+              onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}
+              className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
+            >
+              {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
+            </Button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   // ─────────────────────────────────────────────────────────────────────────────
   // PICK (landing) — mode selection grid
   // ─────────────────────────────────────────────────────────────────────────────
   if (stage === 'pick') {
     return (
-      <div className="relative min-h-screen bg-gradient-hero">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-60" />
+      <>
+        <div className="relative min-h-screen bg-gradient-hero">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-60" />
 
-        <div className="relative mx-auto max-w-6xl px-6 pt-0 pb-10">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3.5 py-1.5 shadow-soft">
-              <Sparkles size={13} className="text-primary" />
-              <span className="text-[11px] font-bold tracking-tight text-primary">
-                AI Content Studio
-              </span>
+          <div className="relative mx-auto max-w-6xl px-6 pt-0 pb-10">
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3.5 py-1.5 shadow-soft">
+                <Sparkles size={13} className="text-primary" />
+                <span className="text-[11px] font-bold tracking-tight text-primary">
+                  AI Content Studio
+                </span>
+              </div>
+              <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-foreground md:text-5xl">
+                What do you want to generate today?
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
+                Pick a format — Velocity opens a tailored brief for it.
+              </p>
+            </motion.div>
+
+            {/* Studio grid — 6-col so wide cards can span 3 */}
+            <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-6 md:auto-rows-[210px]">
+              {STUDIOS.filter(s => {
+                if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
+                return true;
+              }).map((s, i) => (
+                <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} />
+              ))}
             </div>
-            <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-foreground md:text-5xl">
-              What do you want to generate today?
-            </h1>
-            <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-              Pick a format — Velocity opens a tailored brief for it.
-            </p>
-          </motion.div>
-
-          {/* Studio grid — 6-col so wide cards can span 3 */}
-          <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-6 md:auto-rows-[210px]">
-            {STUDIOS.filter(s => {
-              if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
-              return true;
-            }).map((s, i) => (
-              <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} />
-            ))}
           </div>
         </div>
-      </div>
+        {renderUpgradeModal()}
+      </>
     );
   }
 
@@ -4120,46 +4166,7 @@ const DashboardStrategy = () => {
         );
       })()}
 
-      {/* ─── Upgrade / Plan Expired Modal ─── */}
-      <AnimatePresence>
-        {showUpgradeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card w-full max-w-md rounded-[2rem] p-8 border border-border/50 shadow-2xl text-center relative"
-            >
-              <button
-                onClick={() => setShowUpgradeModal(false)}
-                className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
-              >
-                <X size={14} />
-              </button>
-
-              <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Lock size={30} />
-              </div>
-
-              <h2 className="text-xl font-bold mb-2">
-                {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
-              </h2>
-              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                {upgradeModalReason === 'expired'
-                  ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
-                  : 'This is an Elite feature. Upgrade to the Elite Plan to unlock the All-in-One Drops feature.'}
-              </p>
-
-              <Button
-                onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/buy-credits'); }}
-                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
-              >
-                {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
-              </Button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {renderUpgradeModal()}
     </div>
   );
 };

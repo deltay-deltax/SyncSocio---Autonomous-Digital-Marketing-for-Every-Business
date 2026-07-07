@@ -329,12 +329,18 @@ const DashboardHome = () => {
 
 
                   {/* Google Icon */}
-                  <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center bg-white border transition-all",
-                    (profile?.gmailIsConnected || profile?.use_generic_email_sender || profile?.email_domain_verified)
-                      ? "border-border shadow-sm"
-                      : "grayscale opacity-400 bg-slate-100 border-slate-200"
-                  )}>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate('/dashboard/settings?tab=Email%20Setup');
+                    }}
+                    title="Configure Email Integrations"
+                    className={cn(
+                      "w-7 h-7 rounded-lg flex items-center justify-center bg-white border transition-all hover:scale-[1.15] active:scale-95",
+                      (profile?.gmailIsConnected || profile?.use_generic_email_sender || profile?.email_domain_verified)
+                        ? "border-border shadow-sm shadow-black/5"
+                        : "grayscale opacity-60 bg-slate-100 border-slate-200"
+                    )}>
                     <GoogleIcon size={13} />
                   </div>
                 </div>

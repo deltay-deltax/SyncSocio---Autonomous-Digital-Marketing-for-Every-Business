@@ -192,16 +192,27 @@ const DashboardFeed = () => {
               <Card className="overflow-hidden hover-lift cursor-default border-border/50 group bg-white shadow-sm border-0">
                 <div className="aspect-square bg-slate-100 flex items-center justify-center text-4xl relative overflow-hidden">
                   {post.media_url ? (
-                    <img
-                      src={post.media_url}
-                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 will-change-transform"
-                      alt=""
-                    />
+                    (post.media_type || post.type) === 'VIDEO' ? (
+                      <video
+                        src={post.media_url}
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 will-change-transform"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={post.media_url}
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 will-change-transform"
+                        alt=""
+                      />
+                    )
                   ) : (
-                    <span className="group-hover:scale-[1.03] transition-transform duration-500">{getEmoji(post.media_type)}</span>
+                    <span className="group-hover:scale-[1.03] transition-transform duration-500">{getEmoji(post.media_type || post.type)}</span>
                   )}
                   <span className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-white/90 backdrop-blur-sm text-foreground shadow-sm uppercase tracking-widest leading-none flex items-center h-5">
-                    {post.media_type === 'VIDEO' ? 'REEL' : 'POST'}
+                    {(post.media_type || post.type) === 'VIDEO' ? 'REEL' : 'POST'}
                   </span>
                   {isAgentPost(post) && (
                     <span className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-primary text-white flex items-center gap-1 shadow-sm uppercase tracking-widest leading-none h-5">
@@ -232,15 +243,19 @@ const DashboardFeed = () => {
                 <CardContent className="p-3 flex items-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform duration-300 overflow-hidden border border-slate-50">
                     {post.media_url ? (
-                      <img src={post.media_url} className="w-full h-full object-cover" alt="" />
+                      (post.media_type || post.type) === 'VIDEO' ? (
+                        <video src={post.media_url} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+                      ) : (
+                        <img src={post.media_url} className="w-full h-full object-cover" alt="" />
+                      )
                     ) : (
-                      getEmoji(post.media_type)
+                      getEmoji(post.media_type || post.type)
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-foreground truncate font-medium">{post.caption || 'No caption provided'}</p>
                     <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
-                      <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-[9px] font-black uppercase tracking-widest">{post.media_type === 'VIDEO' ? 'REEL' : 'POST'}</span>
+                      <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-[9px] font-black uppercase tracking-widest">{(post.media_type || post.type) === 'VIDEO' ? 'REEL' : 'POST'}</span>
                       <span className="text-[10px] font-bold text-slate-400">{new Date(post.timestamp).toLocaleDateString()}</span>
                       {isAgentPost(post) && <span className="text-primary font-black uppercase tracking-widest text-[9px] flex items-center gap-1"><Sparkles size={10} /> AI Agent</span>}
                     </div>
