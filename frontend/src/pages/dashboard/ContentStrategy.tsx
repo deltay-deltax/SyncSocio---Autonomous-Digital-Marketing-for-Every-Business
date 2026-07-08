@@ -15,6 +15,7 @@ import { useNavigate, useOutletContext, useLocation, useBlocker } from 'react-ro
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
 import Masonry from 'react-masonry-css';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 import { useToast } from '@/hooks/use-toast';
 
 const breakpointColumnsObj = {
@@ -816,6 +817,7 @@ const DashboardStrategy = () => {
       return;
     }
 
+    setShowUpgradeModal(false);
     openMode(mId);
   };
 
@@ -843,7 +845,7 @@ const DashboardStrategy = () => {
     setIsGeneratingScript(true);
     try {
       // Pick first product from uploads or products list for context
-      const firstProduct = products[0] || {};
+      const firstProduct = selectedProducts[0] || products[0] || {};
       const payload = {
         brandName: profile.brandName || '',
         brandTone: profile.brandTone || '',
@@ -1027,6 +1029,53 @@ const DashboardStrategy = () => {
     }
   };
 
+  // Fetch creative library on mount or brand change
+  React.useEffect(() => {
+    if (brandId) {
+      fetchCreativeLibrary();
+    }
+  }, [brandId]);
+
+  // Sync savedIndices when generated posts or creativeLibrary changes
+  React.useEffect(() => {
+    if (generated.length === 0) {
+      setSavedIndices(new Set());
+      return;
+    }
+
+    const newSavedIndices = new Set<number>();
+
+    generated.forEach((post, idx) => {
+      const isAlreadySaved = creativeLibrary.some(creative => {
+        if (post.type !== creative.type) return false;
+
+        // Match by caption if present
+        if (post.caption && creative.caption) {
+          if (post.caption.trim() === creative.caption.trim()) return true;
+        }
+
+        // Match by image/video URL
+        if (post.type === 'image') {
+          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) return true;
+        } else if (post.type === 'video') {
+          if (post.url && creative.videoUrl && post.url === creative.videoUrl) return true;
+          if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) return true;
+        } else if (post.type === 'carousel') {
+          const postImg = post.slides?.[0]?.image;
+          const creativeImg = creative.slides?.[0]?.image || creative.thumbnailBase64;
+          if (postImg && creativeImg && postImg === creativeImg) return true;
+        }
+        return false;
+      });
+
+      if (isAlreadySaved) {
+        newSavedIndices.add(idx);
+      }
+    });
+
+    setSavedIndices(newSavedIndices);
+  }, [generated, creativeLibrary]);
+
   const pickRandom = () => {
     const targetLimit = mode === 'ecomm' ? 1 : count;
     if (products.length > 0) {
@@ -1114,7 +1163,11 @@ const DashboardStrategy = () => {
   const canGenerate = (() => {
     if (!mode) return false;
     if (mode === 'all_in_one') {
-      return selectedProducts.length > 0 || uploads.length > 0;
+      const hasProduct = selectedProducts.length > 0 || uploads.length > 0;
+      const hasTitle = idea.trim().length > 0;
+      const hasAvatar = avatarDescription.trim().length > 0;
+      const hasScript = videoScript.trim().length > 0;
+      return hasProduct && hasTitle && hasAvatar && hasScript;
     }
     if (mode === 'video' && videoKind === 'ai-ugc') {
       return avatarDescription.trim().length > 0 && videoScript.trim().length > 0;
@@ -1763,6 +1816,7 @@ const DashboardStrategy = () => {
           const cached = await getCache(cacheKey) || [];
           cached.unshift(data.creative);
           await setCache(cacheKey, cached);
+          setCreativeLibrary(cached);
         } catch (e) {
           console.error('[Strategy] IndexedDB save error:', e);
         }
@@ -1783,16 +1837,9 @@ const DashboardStrategy = () => {
     }
   };
 
-  const handleDownload = async (post: GeneratedPost, index: number) => {
-    const isVideo = post.type === 'video';
-    const displaySrc = isVideo ? (post.url || post.thumbnail) : (post.type === 'carousel' ? post.slides?.[0]?.image : post.image);
-    if (!displaySrc) return;
-
-    const srcUrl = isVideo && post.url ? post.url : imgSrc(displaySrc);
-    const filename = `${brandName || 'syncsocio'}_creative_${index + 1}.${isVideo && post.url ? 'mp4' : 'jpg'}`;
-
+  const downloadSingleFile = async (srcUrl: string, filename: string) => {
     try {
-      if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:')) {
+      if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:') || srcUrl.startsWith('data:')) {
         const response = await fetch(srcUrl);
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
@@ -1812,7 +1859,7 @@ const DashboardStrategy = () => {
         document.body.removeChild(link);
       }
     } catch (err) {
-      console.error(isVideo ? 'Failed to download video:' : 'Failed to download image:', err);
+      console.error('Failed to download single file:', err);
       const link = document.createElement('a');
       link.href = srcUrl;
       link.target = '_blank';
@@ -1821,6 +1868,102 @@ const DashboardStrategy = () => {
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const handleDownload = async (post: GeneratedPost, index: number) => {
+    if (post.type === 'carousel' && post.slides && post.slides.length > 0) {
+      try {
+        const zip = new JSZip();
+        toast({
+          title: "Preparing Download",
+          description: `Packaging ${post.slides.length} slides into a ZIP...`,
+        });
+
+        for (let i = 0; i < post.slides.length; i++) {
+          const slide = post.slides[i];
+          const slideSrc = imgSrc(slide.image);
+          const response = await fetch(slideSrc);
+          const blobData = await response.blob();
+
+          let extension = 'jpg';
+          if (blobData.type === 'image/png') extension = 'png';
+          else if (blobData.type === 'image/webp') extension = 'webp';
+          else if (blobData.type === 'image/gif') extension = 'gif';
+
+          zip.file(`slide_${i + 1}.${extension}`, blobData);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipFilename = `${brandName || 'syncsocio'}_carousel_${index + 1}.zip`;
+        const blobUrl = URL.createObjectURL(zipBlob);
+
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = zipFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        toast({
+          title: "Download Started",
+          description: "Your carousel ZIP has been downloaded successfully.",
+        });
+      } catch (err) {
+        console.error('Failed to generate ZIP for carousel:', err);
+        toast({
+          title: "Download Failed",
+          description: "Could not create ZIP. Downloading the first slide instead.",
+          variant: "destructive"
+        });
+        const firstSrc = imgSrc(post.slides[0].image);
+        await downloadSingleFile(firstSrc, `${brandName || 'syncsocio'}_creative_${index + 1}_slide_1.jpg`);
+      }
+      return;
+    }
+
+    const isVideo = post.type === 'video';
+    const displaySrc = isVideo ? (post.url || post.thumbnail) : (post.type === 'carousel' ? post.slides?.[0]?.image : post.image);
+    if (!displaySrc) return;
+
+    const srcUrl = isVideo && post.url ? post.url : imgSrc(displaySrc);
+    const filename = `${brandName || 'syncsocio'}_creative_${index + 1}.${isVideo && post.url ? 'mp4' : 'jpg'}`;
+
+    await downloadSingleFile(srcUrl, filename);
+  };
+
+  const isHeroImageSaved = React.useMemo(() => {
+    if (!campaignImage) return false;
+    return creativeLibrary.some(creative => {
+      if (creative.type !== 'image') return false;
+      return creative.thumbnailBase64 === campaignImage;
+    });
+  }, [campaignImage, creativeLibrary]);
+
+  const handleSaveCampaignImage = async () => {
+    if (!campaignImage) return;
+
+    const isAlreadySaved = creativeLibrary.some(creative => {
+      if (creative.type !== 'image') return false;
+      return creative.thumbnailBase64 === campaignImage;
+    });
+
+    if (isAlreadySaved) {
+      toast({
+        title: "Already Saved",
+        description: "This campaign image is already saved in your assets library.",
+      });
+      return;
+    }
+
+    const post: GeneratedPost = {
+      type: 'image',
+      image: campaignImage,
+      caption: campaignBody || `Campaign Creative: ${campaignSubject || idea || 'WhatsApp/Email Campaign'}`,
+      sectionType: 'image'
+    };
+
+    await handleHeart(post, 9999);
   };
 
   const handleDoubleTap = (post: GeneratedPost, index: number) => {
@@ -2006,6 +2149,8 @@ const DashboardStrategy = () => {
         listNameInput={listNameInput}
         setListNameInput={setListNameInput}
         handleSaveImportedList={handleSaveImportedList}
+        saveHeroImage={handleSaveCampaignImage}
+        isHeroImageSaved={isHeroImageSaved}
       />
     );
   }
@@ -2517,46 +2662,91 @@ const DashboardStrategy = () => {
     );
   }
 
+  const renderUpgradeModal = () => (
+    <AnimatePresence>
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-card w-full max-w-md rounded-[2rem] p-8 border border-border/50 shadow-2xl text-center relative"
+          >
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
+            >
+              <X size={14} />
+            </button>
+
+            <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock size={30} />
+            </div>
+
+            <h2 className="text-xl font-bold mb-2">
+              {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              {upgradeModalReason === 'expired'
+                ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
+                : 'This is an Elite feature. Upgrade to the Elite Plan to unlock the All-in-One Drops feature.'}
+            </p>
+
+            <Button
+              onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}
+              className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
+            >
+              {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
+            </Button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   // ─────────────────────────────────────────────────────────────────────────────
   // PICK (landing) — mode selection grid
   // ─────────────────────────────────────────────────────────────────────────────
   if (stage === 'pick') {
     return (
-      <div className="relative min-h-screen bg-gradient-hero">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-60" />
+      <>
+        <div className="relative min-h-screen bg-gradient-hero">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-60" />
 
-        <div className="relative mx-auto max-w-6xl px-6 pt-0 pb-10">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3.5 py-1.5 shadow-soft">
-              <Sparkles size={13} className="text-primary" />
-              <span className="text-[11px] font-bold tracking-tight text-primary">
-                AI Content Studio
-              </span>
+          <div className="relative mx-auto max-w-6xl px-6 pt-0 pb-10">
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3.5 py-1.5 shadow-soft">
+                <Sparkles size={13} className="text-primary" />
+                <span className="text-[11px] font-bold tracking-tight text-primary">
+                  AI Content Studio
+                </span>
+              </div>
+              <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-foreground md:text-5xl">
+                What do you want to generate today?
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
+                Pick a format — Velocity opens a tailored brief for it.
+              </p>
+            </motion.div>
+
+            {/* Studio grid — 6-col so wide cards can span 3 */}
+            <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-6 md:auto-rows-[210px]">
+              {STUDIOS.filter(s => {
+                if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
+                return true;
+              }).map((s, i) => (
+                <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} />
+              ))}
             </div>
-            <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-foreground md:text-5xl">
-              What do you want to generate today?
-            </h1>
-            <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-              Pick a format — Velocity opens a tailored brief for it.
-            </p>
-          </motion.div>
-
-          {/* Studio grid — 6-col so wide cards can span 3 */}
-          <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-6 md:auto-rows-[210px]">
-            {STUDIOS.filter(s => {
-              if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
-              return true;
-            }).map((s, i) => (
-              <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} />
-            ))}
           </div>
         </div>
-      </div>
+        {renderUpgradeModal()}
+      </>
     );
   }
 
@@ -3297,6 +3487,77 @@ const DashboardStrategy = () => {
               ))}
             </div>
           </section>
+
+          {/* Language Selection */}
+          <LanguagePicker
+            language={language}
+            setLanguage={setLanguage}
+            country={profile?.location?.country}
+            isAiUgc={false}
+          />
+
+          {/* Carousel Title / Creative Theme */}
+          <section className="mb-6">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Carousel Title / Campaign Theme <span className="text-destructive">*</span>
+            </p>
+            <Input
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder="e.g. Summer Collection Launch, Pastel Colors, 20% discount"
+              className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
+            />
+          </section>
+
+          {/* Avatar Description */}
+          <section className="mb-6">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Avatar description <span className="text-destructive">*</span>
+            </p>
+            <Input
+              value={avatarDescription}
+              onChange={(e) => setAvatarDescription(e.target.value)}
+              placeholder="e.g. A 25-year-old friendly female creator speaking in a bright modern kitchen."
+              className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
+            />
+          </section>
+
+          {/* Video Script */}
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Video script <span className="text-destructive">*</span>
+              </p>
+              <button
+                type="button"
+                onClick={generateAiScript}
+                disabled={isGeneratingScript}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide border transition-all duration-200
+                  bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/30 text-violet-600 dark:text-violet-400
+                  hover:from-violet-500/20 hover:to-blue-500/20 hover:border-violet-400/60 hover:scale-105
+                  disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100
+                  shadow-sm"
+              >
+                {isGeneratingScript ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+                    <span>Writing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={11} />
+                    <span>Generate with AI</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <Textarea
+              value={videoScript}
+              onChange={(e) => setVideoScript(e.target.value)}
+              placeholder="Write or generate a short 8-second script for the avatar to speak..."
+              className="min-h-[100px] rounded-2xl border-border/60 bg-card resize-none text-sm leading-relaxed focus-visible:ring-primary"
+            />
+          </section>
         </div>
       )}
 
@@ -3848,74 +4109,64 @@ const DashboardStrategy = () => {
       </AnimatePresence>
 
       {/* ─── Generate button ─── */}
-      {mode !== 'festival' && (
-        <div className="sticky bottom-4 lg:bottom-0 lg:static pt-2">
-          <Button
-            onClick={() => generate()}
-            disabled={!canGenerate}
-            size="lg"
-            className={cn(
-              'w-full h-14 rounded-2xl text-base font-bold gap-2 transition-all',
-              canGenerate
-                ? 'bg-gradient-to-r from-primary to-primary/80 hover:shadow-2xl hover:shadow-primary/30'
-                : 'opacity-50 cursor-not-allowed'
-            )}
-          >
-            <Sparkles size={18} />
-            {mode === 'all_in_one' ? 'Generate All-in-One Pack' :
-              mode === 'whatsapp' ? 'Generate WhatsApp message' :
-                mode === 'email' ? 'Generate email campaign' :
-                  mode === 'video' ? 'Generate 1 video' :
-                    `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
-          </Button>
-          {!canGenerate && mode !== 'ecomm' && mode !== 'all_in_one' && (
-            <p className="text-[11px] text-muted-foreground text-center mt-2">
-              Tell us your idea to start ✨
-            </p>
-          )}
-        </div>
-      )}
+      {mode !== 'festival' && (() => {
+        const isEmailMode = mode === 'email';
+        const isEmailSetupDone = !isEmailMode || profile?.use_generic_email_sender === true || profile?.email_domain_verified === true;
 
-      {/* ─── Upgrade / Plan Expired Modal ─── */}
-      <AnimatePresence>
-        {showUpgradeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card w-full max-w-md rounded-[2rem] p-8 border border-border/50 shadow-2xl text-center relative"
-            >
-              <button
-                onClick={() => setShowUpgradeModal(false)}
-                className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
-              >
-                <X size={14} />
-              </button>
-
-              <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Lock size={30} />
+        if (isEmailMode && !isEmailSetupDone) {
+          return (
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 space-y-3 mt-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={15} className="text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">Email domain setup required</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Before you can send campaigns, verify your sending domain or use SyncSocio Network so emails land in inboxes.
+                  </p>
+                </div>
               </div>
-
-              <h2 className="text-xl font-bold mb-2">
-                {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
-              </h2>
-              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                {upgradeModalReason === 'expired'
-                  ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
-                  : 'This is an Elite feature. Upgrade to the Elite Plan to unlock the All-in-One Drops feature.'}
-              </p>
-
-              <Button
-                onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/buy-credits'); }}
-                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
+              <a
+                href="/dashboard/settings?tab=Email Setup"
+                className="w-full h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-amber-500 text-white hover:bg-amber-600 transition-all text-center animate-pulse"
               >
-                {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
-              </Button>
-            </motion.div>
+                Go to Settings → Email Setup
+              </a>
+            </div>
+          );
+        }
+
+        return (
+          <div className="sticky bottom-4 lg:bottom-0 lg:static pt-2">
+            <Button
+              onClick={() => generate()}
+              disabled={!canGenerate}
+              size="lg"
+              className={cn(
+                'w-full h-14 rounded-2xl text-base font-bold gap-2 transition-all',
+                canGenerate
+                  ? 'bg-gradient-to-r from-primary to-primary/80 hover:shadow-2xl hover:shadow-primary/30'
+                  : 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              <Sparkles size={18} />
+              {mode === 'all_in_one' ? 'Generate All-in-One Pack' :
+                mode === 'whatsapp' ? 'Generate WhatsApp message' :
+                  mode === 'email' ? 'Generate email campaign' :
+                    mode === 'video' ? 'Generate 1 video' :
+                      `Generate ${mode === 'ecomm' ? ecommTotal : count} ${mode === 'carousel' ? 'carousels' : 'posts'}`}
+            </Button>
+            {!canGenerate && mode !== 'ecomm' && mode !== 'all_in_one' && (
+              <p className="text-[11px] text-muted-foreground text-center mt-2">
+                Tell us your idea to start ✨
+              </p>
+            )}
           </div>
-        )}
-      </AnimatePresence>
+        );
+      })()}
+
+      {renderUpgradeModal()}
     </div>
   );
 };
@@ -4019,6 +4270,7 @@ interface CampaignResultsProps {
   back: () => void;
   regenerate: () => void;
   saveHeroImage?: () => void;
+  isHeroImageSaved?: boolean;
   savedLists: any[];
   setSavedLists: React.Dispatch<React.SetStateAction<any[]>>;
   selectedListId: string;
@@ -4160,7 +4412,7 @@ const COUNTRY_CODES = [
 const CampaignResults: React.FC<CampaignResultsProps> = ({
   mode, brandName, image, subject, setSubject, body, setBody,
   recipients, setRecipients, newRecipient, setNewRecipient, whatsappCountryCode, setWhatsappCountryCode, addRecipient,
-  recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage,
+  recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage, isHeroImageSaved,
   savedLists, setSavedLists, selectedListId, setSelectedListId,
   showListNameModal, setShowListNameModal, listNameInput, setListNameInput, handleSaveImportedList,
 }) => {
@@ -4252,8 +4504,20 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
         </div>
         <div className="flex gap-2">
           {saveHeroImage && (
-            <Button onClick={saveHeroImage} variant="outline" size="sm" className="rounded-xl gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20">
-              <Heart size={14} /> Save hero image
+            <Button
+              onClick={saveHeroImage}
+              disabled={isHeroImageSaved}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "rounded-xl gap-2 transition",
+                isHeroImageSaved
+                  ? "text-rose-500 border-rose-500/20 bg-rose-500/10 cursor-not-allowed"
+                  : "text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20"
+              )}
+            >
+              <Heart size={14} className={cn(isHeroImageSaved && "fill-rose-500")} />
+              {isHeroImageSaved ? 'Saved' : 'Save hero image'}
             </Button>
           )}
           <Button onClick={() => setShowRefineModal(true)} variant="outline" size="sm" className="rounded-xl gap-2">
@@ -4611,31 +4875,6 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           {(() => {
             const cachedProfile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
             const isEmailMode = mode === 'email';
-            const isDomainVerified = !isEmailMode || cachedProfile?.email_domain_verified === true;
-
-            if (isEmailMode && !isDomainVerified) {
-              return (
-                <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-                      <AlertTriangle size={15} className="text-amber-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-foreground">Email domain setup required</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Before you can send campaigns, verify your sending domain so emails land in inboxes.
-                      </p>
-                    </div>
-                  </div>
-                  <a
-                    href="/dashboard/settings"
-                    className="w-full h-10 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-amber-500 text-white hover:bg-amber-600 transition-all"
-                  >
-                    Go to Settings → Email Setup
-                  </a>
-                </div>
-              );
-            }
 
             return (
               <>

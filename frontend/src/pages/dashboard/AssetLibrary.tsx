@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Masonry from 'react-masonry-css';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import JSZip from 'jszip';
 
 const breakpointColumnsObj = {
   default: 4,
@@ -117,12 +119,47 @@ const typeIcon: Record<string, any> = {
 
 const AssetLibrary = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { startBackgroundSchedule } = useOutletContext<{
     startBackgroundSchedule?: (postIds: string[], platforms: any, schedules?: any[], startDate?: string, endDate?: string) => Promise<string>;
   }>() || {};
   const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
   const brandId = profile._id || 'default';
   const cacheKey = `syncsocio_strategy_assets_${brandId}`;
+
+  // Enforce scheduled posts limits based on plan
+  const planName = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
+  const isElite = planName.includes('elite');
+  const scheduleLimit = isElite ? Infinity : 30;
+
+  const [assets, setAssets] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+
+  // Count active scheduled assets (posts waiting in queue to be published)
+  const activeScheduledCount = React.useMemo(() => {
+    const now = new Date();
+    return assets.filter(a => a.status === 'scheduled' && (!a.scheduledAt || new Date(a.scheduledAt) > now)).length;
+  }, [assets]);
+
+  const validateScheduleLimit = (schedules: { scheduledAt: string }[]): boolean => {
+    if (isElite) return true;
+
+    // Count how many are currently active in the queue
+    const currentActiveCount = activeScheduledCount;
+    const newSchedulesCount = schedules.length;
+
+    if (currentActiveCount + newSchedulesCount > 30) {
+      toast({
+        title: "Queue Limit Reached",
+        description: `Your Starter plan allows up to 30 scheduled posts in your active queue. You currently have ${currentActiveCount} scheduled, and you are trying to schedule ${newSchedulesCount} more. Please upgrade to the Elite plan for unlimited queue size.`,
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
@@ -143,8 +180,7 @@ const AssetLibrary = () => {
   const [platforms, setPlatforms] = useState({ instagram: true, facebook: false });
   const [schedulingInProgress, setSchedulingInProgress] = useState<boolean>(false);
 
-  const [assets, setAssets] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+
 
   useEffect(() => {
     const loadCached = async () => {
@@ -259,6 +295,8 @@ const AssetLibrary = () => {
         };
       });
 
+      if (!validateScheduleLimit(schedules)) return;
+
       if (startBackgroundSchedule) {
         startBackgroundSchedule(selectedAssetIds, platforms, schedules, startDate, endDate);
       }
@@ -282,6 +320,8 @@ const AssetLibrary = () => {
         id,
         scheduledAt: new Date().toISOString()
       }));
+
+      if (!validateScheduleLimit(schedules)) return;
 
       if (startBackgroundSchedule) {
         startBackgroundSchedule(selectedAssetIds, platforms, schedules, undefined, undefined);
@@ -317,19 +357,9 @@ const AssetLibrary = () => {
     }
   };
 
-  const handleDownload = async (asset: any) => {
-    const isVideo = asset.type === 'video';
-    const src = isVideo ? (asset.videoUrl || asset.thumbnailBase64)
-              : asset.type === 'image' ? asset.thumbnailBase64
-              : asset.type === 'carousel' ? asset.slides?.[0]?.image
-              : asset.thumbnailBase64;
-    if (!src) return;
-
-    const srcUrl = isVideo && asset.videoUrl ? asset.videoUrl : imgSrc(src);
-    const filename = `syncsocio-creative-${asset._id?.slice(-6) || 'export'}.${isVideo && asset.videoUrl ? 'mp4' : 'jpg'}`;
-
+  const downloadSingleFile = async (srcUrl: string, filename: string) => {
     try {
-      if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:')) {
+      if (srcUrl.startsWith('http') || srcUrl.startsWith('/') || srcUrl.startsWith('blob:') || srcUrl.startsWith('data:')) {
         const response = await fetch(srcUrl);
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
@@ -349,7 +379,7 @@ const AssetLibrary = () => {
         document.body.removeChild(link);
       }
     } catch (err) {
-      console.error(isVideo ? 'Failed to download video:' : 'Failed to download image:', err);
+      console.error('Failed to download single file:', err);
       const link = document.createElement('a');
       link.href = srcUrl;
       link.target = '_blank';
@@ -358,6 +388,71 @@ const AssetLibrary = () => {
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const handleDownload = async (asset: any) => {
+    if (asset.type === 'carousel' && asset.slides && asset.slides.length > 0) {
+      try {
+        const zip = new JSZip();
+        toast({
+          title: "Preparing Download",
+          description: `Packaging ${asset.slides.length} slides into a ZIP...`,
+        });
+
+        for (let i = 0; i < asset.slides.length; i++) {
+          const slide = asset.slides[i];
+          const slideSrc = imgSrc(slide.image);
+          const response = await fetch(slideSrc);
+          const blobData = await response.blob();
+
+          let extension = 'jpg';
+          if (blobData.type === 'image/png') extension = 'png';
+          else if (blobData.type === 'image/webp') extension = 'webp';
+          else if (blobData.type === 'image/gif') extension = 'gif';
+
+          zip.file(`slide_${i + 1}.${extension}`, blobData);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipFilename = `syncsocio-creative-${asset._id?.slice(-6) || 'export'}.zip`;
+        const blobUrl = URL.createObjectURL(zipBlob);
+
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = zipFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        toast({
+          title: "Download Started",
+          description: "Your carousel ZIP has been downloaded successfully.",
+        });
+      } catch (err) {
+        console.error('Failed to generate ZIP for carousel:', err);
+        toast({
+          title: "Download Failed",
+          description: "Could not create ZIP. Downloading the first slide instead.",
+          variant: "destructive"
+        });
+        const firstSrc = imgSrc(asset.slides[0].image);
+        await downloadSingleFile(firstSrc, `syncsocio-creative-${asset._id?.slice(-6) || 'export'}_slide_1.jpg`);
+      }
+      return;
+    }
+
+    const isVideo = asset.type === 'video';
+    const src = isVideo ? (asset.videoUrl || asset.thumbnailBase64)
+              : asset.type === 'image' ? asset.thumbnailBase64
+              : asset.type === 'carousel' ? asset.slides?.[0]?.image
+              : asset.thumbnailBase64;
+    if (!src) return;
+
+    const srcUrl = isVideo && asset.videoUrl ? asset.videoUrl : imgSrc(src);
+    const filename = `syncsocio-creative-${asset._id?.slice(-6) || 'export'}.${isVideo && asset.videoUrl ? 'mp4' : 'jpg'}`;
+
+    await downloadSingleFile(srcUrl, filename);
   };
 
   const filtered = (
@@ -395,7 +490,9 @@ const AssetLibrary = () => {
       <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide w-full pb-2 scroll-smooth select-none shrink-0">
         {(['all', 'image', 'carousel', 'video', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
-          const label = f === 'scheduled' ? 'Scheduled & Posted' : f;
+          const label = f === 'scheduled' 
+            ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}` 
+            : f;
           return (
             <button
               key={f}

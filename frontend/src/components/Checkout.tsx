@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +40,28 @@ export const Checkout: React.FC<CheckoutProps> = ({
     postalCode: '',
     country: 'India'
   });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const res = await fetch(`${API_BASE}/profile/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.location?.country) {
+            setBilling(prev => ({ ...prev, country: data.location.country }));
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch profile for checkout', e);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -154,9 +176,28 @@ export const Checkout: React.FC<CheckoutProps> = ({
       };
 
       const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', (response: any) => {
+      rzp.on('payment.failed', async (response: any) => {
         setIsProcessing(false);
         toast({ title: 'Payment Failed', description: response.error.description, variant: 'destructive' });
+
+        try {
+          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+          await fetch(`${API_BASE}/payment/fail`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              razorpayOrderId: response.error.metadata?.order_id,
+              razorpayPaymentId: response.error.metadata?.payment_id,
+              reason: response.error.description,
+              billingAddress: billing
+            })
+          });
+        } catch (e) {
+          console.error('[Checkout] Failed to report payment failure to backend:', e);
+        }
       });
       rzp.open();
     } catch (err: any) {
@@ -250,6 +291,47 @@ export const Checkout: React.FC<CheckoutProps> = ({
                 <input name="country" value={billing.country} onChange={handleInputChange} className="mt-1 w-full h-11 px-3 rounded-xl bg-background border border-border/60 text-sm focus:outline-none focus:border-primary" />
               </label>
             </div>
+
+            {billing.country.trim().toLowerCase() === 'nepal' && (
+              <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-3">
+                <div className="flex items-center gap-2 text-primary">
+                  <span className="text-base">🇳🇵</span>
+                  <span className="font-display font-bold text-sm tracking-wide">Serving Nepal Better</span>
+                </div>
+                <p className="text-xs text-black leading-relaxed">
+                  You can pay directly via card using your standard <strong>Visa/Mastercard Debit & Credit Cards</strong> issued in Nepal.
+                  <br/><br/>
+                  If you prefer to pay using <strong>UPI</strong>, you can use your local mobile banking app or <strong>connectIPS</strong> via cross-border instant remittance to India.
+                </p>
+                <div className="rounded-lg bg-background/50 border border-border/40 p-3.5 text-[11px] space-y-2.5">
+                  <div>
+                    <span className="font-bold text-foreground uppercase tracking-wider block mb-1">Participating Banks & Channels:</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {['Everest Bank Ltd.', 'Global IME Bank Ltd.', 'Himalayan Bank Ltd. *', 'Machhapuchchhre Bank Ltd.', 'Nabil Bank Ltd', 'Nepal SBI Bank Ltd.', 'NMB Bank Ltd. *', 'connectIPS'].map((item) => (
+                        <span key={item} className="px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/30 font-medium">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-[9px] text-black/70 mt-1.5 block">* Currently enabled for receiving transfers only</span>
+                  </div>
+                  <div className="space-y-1.5 text-black">
+                    <p>
+                      <strong>How to pay:</strong>
+                    </p>
+                    <ol className="list-decimal pl-4 space-y-1">
+                      <li>Log in to your mobile banking app or connectIPS app/portal.</li>
+                      <li>Select <strong>Fund Transfer</strong> &rarr; <strong>Cross-Border Fund Transfer</strong> (India UPI).</li>
+                      <li>Enter our payment UPI ID (visible when selecting UPI/QR payment during Razorpay checkout).</li>
+                      <li>Enter the equivalent NPR amount (converted rate shown automatically) and authorize the payment.</li>
+                    </ol>
+                    <p className="text-[10px] italic mt-1 text-black/80">
+                      Note: A flat service fee of NPR 240 is charged per transaction by NCHL.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         </div>
 

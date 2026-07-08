@@ -5,6 +5,7 @@ export const IMAGE_CREDITS = [
   { feature: "Image Variation / Regeneration", credits: 5 },
   { feature: "Festival Campaign Creative", credits: 5 },
   { feature: "E-commerce Product Image", credits: 5 },
+  { feature: "AI Image Editor (Reference style)", credits: 5 },
 ];
 
 export const VIDEO_CREDITS = [

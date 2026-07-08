@@ -136,6 +136,7 @@ const brandProfileSchema = new mongoose.Schema({
   },
 
   // ── Email Domain Authentication (SendGrid per-brand domain) ──────────────
+  has_selected_email_sender: { type: Boolean, default: false },
   use_generic_email_sender: { type: Boolean, default: false },
   email_from: { type: String, default: '' },
   email_domain: { type: String, default: '' },

@@ -14,14 +14,14 @@ const plans = [
     features: [
       "200 credits/month",
       "1 active brand profile",
-      "Import or Add Up to 12 Products",
+      "Import or Add Up to 50 Products",
       "All image generation types",
       "UGC video generation",
       "Product video generation",
       "E-commerce listing generator",
       "Festival calendar",
       "English + 13 languages",
-      "Schedule posts",
+      "Queue up to 30 scheduled posts",
       "Email support",
     ],
     popular: false,
@@ -36,12 +36,13 @@ const plans = [
     features: [
       "700 credits/month",
       "2 brand profiles",
-      "Import or Add Up to 30 Products",
+      "Import or Add Up to 100 Products",
       "Everything in Starter",
       "All-in-One Drop feature",
       "UGC video generation",
       "Product video generation",
       "Best time to post analysis",
+      "Unlimited scheduled queue",
       "Priority generation",
       "WhatsApp support",
     ],
@@ -56,7 +57,11 @@ const topups = [
   { credits: 700, price: 1699, per_credit: 2.42 },
 ];
 
-const Pricing = () => {
+interface PricingProps {
+  onWaitlistClick: () => void;
+}
+
+const Pricing = ({ onWaitlistClick }: PricingProps) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const navigate = useNavigate();
@@ -71,8 +76,7 @@ const Pricing = () => {
   };
 
   const handleSelectPlan = (planName: string) => {
-    const isDmEnabled = dmToggles[planName];
-    navigate(`/signup?plan=${encodeURIComponent(planName)}&dm=${isDmEnabled}`);
+    onWaitlistClick();
   };
 
   return (
@@ -199,7 +203,7 @@ const Pricing = () => {
                   <Button
                     variant="outline"
                     className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center"
-                    onClick={() => navigate('/login')}
+                    onClick={onWaitlistClick}
                   >
                     Buy Top-up
                   </Button>

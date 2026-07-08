@@ -77,3 +77,11 @@ class RefineCopyRequest(BaseModel):
     instruction: str
     layout: str
     language: Optional[str] = "english"
+
+class ProductEditRequest(BaseModel):
+    ref_image: str
+    prod_image: Optional[str] = ""
+    prod_info: Optional[str] = ""
+    brand_dna: Optional[str] = ""
+    instruction: str
+    aspectRatio: Optional[str] = "1:1"

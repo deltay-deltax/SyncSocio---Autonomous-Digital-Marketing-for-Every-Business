@@ -246,3 +246,59 @@ export const sendLoginNotificationEmail = async ({ to, name }) => {
     console.error(`Failed to send admin login notification for ${to}:`, error.response?.body || error);
   }
 };
+
+export const sendMetaTesterAdminNotification = async ({ userName, userEmail, igHandle }) => {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('SENDGRID_API_KEY missing. Meta tester admin notification skipped.');
+    return;
+  }
+
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+  const fromEmail = process.env.SMTP_FROM_EMAIL || 'admin@syncsocio.com';
+  const toEmail = 'himanshu@syncsocio.com';
+  
+  const textBody = [
+    `New Meta Tester Request!`,
+    '',
+    `User: ${userName || 'Unknown'} (${userEmail})`,
+    `Instagram Handle: ${igHandle}`,
+    '',
+    'Please review this request in the Admin Panel.',
+    '',
+    'SyncSocio System'
+  ].join('\n');
+
+  const msg = {
+    to: toEmail,
+    from: `SyncSocio System <${fromEmail}>`,
+    subject: `🚨 New Meta Tester Request from ${userName || userEmail}`,
+    text: textBody,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 560px; margin: 0 auto; padding: 20px; background-color: #f3f6fb; border-radius: 12px;">
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 30px; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);">
+          <h2 style="color: #111827; font-size: 24px; margin: 0 0 12px;">🚨 New Meta Tester Request</h2>
+          <p style="color: #4b5563; font-size: 15px; line-height: 1.7; margin: 0 0 20px;">
+            A new user has requested Meta Tester access for Instagram automation.
+          </p>
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 22px;">
+            <p style="margin: 0 0 8px; color: #374151; font-size: 14px;"><strong>User Name:</strong> ${userName || 'N/A'}</p>
+            <p style="margin: 0 0 8px; color: #374151; font-size: 14px;"><strong>User Email:</strong> ${userEmail}</p>
+            <p style="margin: 0; color: #374151; font-size: 14px;"><strong>Instagram Handle:</strong> ${igHandle}</p>
+          </div>
+          <p style="color: #4b5563; font-size: 15px; line-height: 1.7; margin: 0;">
+            Please log in to the admin panel to review and approve this request.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    console.log(`[TEST] Attempting to send Meta Tester email to ${toEmail} from ${fromEmail} for user ${userName} (${userEmail})`);
+    await sgMail.send(msg);
+    console.log(`[TEST] Meta Tester email successfully sent to ${toEmail}`);
+  } catch (error) {
+    console.error(`[TEST] Failed to send Meta Tester notification to admin:`, error.response?.body || error);
+  }
+};

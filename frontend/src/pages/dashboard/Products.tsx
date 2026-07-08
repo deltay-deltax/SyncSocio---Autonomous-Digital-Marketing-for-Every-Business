@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn, safeSetItem } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
@@ -434,8 +435,10 @@ const ProductForm: React.FC<{
 
 // ── Main Products Page ────────────────────────────────────────────────────────
 const Products = () => {
-  const { userId, cacheKey, isSaas } = React.useMemo(() => {
+  const { userId, cacheKey, isSaas, productLimit } = React.useMemo(() => {
     const p = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+    const planName = (p.userPlan || p.selectedPlan || '').toLowerCase();
+    const isElite = planName.includes('elite');
     const SAAS_CATS = [
       'Mobile Apps',
       'IT & Technical Tools',
@@ -456,9 +459,11 @@ const Products = () => {
       userId:   uid,
       cacheKey: `${CACHE_KEY}_${uid}`,
       isSaas:   SAAS_CATS.includes(p.businessCategory || ''),
+      productLimit: isElite ? 100 : 50,
     };
   }, []);
 
+  const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -578,7 +583,17 @@ const Products = () => {
           </div>
         </div>
         <Button
-          onClick={() => { setEditing(null); setShowForm(true); }}
+          onClick={() => { 
+            if (products.length >= productLimit) {
+              toast({ 
+                title: 'Product Limit Reached', 
+                description: `Your plan allows up to ${productLimit} products. Please delete some or upgrade to add more.`, 
+                variant: 'destructive' 
+              });
+              return;
+            }
+            setEditing(null); setShowForm(true); 
+          }}
           className="rounded-2xl bg-primary gap-2 shadow-lg shadow-primary/20"
         >
           <Plus size={16} /> {isSaas ? "Add Service/Feature" : "Add Product"}

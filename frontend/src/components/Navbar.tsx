@@ -77,7 +77,7 @@ const Navbar = () => {
       initial={{ y: -24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
-      className="fixed top-5 left-0 right-0 z-50 flex justify-center px-4"
+      className={`fixed left-0 right-0 z-50 flex justify-center px-4 transition-all duration-300 ${scrolled ? "top-5" : "top-12"}`}
     >
       <div
         className={`
@@ -162,19 +162,19 @@ const Navbar = () => {
           ) : (
             <>
               <Button
+                disabled
                 variant="ghost"
                 size="sm"
-                asChild
-                className="text-[0.78rem] font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-100/70 rounded-full px-4"
+                className="text-[0.78rem] font-semibold text-gray-400 cursor-not-allowed rounded-full px-4 hover:bg-transparent"
               >
-                <Link to="/login">Login</Link>
+                Login
               </Button>
-              <Link
-                to="/signup"
-                className="rounded-full px-5 py-2 bg-[#0046C7] hover:bg-[#003BAD] text-white text-[0.78rem] font-bold transition-all duration-150 shadow-sm hover:shadow-[0_4px_12px_rgba(0,70,199,0.35)] active:scale-95"
+              <button
+                disabled
+                className="rounded-full px-5 py-2 bg-gray-100 text-gray-400 text-[0.78rem] font-bold cursor-not-allowed"
               >
                 Sign up
-              </Link>
+              </button>
             </>
           )}
         </div>
@@ -236,20 +236,18 @@ const Navbar = () => {
                 ) : (
                   <>
                     <Button
+                      disabled
                       variant="ghost"
-                      className="w-full rounded-full font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      asChild
-                      onClick={() => setMobileOpen(false)}
+                      className="w-full rounded-full font-semibold text-gray-400 cursor-not-allowed hover:bg-transparent"
                     >
-                      <Link to="/login">Login</Link>
+                      Login
                     </Button>
-                    <Link
-                      to="/signup"
-                      onClick={() => setMobileOpen(false)}
-                      className="w-full text-center rounded-full py-2.5 bg-[#0046C7] hover:bg-[#003BAD] text-white text-sm font-bold transition-all shadow-sm"
+                    <button
+                      disabled
+                      className="w-full text-center rounded-full py-2.5 bg-gray-100 text-gray-400 text-sm font-bold cursor-not-allowed"
                     >
                       Sign up
-                    </Link>
+                    </button>
                   </>
                 )}
               </div>

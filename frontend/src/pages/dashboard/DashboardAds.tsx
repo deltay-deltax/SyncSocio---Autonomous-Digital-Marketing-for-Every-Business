@@ -62,8 +62,7 @@ const DashboardAds = () => {
   }, []);
 
   const handleBoost = (id: string) => {
-    // Simulated Meta Ad Center handoff
-    alert(`🚀 Handing off post ${id} to Meta Ad Center...\n\nIn a production environment, this would initialize the Meta Marketing API with the suggested budget and audience.`);
+    window.open('https://adsmanager.facebook.com/', '_blank');
   };
 
   if (loading) {

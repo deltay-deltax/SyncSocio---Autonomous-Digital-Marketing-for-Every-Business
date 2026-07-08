@@ -8,7 +8,7 @@ import DMFlow from '../models/DMFlow.js';
 import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import Notification from '../models/Notification.js';
 import PostAnalysis from '../models/PostAnalysis.js';
-import { sendSignupWelcomeEmail } from '../utils/sendWelcomeEmail.js';
+import { sendSignupWelcomeEmail, sendMetaTesterAdminNotification } from '../utils/sendWelcomeEmail.js';
 import { createNotification } from '../utils/notificationHelper.js';
 import { uploadBase64ToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload.js';
 
@@ -254,9 +254,50 @@ export const requestMetaTester = async (req, res) => {
       igHandle
     });
 
+    try {
+      console.log(`[TEST] Creating Meta Tester request for user ${req.user._id}`);
+      const userDoc = await User.findById(req.user._id);
+      if (userDoc) {
+        console.log(`[TEST] Found user ${userDoc.email}, triggering sendMetaTesterAdminNotification...`);
+        await sendMetaTesterAdminNotification({
+          userName: userDoc.name,
+          userEmail: userDoc.email,
+          igHandle
+        });
+      } else {
+        console.warn(`[TEST] User ${req.user._id} not found in DB. Skipping email notification.`);
+      }
+    } catch (emailErr) {
+      console.error('[TEST] Exception caught while triggering Meta Tester admin notification:', emailErr);
+    }
+
     res.status(201).json({ success: true, request: testerRequest });
   } catch (error) {
     console.error('Request Meta Tester Error:', error);
     res.status(500).json({ message: 'Server error requesting Meta tester access.' });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    let profile = null;
+    if (req.user.activeBrandId) {
+      profile = await BrandProfile.findOneAndUpdate(
+        { user: req.user._id, _id: req.user.activeBrandId },
+        { $set: req.body },
+        { new: true }
+      );
+    }
+    if (!profile) {
+      profile = await BrandProfile.findOneAndUpdate(
+        { user: req.user._id },
+        { $set: req.body },
+        { new: true }
+      );
+    }
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+    res.status(200).json(profile);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error updating profile' });
   }
 };

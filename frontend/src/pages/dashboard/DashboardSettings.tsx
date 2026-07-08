@@ -303,8 +303,16 @@ const DashboardSettings = () => {
         }
       });
 
-      // 4. Save newly scraped products sequentially
-      const scrapedProducts = scraped.products || [];
+      // 4. Save newly scraped products sequentially, respecting plan limits
+      let scrapedProducts = scraped.products || [];
+      const p = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+      const planName = (p.userPlan || p.selectedPlan || '').toLowerCase();
+      const productLimit = planName.includes('elite') ? 100 : 50;
+      
+      if (scrapedProducts.length > productLimit) {
+        scrapedProducts = scrapedProducts.slice(0, productLimit);
+      }
+
       if (scrapedProducts.length > 0) {
         for (const prod of scrapedProducts) {
           try {
@@ -1421,7 +1429,7 @@ const DashboardSettings = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-muted"
+                  className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-black hover:text-white hover:border-black transition-colors"
                   onClick={() => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('syncsocio_profile');
@@ -1438,7 +1446,7 @@ const DashboardSettings = () => {
 
         {/* ─── EMAIL SETUP TAB ─────────────────────────────────────────────── */}
         {activeTab === 'Email Setup' && (
-          <EmailSetupWizard profile={profile} />
+          <EmailSetupWizard profile={profile} setProfile={setProfile} />
         )}
 
       </div>
@@ -1550,7 +1558,7 @@ const DashboardSettings = () => {
 
 const PERSONAL_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','yahoo.in','rediffmail.com','icloud.com','live.com','msn.com','aol.com'];
 
-const EmailSetupWizard = ({ profile }: { profile: any }) => {
+const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: (p: any) => void }) => {
   const { toast } = useToast();
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
@@ -1563,16 +1571,28 @@ const EmailSetupWizard = ({ profile }: { profile: any }) => {
   const [submitting, setSubmitting] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [copiedRow, setCopiedRow] = useState<string | null>(null);
+  const [hasSelectedSender, setHasSelectedSender] = useState(profile?.has_selected_email_sender || false);
   const [useGeneric, setUseGeneric] = useState(profile?.use_generic_email_sender || false);
+
+  useEffect(() => {
+    if (profile) {
+      setHasSelectedSender(profile.has_selected_email_sender || false);
+      setUseGeneric(profile.use_generic_email_sender || false);
+    }
+  }, [profile]);
 
   const handleToggleGeneric = async (val: boolean) => {
     setUseGeneric(val);
+    setHasSelectedSender(true);
+    if (setProfile) {
+      setProfile({ ...profile, use_generic_email_sender: val, has_selected_email_sender: true });
+    }
     const token = localStorage.getItem('token');
     try {
       await fetch(`${apiBase}/profile/me`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ use_generic_email_sender: val })
+        body: JSON.stringify({ use_generic_email_sender: val, has_selected_email_sender: true })
       });
       toast({ title: 'Preferences saved', description: val ? 'Now sending via SyncSocio network' : 'Switched to custom domain mode' });
     } catch (err) {
@@ -1779,26 +1799,26 @@ const EmailSetupWizard = ({ profile }: { profile: any }) => {
 
       {/* Sender Mode Toggle */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <button onClick={() => handleToggleGeneric(true)} className={`flex-1 p-5 rounded-[2rem] border transition-all text-left ${useGeneric ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-lg' : 'border-border/50 bg-background hover:bg-muted/30'}`}>
+        <button onClick={() => handleToggleGeneric(true)} className={`flex-1 p-5 rounded-[2rem] border transition-all text-left ${hasSelectedSender && useGeneric ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-lg' : 'border-border/50 bg-background hover:bg-muted/30'}`}>
           <div className="flex items-center gap-3 mb-2">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${useGeneric ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hasSelectedSender && useGeneric ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
               <Sparkles size={18} />
             </div>
             <div>
-              <h4 className={`text-sm font-black ${useGeneric ? 'text-primary' : 'text-foreground'}`}>SyncSocio Network</h4>
+              <h4 className={`text-sm font-black ${hasSelectedSender && useGeneric ? 'text-primary' : 'text-foreground'}`}>SyncSocio Network</h4>
               <p className="text-[10px] uppercase font-bold text-muted-foreground">EASY & FAST</p>
             </div>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">Send campaigns instantly from creatives@syncsocio.com. No DNS setup required.</p>
         </button>
 
-        <button onClick={() => handleToggleGeneric(false)} className={`flex-1 p-5 rounded-[2rem] border transition-all text-left ${!useGeneric ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-lg' : 'border-border/50 bg-background hover:bg-muted/30'}`}>
+        <button onClick={() => handleToggleGeneric(false)} className={`flex-1 p-5 rounded-[2rem] border transition-all text-left ${hasSelectedSender && !useGeneric ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-lg' : 'border-border/50 bg-background hover:bg-muted/30'}`}>
           <div className="flex items-center gap-3 mb-2">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${!useGeneric ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hasSelectedSender && !useGeneric ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
               <Globe size={18} />
             </div>
             <div>
-              <h4 className={`text-sm font-black ${!useGeneric ? 'text-primary' : 'text-foreground'}`}>Custom Domain</h4>
+              <h4 className={`text-sm font-black ${hasSelectedSender && !useGeneric ? 'text-primary' : 'text-foreground'}`}>Custom Domain</h4>
               <p className="text-[10px] uppercase font-bold text-muted-foreground">PROFESSIONAL</p>
             </div>
           </div>
@@ -1807,8 +1827,8 @@ const EmailSetupWizard = ({ profile }: { profile: any }) => {
       </div>
 
 
-      {/* \u2500\u2500\u2500 STEP 1 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
-      {!useGeneric && (
+      {/* ─── STEP 1 ─────────────────────────────────────── */}
+      {hasSelectedSender && !useGeneric && (
       <>
       <AnimatePresence mode="wait">
         {step === 1 && (

@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
 import BrandProfile from '../models/BrandProfile.js';
-import { sendInvoiceEmail, generatePDFBuffer, genInvoiceNo, fmtDate, resolvePack } from '../utils/sendInvoiceEmail.js';
+import { sendInvoiceEmail, generatePDFBuffer, genInvoiceNo, fmtDate, resolvePack, sendPaymentFailedEmail } from '../utils/sendInvoiceEmail.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -174,6 +174,25 @@ export const verifyPayment = async (req, res) => {
          transaction.status = 'failed';
          transaction.razorpayPaymentId = razorpay_payment_id;
          await transaction.save();
+
+         // Fetch user details for sending the failure email
+         const user = await User.findById(transaction.user);
+         if (user) {
+           const billingEmail = user.billingAddress?.email || user.email;
+           sendPaymentFailedEmail({
+             to: billingEmail,
+             userName: user.billingAddress?.fullName || user.name || user.email,
+             userEmail: billingEmail,
+             transactionType: transaction.type,
+             planName: transaction.plan || '',
+             amount: transaction.amount,
+             razorpayPaymentId: razorpay_payment_id,
+             razorpayOrderId: razorpay_order_id,
+             transactionId: String(transaction._id)
+           }).catch((err) =>
+             console.error('[Payment Failed Email] Failed to send failure email:', err.message)
+           );
+         }
       }
       return res.status(400).json({ success: false, message: 'Invalid payment signature' });
     }
@@ -235,5 +254,47 @@ export const downloadInvoice = async (req, res) => {
   } catch (error) {
     console.error('Error downloading invoice:', error);
     res.status(500).send('Internal server error');
+  }
+};
+
+export const reportPaymentFailure = async (req, res) => {
+  try {
+    const { razorpayOrderId, razorpayPaymentId, reason, billingAddress } = req.body;
+    
+    console.log(`[Payment Failure Report] 🚨 Received failure report for Order: ${razorpayOrderId}, Payment: ${razorpayPaymentId || 'N/A'}`);
+
+    const transaction = await Transaction.findOne({ razorpayOrderId });
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    // Mark as failed
+    transaction.status = 'failed';
+    if (razorpayPaymentId) transaction.razorpayPaymentId = razorpayPaymentId;
+    await transaction.save();
+
+    // Send email alert to user
+    const user = await User.findById(req.user._id);
+    if (user) {
+      const billingEmail = billingAddress?.email || user.email;
+      sendPaymentFailedEmail({
+        to: billingEmail,
+        userName: billingAddress?.fullName || user.name || user.email,
+        userEmail: billingEmail,
+        transactionType: transaction.type,
+        planName: transaction.plan || '',
+        amount: transaction.amount,
+        razorpayPaymentId: razorpayPaymentId || '',
+        razorpayOrderId: razorpayOrderId,
+        transactionId: String(transaction._id)
+      }).catch(err => {
+        console.error('[Payment Failed Email] Failed to send failure email:', err.message);
+      });
+    }
+
+    return res.status(200).json({ success: true, message: 'Failure recorded and notification dispatched.' });
+  } catch (error) {
+    console.error('Error reporting payment failure:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
