@@ -13,8 +13,8 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@velocity.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'velocityAdmin123!';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@syncsocio.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'syncsocioAdmin123!';
 
 // Admin login
 export const adminLogin = async (req, res) => {
