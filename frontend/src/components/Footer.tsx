@@ -12,6 +12,13 @@ const LinkedinIcon = ({ size = 18 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
 );
 
+const TwitterIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
+    <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
+  </svg>
+);
+
 const Footer = () => {
   return (
     <footer className="py-12 border-t border-border">
@@ -26,14 +33,17 @@ const Footer = () => {
           <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
           <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
           <div className="flex items-center gap-4 border-l border-border pl-6 ml-2">
-            <a href="https://www.instagram.com/syncsocio/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+            <a href="https://www.instagram.com/syncsocio/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 transform">
               <InstagramIcon size={18} />
             </a>
-            <a href="https://www.facebook.com/share/18sBwN4Bys/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+            <a href="https://www.facebook.com/share/18sBwN4Bys/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 transform">
               <FacebookIcon size={18} />
             </a>
-            <a href="https://www.linkedin.com/company/syncsocio/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+            <a href="https://www.linkedin.com/company/syncsocio/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 transform">
               <LinkedinIcon size={18} />
+            </a>
+            <a href="https://x.com/syncsocio" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 transform">
+              <TwitterIcon size={18} />
             </a>
           </div>
         </div>

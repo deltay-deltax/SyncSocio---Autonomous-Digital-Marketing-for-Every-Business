@@ -39,118 +39,128 @@ const TermsOfUse = () => {
 
           <div className="mt-8 space-y-7 text-sm leading-7 text-muted-foreground">
             <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">1. Acceptance Of Terms</h2>
-              <p className="mt-2">
-                These Terms govern your access to and use of SyncSocio, an AI-powered digital marketing automation
-                platform for social channels. By creating an account, connecting Instagram, or using SyncSocio services,
-                you agree to these Terms.
+              <p className="text-foreground/80 leading-relaxed">
+                These Terms of Service ("Terms") govern your access to and use of <strong>SyncSocio</strong>, an AI-powered social media automation and brand management platform. By creating an account or using any platform feature, you confirm you have read, understood, and agree to be bound by these Terms. Last updated: <strong>July 2026</strong>.
               </p>
             </section>
 
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">2. Service Scope</h2>
-              <p className="mt-2">
-                SyncSocio provides workflows including brand onboarding, AI-assisted content generation, Instagram DM
-                automation, comment-triggered messaging, story mention replies, post analytics, and performance
-                insight recommendations.
+            <section className="border-t border-border/40 pt-6">
+              <h2 className="text-base font-black uppercase tracking-wider text-foreground mb-3">1. Platform Use & Eligibility</h2>
+              <p className="leading-relaxed">
+                SyncSocio is intended for business owners, marketers, and brand professionals. You must use SyncSocio only for lawful marketing purposes and in compliance with all relevant guidelines.
               </p>
-              <p className="mt-2">
-                Some features depend on third-party platform APIs, especially Meta/Instagram Graph API availability,
-                permissions, and account status.
-              </p>
+              <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Eligibility & Registration:</strong> Access is limited to users who meet the following:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>Must be a business owner, marketer, or brand professional aged 18 or above.</li>
+                    <li>Must register with accurate and complete credentials, and maintain account security.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong className="text-foreground">Acceptable Use Guidelines:</strong> You agree to use SyncSocio only for lawful purposes. You must not:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>Send spam messages, post misleading claims, or automate harassing campaigns.</li>
+                    <li>Engage in inauthentic, deceptive, or abusive behaviors on connected social channels.</li>
+                    <li>Violate Meta's Platform Terms or Instagram's Community Guidelines.</li>
+                  </ul>
+                </li>
+              </ul>
             </section>
 
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">3. Account Eligibility And Security</h2>
-              <p className="mt-2">
-                You must provide accurate information and maintain security of your account credentials. You are
-                responsible for all activity under your account and connected social identities.
+            <section className="border-t border-border/40 pt-6">
+              <h2 className="text-base font-black uppercase tracking-wider text-foreground mb-3">2. Meta / Instagram API Authorization & Automation Rules</h2>
+              <p className="leading-relaxed">
+                By connecting your Instagram Business Account, you explicitly authorize SyncSocio to access your account via Meta's official API.
               </p>
+              <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Authorized Access Scopes:</strong> Connecting your account grants SyncSocio access to:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>Read account profile data, media posts, comments, and follower/engagement insights.</li>
+                    <li>Process and respond to inbound comments, story mentions, and DM events.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong className="text-foreground">Integration Constraints:</strong> Our automation is bound by Meta's technical limits:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>Automations must run strictly within the approved <strong>24-hour messaging window</strong>.</li>
+                    <li>All API requests are subject to Meta's developer rate limits.</li>
+                    <li>SyncSocio does not store your Instagram passwords and uses secure OAuth 2.0.</li>
+                  </ul>
+                </li>
+              </ul>
             </section>
 
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">4. Connected Platform Authorization</h2>
-              <p className="mt-2">
-                By connecting Instagram or related Meta assets, you authorize SyncSocio to access approved scopes
-                (such as reading profile/media details, insights, messages, and webhooks) strictly for providing
-                configured automation and analytics features.
+            <section className="border-t border-border/40 pt-6">
+              <h2 className="text-base font-black uppercase tracking-wider text-foreground mb-3">3. AI-Generated Content & Performance Disclaimer</h2>
+              <p className="leading-relaxed">
+                SyncSocio's AI agents generate content strategies, DM flow suggestions, and brand insights based on the data you provide.
               </p>
-              <p className="mt-2">
-                You represent that you own or are authorized to manage any social accounts connected to SyncSocio.
-              </p>
+              <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Human Oversight Required:</strong> Since AI outputs can occasionally produce inaccuracies:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>You retain full sole responsibility to edit, verify, and approve all AI-generated content before publication.</li>
+                    <li>Ensure all promotions, claims, and links adhere to applicable consumer protection laws.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong className="text-foreground">No Guarantees of Performance:</strong> SyncSocio provides strategic recommendations, but:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>We do not guarantee follower growth, conversion increases, reach improvements, or sales numbers.</li>
+                    <li>We are independent and have no official affiliation with, sponsorship by, or endorsement from Meta Platforms, Inc.</li>
+                  </ul>
+                </li>
+              </ul>
             </section>
 
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">5. User Responsibilities And Acceptable Use</h2>
-              <p className="mt-2">
-                You agree not to use SyncSocio for unlawful, deceptive, harassing, spam, or rights-infringing content
-                and campaigns. You are responsible for the legality and accuracy of generated or published content,
-                including promotions, claims, links, and disclosures.
+            <section className="border-t border-border/40 pt-6">
+              <h2 className="text-base font-black uppercase tracking-wider text-foreground mb-3">4. Subscriptions, Credits & Termination</h2>
+              <p className="leading-relaxed">
+                SyncSocio operates on a credit-based and subscription model. Paid plan fees are non-refundable unless required by applicable law.
               </p>
-              <p className="mt-2">
-                You must comply with platform rules, including Meta messaging windows, rate limits, and policy
-                requirements for automation.
-              </p>
+              <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Billing & Service Credits:</strong> Account charges are subject to the following rules:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>Paid plan subscription fees are billed in advance and are non-refundable.</li>
+                    <li>Credits purchased for AI generation or automation have no cash value and are non-transferable.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong className="text-foreground">Suspension & Account Erasure:</strong> We reserve the right to suspend or terminate access if:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>You violate platform rules, fail to pay subscription fees, or cause security hazards.</li>
+                    <li>Meta restricts or suspends our developer app or your specific social accounts.</li>
+                  </ul>
+                </li>
+              </ul>
             </section>
 
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">6. AI Outputs And Performance</h2>
-              <p className="mt-2">
-                AI-generated suggestions and automation outcomes may vary. SyncSocio does not guarantee any specific
-                growth, reach, conversion, follower count, or revenue result.
+            <section className="border-t border-border/40 pt-6">
+              <h2 className="text-base font-black uppercase tracking-wider text-foreground mb-3">5. Intellectual Property & Limitation of Liability</h2>
+              <p className="leading-relaxed">
+                You retain ownership of all brand assets you bring to the platform. SyncSocio retains proprietary rights to platform software.
               </p>
-              <p className="mt-2">
-                You should review content where needed before publication and maintain human oversight appropriate to
-                your brand and regulatory environment.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">7. Intellectual Property</h2>
-              <p className="mt-2">
-                You retain ownership of your brand assets and content you provide. SyncSocio and its software,
-                interfaces, workflow logic, and product branding remain proprietary to SyncSocio and its licensors.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">8. Third-Party Services</h2>
-              <p className="mt-2">
-                SyncSocio integrates with third-party providers including Meta platforms. Their separate terms,
-                policies, outages, and API changes may affect feature behavior. SyncSocio is not responsible for
-                third-party downtime or policy enforcement actions.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">9. Fees, Suspension, And Termination</h2>
-              <p className="mt-2">
-                Paid plans, if applicable, are billed under the pricing terms shown at purchase. We may suspend or
-                terminate access for policy abuse, non-payment, security issues, or legal compliance reasons.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">10. Disclaimer And Liability Limits</h2>
-              <p className="mt-2">
-                SyncSocio is provided on an "as is" and "as available" basis. To the maximum extent permitted by law,
-                SyncSocio disclaims warranties and is not liable for indirect, incidental, special, consequential,
-                reputational, or data-loss damages, or for lost profits arising from service use.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">11. Changes To Terms</h2>
-              <p className="mt-2">
-                We may update these Terms to reflect legal, technical, or product changes. Continued use after updates
-                constitutes acceptance of revised Terms.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-base font-black uppercase tracking-wider text-foreground">12. Contact</h2>
-              <p className="mt-2">
-                For legal requests, compliance issues, or account concerns, contact: supportsyncsocio@gmail.com.
+              <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Property Ownership:</strong> A clear division of intellectual property:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>You retain ownership of your brand assets, logo files, and creative content.</li>
+                    <li>SyncSocio retains ownership of all platform designs, databases, source code, and workflow logic.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong className="text-foreground">Liability Restrictions:</strong> To the maximum extent permitted by law:
+                  <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                    <li>SyncSocio is provided on an "as-is" and "as-available" basis without warranties.</li>
+                    <li>We are not liable for business interruptions, social account bans, or data losses.</li>
+                  </ul>
+                </li>
+              </ul>
+              <p className="mt-4">
+                For legal inquiries, contact: <a href="mailto:supportsyncsocio@gmail.com" className="text-blue-500 hover:underline font-bold">supportsyncsocio@gmail.com</a>.
               </p>
             </section>
           </div>
