@@ -240,6 +240,8 @@ const Onboarding = () => {
   const [scanError, setScanError] = useState('');
   const [scanSuccess, setScanSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [activeModal, setActiveModal] = useState<'terms' | 'privacy' | null>(null);
 
   const handleScanWebsite = async () => {
     if (!scanUrl.trim()) {
@@ -1264,13 +1266,33 @@ const Onboarding = () => {
                             </div>
                           </div>
 
-                          <div className="mt-8 pt-8 border-t border-border/50 flex items-center justify-between gap-4">
+                          <div className="mt-6 flex items-start gap-3 bg-muted/20 p-4 rounded-xl border border-border/50">
+                            <div className="flex h-5 items-center">
+                              <input
+                                id="terms"
+                                type="checkbox"
+                                checked={agreedToTerms}
+                                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                className="h-4 w-4 rounded border-border/80 text-primary focus:ring-primary/20 transition-all cursor-pointer accent-primary"
+                              />
+                            </div>
+                            <div className="text-xs">
+                              <label htmlFor="terms" className="font-medium text-foreground cursor-pointer select-none">
+                                I agree to the <button type="button" onClick={() => setActiveModal('terms')} className="text-blue-500 hover:underline font-bold">Terms of Service</button> and <button type="button" onClick={() => setActiveModal('privacy')} className="text-blue-500 hover:underline font-bold">Privacy Policy</button>.
+                              </label>
+                              <p className="text-muted-foreground mt-0.5 text-[10px]">
+                                You must agree before launching your dashboard.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-6 pt-6 border-t border-border/50 flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                               <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Engine Hot</span>
                             </div>
                             <button
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || !agreedToTerms}
                               onClick={async () => {
                                 setIsSubmitting(true);
                                 try {
@@ -1334,7 +1356,7 @@ const Onboarding = () => {
                                   setIsSubmitting(false);
                                 }
                               }}
-                              className={`gradient-bg text-white px-8 py-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                              className={`gradient-bg text-white px-8 py-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 ${isSubmitting || !agreedToTerms ? 'opacity-50 cursor-not-allowed saturate-50' : ''}`}
                             >
                               {isSubmitting ? (
                                 <>
@@ -1357,6 +1379,298 @@ const Onboarding = () => {
           </div>
         </div>
       </div>
+
+      {/* Legal Modals */}
+      {activeModal && createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setActiveModal(null)}
+        >
+          <div 
+            className="bg-card w-full max-w-lg mx-4 rounded-2xl shadow-2xl border border-border/80 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-muted/20">
+              <h3 className="text-lg font-bold text-foreground">
+                {activeModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
+              </h3>
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto text-sm text-muted-foreground space-y-4">
+              {activeModal === 'terms' ? (
+                <>
+                  <p className="text-foreground/80 leading-relaxed">
+                    These Terms of Service ("Terms") govern your access to and use of <strong>SyncSocio</strong>, an AI-powered social media automation and brand management platform. By creating an account or using any platform feature, you confirm you have read, understood, and agree to be bound by these Terms. Last updated: <strong>July 2026</strong>.
+                  </p>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">1. Platform Use & Eligibility</h4>
+                    <p className="leading-relaxed">
+                      SyncSocio is intended for business owners, marketers, and brand professionals. You must use SyncSocio only for lawful marketing purposes and in compliance with all relevant guidelines.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Eligibility & Registration:</strong> Access is limited to users who meet the following:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Must be a business owner, marketer, or brand professional aged 18 or above.</li>
+                          <li>Must register with accurate and complete credentials, and maintain account security.</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Acceptable Use Guidelines:</strong> You agree to use SyncSocio only for lawful purposes. You must not:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Send spam messages, post misleading claims, or automate harassing campaigns.</li>
+                          <li>Engage in inauthentic, deceptive, or abusive behaviors on connected social channels.</li>
+                          <li>Violate Meta's Platform Terms or Instagram's Community Guidelines.</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">2. Meta / Instagram API Authorization & Automation Rules</h4>
+                    <p className="leading-relaxed">
+                      By connecting your Instagram Business Account, you explicitly authorize SyncSocio to access your account via Meta's official API.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Authorized Access Scopes:</strong> Connecting your account grants SyncSocio access to:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Read account profile data, media posts, comments, and follower/engagement insights.</li>
+                          <li>Process and respond to inbound comments, story mentions, and DM events.</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Integration Constraints:</strong> Our automation is bound by Meta's technical limits:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Automations must run strictly within the approved <strong>24-hour messaging window</strong>.</li>
+                          <li>All API requests are subject to Meta's developer rate limits.</li>
+                          <li>SyncSocio does not store your Instagram passwords and uses secure OAuth 2.0.</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">3. AI-Generated Content & Performance Disclaimer</h4>
+                    <p className="leading-relaxed">
+                      SyncSocio's AI agents generate content strategies, DM flow suggestions, and brand insights based on the data you provide.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Human Oversight Required:</strong> Since AI outputs can occasionally produce inaccuracies:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>You retain full sole responsibility to edit, verify, and approve all AI-generated content before publication.</li>
+                          <li>Ensure all promotions, claims, and links adhere to applicable consumer protection laws.</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">No Guarantees of Performance:</strong> SyncSocio provides strategic recommendations, but:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>We do not guarantee follower growth, conversion increases, reach improvements, or sales numbers.</li>
+                          <li>We are independent and have no official affiliation with, sponsorship by, or endorsement from Meta Platforms, Inc.</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">4. Subscriptions, Credits & Termination</h4>
+                    <p className="leading-relaxed">
+                      SyncSocio operates on a credit-based and subscription model. Paid plan fees are non-refundable unless required by applicable law.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Billing & Service Credits:</strong> Account charges are subject to the following rules:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Paid plan subscription fees are billed in advance and are non-refundable.</li>
+                          <li>Credits purchased for AI generation or automation have no cash value and are non-transferable.</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Suspension & Account Erasure:</strong> We reserve the right to suspend or terminate access if:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>You violate platform rules, fail to pay subscription fees, or cause security hazards.</li>
+                          <li>Meta restricts or suspends our developer app or your specific social accounts.</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">5. Intellectual Property & Limitation of Liability</h4>
+                    <p className="leading-relaxed">
+                      You retain ownership of all brand assets you bring to the platform. SyncSocio retains proprietary rights to platform software.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Property Ownership:</strong> A clear division of intellectual property:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>You retain ownership of your brand assets, logo files, and creative content.</li>
+                          <li>SyncSocio retains ownership of all platform designs, databases, source code, and workflow logic.</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Liability Restrictions:</strong> To the maximum extent permitted by law:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>SyncSocio is provided on an "as-is" and "as-available" basis without warranties.</li>
+                          <li>We are not liable for business interruptions, social account bans, or data losses.</li>
+                        </ul>
+                      </li>
+                    </ul>
+                    <p className="mt-3 text-muted-foreground">
+                      For legal inquiries, contact: <a href="mailto:supportsyncsocio@gmail.com" className="text-blue-500 hover:underline font-bold">supportsyncsocio@gmail.com</a>
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-foreground/80 leading-relaxed">
+                    This Privacy Policy explains how <strong>SyncSocio</strong> collects, processes, stores, and protects your data when you use our AI-powered social media automation platform. We comply with applicable data protection laws including India's <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong>. Last updated: <strong>July 2026</strong>.
+                  </p>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">1. Data We Collect & Why</h4>
+                    <p className="leading-relaxed">
+                      We collect the following categories of data strictly to operate and improve our services:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Account Data:</strong> Name, email address, hashed password, and plan selections.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Brand Profile Data:</strong> Business name, social handle, target audience, brand colors, logo, keywords, posting preferences, and onboarding responses you provide.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Instagram Integration Data:</strong> Accessed only via Meta's official Graph API with your authorization:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Instagram Business Account ID, username, and OAuth access tokens.</li>
+                          <li>Media metadata, post insights, follower metrics, and webhook event payloads (comments, DM events, story mentions).</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Technical & Usage Data:</strong> Login timestamps, API logs, feature activity, device info, and error reports for system reliability and security.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">2. How We Use Your Data</h4>
+                    <p className="leading-relaxed">
+                      Your data is processed exclusively to deliver the services you configure.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Service Delivery:</strong> We use your data to operate the core platform features:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Authenticate and manage your account credentials securely.</li>
+                          <li>Operate automated Instagram DM flows, comment replies, and story mention responses you configure.</li>
+                          <li>Deliver transactional notification emails (e.g., password reset, welcome, credit/plan updates).</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">AI Intelligence & Optimization:</strong> To formulate your marketing blueprints:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Generate AI-powered content strategies, brand recommendations, and analytics insights.</li>
+                          <li>Monitor system health, prevent platform abuse, and ensure legal and API compliance.</li>
+                        </ul>
+                      </li>
+                    </ul>
+                    <p className="mt-3 leading-relaxed">
+                      We do <strong>not</strong> use your data to train third-party AI models or sell it for advertising.
+                    </p>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">3. Data Sharing & Third-Party Services</h4>
+                    <p className="leading-relaxed">
+                      <strong>We do not sell your personal data.</strong> Data is shared only with the following categories of trusted service providers necessary to operate SyncSocio:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Core Service Integrations:</strong> Shared only with essential platforms to execute your automations:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li><strong>Meta Platforms, Inc.</strong> — via the official Instagram Graph API for comment and message processing.</li>
+                          <li><strong>SendGrid (Twilio)</strong> — for routing transactional notifications and email campaigns.</li>
+                          <li><strong>Payment Gateways (Razorpay/Stripe)</strong> — for processing payments and subscription billing.</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Infrastructure & Security:</strong> To keep your workflows running:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li><strong>Cloud Infrastructure Providers</strong> — for secure database storage and server hosting.</li>
+                          <li><strong>Regulatory & Legal Authorities</strong> — only when required by law or valid legal processes.</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">4. Data Retention, Security & Tokens</h4>
+                    <p className="leading-relaxed">
+                      Your account data is retained for as long as your account is active. Instagram access tokens are stored in encrypted form and used solely to execute your authorized automations.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Encryption & Access:</strong> Tokens are encrypted at rest. We apply industry-standard security safeguards.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">No Password Storage:</strong> We never request or store your Instagram passwords.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Erasure Request:</strong> You may request full account deletion and data erasure by contacting us. We action requests within 30 days under the DPDP Act.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-4">
+                    <h4 className="text-foreground font-bold text-sm mb-2">5. Your Rights & Contact</h4>
+                    <p className="leading-relaxed">
+                      Under the DPDP Act 2023 and applicable regulations, you possess rights concerning your personal data.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 mt-3 text-muted-foreground">
+                      <li>
+                        <strong className="text-foreground">Account Controls:</strong> Rights regarding your personal information:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li><strong>Access & Export:</strong> Request a copy of the data we hold.</li>
+                          <li><strong>Correction:</strong> Modify any outdated or inaccurate details in your settings.</li>
+                          <li><strong>Erasure:</strong> Request permanent deletion of your account and personal data.</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Consent Management:</strong> You can revoke access at any time:
+                        <ul className="list-[circle] pl-5 space-y-1 mt-1 text-muted-foreground/90">
+                          <li>Withdraw consent by disconnecting integrations or deleting your brand profiles.</li>
+                          <li>Object to any processing you believe does not comply with regulations.</li>
+                        </ul>
+                      </li>
+                    </ul>
+                    <p className="mt-3 text-muted-foreground">
+                      To exercise these rights, contact: <a href="mailto:supportsyncsocio@gmail.com" className="text-blue-500 hover:underline font-bold">supportsyncsocio@gmail.com</a>.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="p-4 border-t border-border/50 bg-muted/10 flex justify-end">
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="px-6 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors"
+              >
+                I Understand
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

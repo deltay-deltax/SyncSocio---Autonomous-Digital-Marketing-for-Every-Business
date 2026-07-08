@@ -29,7 +29,13 @@ import {
   getWaitlist,
   deleteWaitlistEntry,
   getMetaTesterRequests,
-  toggleMetaTesterApproval
+  toggleMetaTesterApproval,
+  getDiscountDetails,
+  getApiCostDetails,
+  getRevenueDetails,
+  getCreditDetails,
+  getCreativesDetails,
+  getActiveUsersDetails,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -72,6 +78,14 @@ router.get('/metrics', getMetrics);
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
 router.get('/analytics/revenue', getRevenueAnalytics);
+
+// ─── KPI Detail Drill-Down Endpoints ─────────────────────────────────────────
+router.get('/details/discounts', getDiscountDetails);
+router.get('/details/api-cost', getApiCostDetails);
+router.get('/details/revenue', getRevenueDetails);
+router.get('/details/credits', getCreditDetails);
+router.get('/details/creatives', getCreativesDetails);
+router.get('/details/active-users', getActiveUsersDetails);
 
 // ─── Transactions ─────────────────────────────────────────────────────────────
 router.get('/transactions', getTransactions);
