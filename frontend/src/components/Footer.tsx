@@ -42,7 +42,7 @@ const Footer = () => {
             <a href="https://www.linkedin.com/company/syncsocio/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 transform">
               <LinkedinIcon size={18} />
             </a>
-            <a href="https://x.com/syncsocio" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 transform">
+            <a href="https://x.com/SyncSocio" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 transform">
               <TwitterIcon size={18} />
             </a>
           </div>
