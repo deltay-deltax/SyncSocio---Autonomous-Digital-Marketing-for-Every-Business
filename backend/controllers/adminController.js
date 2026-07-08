@@ -140,8 +140,8 @@ export const getMetrics = async (req, res) => {
     const newSignupsThisWeek = await User.countDocuments({ createdAt: { $gte: weekStart } });
 
     // Creatives Generated
-    const assetsGeneratedToday = await Asset.countDocuments({ createdAt: { $gte: todayStart } });
-    const assetsGeneratedMonth = await Asset.countDocuments({ createdAt: { $gte: monthStart } });
+    const assetsGeneratedToday = await StrategyCreative.countDocuments({ createdAt: { $gte: todayStart } });
+    const assetsGeneratedMonth = await StrategyCreative.countDocuments({ createdAt: { $gte: monthStart } });
     
     // Calculate total credits in the system
     const allUsers = await User.find().select('credits totalCreditsPurchased totalCreditsConsumed');
@@ -181,6 +181,16 @@ export const getMetrics = async (req, res) => {
     const visitorsWeek = await VisitorLog.countDocuments({ createdAt: { $gte: weekStart } });
     const visitorsMonth = await VisitorLog.countDocuments({ createdAt: { $gte: monthStart } });
     const visitorsTotal = await VisitorLog.countDocuments();
+    const visitorUniqueSessions = (await VisitorLog.distinct('sessionToken')).length;
+    const visitorsByDate = await VisitorLog.aggregate([
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
 
     // Fetch last 5 transactions with user emails populated
     const recentTransactions = await Transaction.find()
@@ -210,12 +220,184 @@ export const getMetrics = async (req, res) => {
         visitorsToday,
         visitorsWeek,
         visitorsMonth,
-        visitorsTotal
+        visitorsTotal,
+        visitorUniqueSessions,
+        visitorsByDate
       }
     });
   } catch (error) {
     console.error('Error fetching metrics:', error);
     return res.status(500).json({ success: false, message: 'Failed to fetch metrics' });
+  }
+};
+
+// ── Discounts Detail ─────────────────────────────────────────────────────────
+export const getDiscountDetails = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ discountAmount: { $gt: 0 } })
+      .populate('user', 'email name')
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    const items = transactions.map(t => ({
+      _id: t._id,
+      email: t.user?.email || 'Deleted User',
+      name: t.user?.name || '',
+      couponCode: t.couponCode || '—',
+      discountAmount: t.discountAmount,
+      discountPercentage: t.discountPercentage,
+      plan: t.plan || 'Credit Topup',
+      amount: t.amount,
+      type: t.type,
+      createdAt: t.createdAt,
+    }));
+
+    return res.status(200).json({ success: true, items });
+  } catch (error) {
+    console.error('Error fetching discount details:', error);
+    return res.status(500).json({ success: false });
+  }
+};
+
+// ── API Cost Detail ──────────────────────────────────────────────────────────
+export const getApiCostDetails = async (req, res) => {
+  try {
+    const logs = await ApiLog.find()
+      .populate('user', 'email name')
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    const items = logs.map(l => ({
+      _id: l._id,
+      email: l.user?.email || 'System/Unknown',
+      name: l.user?.name || '',
+      provider: l.provider,
+      endpoint: l.endpoint,
+      costInCents: l.costInCents,
+      isError: l.isError,
+      createdAt: l.createdAt,
+    }));
+
+    return res.status(200).json({ success: true, items });
+  } catch (error) {
+    console.error('Error fetching API cost details:', error);
+    return res.status(500).json({ success: false });
+  }
+};
+
+// ── Revenue Detail ───────────────────────────────────────────────────────────
+export const getRevenueDetails = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ status: 'completed', amount: { $gt: 0 } })
+      .populate('user', 'email name')
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    const items = transactions.map(t => ({
+      _id: t._id,
+      email: t.user?.email || 'Deleted User',
+      name: t.user?.name || '',
+      plan: t.plan || 'Credit Topup',
+      type: t.type,
+      amount: t.amount,
+      couponCode: t.couponCode || '',
+      discountAmount: t.discountAmount,
+      createdAt: t.createdAt,
+    }));
+
+    return res.status(200).json({ success: true, items });
+  } catch (error) {
+    console.error('Error fetching revenue details:', error);
+    return res.status(500).json({ success: false });
+  }
+};
+
+// ── Credit Usage Detail ──────────────────────────────────────────────────────
+export const getCreditDetails = async (req, res) => {
+  try {
+    const users = await User.find({ 
+      $or: [
+        { totalCreditsConsumed: { $gt: 0 } },
+        { credits: { $gt: 0 } }
+      ]
+    })
+      .select('email name credits totalCreditsPurchased totalCreditsConsumed updatedAt plan')
+      .sort({ totalCreditsConsumed: -1, credits: -1 });
+
+    const items = users.map(u => ({
+      _id: u._id,
+      email: u.email,
+      name: u.name || '',
+      plan: u.plan || 'Free',
+      creditsRemaining: u.credits,
+      totalPurchased: u.totalCreditsPurchased,
+      totalConsumed: u.totalCreditsConsumed,
+      lastActive: u.updatedAt,
+    }));
+
+    return res.status(200).json({ success: true, items });
+  } catch (error) {
+    console.error('Error fetching credit details:', error);
+    return res.status(500).json({ success: false });
+  }
+};
+
+// ── Creatives Detail ─────────────────────────────────────────────────────────
+export const getCreativesDetails = async (req, res) => {
+  try {
+    const byUser = await StrategyCreative.aggregate([
+      {
+        $group: {
+          _id: '$user',
+          count: { $sum: 1 },
+          latest: { $max: '$createdAt' },
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    const userIds = byUser.map(b => b._id);
+    const users = await User.find({ _id: { $in: userIds } }).select('email name');
+    const userMap = Object.fromEntries(users.map(u => [String(u._id), u]));
+
+    const items = byUser.map(b => ({
+      userId: b._id,
+      email: userMap[String(b._id)]?.email || 'Unknown',
+      name: userMap[String(b._id)]?.name || '',
+      count: b.count,
+      latest: b.latest,
+    }));
+
+    return res.status(200).json({ success: true, items });
+  } catch (error) {
+    console.error('Error fetching creatives details:', error);
+    return res.status(500).json({ success: false });
+  }
+};
+
+// ── Active Users Detail ──────────────────────────────────────────────────────
+export const getActiveUsersDetails = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select('email name plan credits isVerified createdAt updatedAt')
+      .sort({ updatedAt: -1 })
+      .limit(50);
+
+    const items = users.map(u => ({
+      _id: u._id,
+      email: u.email,
+      name: u.name || '',
+      plan: u.plan || 'Free',
+      credits: u.credits,
+      isVerified: u.isVerified,
+      createdAt: u.createdAt,
+      lastActive: u.updatedAt,
+    }));
+
+    return res.status(200).json({ success: true, items });
+  } catch (error) {
+    console.error('Error fetching active users details:', error);
+    return res.status(500).json({ success: false });
   }
 };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Pencil, Check, X, Eye, Ban, ShieldCheck, Mail, LogIn, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -21,9 +21,10 @@ export default function Users() {
   const [editForm, setEditForm] = useState({ credits: 0, plan: '' });
 
   // Filters & Search
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [planFilter, setPlanFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [planFilter, setPlanFilter] = useState(location.state?.planFilter || '');
+  const [statusFilter, setStatusFilter] = useState(location.state?.statusFilter || '');
   const [verifiedFilter, setVerifiedFilter] = useState('');
   const [sortBy, setSortBy] = useState('createdAt_desc');
   const [page, setPage] = useState(1);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Search, ChevronLeft, ChevronRight, ReceiptText, RefreshCw, RotateCcw } from 'lucide-react';
 
@@ -35,7 +36,8 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const location = useLocation();
+  const [statusFilter, setStatusFilter] = useState(location.state?.statusFilter || '');
   const [page, setPage] = useState(1);
 
   // Debounce search

@@ -132,8 +132,8 @@ export const deductCredits = async (req, res) => {
 
     const updated = await User.findByIdAndUpdate(
       req.user._id,
-      { $inc: { credits: -cost } },
-      { new: true, select: 'credits plan' }
+      { $inc: { credits: -cost, totalCreditsConsumed: cost } },
+      { new: true, select: 'credits plan totalCreditsConsumed' }
     );
 
     // Log agent activity

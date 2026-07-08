@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -71,6 +72,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 };
 
 export default function Analytics() {
+  const navigate = useNavigate();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,12 +142,16 @@ export default function Analytics() {
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: '6-Month Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'emerald', sub: 'Completed transactions' },
-          { label: 'New Signups', value: totalSignups, icon: Users, color: 'blue', sub: 'Last 6 months' },
-          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹599/month' },
-          { label: 'Elite Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Elite'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹1899/month' },
+          { label: '6-Month Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'emerald', sub: 'Completed transactions', path: '/transactions', state: { statusFilter: 'completed' } },
+          { label: 'New Signups', value: totalSignups, icon: Users, color: 'blue', sub: 'Last 6 months', path: '/users', state: {} },
+          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹599/month', path: '/users', state: { planFilter: 'starter' } },
+          { label: 'Elite Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Elite'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹1899/month', path: '/users', state: { planFilter: 'elite' } },
         ].map((kpi) => (
-          <div key={kpi.label} className={`glass-card border border-transparent rounded-2xl p-5 hover:border-${kpi.color}-500/30 transition-all`}>
+          <div 
+            key={kpi.label} 
+            onClick={() => navigate(kpi.path, { state: kpi.state })}
+            className={`glass-card border border-transparent rounded-2xl p-5 hover:border-${kpi.color}-500/30 transition-all cursor-pointer hover:bg-muted/10`}
+          >
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
               <div className={`p-2 bg-${kpi.color}-500/10 rounded-lg`}>
