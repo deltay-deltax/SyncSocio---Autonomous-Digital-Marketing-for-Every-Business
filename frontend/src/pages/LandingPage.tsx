@@ -13,7 +13,6 @@ import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import WaitlistDialog from "@/components/WaitlistDialog";
 import DomeGallery from "@/components/ui/DomeGallery";
-import LaunchCurtain from "@/components/ui/LaunchCurtain";
 
 import { useNavigate } from "react-router-dom";
 
@@ -93,7 +92,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative">
-      <LaunchCurtain />
       {isCheckingStatus && (
         <div className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-md flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
