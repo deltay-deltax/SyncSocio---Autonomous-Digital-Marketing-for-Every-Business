@@ -104,6 +104,15 @@ const getDataNumber = (el: HTMLElement, name: string, fallback: number) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const optimizeCloudinaryUrl = (url: string) => {
+  if (url && url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    if (!url.includes('/upload/q_auto')) {
+      return url.replace('/upload/', '/upload/q_auto,f_auto,w_400/');
+    }
+  }
+  return url;
+};
+
 function buildItems(pool: any[], seg: number) {
   const xCols = Array.from({ length: seg }, (_, i) => -37 + i * 2);
   const evenYs = [-4, -2, 0, 2, 4];
@@ -671,7 +680,7 @@ export default function DomeGallery({
                   onClick={onTileClick}
                   onPointerUp={onTilePointerUp}
                 >
-                  <img src={it.src} draggable={false} alt={it.alt} />
+                  <img src={optimizeCloudinaryUrl(it.src)} draggable={false} alt={it.alt} />
                 </div>
               </div>
             ))}
