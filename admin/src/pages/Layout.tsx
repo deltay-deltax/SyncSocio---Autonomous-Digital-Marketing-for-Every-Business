@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Ticket, LogOut, Briefcase, BarChart3, ReceiptText, Activity, ClipboardList, Menu, X, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Ticket, LogOut, Briefcase, BarChart3, ReceiptText, Activity, ClipboardList, Menu, X, ShieldCheck, RotateCcw } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
 
 const NAV_ITEMS = [
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/users', icon: Users, label: 'Users' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/transactions', icon: ReceiptText, label: 'Transactions' },
+  { to: '/refunds', icon: RotateCcw, label: 'Refund History' },
   { to: '/brands', icon: Briefcase, label: 'Brands' },
   { to: '/coupons', icon: Ticket, label: 'Coupons' },
   { to: '/system-health', icon: Activity, label: 'System Health' },
@@ -50,16 +51,16 @@ export default function Layout() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-40 w-64 border-r border-border bg-card/90 backdrop-blur-xl flex flex-col flex-shrink-0 transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 glass-card`}>
+      <aside className={`fixed md:static inset-y-0 left-0 z-40 w-56 border-r border-border bg-card/90 backdrop-blur-xl flex flex-col flex-shrink-0 transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 glass-card`}>
         {/* Logo */}
-        <div className="p-6 border-b border-border flex items-center justify-between">
+        <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Sync Socio Logo" className="h-10 w-10 rounded-xl object-cover shadow-sm" />
+            <img src={logo} alt="Sync Socio Logo" className="h-9 w-9 rounded-xl object-cover shadow-sm" />
             <div>
-              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-500">
+              <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-500">
                 Sync Socio
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Control Center</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">Control Center</p>
             </div>
           </div>
           <button onClick={closeSidebar} className="md:hidden p-1 text-muted-foreground hover:text-foreground">
@@ -103,7 +104,7 @@ export default function Layout() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-background/95 pt-16 md:pt-0 relative">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02] pointer-events-none"></div>
-        <div className="p-4 md:p-8 max-w-7xl mx-auto relative z-10">
+        <div className="p-4 md:p-6 w-full mx-auto relative z-10">
           <Outlet />
         </div>
       </main>

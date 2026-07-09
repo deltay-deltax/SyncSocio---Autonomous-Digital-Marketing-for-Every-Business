@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { EditorProvider, useEditor } from '@/contexts/EditorContext';
 import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush } from 'lucide-react';
@@ -94,11 +95,23 @@ const DashboardLayoutContent = () => {
     loadTasksFromIDB().then((idbTasks: any[]) => {
       if (idbTasks && idbTasks.length > 0) {
         setBackgroundTasks(prev => {
-          const processed = idbTasks.map((t: BgTask) => 
-            t.status === 'generating' 
-              ? { ...t, status: 'error' as const, error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
-              : t
-          );
+          let hasInterrupted = false;
+          const processed = idbTasks.map((t: BgTask) => {
+            if (t.status === 'generating') {
+              hasInterrupted = true;
+              return { ...t, status: 'error' as const, error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' };
+            }
+            return t;
+          });
+
+          if (hasInterrupted) {
+            axios.post(`${import.meta.env.VITE_API_URL}/api/ai/log-client-error`, {
+              provider: 'OTHER',
+              endpoint: 'client-generation',
+              errorMessage: 'Interrupted by page refresh'
+            }, { withCredentials: true }).catch(err => console.error('Failed to log client error', err));
+          }
+
           const newTasksStarted = prev.filter(p => !processed.find((pt: any) => pt.id === p.id));
           return [...newTasksStarted, ...processed];
         });

@@ -13,6 +13,7 @@ interface Coupon {
   expiryDate?: string;
   timesUsed?: number;
   maxUses?: number | null;
+  applicableOn?: string[];
 }
 
 export default function Coupons() {
@@ -25,6 +26,7 @@ export default function Coupons() {
   const [discountPercentage, setDiscountPercentage] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [maxUses, setMaxUses] = useState('');
+  const [applicableOn, setApplicableOn] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,6 +69,7 @@ export default function Coupons() {
       };
       if (expiryDate) payload.expiryDate = expiryDate;
       if (maxUses) payload.maxUses = Number(maxUses);
+      if (applicableOn.length > 0) payload.applicableOn = applicableOn;
 
       const res = await axios.post(`${API}/coupons`, payload, {
         headers: { Authorization: `Bearer ${token}` }
@@ -76,6 +79,7 @@ export default function Coupons() {
         setDiscountPercentage('');
         setExpiryDate('');
         setMaxUses('');
+        setApplicableOn([]);
         fetchCoupons();
       }
     } catch (err: any) {
@@ -133,7 +137,7 @@ export default function Coupons() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+        <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">
           Coupon & Discount Management
         </h2>
         <p className="text-muted-foreground mt-1">
@@ -207,6 +211,35 @@ export default function Coupons() {
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Tag size={12} /> Applicable On (leave unchecked for all)
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'starter', label: 'Starter Plan' },
+                  { id: 'elite', label: 'Elite Plan' },
+                  { id: 'topup', label: 'Credit Top Up' }
+                ].map((item) => (
+                  <label key={item.id} className="flex items-center gap-2 text-sm text-foreground cursor-pointer p-2 rounded-lg border border-border/60 hover:bg-muted/30">
+                    <input
+                      type="checkbox"
+                      className="rounded border-border bg-background text-blue-600 focus:ring-blue-500"
+                      checked={applicableOn.includes(item.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setApplicableOn([...applicableOn, item.id]);
+                        } else {
+                          setApplicableOn(applicableOn.filter((id) => id !== item.id));
+                        }
+                      }}
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             {formError && (
               <div className="text-xs font-semibold text-red-500 bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
                 {formError}
@@ -231,14 +264,14 @@ export default function Coupons() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase bg-muted/50 text-muted-foreground">
-                <tr>
-                  <th className="px-5 py-4 font-semibold">Code</th>
-                  <th className="px-5 py-4 font-semibold">Discount</th>
-                  <th className="px-5 py-4 font-semibold">Uses</th>
-                  <th className="px-5 py-4 font-semibold">Expires</th>
-                  <th className="px-5 py-4 font-semibold">Status</th>
-                  <th className="px-5 py-4 font-semibold text-right">Actions</th>
+              <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
+                <tr className="divide-x divide-border/50">
+                  <th className="px-5 py-4 font-semibold whitespace-nowrap">Code</th>
+                  <th className="px-5 py-4 font-semibold whitespace-nowrap">Discount</th>
+                  <th className="px-5 py-4 font-semibold whitespace-nowrap">Uses</th>
+                  <th className="px-5 py-4 font-semibold whitespace-nowrap">Expires</th>
+                  <th className="px-5 py-4 font-semibold whitespace-nowrap">Status</th>
+                  <th className="px-5 py-4 font-semibold text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -246,8 +279,8 @@ export default function Coupons() {
                   const expired = isExpired(coupon.expiryDate);
                   const effectivelyActive = coupon.isActive && !expired;
                   return (
-                    <tr key={coupon._id} className={`hover:bg-muted/10 transition-colors ${expired ? 'opacity-60' : ''}`}>
-                      <td className="px-5 py-4">
+                    <tr key={coupon._id} className={`hover:bg-muted/10 transition-colors divide-x divide-border/50 ${expired ? 'opacity-60' : ''}`}>
+                      <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold text-foreground tracking-wider text-xs">{coupon.code}</span>
                           <button
@@ -262,13 +295,22 @@ export default function Coupons() {
                             )}
                           </button>
                         </div>
+                        {coupon.applicableOn && coupon.applicableOn.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {coupon.applicableOn.map(plan => (
+                               <span key={plan} className="text-[10px] font-medium bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                 {plan}
+                               </span>
+                            ))}
+                          </div>
+                        )}
                       </td>
-                      <td className="px-5 py-4 font-semibold text-blue-400">{coupon.discountPercentage}% OFF</td>
-                      <td className="px-5 py-4 text-muted-foreground text-xs">
+                      <td className="px-5 py-4 font-semibold text-blue-400 whitespace-nowrap">{coupon.discountPercentage}% OFF</td>
+                      <td className="px-5 py-4 text-muted-foreground text-xs whitespace-nowrap">
                         {coupon.timesUsed ?? 0}
                         {coupon.maxUses ? ` / ${coupon.maxUses}` : ''}
                       </td>
-                      <td className="px-5 py-4 text-xs">
+                      <td className="px-5 py-4 text-xs whitespace-nowrap">
                         {coupon.expiryDate ? (
                           <span className={expired ? 'text-red-400 font-medium' : 'text-muted-foreground'}>
                             {expired ? '⚠ ' : ''}{new Date(coupon.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -277,7 +319,7 @@ export default function Coupons() {
                           <span className="text-muted-foreground">No expiry</span>
                         )}
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 whitespace-nowrap">
                         {expired ? (
                           <span className="px-2.5 py-1 bg-red-500/10 text-red-400 text-xs rounded-full font-medium">Expired</span>
                         ) : effectivelyActive ? (
@@ -286,7 +328,7 @@ export default function Coupons() {
                           <span className="px-2.5 py-1 bg-gray-500/10 text-gray-400 text-xs rounded-full font-medium">Disabled</span>
                         )}
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-5 py-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleToggle(coupon._id)}

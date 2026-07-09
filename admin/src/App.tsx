@@ -38,6 +38,7 @@ function App() {
             <Route path="coupons" element={<Coupons />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="transactions" element={<Transactions />} />
+            <Route path="refunds" element={<Transactions />} />
             <Route path="system-health" element={<SystemHealth />} />
             <Route path="waitlist" element={<Waitlist />} />
             <Route path="testers" element={<Testers />} />
