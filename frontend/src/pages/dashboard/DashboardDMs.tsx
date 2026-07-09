@@ -267,7 +267,7 @@ const DashboardDMs = () => {
                 variant="outline"
                 className="w-full h-11 rounded-xl border-border/70 text-foreground font-semibold"
               >
-                Upgrade to Elite Plan (₹1899/mo)
+                Upgrade to Elite Plan (₹3199/mo)
               </Button>
             </>
           )}

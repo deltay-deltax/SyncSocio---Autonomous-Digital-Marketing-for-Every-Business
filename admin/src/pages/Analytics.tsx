@@ -144,8 +144,8 @@ export default function Analytics() {
         {[
           { label: '6-Month Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'emerald', sub: 'Completed transactions', path: '/transactions', state: { statusFilter: 'completed' } },
           { label: 'New Signups', value: totalSignups, icon: Users, color: 'blue', sub: 'Last 6 months', path: '/users', state: {} },
-          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹599/month', path: '/users', state: { planFilter: 'starter' } },
-          { label: 'Elite Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Elite'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹1899/month', path: '/users', state: { planFilter: 'elite' } },
+          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹999/month', path: '/users', state: { planFilter: 'starter' } },
+          { label: 'Elite Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Elite'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹3199/month', path: '/users', state: { planFilter: 'elite' } },
         ].map((kpi) => (
           <div 
             key={kpi.label} 
