@@ -12,6 +12,7 @@ import FAQ from "@/components/FAQ";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import WaitlistDialog from "@/components/WaitlistDialog";
+import DomeGallery from "@/components/ui/DomeGallery";
 
 import { useNavigate } from "react-router-dom";
 
@@ -84,6 +85,11 @@ const Index = () => {
         onWaitlistClick={() => setIsWaitlistOpen(true)} 
         isJoined={isWaitlistJoined}
       />
+      
+      <section className="relative w-full h-[600px] bg-[#120F17] overflow-hidden">
+        <DomeGallery grayscale={false} />
+      </section>
+
       <WhatWeAre />
       <Features />
       <CreativeShowcase />

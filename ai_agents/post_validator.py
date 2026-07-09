@@ -556,7 +556,7 @@ def publisher_node(state: PostState) -> PostState:
     media_paths = state.get("media_paths", [])
     resolved_paths = []
     for path in media_paths:
-        if path and not os.path.exists(path):
+        if path and not str(path).startswith("http") and not os.path.exists(path):
             alt_path = os.path.join("..", "backend", path)
             if os.path.exists(alt_path):
                 path = alt_path
@@ -621,14 +621,19 @@ def publisher_node(state: PostState) -> PostState:
         public_ids = []
         for path in media_paths:
             resource_type = "video" if content_type == "reel" else "image"
-            upload_result = cloudinary.uploader.upload(
-                path,
-                resource_type=resource_type,
-                folder="syncsocio_posts"
-            )
-            asset_urls.append(upload_result["secure_url"])
-            public_ids.append((upload_result["public_id"], resource_type))
-            print(f"Cloudinary upload success: {upload_result['secure_url']}")
+            if path and str(path).startswith("http") and "cloudinary.com" in path:
+                asset_urls.append(path)
+                public_ids.append((None, resource_type))
+                print(f"Skipped Cloudinary upload (already URL): {path}")
+            else:
+                upload_result = cloudinary.uploader.upload(
+                    path,
+                    resource_type=resource_type,
+                    folder="syncsocio_posts"
+                )
+                asset_urls.append(upload_result["secure_url"])
+                public_ids.append((upload_result["public_id"], resource_type))
+                print(f"Cloudinary upload success: {upload_result['secure_url']}")
 
         # 3. Instagram Publishing
         platforms = state.get("platforms", {})
