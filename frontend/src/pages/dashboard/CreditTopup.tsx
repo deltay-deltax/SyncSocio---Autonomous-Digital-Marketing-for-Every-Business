@@ -52,12 +52,12 @@ export const CreditTopup = () => {
     const isElite = currentPlan.toLowerCase().includes('elite');
 
     if (actionType === 'renew') {
-       amount = isElite ? 1899 : 599;
+       amount = isElite ? 3199 : 999;
        planStr = currentPlan;
        creditsAdded = isElite ? 700 : 200;
        typeStr = 'plan_renewal';
      } else if (actionType === 'upgrade') {
-       amount = 1899; // Full Elite Plan price
+       amount = 3199; // Full Elite Plan price
        planStr = 'Elite';
        creditsAdded = 700; // Full Elite Plan credits
        typeStr = 'plan_upgrade';
@@ -185,14 +185,14 @@ export const CreditTopup = () => {
                         disabled={processingPlan}
                         className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:brightness-110 shadow-lg"
                       >
-                        {processingPlan ? 'Processing...' : 'Renew Starter Plan (₹599)'}
+                        {processingPlan ? 'Processing...' : 'Renew Starter Plan (₹999)'}
                       </Button>
                       <Button 
                         onClick={() => handlePlanAction('upgrade', profile?.userPlan || 'Starter')} 
                         disabled={processingPlan}
                         className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg"
                       >
-                        {processingPlan ? 'Processing...' : 'Upgrade to Elite (₹1899)'}
+                        {processingPlan ? 'Processing...' : 'Upgrade to Elite (₹3199)'}
                       </Button>
                     </>
                   );
@@ -203,7 +203,7 @@ export const CreditTopup = () => {
                       disabled={processingPlan}
                       className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:brightness-110 shadow-lg"
                     >
-                      {processingPlan ? 'Processing...' : 'Renew Elite Plan (₹1899)'}
+                      {processingPlan ? 'Processing...' : 'Renew Elite Plan (₹3199)'}
                     </Button>
                   );
                 }

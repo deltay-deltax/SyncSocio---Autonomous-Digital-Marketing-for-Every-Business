@@ -13,7 +13,8 @@ export const validateCoupon = async (req, res) => {
     const demoCoupons = {
       'WELCOME10': 10,
       'VELOCITY20': 20,
-      'LAUNCH50': 50
+      'LAUNCH50': 50,
+      'LAUNCH': 40
     };
 
     let finalCode = null;

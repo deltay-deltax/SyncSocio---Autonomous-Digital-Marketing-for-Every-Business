@@ -88,10 +88,10 @@ export const getMetrics = async (req, res) => {
       const users = await User.find();
       for (const user of users) {
         if (user.plan && user.plan !== '') {
-          // Determine base price — Starter=599, Elite=1899
-          let basePrice = 599;
+          // Determine base price — Starter=999, Elite=3199
+          let basePrice = 999;
           const pl = user.plan.toLowerCase();
-          if (pl.includes('elite')) basePrice = 1899;
+          if (pl.includes('elite')) basePrice = 3199;
 
           // Check if DM is enabled
           const brandProfile = await BrandProfile.findOne({ user: user._id });
@@ -160,8 +160,8 @@ export const getMetrics = async (req, res) => {
     activePaidUsers.forEach(u => {
       if (!u.plan) return;
       const pl = u.plan.toLowerCase();
-      if (pl.includes('elite')) mrr += 1899;
-      else mrr += 599; // Starter plan
+      if (pl.includes('elite')) mrr += 3199;
+      else mrr += 999; // Starter plan
     });
 
     const activeCoupons = await Coupon.countDocuments({ isActive: true });
@@ -879,8 +879,8 @@ export const getRevenueAnalytics = async (req, res) => {
         revenueByMonth,
         signupsByMonth,
         planDistribution: [
-          { name: 'Starter (₹599)', value: brandCount, color: '#6366f1' },
-          { name: 'Elite (₹1899)', value: growthCount, color: '#8b5cf6' },
+          { name: 'Starter (₹999)', value: brandCount, color: '#6366f1' },
+          { name: 'Elite (₹3199)', value: growthCount, color: '#8b5cf6' },
           { name: 'No Plan', value: noPlanCount, color: '#374151' }
         ],
         topSpenders

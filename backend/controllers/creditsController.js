@@ -53,8 +53,8 @@ export const assignCredits = async (req, res) => {
     // Calculate billing amount (₹)
     let basePrice = 999;
     const pl = plan.toLowerCase();
-    if (pl.includes('elite')) basePrice = 1899;
-    else basePrice = 599; // Starter plan
+    if (pl.includes('elite')) basePrice = 3199;
+    else basePrice = 999; // Starter plan
     
     let sum = basePrice + (isDmEnabled ? 399 : 0);
     let discountPercentage = 0;

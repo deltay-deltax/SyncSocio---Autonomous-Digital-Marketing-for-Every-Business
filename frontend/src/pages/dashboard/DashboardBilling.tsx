@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Check, BotMessageSquare, HelpCircle } from "lucide-react";
+import { Check, BotMessageSquare, HelpCircle, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +9,7 @@ import { Checkout } from "@/components/Checkout";
 const plans = [
   {
     name: "Starter",
-    basePrice: 599,
+    basePrice: 999,
     originalPrice: 999,
     period: "/month",
     description: "For small businesses, local brands, SaaS startups, and service companies getting started with AI-powered content.",
@@ -31,8 +31,8 @@ const plans = [
   },
   {
     name: "Elite",
-    basePrice: 1899,
-    originalPrice: 2999,
+    basePrice: 3199,
+    originalPrice: 3199,
     period: "/month",
     description: "For growing D2C and ecommerce brands ready to scale content, automate campaigns, and generate videos — all from one platform.",
     features: [
@@ -71,7 +71,7 @@ const DashboardBilling = () => {
 
   const handleSelectPlan = (planName: string) => {
     const isDmEnabled = dmToggles[planName];
-    const basePrice = planName === 'Elite' ? 1899 : 599;
+    const basePrice = planName === 'Elite' ? 3199 : 999;
     const amount = basePrice + (isDmEnabled ? 399 : 0);
     const creditsAdded = planName === 'Elite' ? 700 : 200;
     
@@ -122,7 +122,7 @@ const DashboardBilling = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {plans.map((plan, i) => {
           const isDmEnabled = dmToggles[plan.name];
-          const currentPrice = plan.basePrice + (isDmEnabled ? 399 : 0);
+          const currentPrice = (plan.name === 'Elite' ? 1899 : 599) + (isDmEnabled ? 399 : 0);
           
           const currentPlan = (profile?.selectedPlan || '').toLowerCase();
           const isStarter = currentPlan.includes('starter');
@@ -168,19 +168,46 @@ const DashboardBilling = () => {
               </p>
               
               <div className="flex flex-col gap-1 mb-6">
-                <div className="flex items-center gap-2">
-                  <span className={`text-lg line-through ${plan.popular ? "text-white/60" : "text-muted-foreground/60"}`}>
-                    ₹{plan.originalPrice}
-                  </span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                    {Math.round(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold">₹{currentPrice}</span>
-                  <span className={`text-sm ${plan.popular ? "text-white/70" : "text-muted-foreground"}`}>
-                    {plan.period}
-                  </span>
+                {currentPrice < plan.originalPrice && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-lg line-through ${plan.popular ? "text-white/60" : "text-muted-foreground/60"}`}>
+                      ₹{plan.originalPrice}
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                      {Math.floor(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center w-full relative">
+                  <div className="flex items-baseline gap-1 shrink-0">
+                    <span className="text-4xl font-bold">₹{currentPrice}</span>
+                    <span className={`text-sm ${plan.popular ? "text-white/70" : "text-muted-foreground"}`}>
+                      {plan.period}
+                    </span>
+                  </div>
+                  
+                  {/* Launch Offer Ribbon Badge */}
+                  <div className="ml-auto relative flex items-center shrink-0">
+                    <div className="absolute -left-3 z-10">
+                      <svg width="28" height="28" viewBox="0 0 120 120" className={`animate-spin-slow ${plan.popular ? 'text-white drop-shadow-md' : 'text-primary drop-shadow-sm'}`}>
+                        <path fill="currentColor" d="M60 5 L74 15 L91 10 L96 27 L113 32 L107 48 L120 60 L107 72 L113 88 L96 93 L91 110 L74 105 L60 115 L46 105 L29 110 L24 93 L7 88 L13 72 L0 60 L13 48 L7 32 L24 27 L29 10 L46 15 Z" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Gift size={13} className={plan.popular ? 'text-primary' : 'text-white'} />
+                      </div>
+                    </div>
+                    
+                    <div className={`relative pl-6 pr-3 py-1.5 rounded-r-lg border ${
+                      plan.popular 
+                        ? 'bg-white/20 border-white/40 text-white shadow-[inset_0_1px_4px_rgba(255,255,255,0.3)]' 
+                        : 'bg-primary/10 border-primary/20 text-primary shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)]'
+                    }`}>
+                      <div className="font-black text-xs uppercase tracking-wide leading-tight">40% Off On Launch</div>
+                      <div className={`text-[9px] leading-tight mt-0.5 ${plan.popular ? 'text-white/90' : 'text-primary/80'}`}>
+                        Use code <span className={`font-bold px-1 rounded ${plan.popular ? 'bg-white/30 text-white' : 'bg-primary/20 text-primary'}`}>LAUNCH</span> for benefit
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

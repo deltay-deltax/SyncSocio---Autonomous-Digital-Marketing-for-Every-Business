@@ -215,12 +215,12 @@ const DashboardSettings = () => {
     const isElite = currentPlan.toLowerCase().includes('elite');
 
     if (actionType === 'renew') {
-       amount = isElite ? 1899 : 599;
+       amount = isElite ? 3199 : 999;
        planStr = currentPlan;
        creditsAdded = isElite ? 700 : 200;
        typeStr = 'plan_renewal';
     } else if (actionType === 'upgrade') {
-      amount = 1899; // Full Elite Plan price
+      amount = 3199; // Full Elite Plan price
       planStr = 'Elite';
       creditsAdded = 700; // Full Elite Plan credits
       typeStr = 'plan_upgrade';
@@ -1178,7 +1178,7 @@ const DashboardSettings = () => {
                 const isElite = plan.includes('elite');
                 
                 const planName = isElite ? 'Elite' : 'Starter';
-                const planPrice = isElite ? '₹1899/month' : '₹599/month';
+                const planPrice = isElite ? '₹3199/month' : '₹999/month';
                 const planCredits = isElite ? '700 credits/month' : '200 credits/month';
                 const planFeatures = !isElite 
                   ? [
@@ -1289,13 +1289,13 @@ const DashboardSettings = () => {
                           disabled={!canRenew}
                           className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                         >
-                          Renew Plan (₹599)
+                          Renew Plan (₹999)
                         </Button>
                         <Button 
                           onClick={() => handlePlanAction('upgrade', profile.userPlan || profile.selectedPlan || 'Starter')} 
                           className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
                         >
-                          Upgrade to Elite (₹1899)
+                          Upgrade to Elite (₹3199)
                         </Button>
                       </div>
                     </div>
@@ -1316,7 +1316,7 @@ const DashboardSettings = () => {
                         disabled={!canRenew}
                         className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                       >
-                        Renew Elite Plan (₹1899)
+                        Renew Elite Plan (₹3199)
                       </Button>
                     </div>
                   );

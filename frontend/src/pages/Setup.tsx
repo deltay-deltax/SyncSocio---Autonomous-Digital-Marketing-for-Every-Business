@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare, Zap, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare, Zap, ShieldCheck, CheckCircle2, Gift } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,7 @@ interface Plan {
 const plans: Plan[] = [
   {
     name: 'Starter',
-    price: '₹599',
+    price: '₹999',
     originalPrice: 999,
     period: '/month',
     frequency: 'Queue up to 30 scheduled posts',
@@ -55,8 +55,8 @@ const plans: Plan[] = [
   },
   {
     name: 'Elite',
-    price: '₹1899',
-    originalPrice: 2999,
+    price: '₹3199',
+    originalPrice: 3199,
     period: '/month',
     frequency: 'Best time to post analysis',
     formats: 'UGC & Product Video + All-in-One Drops',
@@ -347,10 +347,16 @@ const Setup = () => {
   };
 
   const proceedToCheckout = (planName: string) => {
-    let currentPrice = planName === 'Elite' ? 1899 : 599;
+    const basePrice = planName === 'Elite' ? 3199 : 999;
+    let currentPrice = basePrice;
+    
     if (appliedCoupon) {
-      const discount = appliedCoupon.discountPercentage;
-      currentPrice = Math.round(currentPrice * (1 - discount / 100));
+      if (appliedCoupon.code === 'LAUNCH') {
+        currentPrice = planName === 'Elite' ? 1899 : 599;
+      } else {
+        const discount = appliedCoupon.discountPercentage;
+        currentPrice = Math.round(currentPrice * (1 - discount / 100));
+      }
     }
     
     setSelectedPlanAmount(currentPrice);
@@ -691,10 +697,21 @@ const Setup = () => {
           {plans.map((plan, i) => {
             const isDmEnabled = plan.name === 'Starter' ? dmToggles[plan.name] : false;
             const basePrice = parseInt(plan.price.replace('₹', ''));
-            let currentPrice = basePrice + (isDmEnabled ? 399 : 0);
+            let currentPrice = 0;
             
-            if (discount > 0) {
-              currentPrice = Math.round(currentPrice * (1 - discount / 100));
+            if (appliedCoupon) {
+              if (appliedCoupon.code === 'LAUNCH') {
+                currentPrice = plan.name === 'Elite' ? 1899 : 599;
+              } else {
+                const discount = appliedCoupon.discountPercentage;
+                currentPrice = Math.round(basePrice * (1 - discount / 100));
+              }
+            } else {
+              currentPrice = plan.name === 'Elite' ? 1899 : 599;
+            }
+            
+            if (isDmEnabled) {
+              currentPrice += 399;
             }
 
             const credInfo = PLAN_CREDITS_DISPLAY[plan.name];
@@ -735,22 +752,49 @@ const Setup = () => {
                   </div>
                 )}
 
-                <h3 className="text-sm font-bold mb-1">{plan.name}</h3>
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="text-sm font-bold mt-1">{plan.name}</h3>
+                </div>
                 
-                {plan.originalPrice && (
+                {plan.originalPrice && currentPrice < plan.originalPrice && (
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-sm line-through ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"}`}>
                       ₹{plan.originalPrice}
                     </span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                      {Math.round(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
+                      {Math.floor(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
                     </span>
                   </div>
                 )}
                 
-                <div className="flex items-baseline gap-0.5 mb-1">
-                  <span className="text-3xl font-bold">₹{currentPrice}</span>
-                  <span className={`text-xs ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>
+                <div className="flex items-center w-full relative mb-1">
+                  <div className="flex items-baseline gap-0.5 shrink-0">
+                    <span className="text-3xl font-bold">₹{currentPrice}</span>
+                    <span className={`text-xs ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>
+                  </div>
+                  
+                  {/* Launch Offer Ribbon Badge */}
+                  <div className="ml-auto relative flex items-center shrink-0">
+                    <div className="absolute -left-2.5 z-10">
+                      <svg width="24" height="24" viewBox="0 0 120 120" className={`animate-spin-slow ${plan.popular ? 'text-white drop-shadow-md' : 'text-primary drop-shadow-sm'}`}>
+                        <path fill="currentColor" d="M60 5 L74 15 L91 10 L96 27 L113 32 L107 48 L120 60 L107 72 L113 88 L96 93 L91 110 L74 105 L60 115 L46 105 L29 110 L24 93 L7 88 L13 72 L0 60 L13 48 L7 32 L24 27 L29 10 L46 15 Z" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Gift size={11} className={plan.popular ? 'text-primary' : 'text-white'} />
+                      </div>
+                    </div>
+                    
+                    <div className={`relative pl-5 pr-2.5 py-1 rounded-r-lg border ${
+                      plan.popular 
+                        ? 'bg-white/20 border-white/40 text-white shadow-[inset_0_1px_4px_rgba(255,255,255,0.3)]' 
+                        : 'bg-primary/10 border-primary/20 text-primary shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)]'
+                    }`}>
+                      <div className="font-black text-[10px] uppercase tracking-wide leading-tight">40% Off On Launch</div>
+                      <div className={`text-[8px] leading-tight mt-0.5 ${plan.popular ? 'text-white/90' : 'text-primary/80'}`}>
+                        Use code <span className={`font-bold px-1 rounded ${plan.popular ? 'bg-white/30 text-white' : 'bg-primary/20 text-primary'}`}>LAUNCH</span> for benefit
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <p className={`text-[11px] mb-1 ${plan.popular ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                   {plan.frequency} · {plan.formats}
