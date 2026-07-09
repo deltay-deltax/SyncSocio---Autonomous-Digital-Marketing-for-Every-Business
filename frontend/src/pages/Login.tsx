@@ -66,7 +66,11 @@ const Login = () => {
           const profile = await profRes.json();
           localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
           
-          if (profile.selectedPlan && profile.selectedPlan !== 'Free') {
+          // Check if the user overall has a paid plan, OR if they have set up a brand name.
+          const hasPaidPlan = profile.userPlan && profile.userPlan !== 'Free' && profile.userPlan !== '';
+          const hasBrandSetup = profile.brandName && profile.brandName.trim() !== '';
+
+          if (hasPaidPlan || hasBrandSetup) {
             localStorage.setItem("syncsocio_setup_done", "true");
             window.location.href = "/dashboard";
           } else {
