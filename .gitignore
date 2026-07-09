@@ -38,6 +38,3 @@ temp/
 uploads/
 cloudinary_downloads/
 
-# Temporary exclusions
-frontend/src/components/ui/DomeGallery.tsx
-frontend/src/components/ui/DomeGallery.css

@@ -11,6 +11,7 @@ import Transactions from './pages/Transactions';
 import SystemHealth from './pages/SystemHealth';
 import Waitlist from './pages/Waitlist';
 import Testers from './pages/Testers';
+import LandingGallery from './pages/LandingGallery';
 import './App.css';
 
 // Protected Route for Admin
@@ -41,6 +42,7 @@ function App() {
             <Route path="system-health" element={<SystemHealth />} />
             <Route path="waitlist" element={<Waitlist />} />
             <Route path="testers" element={<Testers />} />
+            <Route path="landing-gallery" element={<LandingGallery />} />
           </Route>
         </Route>
 

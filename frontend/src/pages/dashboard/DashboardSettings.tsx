@@ -69,7 +69,8 @@ const industries = [
   'Digital Products',
   'E-Commerce',
   'Services',
-  'SaaS & Digital'
+  'SaaS & Digital',
+  'Other'
 ];
 const voiceTones = [
   'Warm & Friendly',
@@ -433,6 +434,7 @@ const DashboardSettings = () => {
   const [formData, setFormData] = useState({
     brandName: profile?.brandName || '',
     businessCategory: profile?.businessCategory || '',
+    otherCategory: profile?.otherCategory || '',
     website: profile?.website || '',
     city: profile?.location?.city || '',
     country: profile?.location?.country || '',
@@ -457,6 +459,7 @@ const DashboardSettings = () => {
       setFormData({
         brandName: profile.brandName || '',
         businessCategory: profile.businessCategory || '',
+        otherCategory: profile.otherCategory || '',
         website: profile.website || '',
         city: profile.location?.city || '',
         country: profile.location?.country || '',
@@ -738,7 +741,16 @@ const DashboardSettings = () => {
                     </select>
                   </Field>
                   <Field label="Industry" className="md:col-span-2">
-                    <ChipGroup options={industries} value={formData.businessCategory} onChange={v => updateField('businessCategory', v)} />
+                    <ChipGroup options={industries} value={formData.businessCategory} onChange={v => {
+                      updateField('businessCategory', v);
+                      if (v !== 'Other') updateField('otherCategory', '');
+                    }} />
+                    {formData.businessCategory === 'Other' && (
+                      <div className="mt-4">
+                        <Label className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1 block">Custom Category</Label>
+                        <Input value={formData.otherCategory} onChange={e => updateField('otherCategory', e.target.value)} placeholder="e.g. Pet Care, Logistics..." className="text-sm" />
+                      </div>
+                    )}
                   </Field>
                 </CardContent>
               </Card>

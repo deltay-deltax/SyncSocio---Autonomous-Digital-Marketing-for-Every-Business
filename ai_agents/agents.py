@@ -58,7 +58,7 @@ def analyze_brand_mix(brand_info: Dict[str, Any]):
     BRAND PROFILE:
     - Name: {brand_info.get('brandName')}
     - Country: {brand_country}
-    - Category: {brand_info.get('businessCategory')}
+    - Category: {(brand_info.get("otherCategory") if brand_info.get("businessCategory") == "Other" and brand_info.get("otherCategory") else brand_info.get("businessCategory", "General"))}
     - Tone: {brand_info.get('brandTone')}
     - USP: {brand_info.get('usp')}
     - Goal: {brand_info.get('mainGoal')}
@@ -205,7 +205,7 @@ def planner_node(state: GraphState):
     # ── SaaS mode: build content directive if applicable ──────────────────
     saas_strategy_section = ""
     if _SAAS_PROFILES_AVAILABLE:
-        saas_profile = get_saas_profile(brand.get("businessCategory", ""))
+        saas_profile = get_saas_profile((brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", "")))
         if saas_profile:
             saas_strategy_section = f"""
     ═══════════ SaaS/SERVICES BRAND CONTENT DIRECTIVE ═══════════
@@ -240,7 +240,7 @@ def planner_node(state: GraphState):
     ═══════════ BRAND DOSSIER ═══════════
     BRAND NAME: {brand.get('brandName')}
     COUNTRY: {country}
-    INDUSTRY / CATEGORY: {brand.get('businessCategory', '')}
+    INDUSTRY / CATEGORY: {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ''))}
     BRAND TONE: {brand.get('brandTone', 'Luxury/Premium')}
     VISUAL VIBE: {brand.get('visualVibe', 'Modern')}
     BRAND KEYWORDS: {brand.get('brandKeywords', '')}
@@ -354,7 +354,7 @@ def generate_brand_visual_dna(brand_info: Dict[str, Any]):
     BRAND DATA:
     - Name: {brand_info.get('brandName')}
     - Country: {country}
-    - Category: {brand_info.get('businessCategory')}
+    - Category: {(brand_info.get("otherCategory") if brand_info.get("businessCategory") == "Other" and brand_info.get("otherCategory") else brand_info.get("businessCategory", "General"))}
     - Tone: {brand_info.get('brandTone')}
     - Primary Color: {brand_info.get('primaryColor')}
     - Secondary Color: {brand_info.get('secondaryColor')}
@@ -379,11 +379,11 @@ def visual_illustrator_node(state: GraphState):
     llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
     
     # Layer 1: Foundation (Dynamic based on Category)
-    category_raw = brand.get("businessCategory", "other").lower()
+    category_raw = (brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", "other")).lower()
     is_luxury_cpg = any(k in category_raw for k in ["cosmetic", "beauty", "jewel", "food", "drink", "cpg"])
 
     # ── SaaS/Services/Consulting override ────────────────────────────────
-    _saas_profile_vis = get_saas_profile(brand.get("businessCategory", "")) if _SAAS_PROFILES_AVAILABLE else None
+    _saas_profile_vis = get_saas_profile((brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ""))) if _SAAS_PROFILES_AVAILABLE else None
     _is_saas_vis = _saas_profile_vis is not None
 
     if _is_saas_vis:
@@ -413,7 +413,7 @@ def visual_illustrator_node(state: GraphState):
     brand_dna = (
         f"Brand: {brand.get('brandName')}. "
         f"Country: {country}. "
-        f"Category: {brand.get('businessCategory')}. "
+        f"Category: {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", "General"))}. "
         f"Tone: {brand.get('brandTone')}. "
         f"Primary Color: {brand.get('primaryColor')}. "
         f"Secondary Color: {brand.get('secondaryColor')}. "
@@ -445,7 +445,7 @@ def visual_illustrator_node(state: GraphState):
             if brand_usp:
                 strategic_context = f"Topic: {topic}. Brand USP: {brand_usp}."
             else:
-                strategic_context = f"Topic: {topic}. Category: {brand.get('businessCategory', 'General')}."
+                strategic_context = f"Topic: {topic}. Category: {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", 'General'))}."
         
         # strategic_context: no hard char-cap — preserve full product context for image model
         # (scene_base[:250] cap on the final LLM scene output is retained below)
@@ -505,7 +505,7 @@ def visual_illustrator_node(state: GraphState):
                 scene_base = visual_data.get('visual_description', '')[:250]
                 
                 # Determine industry for style injection
-                category_raw = brand.get("businessCategory", "other").lower()
+                category_raw = (brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", "other")).lower()
                 is_luxury_cpg = any(k in category_raw for k in ["cosmetic", "makeup", "beauty", "jewel", "food", "drink", "cpg"])
                 
                 if _is_saas_vis:
@@ -578,7 +578,7 @@ def visual_illustrator_node(state: GraphState):
                     content = "".join([part.get('text', '') if isinstance(part, dict) else str(part) for part in content])
                 
                 # Determine industry style for video
-                category_raw = brand.get("businessCategory", "other").lower()
+                category_raw = (brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", "other")).lower()
                 if _is_saas_vis:
                     style_mod = (
                         "clean workspace B-roll, natural light, UI screen visible, "
@@ -613,7 +613,7 @@ def strategy_critic_node(state: GraphState):
     You are the SyncSocio Algorithm Critic. Analyze this 7-day content strategy.
     
     BRAND: {brand.get('brandName')}
-    PRODUCT: {brief.get('name') if brief.get('name') else 'Not specified (focus on core brand and category: ' + brand.get('businessCategory', '') + ')'}
+    PRODUCT: {brief.get('name') if brief.get('name') else 'Not specified (focus on core brand and category: ' + (brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", '')) + ')'}
     STRATEGY: {json.dumps(calendar, indent=2)}
     
     TASK:

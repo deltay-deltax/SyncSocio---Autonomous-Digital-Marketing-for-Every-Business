@@ -36,6 +36,8 @@ import {
   getCreditDetails,
   getCreativesDetails,
   getActiveUsersDetails,
+  getSiteSettings,
+  updateSiteSettings,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -101,5 +103,9 @@ router.delete('/waitlist/:id', deleteWaitlistEntry);
 // ─── Meta Testers ─────────────────────────────────────────────────────────────
 router.get('/meta-testers', getMetaTesterRequests);
 router.put('/meta-testers/:id/approve', toggleMetaTesterApproval);
+
+// ─── Site Settings ────────────────────────────────────────────────────────────
+router.get('/settings', getSiteSettings);
+router.put('/settings', updateSiteSettings);
 
 export default router;

@@ -675,7 +675,7 @@ def build_ecomm_image_prompt(
     """
     # ── 1. Brand DNA block ──────────────────────────────────────────
     brand_name      = brand_doc.get("brandName", "Brand")
-    category        = brand_doc.get("businessCategory", "General")
+    category        = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "General"))
     brand_tone      = brand_doc.get("brandTone", "Modern & Engaging")
     visual_vibe     = brand_doc.get("visualVibe", "Clean Minimal")
     primary_color   = brand_doc.get("primaryColor", "#2563EB")

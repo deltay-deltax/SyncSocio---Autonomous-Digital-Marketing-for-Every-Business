@@ -20,7 +20,7 @@ def get_brand_dna(payload: Dict[str, Any]) -> str:
     dna = f"BRAND IDENTITY:\n"
     dna += f"- Name: {brand.get('brandName', 'Unknown')}\n"
     dna += f"- Country: {country}\n"
-    dna += f"- Category: {brand.get('businessCategory', 'General Business')}\n"
+    dna += f"- Category: {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", 'General Business'))}\n"
     dna += f"- Tone: {brand.get('brandTone', 'Professional')}\n"
     dna += f"- Visual Vibe: {brand.get('visualVibe', 'Clean and Modern')}\n"
     dna += f"- Primary Brand Color: {brand.get('primaryColor', '#2563EB')}\n"

@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/system-health', icon: Activity, label: 'System Health' },
   { to: '/waitlist', icon: ClipboardList, label: 'Waitlist' },
   { to: '/testers', icon: ShieldCheck, label: 'Tester' },
+  { to: '/landing-gallery', icon: LayoutDashboard, label: 'Landing Gallery' },
 ];
 
 export default function Layout() {

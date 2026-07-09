@@ -21,7 +21,7 @@ def get_formatted_prompt(format_type: str, topic: str, brand_info: Dict[str, Any
     Selects and formats the appropriate prompt based on the content type and brand info.
     """
     # Determine industry
-    category_raw = brand_info.get("businessCategory", "other").lower()
+    category_raw = (brand_info.get("otherCategory") if brand_info.get("businessCategory") == "Other" and brand_info.get("otherCategory") else brand_info.get("businessCategory", "other")).lower()
     
     if any(k in category_raw for k in ["fashion", "clothing", "apparel"]):
         industry = "fashion"
@@ -179,7 +179,7 @@ def get_formatted_prompt(format_type: str, topic: str, brand_info: Dict[str, Any
         "[BRAND_COLOR_PRIMARY]": brand_info.get("primaryColor", "#000000"),
         "[BRAND_COLOR_SECONDARY]": brand_info.get("secondaryColor", "#ffffff"),
         "[PRODUCT_NAME]": topic,
-        "[PRODUCT_CATEGORY]": brand_info.get("businessCategory", "product"),
+        "[PRODUCT_CATEGORY]": (brand_info.get("otherCategory") if brand_info.get("businessCategory") == "Other" and brand_info.get("otherCategory") else brand_info.get("businessCategory", "product")),
         "[BRAND_TONE]": brand_info.get("brandTone", "premium"),
         "[TARGET_AUDIENCE]": ", ".join(brand_info.get("targetAudiences", ["general audience"])),
         "[TAGLINE]": brand_info.get("tagline", "Shop now")

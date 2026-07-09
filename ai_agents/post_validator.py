@@ -330,7 +330,7 @@ You are the SyncSocio Algorithm Critic — the most demanding social media strat
 
 CONTEXT:
 - User Content (Placeholder): "{description}"
-- Brand Identity Profile: {brand.get('brandName', 'Unknown')} | {brand.get('businessCategory', '')}
+- Brand Identity Profile: {brand.get('brandName', 'Unknown')} | {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ''))}
 - Target Location: {brand.get('businessLocation', 'Global')}
 - Audience Demographics: {brand.get('targetAudience', 'General')}
 - Visual Analysis: {json.dumps(media_analysis)}
@@ -408,7 +408,7 @@ def caption_generator_node(state: PostState) -> PostState:
     You are a Viral Social Media Copywriter (SyncSocio Optimizer). Write a high-converting caption for this content.
 
     CONTEXT:
-    - Brand: {brand.get('brandName', '')} ({brand.get('businessCategory', '')})
+    - Brand: {brand.get('brandName', '')} ({(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ''))})
     - Goal: {brand.get('mainGoal', '')}
     - Tone: {brand.get('brandTone', 'Professional')}
     - Target Audience: {brand.get('targetAudience', 'General')}
@@ -474,7 +474,7 @@ def strategist_node(state: PostState) -> PostState:
 You are the SyncSocio Timing Strategist. Your goal is to pick the single best time to post based on data.
 
 CONTEXT:
-- Brand Profile (Identity): {brand.get('brandName', '')} | {brand.get('businessCategory', '')}
+- Brand Profile (Identity): {brand.get('brandName', '')} | {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ''))}
 - User's Initial Vision (Placeholder): "{description}"
 - Location: {brand.get('businessLocation', 'Global')}
 - Target Audience: {brand.get('targetAudience', 'General')}

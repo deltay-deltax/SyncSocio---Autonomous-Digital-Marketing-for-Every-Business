@@ -249,7 +249,7 @@ def build_saas_image_prompt(
     campaign_mode: Optional[str] = None,
     include_logo: bool = True,
 ) -> str:
-    category = brand_doc.get("businessCategory", "Services")
+    category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "Services"))
     block = _brand_block(brand_doc)
     
     product_block = ""
@@ -339,7 +339,7 @@ def build_saas_carousel_slide_prompts(
     language: str = "english"
 ) -> List[str]:
     llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
-    category = brand_doc.get("businessCategory", "Services")
+    category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "Services"))
     block = _brand_block(brand_doc)
     prod_info = ""
     if product:
@@ -383,7 +383,7 @@ def build_saas_video_prompt(
     product: Optional[Dict[str, Any]] = None,
     language: str = "english",
 ) -> str:
-    category = brand_doc.get("businessCategory", "Services")
+    category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "Services"))
     block = _brand_block(brand_doc)
     idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
     
@@ -447,7 +447,7 @@ def generate_saas_instagram_caption(
         )
         brand_name = brand_doc.get("brandName", "Brand")
         block = _brand_block(brand_doc)
-        profile = get_saas_profile(brand_doc.get("businessCategory", ""))
+        profile = get_saas_profile((brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")))
         cta = profile["cta_style"] if profile else "Book a Call | Learn More"
         idea_info = f"Campaign Topic/Idea: {idea}\n" if idea and idea.strip() else ""
         sys_msg = (
@@ -757,7 +757,7 @@ def generate_saas_strategy_images(
                     )
                     brand_name = brand_doc.get("brandName", "Brand")
                     usp = brand_doc.get("usp", "")
-                    profile = get_saas_profile(brand_doc.get("businessCategory", ""))
+                    profile = get_saas_profile((brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")))
                     cta = profile["cta_style"] if profile else "Book a Call"
 
                     sys_msg = (

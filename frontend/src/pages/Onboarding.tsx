@@ -682,9 +682,10 @@ const Onboarding = () => {
                           { id: 'Digital Products', icon: Box },
                           { id: 'E-Commerce', icon: ShieldCheck },
                           { id: 'Services', icon: Star },
-                          { id: 'SaaS & Digital', icon: Cpu }
+                          { id: 'SaaS & Digital', icon: Cpu },
+                          { id: 'Other', icon: Sparkles }
                         ].map(cat => (
-                          <div key={cat.id} onClick={() => setFormData({...formData, businessCategory: cat.id})}
+                          <div key={cat.id} onClick={() => setFormData({...formData, businessCategory: cat.id, otherCategory: cat.id !== 'Other' ? '' : formData.otherCategory})}
                             className={`px-3 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center group hover:shadow-sm ${
                               formData.businessCategory === cat.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
                             }`}>
@@ -693,6 +694,15 @@ const Onboarding = () => {
                           </div>
                         ))}
                       </div>
+                      
+                      {formData.businessCategory === 'Other' && (
+                        <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Custom Category</label>
+                          <input type="text" placeholder="e.g. Pet Care, Logistics..." value={formData.otherCategory}
+                            onChange={(e) => setFormData({...formData, otherCategory: e.target.value})}
+                            className="w-full bg-background text-foreground text-sm font-semibold rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/15 transition-all border border-border/80 focus:border-primary/40 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" />
+                        </div>
+                      )}
                     </div>
                   </div>
 
