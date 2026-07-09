@@ -72,7 +72,6 @@ const DEFAULT_IMAGES = [
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782640711/syncsocio/creatives/jybnai6a2nhbti5ppw2r.jpg", alt: "Creative" },
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782640718/syncsocio/creatives/km7nxsua1fmhvmji2djt.jpg", alt: "Creative" },
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782729103/syncsocio/creatives/lhbfksvcxekl8vqnamyo.jpg", alt: "Creative" },
-  { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782729657/syncsocio/products/czmggjwebgi2csjixlx2.jpg", alt: "Creative" },
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782730649/syncsocio/creatives/izxphag3cybscepszc3i.jpg", alt: "Creative" },
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782731252/syncsocio/creatives/ehiqksu1spnemboh5y1q.jpg", alt: "Creative" },
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782731770/syncsocio/creatives/rkj1qk7jerx58a3jkpul.jpg", alt: "Creative" },

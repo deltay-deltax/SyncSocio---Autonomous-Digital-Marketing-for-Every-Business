@@ -134,7 +134,7 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                       {Math.floor(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
                     </span>
                   </div>
-                  <div className="flex items-center w-full relative">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-0 w-full relative">
                     <div className="flex items-baseline gap-1 shrink-0">
                       <span className="text-4xl font-bold">₹{currentPrice}</span>
                       <span className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
@@ -143,7 +143,7 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                     </div>
                     
                     {/* Launch Offer Ribbon Badge */}
-                    <div className="ml-auto relative flex items-center shrink-0">
+                    <div className="sm:ml-auto relative flex items-center shrink-0 w-fit">
                       <div className="absolute -left-3 z-10">
                         <svg width="28" height="28" viewBox="0 0 120 120" className={`animate-spin-slow ${plan.popular ? 'text-white drop-shadow-md' : 'text-primary drop-shadow-sm'}`}>
                           <path fill="currentColor" d="M60 5 L74 15 L91 10 L96 27 L113 32 L107 48 L120 60 L107 72 L113 88 L96 93 L91 110 L74 105 L60 115 L46 105 L29 110 L24 93 L7 88 L13 72 L0 60 L13 48 L7 32 L24 27 L29 10 L46 15 Z" />
