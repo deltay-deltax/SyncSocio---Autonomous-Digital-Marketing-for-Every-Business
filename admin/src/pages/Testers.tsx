@@ -87,7 +87,7 @@ export default function Testers() {
     <div className="space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">
             Meta Tester Access
           </h2>
           <p className="text-muted-foreground mt-1">
@@ -131,14 +131,14 @@ export default function Testers() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground">
-              <tr>
-                <th className="px-6 py-4 font-semibold">User Details</th>
-                <th className="px-6 py-4 font-semibold">Brand Profile</th>
-                <th className="px-6 py-4 font-semibold">Instagram Handle</th>
-                <th className="px-6 py-4 font-semibold">Request Date</th>
-                <th className="px-6 py-4 font-semibold">Access Status</th>
-                <th className="px-6 py-4 font-semibold text-center">Approve Access</th>
+            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
+              <tr className="divide-x divide-border/50">
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">User Details</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Brand Profile</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Instagram Handle</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Request Date</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Access Status</th>
+                <th className="px-6 py-4 font-semibold text-center whitespace-nowrap">Approve Access</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -160,12 +160,12 @@ export default function Testers() {
               ) : requests.map((request) => {
                 const isApproved = request.status === 'approved';
                 return (
-                  <tr key={request._id} className="hover:bg-muted/10 transition-colors">
-                    <td className="px-6 py-4 font-medium text-foreground">
+                  <tr key={request._id} className="hover:bg-muted/10 transition-colors divide-x divide-border/50">
+                    <td className="px-6 py-4 font-medium text-foreground whitespace-nowrap">
                       <div>{request.userId?.name || 'No Name'}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">{request.userId?.email || 'N/A'}</div>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">
+                    <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
                       {request.brandId?.brandName ? (
                         <span className="font-semibold text-foreground bg-white/5 border border-white/10 rounded px-2 py-1 text-xs">
                           {request.brandId.brandName}
@@ -174,22 +174,29 @@ export default function Testers() {
                         <span className="italic text-xs text-muted-foreground/60">No associated brand</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm text-blue-400">
+                    <td className="px-6 py-4 font-mono text-sm text-blue-400 whitespace-nowrap">
                       {request.igHandle}
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground text-xs">
-                      {new Date(request.createdAt).toLocaleDateString('en-IN', {
-                        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                      })}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-foreground">
+                          {new Date(request.createdAt).toLocaleDateString('en-IN', {
+                            day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
+                          })}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(request.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2.5 py-1 text-xs rounded-full font-medium ${
                         isApproved ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                       }`}>
                         {isApproved ? 'Approved' : 'Pending'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
                       <button
                         onClick={() => handleToggleApproval(request._id, isApproved)}
                         disabled={updating === request._id}

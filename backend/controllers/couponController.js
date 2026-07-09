@@ -2,7 +2,7 @@ import Coupon from '../models/Coupon.js';
 
 export const validateCoupon = async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, purchaseType, planName } = req.body;
     if (!code) {
       return res.status(400).json({ success: false, message: 'Coupon code is required' });
     }
@@ -35,6 +35,25 @@ export const validateCoupon = async (req, res) => {
       if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
         return res.status(400).json({ success: false, message: 'Coupon has expired' });
       }
+      if (coupon.applicableOn && coupon.applicableOn.length > 0) {
+        let itemMatched = false;
+        if (purchaseType === 'topup' && coupon.applicableOn.includes('topup')) {
+          itemMatched = true;
+        } else if (planName) {
+          const lowerPlan = planName.toLowerCase();
+          if (lowerPlan.includes('starter') && coupon.applicableOn.includes('starter')) {
+            itemMatched = true;
+          } else if (lowerPlan.includes('elite') && coupon.applicableOn.includes('elite')) {
+            itemMatched = true;
+          }
+        }
+        
+        if (!itemMatched) {
+          const allowedNames = coupon.applicableOn.map(a => a === 'topup' ? 'Credit Top Ups' : (a === 'starter' ? 'Starter Plans' : 'Elite Plans')).join(', ');
+          return res.status(400).json({ success: false, message: `This coupon is only valid for: ${allowedNames}` });
+        }
+      }
+      
       finalCode = coupon.code;
       finalDiscount = coupon.discountPercentage;
     }

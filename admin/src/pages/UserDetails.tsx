@@ -434,7 +434,7 @@ export default function UserDetails() {
             </span>
           </div>
           <p className="text-muted-foreground text-sm">
-            ID: <span className="font-mono text-xs">{userData._id}</span> • Joined on {new Date(userData.createdAt).toLocaleDateString()}
+            ID: <span className="font-mono text-xs">{userData._id}</span> • Joined on {new Date(typeof userData.createdAt === 'string' ? userData.createdAt.replace(/Z$/, '') : userData.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>
         </div>
         

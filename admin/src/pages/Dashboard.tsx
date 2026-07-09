@@ -18,6 +18,7 @@ interface Transaction {
   discountPercentage: number;
   discountAmount: number;
   couponCode?: string;
+  status?: string;
   createdAt: string;
 }
 
@@ -112,8 +113,10 @@ const Modal = ({
   );
 };
 
-const fmt = (d: string) =>
-  new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmt = (d: string) => {
+  const safeDate = typeof d === 'string' ? d.replace(/Z$/, '') : d;
+  return new Date(safeDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
 
 const PlanBadge = ({ plan }: { plan: string }) => {
   const lower = (plan || '').toLowerCase();
@@ -557,6 +560,11 @@ export default function Dashboard() {
                       <PlanBadge plan={item.plan} />
                       {item.couponCode && item.couponCode !== '—' && (
                         <span className="px-2 py-0.5 text-xs font-mono rounded border bg-amber-500/10 text-amber-400 border-amber-500/20">{item.couponCode}</span>
+                      )}
+                      {(item.status || 'completed') === 'completed' ? (
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Bought</span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 capitalize">{item.status}</span>
                       )}
                     </div>
                   </div>

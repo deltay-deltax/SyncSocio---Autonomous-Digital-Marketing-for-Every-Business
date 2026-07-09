@@ -391,13 +391,16 @@ const DashboardHome = () => {
                 );
               })()}
 
-              {(!profile?.selectedPlan ||
-                profile.selectedPlan.toLowerCase().includes('starter') ||
-                profile.selectedPlan.toLowerCase().includes('brand') ||
-                profile.selectedPlan.toLowerCase().includes('free') ||
-                profile.selectedPlan === '') && (
+              {(() => {
+                const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+                return (!planName ||
+                  planName.includes('starter') ||
+                  planName.includes('brand') ||
+                  planName.includes('free') ||
+                  planName === '');
+              })() && (
                   <Button
-                    onClick={() => navigate('/dashboard/billing')}
+                    onClick={() => navigate('/dashboard/settings?tab=Plan%20%26%20Billing')}
                     className="w-full rounded-xl py-5 text-xs font-bold bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white shadow-md shadow-primary/25 border-0 transition-all hover:scale-[1.02]"
                   >
                     <Zap size={14} className="mr-2 fill-white" /> Upgrade Plan

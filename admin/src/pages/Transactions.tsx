@@ -37,8 +37,17 @@ export default function Transactions() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const location = useLocation();
-  const [statusFilter, setStatusFilter] = useState(location.state?.statusFilter || '');
+  
+  // If the admin navigated to the dedicated /refunds page, default to refunded
+  const isRefundRoute = location.pathname === '/refunds';
+  const [statusFilter, setStatusFilter] = useState(isRefundRoute ? 'refunded' : (location.state?.statusFilter || ''));
   const [page, setPage] = useState(1);
+
+  // Keep filter in sync if route changes
+  useEffect(() => {
+    if (location.pathname === '/refunds') setStatusFilter('refunded');
+    else if (location.pathname === '/transactions' && statusFilter === 'refunded') setStatusFilter('');
+  }, [location.pathname]);
 
   // Debounce search
   useEffect(() => {
@@ -97,7 +106,7 @@ export default function Transactions() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+        <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">
           Transactions Log
         </h2>
         <p className="text-muted-foreground mt-1">Complete billing history — {pagination.total.toLocaleString()} total transactions.</p>
@@ -152,8 +161,8 @@ export default function Transactions() {
       <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground">
-              <tr>
+            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
+              <tr className="divide-x divide-border/50">
                 <th className="px-6 py-4 font-semibold">Customer</th>
                 <th className="px-6 py-4 font-semibold">Plan</th>
                 <th className="px-6 py-4 font-semibold">Amount</th>
@@ -179,7 +188,7 @@ export default function Transactions() {
                   </td>
                 </tr>
               ) : transactions.map((t) => (
-                <tr key={t._id} className="hover:bg-muted/10 transition-colors">
+                <tr key={t._id} className="hover:bg-muted/10 transition-colors divide-x divide-border/50">
                   <td className="px-6 py-4">
                     <div className="font-medium text-foreground">{t.user?.email || 'Deleted User'}</div>
                     {t.user?.name && <div className="text-xs text-muted-foreground">{t.user.name}</div>}
@@ -193,28 +202,35 @@ export default function Transactions() {
                       {t.plan || '—'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-bold text-emerald-400">₹{t.amount?.toLocaleString()}</td>
+                  <td className="px-6 py-4 font-bold text-emerald-400 whitespace-nowrap">₹{t.amount?.toLocaleString()}</td>
                   <td className="px-6 py-4 font-mono text-xs">
                     {t.couponCode ? (
-                      <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded border border-amber-500/20">
+                      <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded border border-amber-500/20 whitespace-nowrap">
                         {t.couponCode}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-xs text-muted-foreground">
+                  <td className="px-6 py-4 text-xs text-muted-foreground whitespace-nowrap">
                     {t.discountAmount > 0 ? (
                       <span className="text-amber-500">-₹{t.discountAmount} ({t.discountPercentage}%)</span>
                     ) : '—'}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2.5 py-1 text-xs rounded-full border font-medium capitalize ${STATUS_STYLES[t.status] || ''}`}>
                       {t.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs text-muted-foreground">
-                    {new Date(t.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col whitespace-nowrap">
+                      <span className="text-sm text-foreground">
+                        {new Date(t.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(t.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     {t.status === 'completed' && (
