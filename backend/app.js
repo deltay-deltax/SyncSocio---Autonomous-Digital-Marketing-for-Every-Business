@@ -25,6 +25,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import siteRoutes from './routes/siteRoutes.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
@@ -79,6 +80,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/site', siteRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

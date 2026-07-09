@@ -17,22 +17,10 @@ export async function writeBase64ToFile(base64Data, fileName) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
-  // Handle http URLs by downloading the file
+  // Handle http URLs by just returning them directly!
+  // The Python agent or other services can handle public URLs directly, avoiding cross-server filesystem issues.
   if (base64Data.startsWith('http')) {
-    try {
-      const response = await axios.get(base64Data, { responseType: 'arraybuffer' });
-      let extension = '.jpg';
-      if (base64Data.includes('.png')) extension = '.png';
-      else if (base64Data.includes('.webp')) extension = '.webp';
-      else if (base64Data.includes('.mp4')) extension = '.mp4';
-
-      const filePath = path.join(uploadDir, `${fileName}${extension}`);
-      fs.writeFileSync(filePath, response.data);
-      return path.resolve(filePath);
-    } catch (err) {
-      console.error('[tempWriter] Error downloading image from URL:', err.message);
-      return null;
-    }
+    return base64Data;
   }
 
   // Strip prefix like "data:image/jpeg;base64," if present

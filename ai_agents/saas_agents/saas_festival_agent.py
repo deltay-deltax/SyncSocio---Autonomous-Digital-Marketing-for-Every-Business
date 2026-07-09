@@ -135,7 +135,7 @@ def _build_saas_festival_image_prompt(
     language: str,
 ) -> tuple:
     brand_name = brand_doc.get("brandName", "Brand")
-    category   = brand_doc.get("businessCategory", "Services")
+    category   = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "Services"))
     primary_color  = brand_doc.get("primaryColor", "#2563EB")
     secondary_color = brand_doc.get("secondaryColor", "#60A5FA")
     brand_tone = brand_doc.get("brandTone", "Professional")
@@ -233,7 +233,7 @@ def generate_saas_festival_images(
     NOT: discount sales, product giveaways, consumer promotions
     """
     fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
-    profile = get_saas_profile(brand_doc.get("businessCategory", ""))
+    profile = get_saas_profile((brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")))
 
     # Extract festival name from idea (the idea field carries the festival name
     # in the festival tab workflow)

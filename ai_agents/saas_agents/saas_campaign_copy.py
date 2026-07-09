@@ -48,7 +48,7 @@ def generate_saas_campaign_copy(
     usp        = brand_doc.get("usp", "")
     primary    = brand_doc.get("primaryColor", "#2563EB")
     secondary  = brand_doc.get("secondaryColor", "#60A5FA")
-    profile    = get_saas_profile(brand_doc.get("businessCategory", ""))
+    profile    = get_saas_profile((brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")))
     cta        = profile["cta_style"] if profile else "Book a Call | Learn More"
 
     idea_focus_instruction = ""

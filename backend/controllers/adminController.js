@@ -9,6 +9,7 @@ import DeletedUserLog from '../models/DeletedUserLog.js';
 import StrategyCreative from '../models/StrategyCreative.js';
 import VisitorLog from '../models/VisitorLog.js';
 import MetaTester from '../models/MetaTester.js';
+import SiteSettings from '../models/SiteSettings.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -1156,3 +1157,38 @@ export const toggleMetaTesterApproval = async (req, res) => {
   }
 };
 
+
+
+// --- Site Settings -----------------------------------------------------------
+export const getSiteSettings = async (req, res) => {
+  try {
+    let settings = await SiteSettings.findOne();
+    if (!settings) {
+      settings = await SiteSettings.create({ domeGalleryImages: [] });
+    }
+    return res.status(200).json({ success: true, settings });
+  } catch (error) {
+    console.error('Error fetching site settings:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch site settings' });
+  }
+};
+
+export const updateSiteSettings = async (req, res) => {
+  try {
+    const { domeGalleryImages } = req.body;
+    let settings = await SiteSettings.findOne();
+    if (!settings) {
+      settings = new SiteSettings();
+    }
+    
+    if (domeGalleryImages !== undefined) {
+      settings.domeGalleryImages = domeGalleryImages;
+    }
+    
+    await settings.save();
+    return res.status(200).json({ success: true, settings, message: 'Settings updated successfully' });
+  } catch (error) {
+    console.error('Error updating site settings:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update site settings' });
+  }
+};

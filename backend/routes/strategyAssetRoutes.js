@@ -19,8 +19,8 @@ router.post('/', protect, async (req, res) => {
     let savedSlides = slides || [];
     let savedVideoUrl = videoUrl || '';
 
-    // Upload thumbnail to Cloudinary (skip if already a URL)
-    if (thumbnailBase64 && !thumbnailBase64.startsWith('http')) {
+    // Upload thumbnail to Cloudinary (skip if already a Cloudinary URL)
+    if (thumbnailBase64 && !thumbnailBase64.includes('res.cloudinary.com')) {
       try {
         thumbnailUrl = await uploadBase64ToCloudinary(thumbnailBase64, 'syncsocio/creatives');
       } catch (uploadErr) {

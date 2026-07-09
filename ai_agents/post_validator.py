@@ -330,7 +330,7 @@ You are the SyncSocio Algorithm Critic — the most demanding social media strat
 
 CONTEXT:
 - User Content (Placeholder): "{description}"
-- Brand Identity Profile: {brand.get('brandName', 'Unknown')} | {brand.get('businessCategory', '')}
+- Brand Identity Profile: {brand.get('brandName', 'Unknown')} | {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ''))}
 - Target Location: {brand.get('businessLocation', 'Global')}
 - Audience Demographics: {brand.get('targetAudience', 'General')}
 - Visual Analysis: {json.dumps(media_analysis)}
@@ -408,7 +408,7 @@ def caption_generator_node(state: PostState) -> PostState:
     You are a Viral Social Media Copywriter (SyncSocio Optimizer). Write a high-converting caption for this content.
 
     CONTEXT:
-    - Brand: {brand.get('brandName', '')} ({brand.get('businessCategory', '')})
+    - Brand: {brand.get('brandName', '')} ({(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ''))})
     - Goal: {brand.get('mainGoal', '')}
     - Tone: {brand.get('brandTone', 'Professional')}
     - Target Audience: {brand.get('targetAudience', 'General')}
@@ -474,7 +474,7 @@ def strategist_node(state: PostState) -> PostState:
 You are the SyncSocio Timing Strategist. Your goal is to pick the single best time to post based on data.
 
 CONTEXT:
-- Brand Profile (Identity): {brand.get('brandName', '')} | {brand.get('businessCategory', '')}
+- Brand Profile (Identity): {brand.get('brandName', '')} | {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ''))}
 - User's Initial Vision (Placeholder): "{description}"
 - Location: {brand.get('businessLocation', 'Global')}
 - Target Audience: {brand.get('targetAudience', 'General')}
@@ -556,7 +556,7 @@ def publisher_node(state: PostState) -> PostState:
     media_paths = state.get("media_paths", [])
     resolved_paths = []
     for path in media_paths:
-        if path and not os.path.exists(path):
+        if path and not str(path).startswith("http") and not os.path.exists(path):
             alt_path = os.path.join("..", "backend", path)
             if os.path.exists(alt_path):
                 path = alt_path
@@ -621,14 +621,19 @@ def publisher_node(state: PostState) -> PostState:
         public_ids = []
         for path in media_paths:
             resource_type = "video" if content_type == "reel" else "image"
-            upload_result = cloudinary.uploader.upload(
-                path,
-                resource_type=resource_type,
-                folder="syncsocio_posts"
-            )
-            asset_urls.append(upload_result["secure_url"])
-            public_ids.append((upload_result["public_id"], resource_type))
-            print(f"Cloudinary upload success: {upload_result['secure_url']}")
+            if path and str(path).startswith("http") and "cloudinary.com" in path:
+                asset_urls.append(path)
+                public_ids.append((None, resource_type))
+                print(f"Skipped Cloudinary upload (already URL): {path}")
+            else:
+                upload_result = cloudinary.uploader.upload(
+                    path,
+                    resource_type=resource_type,
+                    folder="syncsocio_posts"
+                )
+                asset_urls.append(upload_result["secure_url"])
+                public_ids.append((upload_result["public_id"], resource_type))
+                print(f"Cloudinary upload success: {upload_result['secure_url']}")
 
         # 3. Instagram Publishing
         platforms = state.get("platforms", {})
@@ -755,6 +760,8 @@ def publisher_node(state: PostState) -> PostState:
                             fb_id = fb_res.get("id") or fb_res.get("post_id")
                             print(f"🚀 Facebook Publish Success! ID: {fb_id}")
                             state["fb_post_id"] = fb_id
+                            if not state.get("permanent_url"):
+                                state["permanent_url"] = resource_url
                         else:
                             print(f"❌ Facebook Publish Failed: {fb_res}")
                 else:

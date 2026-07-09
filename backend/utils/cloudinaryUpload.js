@@ -18,10 +18,12 @@ ensureConfigured();
  */
 export async function uploadBase64ToCloudinary(base64, folder = 'syncsocio/creatives', options = {}) {
   ensureConfigured();
-  // Ensure it has the data URI prefix Cloudinary needs
-  const dataUri = base64.startsWith('data:')
-    ? base64
-    : `data:image/jpeg;base64,${base64}`;
+  let dataUri = base64;
+  if (!base64.startsWith('http')) {
+    dataUri = base64.startsWith('data:')
+      ? base64
+      : `data:image/jpeg;base64,${base64}`;
+  }
 
   const result = await cloudinary.uploader.upload(dataUri, {
     folder,
@@ -44,8 +46,8 @@ export async function uploadCarouselSlidesToCloudinary(slides, folder = 'syncsoc
   const uploaded = await Promise.all(
     slides.map(async (slide) => {
       if (!slide.image) return slide;
-      // Already a URL — skip
-      if (slide.image.startsWith('http')) return slide;
+      // Already a Cloudinary URL — skip
+      if (slide.image.includes('res.cloudinary.com')) return slide;
       const url = await uploadBase64ToCloudinary(slide.image, folder);
       return { image: url };
     })

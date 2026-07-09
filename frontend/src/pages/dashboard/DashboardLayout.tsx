@@ -14,19 +14,38 @@ import { BackgroundGenerationsPopover } from '@/components/BackgroundGenerations
 import { useToast } from '@/hooks/use-toast';
 import { saveTasksToIDB, loadTasksFromIDB } from '@/lib/idb';
 
-const navItems = [
-  { label: 'Home', icon: Home, path: '/dashboard' },
-  { label: 'Feed', icon: Rss, path: '/dashboard/feed' },
-  { label: 'Analytics', icon: BarChart3, path: '/dashboard/analytics' },
-  { label: 'Ads', icon: Target, path: '/dashboard/ads' },
-  { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
-  { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
-  { label: 'Creatives', icon: Library, path: '/dashboard/assets' },
-  { label: 'AI Editor', icon: Paintbrush, path: '/dashboard/editor' },
-  // { label: 'DM Automation', icon: MessageCircle, path: '/dashboard/dms' },
-  { label: 'History', icon: Clock, path: '/dashboard/history' },
-  { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
-  { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
+const navGroups = [
+  {
+    title: 'Overview',
+    items: [
+      { label: 'Home', icon: Home, path: '/dashboard' },
+      { label: 'Analytics', icon: BarChart3, path: '/dashboard/analytics' },
+    ]
+  },
+  {
+    title: 'Socials',
+    items: [
+      { label: 'Feed', icon: Rss, path: '/dashboard/feed' },
+      { label: 'Ads', icon: Target, path: '/dashboard/ads' },
+    ]
+  },
+  {
+    title: 'Studio',
+    items: [
+      { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
+      { label: 'Asset Library', icon: Library, path: '/dashboard/assets' },
+      { label: 'AI Editor', icon: Paintbrush, path: '/dashboard/editor' },
+      { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
+    ]
+  },
+  {
+    title: 'Account',
+    items: [
+      { label: 'History', icon: Clock, path: '/dashboard/history' },
+      { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
+      { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
+    ]
+  }
 ];
 
 export type BgTask = {
@@ -783,53 +802,58 @@ const DashboardLayoutContent = () => {
       </div>
 
       {/* Nav Items */}
-      <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
-        {navItems.map((item) => {
-          let itemPath = item.path;
+      <nav className="flex-1 px-4 py-4 overflow-y-auto scrollbar-hide">
+        {navGroups.map((group, groupIdx) => (
+          <div key={group.title} className={cn("flex flex-col space-y-1", groupIdx > 0 && "mt-6")}>
+            <span className="px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1">{group.title}</span>
+            {group.items.map((item) => {
+              let itemPath = item.path;
 
-          const isHome = item.path === '/dashboard';
-          const isActive = isHome
-            ? location.pathname === '/dashboard'
-            : location.pathname.startsWith(item.path);
+              const isHome = item.path === '/dashboard';
+              const isActive = isHome
+                ? location.pathname === '/dashboard'
+                : location.pathname.startsWith(item.path);
 
-          const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
-          const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
-          const isElite = planName.includes('elite');
-          const hasDMAutomationAccess =
-            !isPlanExpired &&
-            (isElite || profile?.DM_Automation_Service === true);
-          const isLocked = item.label === 'DM Automation' && !hasDMAutomationAccess;
+              const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
+              const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+              const isElite = planName.includes('elite');
+              const hasDMAutomationAccess =
+                !isPlanExpired &&
+                (isElite || profile?.DM_Automation_Service === true);
+              const isLocked = item.label === 'DM Automation' && !hasDMAutomationAccess;
 
-          return (
-            <NavLink
-              key={item.path}
-              to={itemPath}
-              onClick={() => setIsSidebarOpen(false)}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
-                isActive
-                  ? "bg-primary/8 text-primary font-bold shadow-sm"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="absolute left-0 top-1/3 bottom-1/3 w-1.5 rounded-r-full bg-primary"
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                />
-              )}
-              <item.icon size={18} className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-              <span className="text-sm">{item.label}</span>
-              {item.label === 'AI Editor' && unread && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-white shadow-sm" />
-              )}
-              {isLocked && (
-                <Lock size={12} className="ml-auto text-muted-foreground/60 group-hover:text-muted-foreground" />
-              )}
-            </NavLink>
-          );
-        })}
+              return (
+                <NavLink
+                  key={item.path}
+                  to={itemPath}
+                  onClick={() => setIsSidebarOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
+                    isActive
+                      ? "bg-primary/8 text-primary font-bold shadow-sm"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-active"
+                      className="absolute left-0 top-1/3 bottom-1/3 w-1.5 rounded-r-full bg-primary"
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                  <item.icon size={18} className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+                  <span className="text-sm">{item.label}</span>
+                  {item.label === 'AI Editor' && unread && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-white shadow-sm" />
+                  )}
+                  {isLocked && (
+                    <Lock size={12} className="ml-auto text-muted-foreground/60 group-hover:text-muted-foreground" />
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Agent Status Card in Sidebar */}
@@ -917,7 +941,7 @@ const DashboardLayoutContent = () => {
               <Menu size={20} />
             </button>
             <h2 className="hidden sm:block text-sm font-black text-foreground uppercase tracking-widest">
-              {navItems.find(i => i.path === location.pathname || (i.path !== '/dashboard' && location.pathname.startsWith(i.path)))?.label || 'Dashboard'}
+              {navGroups.flatMap(g => g.items).find(i => i.path === location.pathname || (i.path !== '/dashboard' && location.pathname.startsWith(i.path)))?.label || 'Dashboard'}
             </h2>
           </div>
 

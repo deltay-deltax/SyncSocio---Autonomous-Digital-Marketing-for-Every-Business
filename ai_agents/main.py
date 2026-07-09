@@ -411,7 +411,7 @@ Analyze the website's title, meta description, lists of logo candidates, typogra
 Your output must be a valid JSON object matching the following structure. If any field or product/service detail is not found, keep it as an empty string ("") or empty array ([])—DO NOT invent fake information, but infer sensible defaults when obvious (e.g. brand name from title, colors from context, or standard goals).
 
 IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep them concise. Descriptions MUST be strictly 200 characters or less.
-IMPORTANT: Do not extract more than 12 items. Set a strict limit of 12.
+IMPORTANT: Do not extract more than 20 items. Set a strict limit of 20.
 
 For each product or service, select the most relevant image URL from the provided list of images by matching the name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
 
@@ -746,7 +746,7 @@ async def api_analyze_mix(userId: str = Query(...), durationWeeks: int = Query(1
 
         brand_info = {
             "brandName": brand_doc.get("brandName", "Unknown"),
-            "businessCategory": brand_doc.get("businessCategory", "General"),
+            "businessCategory": (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "General")),
             "brandTone": brand_doc.get("brandTone", "Professional"),
             "targetAudiences": brand_doc.get("targetAudiences", []),
             "usp": brand_doc.get("usp", "Not specified"),
@@ -790,7 +790,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
         # Construct the context for the agent
         full_brand_profile = {
             "brandName": brand_doc.get("brandName"),
-            "businessCategory": brand_doc.get("businessCategory"),
+            "businessCategory": (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "General")),
             "brandTone": brand_doc.get("brandTone"),
             "targetAudiences": brand_doc.get("targetAudiences", []),
             "usp": brand_doc.get("usp"),
@@ -1011,7 +1011,7 @@ async def api_validate_post(
         
         brand_profile = {
             "brandName": brand_doc.get("brandName", "") if brand_doc else "",
-            "businessCategory": brand_doc.get("businessCategory", "") if brand_doc else "",
+            "businessCategory": (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")) if brand_doc else "",
             "mainGoal": brand_doc.get("mainGoal", "") if brand_doc else "",
             "brandTone": brand_doc.get("brandTone", "Professional & Engaging") if brand_doc else "",
             "targetAudience": ", ".join(brand_doc.get("targetAudiences", [])) if brand_doc else "General",
@@ -1424,7 +1424,7 @@ async def api_generate_visuals(request: VisualGenRequest):
                 Brand: {brand_doc.get('brandName')}
                 Country: {country}
                 Goal: {brand_doc.get('mainGoal')}
-                Category: {brand_doc.get('businessCategory')}
+                Category: {(brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "General"))}
                 Tone: {brand_doc.get('brandTone')}
                 Vibe: {brand_doc.get('visualVibe')}
                 USP: {brand_doc.get('usp')}
@@ -1435,7 +1435,7 @@ async def api_generate_visuals(request: VisualGenRequest):
                 """
                 
                 # Map industry category from brand profile to Refiner Agent categories
-                business_category = brand_doc.get('businessCategory', '')
+                business_category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", ''))
                 industry_category = map_category_for_refiner(business_category)
 
         # Step 1: Refine the prompt
@@ -1464,7 +1464,7 @@ async def api_generate_visuals(request: VisualGenRequest):
             # Resolve brand fields for the structured prompt
             _bd = brand_doc if (request.userId and brand_doc) else {}
             _brand_name       = _bd.get('brandName', '')
-            _business_cat     = _bd.get('businessCategory', '')
+            _business_cat     = (_bd.get("otherCategory") if _bd.get("businessCategory") == "Other" and _bd.get("otherCategory") else _bd.get("businessCategory", ''))
             _brand_tone       = _bd.get('brandTone', '')
             _visual_vibe      = _bd.get('visualVibe', '')
             _primary_color    = _bd.get('primaryColor', '')
@@ -1572,7 +1572,7 @@ Not a stock photo. Not AI-looking.
                 # Dynamically construct slide prompt following the new prompt structure
                 brand_name = brand_doc.get("brandName", "") if brand_doc else ""
                 main_goal = brand_doc.get("mainGoal", "") if brand_doc else ""
-                business_category = brand_doc.get("businessCategory", "") if brand_doc else ""
+                business_category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")) if brand_doc else ""
                 brand_tone = brand_doc.get("brandTone", "") if brand_doc else ""
                 visual_vibe = brand_doc.get("visualVibe", "") if brand_doc else ""
                 usp = brand_doc.get("usp", "") if brand_doc else ""
@@ -1714,7 +1714,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 request.language = "english"
 
         # 2. Detect if SaaS/Services/Consulting brand and route accordingly
-        business_category = brand_doc.get("businessCategory", "")
+        business_category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", ""))
         _is_saas = _SAAS_AGENT_AVAILABLE and is_saas_brand(business_category)
 
         if _is_saas:

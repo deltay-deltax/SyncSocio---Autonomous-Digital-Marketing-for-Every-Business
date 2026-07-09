@@ -116,7 +116,7 @@ def analyze_post_for_dm_flow(
     brand_name = brand_info.get("brandName", "Brand")
     brand_goal = brand_info.get("mainGoal", "Growth")
     brand_usp = brand_info.get("usp", "")
-    brand_category = brand_info.get("businessCategory", "General")
+    brand_category = (brand_info.get("otherCategory") if brand_info.get("businessCategory") == "Other" and brand_info.get("otherCategory") else brand_info.get("businessCategory", "General"))
 
     # ── Quick heuristic check ────────────────────────────────────────────
     heuristic = _quick_heuristic(topic, hook)

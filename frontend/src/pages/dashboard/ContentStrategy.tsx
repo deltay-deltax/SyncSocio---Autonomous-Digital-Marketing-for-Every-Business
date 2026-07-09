@@ -1049,23 +1049,28 @@ const DashboardStrategy = () => {
       const isAlreadySaved = creativeLibrary.some(creative => {
         if (post.type !== creative.type) return false;
 
-        // Match by caption if present
-        if (post.caption && creative.caption) {
-          if (post.caption.trim() === creative.caption.trim()) return true;
-        }
-
+        let mediaMatches = false;
+        
         // Match by image/video URL
         if (post.type === 'image') {
-          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) return true;
+          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) mediaMatches = true;
         } else if (post.type === 'video') {
-          if (post.url && creative.videoUrl && post.url === creative.videoUrl) return true;
-          if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) return true;
+          if (post.url && creative.videoUrl && post.url === creative.videoUrl) mediaMatches = true;
+          else if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) mediaMatches = true;
         } else if (post.type === 'carousel') {
           const postImg = post.slides?.[0]?.image;
           const creativeImg = creative.slides?.[0]?.image || creative.thumbnailBase64;
-          if (postImg && creativeImg && postImg === creativeImg) return true;
+          if (postImg && creativeImg && postImg === creativeImg) mediaMatches = true;
         }
-        return false;
+
+        if (!mediaMatches) return false;
+
+        // If media matches, also check caption (if both exist)
+        if (post.caption && creative.caption) {
+          if (post.caption.trim() !== creative.caption.trim()) return false;
+        }
+
+        return true;
       });
 
       if (isAlreadySaved) {

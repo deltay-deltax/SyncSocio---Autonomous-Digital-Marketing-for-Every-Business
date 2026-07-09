@@ -301,8 +301,8 @@ const CreativeShowcase = () => {
 
                   <div className="space-y-2.5 pt-5 border-t border-border/40">
                     {[
-                      { k: "Per asset", v: "<30s" },
-                      { k: "Languages", v: "5" },
+                      { k: "Avg time", v: "2 min" },
+                      { k: "Languages", v: "14" },
                       { k: "Output", v: current.count },
                     ].map((row) => (
                       <div key={row.k} className="flex items-center justify-between text-xs font-bold">
@@ -324,7 +324,7 @@ const CreativeShowcase = () => {
                     Speaks fluently
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {["English", "Hinglish", "हिंदी", "தமிழ்", "ಕನ್ನಡ"].map((l) => (
+                    {["English", "Hinglish", "हिंदी", "தமிழ்", "ಕನ್ನಡ", "Nepali", "+8 more"].map((l) => (
                       <span
                         key={l}
                         className="text-xs font-bold px-3 py-1 rounded-full bg-foreground/5 border border-border/40 text-foreground"

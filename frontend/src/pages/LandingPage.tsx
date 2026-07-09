@@ -12,6 +12,7 @@ import FAQ from "@/components/FAQ";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import WaitlistDialog from "@/components/WaitlistDialog";
+import DomeGallery from "@/components/ui/DomeGallery";
 
 import { useNavigate } from "react-router-dom";
 
@@ -20,6 +21,7 @@ const Index = () => {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const [isWaitlistJoined, setIsWaitlistJoined] = useState(false);
+  const [domeImages, setDomeImages] = useState<{src: string, alt: string}[] | undefined>(undefined);
 
   useEffect(() => {
     const checkUserStatus = async () => {
@@ -56,7 +58,29 @@ const Index = () => {
       }
     };
 
+    const fetchSiteSettings = async () => {
+      try {
+        const SITE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const res = await fetch(`${SITE_URL}/site/settings`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.settings?.domeGalleryImages?.length > 0) {
+            const mappedImages = data.settings.domeGalleryImages
+              .filter((url: string) => url.trim() !== '')
+              .map((url: string) => ({ src: url, alt: 'Creative' }));
+            
+            if (mappedImages.length > 0) {
+              setDomeImages(mappedImages);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch site settings:", err);
+      }
+    };
+
     checkUserStatus();
+    fetchSiteSettings();
 
     const joined = localStorage.getItem("syncsocio_waitlist_joined") === "true";
     setIsWaitlistJoined(joined);
@@ -84,9 +108,16 @@ const Index = () => {
         onWaitlistClick={() => setIsWaitlistOpen(true)} 
         isJoined={isWaitlistJoined}
       />
+      
+
+
       <WhatWeAre />
       <Features />
       <CreativeShowcase />
+      
+      <section className="relative w-full h-[600px] bg-background overflow-hidden border-y border-border/40">
+        <DomeGallery grayscale={false} overlayBlurColor="transparent" images={domeImages} />
+      </section>
       <HowItWorks />
       <DMAutomation />
       <CampaignChannels />
