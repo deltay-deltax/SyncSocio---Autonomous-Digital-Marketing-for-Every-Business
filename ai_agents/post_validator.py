@@ -760,6 +760,8 @@ def publisher_node(state: PostState) -> PostState:
                             fb_id = fb_res.get("id") or fb_res.get("post_id")
                             print(f"🚀 Facebook Publish Success! ID: {fb_id}")
                             state["fb_post_id"] = fb_id
+                            if not state.get("permanent_url"):
+                                state["permanent_url"] = resource_url
                         else:
                             print(f"❌ Facebook Publish Failed: {fb_res}")
                 else:
