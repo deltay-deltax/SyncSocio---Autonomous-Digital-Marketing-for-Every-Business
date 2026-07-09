@@ -9,8 +9,8 @@ interface BrandProfile {
     email: string;
     name?: string;
   } | null;
-  Brand_Name: string;
-  Industry_Niche: string;
+  brandName: string;
+  businessCategory: string;
   DM_Automation_Service: boolean;
   createdAt: string;
 }
@@ -66,8 +66,8 @@ export default function Brands() {
                   <span className="px-2.5 py-1 bg-violet-500/10 text-violet-500 text-xs rounded-full font-medium">DM Automation Active</span>
                 )}
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-1">{brand.Brand_Name || 'Unnamed Brand'}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{brand.Industry_Niche || 'No niche specified'}</p>
+              <h3 className="text-xl font-bold text-foreground mb-1">{brand.brandName || 'Unnamed Brand'}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{brand.businessCategory || 'No niche specified'}</p>
             </div>
             
             <div className="pt-4 border-t border-border mt-2">
