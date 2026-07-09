@@ -411,7 +411,7 @@ Analyze the website's title, meta description, lists of logo candidates, typogra
 Your output must be a valid JSON object matching the following structure. If any field or product/service detail is not found, keep it as an empty string ("") or empty array ([])—DO NOT invent fake information, but infer sensible defaults when obvious (e.g. brand name from title, colors from context, or standard goals).
 
 IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep them concise. Descriptions MUST be strictly 200 characters or less.
-IMPORTANT: Do not extract more than 12 items. Set a strict limit of 12.
+IMPORTANT: Do not extract more than 20 items. Set a strict limit of 20.
 
 For each product or service, select the most relevant image URL from the provided list of images by matching the name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
 
