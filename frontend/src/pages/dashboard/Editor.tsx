@@ -471,16 +471,16 @@ function UploadSlot({
         onChange={(e) => onChange(e.target.files?.[0])}
       />
       {value ? (
-        <div className="relative h-28 lg:h-32 rounded-2xl overflow-hidden border border-border bg-muted group-hover:border-primary/50 transition">
-          <img src={value.url} alt={value.name} className="w-full h-full object-cover" />
+        <div className="relative h-28 lg:h-32 rounded-2xl overflow-hidden border border-border bg-muted/30 group-hover:border-primary/50 transition">
+          <img src={value.url} alt={value.name} className="w-full h-full object-contain p-2 rounded-2xl" />
           <button
             onClick={onClear}
             className="absolute top-2 right-2 h-7 w-7 inline-flex items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm hover:bg-destructive hover:text-destructive-foreground transition backdrop-blur"
           >
             <X className="h-4 w-4" />
           </button>
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-            <p className="text-[10px] text-white font-medium truncate">{value.name}</p>
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 py-2 rounded-b-2xl">
+            <p className="text-[10px] text-white font-medium truncate tracking-wide">{value.name}</p>
           </div>
         </div>
       ) : (
