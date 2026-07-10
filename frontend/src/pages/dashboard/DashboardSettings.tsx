@@ -421,7 +421,7 @@ const DashboardSettings = () => {
         description: `Brand profile updated · ${scrapedProducts.length} product(s) reloaded.`,
       });
     } catch (err: any) {
-      toast({ title: 'Rescrape failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Rescrape failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     } finally {
       setRescraping(false);
     }
@@ -571,7 +571,7 @@ const DashboardSettings = () => {
         onClose: () => window.location.reload()
       });
     } catch (err: any) {
-      setAlertModal({ isOpen: true, message: 'Error: ' + err.message, title: 'Update Failed', type: 'error' });
+      setAlertModal({ isOpen: true, message: 'Error: ' + getFriendlyErrorMessage(err), title: 'Update Failed', type: 'error' });
     } finally {
       setUpdating(false);
     }
@@ -1025,7 +1025,7 @@ const DashboardSettings = () => {
                                   localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
                                   alert('WhatsApp account reconnected successfully.');
                                 } catch (err: any) {
-                                  alert('Error: ' + err.message);
+                                  alert('Error: ' + getFriendlyErrorMessage(err));
                                 }
                               }
                             }
@@ -1084,7 +1084,7 @@ const DashboardSettings = () => {
                                     setShowNotifications(true);
                                   }
                                 } catch (err: any) {
-                                  alert('Error: ' + err.message);
+                                  alert('Error: ' + getFriendlyErrorMessage(err));
                                 }
                               }
                             }
@@ -1685,7 +1685,7 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
       setStep(2);
       toast({ title: '✅ DNS records generated!', description: 'Add these 3 records to your domain registrar.' });
     } catch (err: any) {
-      toast({ title: 'Setup failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Setup failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
@@ -1714,7 +1714,7 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
         });
       }
     } catch (err: any) {
-      toast({ title: 'Verification failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Verification failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     } finally {
       setVerifying(false);
     }

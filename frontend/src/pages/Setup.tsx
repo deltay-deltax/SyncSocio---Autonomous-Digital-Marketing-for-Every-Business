@@ -238,7 +238,7 @@ const Setup = () => {
       setCouponCodeInput('');
     } catch (err: any) {
       console.error(err);
-      setCouponError(err.message || 'Failed to validate coupon.');
+      setCouponError(getFriendlyErrorMessage(err));
     } finally {
       setCouponLoading(false);
     }
@@ -275,7 +275,7 @@ const Setup = () => {
       toast({ title: 'Request Sent', description: 'We will approve your Meta tester request shortly.' });
     } catch (err: any) {
       console.error(err);
-      toast({ title: 'Error', description: err.message || 'Something went wrong', variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     } finally {
       setMetaTesterLoading(false);
     }
@@ -342,7 +342,7 @@ const Setup = () => {
       }
     } catch (err: any) {
       console.error('❌ Setup: Connection Error:', err);
-      setError(err.message);
+      setError(getFriendlyErrorMessage(err));
     }
   };
 

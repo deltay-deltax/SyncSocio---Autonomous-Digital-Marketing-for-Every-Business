@@ -36,7 +36,7 @@ const ForgotPassword = () => {
       setSuccess("Reset link sent! Please check your inbox securely using the generated link.");
       setCooldown(20);
     } catch (err: any) {
-      setError(err.message);
+      setError(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);
     }

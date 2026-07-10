@@ -97,7 +97,7 @@ const DashboardLayoutContent = () => {
         // If a task was running when the page was refreshed, the connection is lost.
         return parsed.map((t: BgTask) => 
           t.status === 'generating' 
-            ? { ...t, status: 'error' as const, error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
+            ? { ...t, status: 'error' as const, error: 'Looks like the page refreshed. Don\\'t worry, your assets should still arrive in the Asset Library shortly!' } 
             : t
         );
       }
@@ -118,7 +118,7 @@ const DashboardLayoutContent = () => {
           const processed = idbTasks.map((t: BgTask) => {
             if (t.status === 'generating') {
               hasInterrupted = true;
-              return { ...t, status: 'error' as const, error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' };
+              return { ...t, status: 'error' as const, error: 'Looks like the page refreshed. Don\\'t worry, your assets should still arrive in the Asset Library shortly!' };
             }
             return t;
           });
@@ -127,7 +127,7 @@ const DashboardLayoutContent = () => {
             axios.post(`${import.meta.env.VITE_API_URL}/api/ai/log-client-error`, {
               provider: 'OTHER',
               endpoint: 'client-generation',
-              errorMessage: 'Interrupted by page refresh'
+              errorMessage: 'Page refresh interruption'
             }, { withCredentials: true }).catch(err => console.error('Failed to log client error', err));
           }
 
@@ -284,11 +284,11 @@ const DashboardLayoutContent = () => {
         });
       } catch (err: any) {
         console.error('[BgGeneration] failed:', err);
-        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t));
         toast({
           variant: 'destructive',
           title: 'Creative generation failed ❌',
-          description: err.message || 'Something went wrong during assets synthesis.',
+          description: getFriendlyErrorMessage(err),
         });
       }
     })();
@@ -382,11 +382,11 @@ const DashboardLayoutContent = () => {
         });
       } catch (err: any) {
         console.error('[BgAllInOne] failed:', err);
-        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t));
         toast({
           variant: 'destructive',
           title: 'All-in-One generation failed ❌',
-          description: err.message || 'Something went wrong during packages synthesis.',
+          description: getFriendlyErrorMessage(err),
         });
       }
     })();
@@ -466,7 +466,7 @@ const DashboardLayoutContent = () => {
       } catch (err: any) {
         console.error('[BgEdit] failed:', err);
         setBackgroundTasks(prev => prev.map(t =>
-          t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t
+          t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t
         ));
       }
     })();
@@ -531,11 +531,11 @@ const DashboardLayoutContent = () => {
 
       } catch (err: any) {
         console.error('[BgSchedule] failed:', err);
-        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t));
         toast({
           variant: 'destructive',
           title: 'Action failed ❌',
-          description: err.message || 'Something went wrong while processing your posts.',
+          description: getFriendlyErrorMessage(err),
         });
       }
     })();
