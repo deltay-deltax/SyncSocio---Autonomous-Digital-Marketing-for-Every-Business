@@ -13,6 +13,7 @@ import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import WaitlistDialog from "@/components/WaitlistDialog";
 import DomeGallery from "@/components/ui/DomeGallery";
+import LaunchCurtain from "@/components/ui/LaunchCurtain";
 
 import { useNavigate } from "react-router-dom";
 
@@ -21,7 +22,7 @@ const Index = () => {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const [isWaitlistJoined, setIsWaitlistJoined] = useState(false);
-  const [domeImages, setDomeImages] = useState<{src: string, alt: string}[] | undefined>(undefined);
+  const [domeImages, setDomeImages] = useState<{ src: string, alt: string }[] | undefined>(undefined);
 
   useEffect(() => {
     const checkUserStatus = async () => {
@@ -38,7 +39,7 @@ const Index = () => {
         if (profRes.ok) {
           const profile = await profRes.json();
           localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
-          
+
           if (profile.selectedPlan && profile.selectedPlan !== 'Free') {
             localStorage.setItem("syncsocio_setup_done", "true");
             navigate("/dashboard");
@@ -68,7 +69,7 @@ const Index = () => {
             const mappedImages = data.settings.domeGalleryImages
               .filter((url: string) => url.trim() !== '')
               .map((url: string) => ({ src: url, alt: 'Creative' }));
-            
+
             if (mappedImages.length > 0) {
               setDomeImages(mappedImages);
             }
@@ -104,17 +105,17 @@ const Index = () => {
         🚀 We are launching soon! Stay tuned for early access.
       </div>
       <Navbar />
-      <HeroSection 
-        onWaitlistClick={() => setIsWaitlistOpen(true)} 
+      <HeroSection
+        onWaitlistClick={() => setIsWaitlistOpen(true)}
         isJoined={isWaitlistJoined}
       />
-      
+
 
 
       <WhatWeAre />
       <Features />
       <CreativeShowcase />
-      
+
       <section className="relative w-full h-[600px] bg-background overflow-hidden border-y border-border/40">
         <DomeGallery grayscale={false} overlayBlurColor="transparent" images={domeImages} />
       </section>
@@ -123,17 +124,18 @@ const Index = () => {
       <CampaignChannels />
       <Pricing onWaitlistClick={() => setIsWaitlistOpen(true)} />
       <FAQ />
-      <CTASection 
-        onWaitlistClick={() => setIsWaitlistOpen(true)} 
+      <CTASection
+        onWaitlistClick={() => setIsWaitlistOpen(true)}
         isJoined={isWaitlistJoined}
       />
       <Footer />
-      
-      <WaitlistDialog 
-        open={isWaitlistOpen} 
-        onOpenChange={setIsWaitlistOpen} 
+
+      <WaitlistDialog
+        open={isWaitlistOpen}
+        onOpenChange={setIsWaitlistOpen}
         onSuccess={handleWaitlistSuccess}
       />
+      <LaunchCurtain />
     </div>
   );
 };
