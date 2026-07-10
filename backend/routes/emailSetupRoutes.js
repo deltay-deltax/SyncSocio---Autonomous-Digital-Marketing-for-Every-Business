@@ -42,7 +42,7 @@ router.post('/email-setup/start', protect, async (req, res) => {
     }
 
     // Get the active brand profile for this user
-    const brand = await BrandProfile.findOne({ user: req.user._id });
+    const brand = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     if (!brand) {
       return res.status(404).json({ code: 'BRAND_NOT_FOUND', message: 'No brand profile found for your account.' });
     }
@@ -74,7 +74,7 @@ router.post('/email-setup/start', protect, async (req, res) => {
 // Triggers verification check against SendGrid.
 router.post('/email-setup/verify', protect, async (req, res) => {
   try {
-    const brand = await BrandProfile.findOne({ user: req.user._id });
+    const brand = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     if (!brand) {
       return res.status(404).json({ code: 'BRAND_NOT_FOUND', message: 'No brand profile found.' });
     }
@@ -90,7 +90,7 @@ router.post('/email-setup/verify', protect, async (req, res) => {
 // Returns full setup status for UI rendering.
 router.get('/email-setup/status', protect, async (req, res) => {
   try {
-    const brand = await BrandProfile.findOne({ user: req.user._id });
+    const brand = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     if (!brand) {
       return res.status(404).json({ code: 'BRAND_NOT_FOUND', message: 'No brand profile found.' });
     }
@@ -106,7 +106,7 @@ router.get('/email-setup/status', protect, async (req, res) => {
 // Same as verify - re-triggers verification check.
 router.post('/email-setup/retry', protect, async (req, res) => {
   try {
-    const brand = await BrandProfile.findOne({ user: req.user._id });
+    const brand = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     if (!brand) {
       return res.status(404).json({ code: 'BRAND_NOT_FOUND', message: 'No brand profile found.' });
     }

@@ -117,7 +117,7 @@ router.post('/send', protect, async (req, res) => {
     const isHtml = body.includes('<') && (body.includes('</') || body.includes('/>'));
     const cleanBody = isHtml ? body.replace(/[\r\n]+/g, ' ').replace(/>\s+</g, '><').trim() : body;
 
-    const profile = await BrandProfile.findOne({ user: req.user._id });
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     const brandName = profile?.brandName || 'SyncSocio';
 
     // ── DOMAIN VERIFICATION GUARD ────────────────────────────────────────────
@@ -227,7 +227,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
       return res.status(400).json({ message: 'Recipients and body are required' });
     }
 
-    const profile = await BrandProfile.findOne({ user: req.user._id });
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     const WHATSAPP_ACCESS_TOKEN = profile?.whatsappAccessToken?.trim() || process.env.WHATSAPP_ACCESS_TOKEN?.trim();
     const WHATSAPP_PHONE_NUMBER_ID = profile?.whatsappPhoneId?.trim() || process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
 

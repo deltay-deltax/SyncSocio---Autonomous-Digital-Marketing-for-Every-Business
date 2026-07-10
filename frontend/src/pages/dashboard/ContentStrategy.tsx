@@ -530,6 +530,7 @@ const DashboardStrategy = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const {
+    profile: contextProfile,
     setShowNotifications,
     backgroundTasks,
     viewingTask,
@@ -540,6 +541,7 @@ const DashboardStrategy = () => {
     clearViewingTask,
     removeTask
   } = useOutletContext<{
+    profile?: any;
     setShowNotifications?: (show: boolean) => void;
     backgroundTasks?: import('./DashboardLayout').BgTask[];
     viewingTask?: import('./DashboardLayout').BgTask | null;
@@ -552,10 +554,10 @@ const DashboardStrategy = () => {
   }>() || {};
 
   // ── Profile
-  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-  const userId = profile.user || profile._id || 'default';
-  const brandId = profile._id || 'default';
-  const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
+  const profile = contextProfile || JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+  const userId = profile?.user || profile?._id || 'default';
+  const brandId = profile?._id || 'default';
+  const brandName = (profile?.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
   const { toast } = useToast();
 
   // ── Stage / Mode
@@ -1478,7 +1480,7 @@ const DashboardStrategy = () => {
     if (!recipients.length) return;
 
     // Client-side guard: check domain verification status before sending
-    if (mode === 'email' && !profile?.email_domain_verified) {
+    if (mode === 'email' && !profile?.use_generic_email_sender && !profile?.email_domain_verified) {
       toast({
         title: '⚠️ Email setup required',
         description: 'Verify your email domain in Settings → Email Setup before sending campaigns.',
@@ -2135,6 +2137,7 @@ const DashboardStrategy = () => {
   if (stage === 'results' && (mode === 'whatsapp' || mode === 'email')) {
     return (
       <CampaignResults
+        profile={profile}
         mode={mode}
         brandName={profile.brandName || brandName}
         image={campaignImage}
@@ -4295,6 +4298,7 @@ interface CampaignResultsProps {
   listNameInput: string;
   setListNameInput: (v: string) => void;
   handleSaveImportedList: () => Promise<void>;
+  profile: any;
 }
 
 const COUNTRY_CODES = [
@@ -4425,7 +4429,7 @@ const COUNTRY_CODES = [
 ];
 
 const CampaignResults: React.FC<CampaignResultsProps> = ({
-  mode, brandName, image, subject, setSubject, body, setBody,
+  profile, mode, brandName, image, subject, setSubject, body, setBody,
   recipients, setRecipients, newRecipient, setNewRecipient, whatsappCountryCode, setWhatsappCountryCode, addRecipient,
   recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage, isHeroImageSaved,
   savedLists, setSavedLists, selectedListId, setSelectedListId,
@@ -4893,9 +4897,9 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
 
             return (
               <>
-                {isEmailMode && cachedProfile?.email_from && (
+                {isEmailMode && (profile?.use_generic_email_sender ? 'creatives@syncsocio.com' : profile?.email_from) && (
                   <p className="text-center text-[11px] text-muted-foreground font-medium">
-                    📨 Sending from: <span className="font-mono text-foreground">{cachedProfile.email_from}</span>
+                    📨 Sending from: <span className="font-mono text-foreground">{profile.use_generic_email_sender ? 'creatives@syncsocio.com' : profile.email_from}</span>
                   </p>
                 )}
                 <Button
