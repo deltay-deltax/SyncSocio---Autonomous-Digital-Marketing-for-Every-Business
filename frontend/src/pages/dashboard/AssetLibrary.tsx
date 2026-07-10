@@ -273,7 +273,7 @@ const AssetLibrary = () => {
       setModalStep(1);
     } catch (err: any) {
       console.error('[Schedule] Fetch recommendations error:', err);
-      alert(err.message || 'Error planning schedule. Please try again.');
+      alert(getFriendlyErrorMessage(err));
     } finally {
       setFetchingRecommendations(false);
     }
@@ -309,7 +309,7 @@ const AssetLibrary = () => {
       
     } catch (err: any) {
       console.error('[Schedule] smart schedule error:', err);
-      alert(err.message || 'Error scheduling posts. Please try again.');
+      alert(getFriendlyErrorMessage(err));
     }
   };
 
@@ -334,7 +334,7 @@ const AssetLibrary = () => {
       setRecommendations([]);
     } catch (err: any) {
       console.error('[PostNow] error:', err);
-      alert(err.message || 'Error posting immediately. Please try again.');
+      alert(getFriendlyErrorMessage(err));
     }
   };
 

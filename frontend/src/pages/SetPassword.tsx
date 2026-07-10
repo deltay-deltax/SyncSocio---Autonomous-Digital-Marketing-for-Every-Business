@@ -66,7 +66,7 @@ const SetPassword = () => {
       // Redirect to onboarding
       navigate('/onboarding');
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -480,7 +480,7 @@ const DashboardDMs = () => {
       resetWizard();
     } catch (err) {
       console.error('Failed to create flow:', err);
-      setFlowError(err instanceof Error ? err.message : 'Failed to create flow.');
+      setFlowError(getFriendlyErrorMessage(err));
     } finally {
       setIsSavingFlow(false);
     }
@@ -533,7 +533,7 @@ const DashboardDMs = () => {
       setFlows((prev) => prev.map((item) => (item.id === id ? updated : item)));
     } catch (err) {
       console.error('Failed to toggle flow:', err);
-      setFlowError(err instanceof Error ? err.message : 'Failed to update flow status.');
+      setFlowError(getFriendlyErrorMessage(err));
     }
   };
 
@@ -554,7 +554,7 @@ const DashboardDMs = () => {
       setFlows((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       console.error('Failed to delete flow:', err);
-      setFlowError(err instanceof Error ? err.message : 'Failed to delete flow.');
+      setFlowError(getFriendlyErrorMessage(err));
     }
   };
 

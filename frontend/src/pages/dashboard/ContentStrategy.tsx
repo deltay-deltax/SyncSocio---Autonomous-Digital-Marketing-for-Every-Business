@@ -1534,7 +1534,7 @@ const DashboardStrategy = () => {
       console.error(err);
       toast({
         title: "Campaign Error",
-        description: 'Failed to send campaign: ' + err.message,
+        description: 'Failed to send campaign: ' + getFriendlyErrorMessage(err),
         variant: "destructive"
       });
       setSendStatus('idle');
@@ -1747,7 +1747,7 @@ const DashboardStrategy = () => {
           }
         } catch (err: any) {
           console.error('[Strategy] Generation error:', err);
-          setGenError(err.message || 'Something went wrong');
+          setGenError(getFriendlyErrorMessage(err));
           setStage('builder');
         }
         return;
@@ -1763,7 +1763,7 @@ const DashboardStrategy = () => {
       }
     } catch (err: any) {
       console.error('[Strategy] Generation setup error:', err);
-      setGenError(err.message || 'Something went wrong');
+      setGenError(getFriendlyErrorMessage(err));
       setStage('builder');
     }
   };

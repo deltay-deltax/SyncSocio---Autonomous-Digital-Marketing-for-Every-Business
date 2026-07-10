@@ -330,7 +330,7 @@ const Onboarding = () => {
     } catch (err: any) {
       clearInterval(statusInterval);
       console.error(err);
-      setScanError(err.message || 'Scrape connection timed out. You can skip and setup manually.');
+      setScanError(getFriendlyErrorMessage(err));
     } finally {
       setScanLoading(false);
     }

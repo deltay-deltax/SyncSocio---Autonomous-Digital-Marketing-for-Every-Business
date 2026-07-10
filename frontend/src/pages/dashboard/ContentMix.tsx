@@ -98,7 +98,7 @@ const ContentMix: React.FC = () => {
       setMixData(mixToStore);
     } catch (err: any) {
       console.error(err);
-      alert(err.message);
+      alert(getFriendlyErrorMessage(err));
     }
     setLoading(false);
   };

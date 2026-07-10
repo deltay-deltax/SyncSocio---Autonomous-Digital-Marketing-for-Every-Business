@@ -157,7 +157,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
             toast({ title: 'Payment Successful', description: 'Your order has been processed.' });
             onSuccess(verifyData);
           } catch (err: any) {
-             toast({ title: 'Verification Failed', description: err.message, variant: 'destructive' });
+             toast({ title: 'Verification Failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
           } finally {
              setIsProcessing(false);
           }
@@ -201,7 +201,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
       });
       rzp.open();
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
       setIsProcessing(false);
     }
   };
