@@ -641,6 +641,46 @@ const DashboardStrategy = () => {
     }
   }, [viewingTask, clearViewingTask]);
 
+  // Load draft email if draftId is in query params
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const draftId = params.get('draftId');
+    if (draftId && brandId) {
+      const loadDraft = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`${NODE_BASE}/strategy-assets`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const creatives = data.creatives || [];
+            const draft = creatives.find((c: any) => c._id === draftId && c.status === 'draft');
+            if (draft) {
+              setMode('email');
+              setStage('results');
+              setCampaignImage(imgSrc(draft.thumbnailBase64) || '');
+              
+              try {
+                const parsed = JSON.parse(draft.caption);
+                setCampaignSubject(parsed.subject || '');
+                setCampaignBody(parsed.body || '');
+              } catch (e) {
+                setCampaignBody(draft.caption || '');
+              }
+
+              // Clear query parameters from URL without reloading
+              navigate('/dashboard/strategy', { replace: true });
+            }
+          }
+        } catch (e) {
+          console.error('[Strategy] Failed to load draft:', e);
+        }
+      };
+      loadDraft();
+    }
+  }, [location.search, brandId, navigate]);
+
   // ── Custom Import List Modal
   const [showListNameModal, setShowListNameModal] = useState(false);
   const [pendingEmails, setPendingEmails] = useState<string[]>([]);
@@ -1780,7 +1820,7 @@ const DashboardStrategy = () => {
   };
 
   // ── Heart — save to DB + localStorage cache
-  const handleHeart = async (post: GeneratedPost, index: number) => {
+  const handleHeart = async (post: GeneratedPost, index: number, customStatus?: string) => {
     // Optimistic UI updates
     setSavedCount((n) => n + 1);
     setSavedIndices((prev) => {
@@ -1801,6 +1841,7 @@ const DashboardStrategy = () => {
         caption: post.caption,
         idea,
         aspectRatio: aspect,
+        status: customStatus,
       };
 
       const res = await fetch(`${NODE_BASE}/strategy-assets`, {
@@ -1939,48 +1980,104 @@ const DashboardStrategy = () => {
 
   const isHeroImageSaved = React.useMemo(() => {
     if (!campaignImage) return false;
+    const isEmail = mode === 'email';
     return creativeLibrary.some(creative => {
       if (creative.type !== 'image') return false;
+
+      // Email drafts must only match draft status.
+      // WhatsApp/other hero images must only match non-draft status.
+      if (isEmail && creative.status !== 'draft') return false;
+      if (!isEmail && creative.status === 'draft') return false;
+
       if (creative.thumbnailBase64 === campaignImage) return true;
-      if (campaignBody && creative.caption) {
+
+      let creativeBody = creative.caption;
+      if (creative.status === 'draft') {
+        try {
+          const parsed = JSON.parse(creative.caption);
+          creativeBody = parsed.body || creativeBody;
+        } catch (e) {}
+      }
+
+      if (campaignBody && creativeBody) {
         const cleanBody = campaignBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-        const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanCreative = creativeBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
         if (cleanBody && cleanBody === cleanCreative) return true;
       }
       return false;
     });
-  }, [campaignImage, creativeLibrary, campaignBody]);
+  }, [campaignImage, creativeLibrary, campaignBody, mode]);
 
   const handleSaveCampaignImage = async () => {
     if (!campaignImage) return;
+    const isEmail = mode === 'email';
 
-    const isAlreadySaved = creativeLibrary.some(creative => {
+    const existingCreative = creativeLibrary.find(creative => {
       if (creative.type !== 'image') return false;
+
+      if (isEmail && creative.status !== 'draft') return false;
+      if (!isEmail && creative.status === 'draft') return false;
+
       if (creative.thumbnailBase64 === campaignImage) return true;
-      if (campaignBody && creative.caption) {
+
+      let creativeBody = creative.caption;
+      if (creative.status === 'draft') {
+        try {
+          const parsed = JSON.parse(creative.caption);
+          creativeBody = parsed.body || creativeBody;
+        } catch (e) {}
+      }
+
+      if (campaignBody && creativeBody) {
         const cleanBody = campaignBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-        const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanCreative = creativeBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
         if (cleanBody && cleanBody === cleanCreative) return true;
       }
       return false;
     });
 
-    if (isAlreadySaved) {
-      toast({
-        title: "Already Saved",
-        description: "This campaign image is already saved in your assets library.",
-      });
+    if (existingCreative) {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`${NODE_BASE}/strategy-assets/${existingCreative._id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const updatedLibrary = creativeLibrary.filter(c => c._id !== existingCreative._id);
+          setCreativeLibrary(updatedLibrary);
+
+          const cacheKey = `syncsocio_strategy_assets_${brandId}`;
+          await setCache(cacheKey, updatedLibrary);
+
+          toast({
+            title: mode === 'email' ? "Draft Removed" : "Campaign Image Removed",
+            description: mode === 'email' ? "This email draft has been removed from your assets." : "This campaign image has been removed from your assets.",
+          });
+        } else {
+          throw new Error('Failed to delete draft');
+        }
+      } catch (err) {
+        console.error(err);
+        toast({
+          title: "Error",
+          description: "Failed to remove draft.",
+          variant: "destructive"
+        });
+      }
       return;
     }
 
     const post: GeneratedPost = {
       type: 'image',
       image: campaignImage,
-      caption: campaignBody || `Campaign Creative: ${campaignSubject || idea || 'WhatsApp/Email Campaign'}`,
+      caption: mode === 'email'
+        ? JSON.stringify({ subject: campaignSubject, body: campaignBody })
+        : campaignBody || `Campaign Creative: ${campaignSubject || idea || 'WhatsApp/Email Campaign'}`,
       sectionType: 'image'
     };
 
-    await handleHeart(post, 9999);
+    await handleHeart(post, 9999, mode === 'email' ? 'draft' : undefined);
   };
 
   const handleDoubleTap = (post: GeneratedPost, index: number) => {
@@ -4525,18 +4622,19 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           {saveHeroImage && (
             <Button
               onClick={saveHeroImage}
-              disabled={isHeroImageSaved}
               variant="outline"
               size="sm"
               className={cn(
                 "rounded-xl gap-2 transition",
                 isHeroImageSaved
-                  ? "text-rose-500 border-rose-500/20 bg-rose-500/10 cursor-not-allowed"
+                  ? "text-rose-500 border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20"
                   : "text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20"
               )}
             >
               <Heart size={14} className={cn(isHeroImageSaved && "fill-rose-500")} />
-              {isHeroImageSaved ? 'Saved' : 'Save hero image'}
+              {isHeroImageSaved
+                ? (mode === 'email' ? 'Draft Saved' : 'Saved')
+                : (mode === 'email' ? 'Save as Draft' : 'Save hero image')}
             </Button>
           )}
           <Button onClick={() => setShowRefineModal(true)} variant="outline" size="sm" className="rounded-xl gap-2">

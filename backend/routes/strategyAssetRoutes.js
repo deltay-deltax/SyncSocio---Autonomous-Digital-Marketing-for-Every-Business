@@ -52,6 +52,8 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
+    const isDraft = req.body.status === 'draft';
+
     const creative = await StrategyCreative.create({
       user: req.user._id,
       brandId: req.user.activeBrandId,
@@ -62,15 +64,20 @@ router.post('/', protect, async (req, res) => {
       caption: caption || '',
       idea: idea || '',
       aspectRatio: aspectRatio || '1:1',
-      status: 'hearted',
+      status: req.body.status || 'hearted',
     });
+
+    const notificationTitle = isDraft ? 'Email Draft Saved' : 'Creative Saved to Library';
+    const notificationDesc = isDraft
+      ? 'An email campaign draft has been successfully saved to your Asset Library.'
+      : `A new ${type} creative has been successfully added to your Asset Library.`;
 
     const { createNotification } = await import('../utils/notificationHelper.js');
     await createNotification(
       req.user._id,
       'success',
-      'Creative Saved to Library',
-      `A new ${type} creative has been successfully added to your Asset Library.`
+      notificationTitle,
+      notificationDesc
     );
 
     const { logActivity } = await import('../utils/activityLogger.js');
@@ -79,7 +86,7 @@ router.post('/', protect, async (req, res) => {
     await logActivity(
       req.user._id,
       agentName,
-      `Saved new ${type} creative to Asset Library.`,
+      isDraft ? 'Saved new email campaign draft.' : `Saved new ${type} creative to Asset Library.`,
       'done'
     );
 
@@ -99,7 +106,7 @@ router.get('/', protect, async (req, res) => {
 
     let query = { 
       user: req.user._id,
-      status: { $in: ['hearted', 'scheduled', 'posted'] }
+      status: { $in: ['hearted', 'scheduled', 'posted', 'draft'] }
     };
     if (defaultBrand && String(defaultBrand._id) === String(brandId)) {
       query.$or = [{ brandId }, { brandId: { $exists: false } }];
