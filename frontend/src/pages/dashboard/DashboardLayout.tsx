@@ -13,6 +13,7 @@ import { CreditsModal } from '@/components/CreditsModal';
 import { BackgroundGenerationsPopover } from '@/components/BackgroundGenerationsPopover';
 import { useToast } from '@/hooks/use-toast';
 import { saveTasksToIDB, loadTasksFromIDB } from '@/lib/idb';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const navGroups = [
   {
@@ -97,7 +98,7 @@ const DashboardLayoutContent = () => {
         // If a task was running when the page was refreshed, the connection is lost.
         return parsed.map((t: BgTask) => 
           t.status === 'generating' 
-            ? { ...t, status: 'error', error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" } 
+            ? { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" } 
             : t
         );
       }
@@ -118,7 +119,7 @@ const DashboardLayoutContent = () => {
           const processed = idbTasks.map((t: BgTask) => {
             if (t.status === 'generating') {
               hasInterrupted = true;
-               return { ...t, status: 'error', error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
+               return { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
             }
             return t;
           });

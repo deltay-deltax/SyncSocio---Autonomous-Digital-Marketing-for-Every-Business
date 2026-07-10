@@ -9,6 +9,7 @@ import { Checkout } from '@/components/Checkout';
 import { useOutletContext, Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useRazorpay } from '../../hooks/useRazorpay';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
