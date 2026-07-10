@@ -29,6 +29,10 @@ const couponSchema = new mongoose.Schema({
   maxUses: {
     type: Number,
     default: null // null = unlimited
+  },
+  applicableOn: {
+    type: [String],
+    default: [] // Empty array means applicable to all
   }
 }, { timestamps: true });
 

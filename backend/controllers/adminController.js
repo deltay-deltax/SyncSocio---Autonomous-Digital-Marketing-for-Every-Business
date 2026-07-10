@@ -149,19 +149,34 @@ export const getMetrics = async (req, res) => {
     const totalCredits = allUsers.reduce((acc, u) => acc + (u.credits || 0), 0);
     const totalCreditsConsumed = allUsers.reduce((acc, u) => acc + (u.totalCreditsConsumed || 0), 0);
 
-    // Calculate total revenue and discounts from transactions
-    const transactions = await Transaction.find();
+    // Calculate total revenue and discounts from transactions (only completed ones)
+    const transactions = await Transaction.find({
+      $or: [{ status: 'completed' }, { status: { $exists: false } }]
+    });
     const totalRevenue = transactions.reduce((acc, t) => acc + (t.amount || 0), 0);
     const totalDiscounts = transactions.reduce((acc, t) => acc + (t.discountAmount || 0), 0);
     
-    // MRR (Monthly Recurring Revenue) estimation
+    // True MRR: Calculated based on what users actually paid in their latest plan transaction
     const activePaidUsers = await User.find({ plan: { $nin: ['', null] } });
     let mrr = 0;
+    
+    // Sort transactions latest first to find the most recent payment for each user
+    const sortedTransactions = [...transactions].sort((a, b) => b.createdAt - a.createdAt);
+
     activePaidUsers.forEach(u => {
       if (!u.plan) return;
-      const pl = u.plan.toLowerCase();
-      if (pl.includes('elite')) mrr += 3199;
-      else mrr += 999; // Starter plan
+      // Find their latest plan transaction
+      const lastTx = sortedTransactions.find(t => 
+        t.user.toString() === u._id.toString() && 
+        ['plan_purchase', 'plan_upgrade', 'plan_renewal'].includes(t.type)
+      );
+
+      if (lastTx && lastTx.amount) {
+        mrr += lastTx.amount;
+      } else {
+        // Fallback if they were manually assigned a plan without a transaction (add 0 to represent true cash flow)
+        mrr += 0; 
+      }
     });
 
     const activeCoupons = await Coupon.countDocuments({ isActive: true });
@@ -250,6 +265,7 @@ export const getDiscountDetails = async (req, res) => {
       plan: t.plan || 'Credit Topup',
       amount: t.amount,
       type: t.type,
+      status: t.status || 'completed',
       createdAt: t.createdAt,
     }));
 
@@ -653,7 +669,7 @@ export const getAllCoupons = async (req, res) => {
 // Create a new coupon
 export const createCoupon = async (req, res) => {
   try {
-    const { code, discountPercentage, expiryDate } = req.body;
+    const { code, discountPercentage, expiryDate, maxUses, applicableOn } = req.body;
 
     if (!code || discountPercentage === undefined) {
       return res.status(400).json({ success: false, message: 'Code and discount percentage are required' });
@@ -668,6 +684,8 @@ export const createCoupon = async (req, res) => {
       code: code.toUpperCase().trim(),
       discountPercentage: Number(discountPercentage),
       expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+      maxUses: maxUses ? Number(maxUses) : null,
+      applicableOn: Array.isArray(applicableOn) ? applicableOn : [],
       isActive: true
     });
 
@@ -973,7 +991,9 @@ export const getSystemHealth = async (req, res) => {
     const costToday = logsToday.reduce((acc, l) => acc + (l.costInCents || 0), 0) / 100;
 
     // Provider breakdown
-    const providers = ['FAL', 'OPENAI', 'GOOGLE'];
+    // Provider breakdown — only providers that exist in the ApiLog enum and are used in production
+    // FAL = image generation, OPENAI = GPT caption/strategy, OTHER = Gemini Flash (Google AI)
+    const providers = ['FAL', 'OPENAI', 'OTHER'];
     const providerStats = {};
     for (const p of providers) {
       const pLogs = logsToday.filter(l => l.provider === p);

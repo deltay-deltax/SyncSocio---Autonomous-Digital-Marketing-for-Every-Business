@@ -263,24 +263,24 @@ export default function Users() {
       <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground">
-              <tr>
-                <th className="px-6 py-4 font-medium">Email / Name</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Plan</th>
-                <th className="px-6 py-4 font-medium">Credits</th>
-                <th className="px-6 py-4 font-medium">Joined</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
+              <tr className="divide-x divide-border/50">
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Email / Name</th>
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Status</th>
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Plan</th>
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Credits</th>
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Joined</th>
+                <th className="px-6 py-4 font-medium text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {pagedUsers.map((user) => (
-                <tr key={user._id} className={`hover:bg-muted/20 transition-colors ${user.isBlocked ? 'bg-red-500/5' : ''}`}>
-                  <td className="px-6 py-4">
+                <tr key={user._id} className={`hover:bg-muted/20 transition-colors divide-x divide-border/50 ${user.isBlocked ? 'bg-red-500/5' : ''}`}>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-foreground">{user.email}</div>
                     <div className="text-muted-foreground text-xs">{user.name || 'No name'}</div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${user.isBlocked ? 'bg-red-500' : user.isVerified ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
                       <div className="flex gap-1.5">
@@ -297,7 +297,7 @@ export default function Users() {
                   </td>
                   
                   {/* Edit Mode toggles for Plan and Credits */}
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     {editingId === user._id ? (
                       <input 
                         type="text" 
@@ -311,7 +311,7 @@ export default function Users() {
                     )}
                   </td>
                   
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     {editingId === user._id ? (
                       <input 
                         type="number" 
@@ -324,8 +324,15 @@ export default function Users() {
                     )}
                   </td>
 
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-foreground">
+                        {new Date(user.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(user.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     {editingId === user._id ? (

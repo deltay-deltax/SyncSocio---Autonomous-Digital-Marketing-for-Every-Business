@@ -102,7 +102,7 @@ export default function Waitlist() {
     <div className="space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">
             Waitlist Management
           </h2>
           <p className="text-muted-foreground mt-1">
@@ -162,13 +162,13 @@ export default function Waitlist() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground">
-              <tr>
-                <th className="px-6 py-4 font-semibold">Name</th>
-                <th className="px-6 py-4 font-semibold">Email</th>
-                <th className="px-6 py-4 font-semibold">Role</th>
-                <th className="px-6 py-4 font-semibold">Joined</th>
-                <th className="px-6 py-4 font-semibold text-right">Action</th>
+            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
+              <tr className="divide-x divide-border/50">
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Name</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Email</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Role</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Joined</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -188,22 +188,29 @@ export default function Waitlist() {
                   </td>
                 </tr>
               ) : entries.map((entry) => (
-                <tr key={entry._id} className="hover:bg-muted/10 transition-colors">
-                  <td className="px-6 py-4 font-medium text-foreground">{entry.name}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{entry.email}</td>
-                  <td className="px-6 py-4">
+                <tr key={entry._id} className="hover:bg-muted/10 transition-colors divide-x divide-border/50">
+                  <td className="px-6 py-4 font-medium text-foreground whitespace-nowrap">{entry.name}</td>
+                  <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{entry.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`capitalize px-2.5 py-1 text-xs rounded-full font-medium ${
                       ROLE_STYLES[entry.role?.toLowerCase()] || ROLE_STYLES.default
                     }`}>
                       {entry.role || 'Unknown'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-muted-foreground text-xs">
-                    {new Date(entry.createdAt).toLocaleDateString('en-IN', {
-                      day: '2-digit', month: 'short', year: 'numeric'
-                    })}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-foreground">
+                        {new Date(entry.createdAt).toLocaleDateString('en-IN', {
+                          day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
+                        })}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(entry.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right whitespace-nowrap">
                     <button
                       onClick={() => handleDelete(entry._id, entry.name)}
                       disabled={deleting === entry._id}

@@ -5,6 +5,7 @@ import { generateContentPlan } from '../utils/contentPlanService.js';
 import { generateCaptionsAndHashtags } from '../utils/contentCaptionService.js';
 import BrandProfile from '../models/BrandProfile.js';
 import User from '../models/User.js';
+import ApiLog from '../models/ApiLog.js';
 
 const router = express.Router();
 
@@ -16,6 +17,23 @@ router.post('/deploy', deployStrategy);
 router.post('/heart', toggleHeart);
 router.get('/calendar', getCalendar);
 router.post('/update-posts', updateCalendarPosts);
+
+router.post('/log-client-error', async (req, res) => {
+    try {
+        const { provider, endpoint, errorMessage } = req.body;
+        await ApiLog.create({
+            user: req.user._id,
+            provider: provider || 'OTHER',
+            endpoint: endpoint || 'client-generation',
+            isError: true,
+            errorMessage: errorMessage || 'Unknown client error',
+            costInCents: 0
+        });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 
 router.post('/scrape-product', async (req, res) => {
     try {

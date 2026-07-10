@@ -353,6 +353,24 @@ export default function DomeGallery({
 
   useGesture(
     {
+      onWheel: ({ delta: [dx, dy] }) => {
+        if (focusedElRef.current || openingRef.current) return;
+        stopInertia();
+        
+        const wheelSensitivity = dragSensitivity * 0.8;
+        
+        const nextX = clamp(
+          rotationRef.current.x - dy / wheelSensitivity,
+          -maxVerticalRotationDeg,
+          maxVerticalRotationDeg
+        );
+        const nextY = wrapAngleSigned(rotationRef.current.y - dx / wheelSensitivity);
+        
+        if (rotationRef.current.x !== nextX || rotationRef.current.y !== nextY) {
+          rotationRef.current = { x: nextX, y: nextY };
+          applyTransform(nextX, nextY);
+        }
+      },
       onDragStart: ({ event }) => {
         if (focusedElRef.current) return;
         stopInertia();
