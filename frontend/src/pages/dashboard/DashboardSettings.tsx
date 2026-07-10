@@ -1596,9 +1596,11 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
   const handleToggleGeneric = async (val: boolean) => {
     setUseGeneric(val);
     setHasSelectedSender(true);
+    const updatedProfile = { ...profile, use_generic_email_sender: val, has_selected_email_sender: true };
     if (setProfile) {
-      setProfile({ ...profile, use_generic_email_sender: val, has_selected_email_sender: true });
+      setProfile(updatedProfile);
     }
+    localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
     const token = localStorage.getItem('token');
     try {
       await fetch(`${apiBase}/profile/me`, {
@@ -1651,6 +1653,11 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
           if (data.step >= 3 && data.verified) {
             setStep(3);
             if (data.verified_at) setVerifiedAt(data.verified_at);
+            const updatedProfile = { ...profile, email_domain_verified: true, email_verified_at: data.verified_at || new Date().toISOString(), email_setup_step: 3 };
+            if (setProfile) {
+              setProfile(updatedProfile);
+            }
+            localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
             clearInterval(interval);
           }
           if (data.dns_records) setDnsRecords(data.dns_records);
@@ -1658,7 +1665,7 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
       } catch {}
     }, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [step]);
+  }, [step, profile, setProfile]);
 
   const handleStart = async () => {
     const emailDomain = fromEmail.split('@')[1]?.toLowerCase() || '';
@@ -1704,6 +1711,11 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
       if (data.verified) {
         setStep(3);
         setVerifiedAt(new Date().toISOString());
+        const updatedProfile = { ...profile, email_domain_verified: true, email_verified_at: new Date().toISOString(), email_setup_step: 3 };
+        if (setProfile) {
+          setProfile(updatedProfile);
+        }
+        localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
         toast({ title: '🎉 Domain verified!', description: `Campaigns will now send from ${fromEmail}` });
       } else {
         if (data.updated_dns) setDnsRecords(formatDnsDisplay(data.updated_dns));
