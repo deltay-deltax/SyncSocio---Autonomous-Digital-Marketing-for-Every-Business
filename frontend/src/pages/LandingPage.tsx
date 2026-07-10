@@ -90,7 +90,7 @@ const Index = () => {
         </div>
       )}
       <Navbar />
-      <HeroSection onWaitlistClick={() => navigate("/signup")} />      <WhatWeAre />
+      <HeroSection onWaitlistClick={() => document.getElementById("free-creatives")?.scrollIntoView({ behavior: "smooth" })} />      <WhatWeAre />
       <Features />
       <CreativeShowcase />
 
