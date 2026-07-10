@@ -1049,28 +1049,26 @@ const DashboardStrategy = () => {
       const isAlreadySaved = creativeLibrary.some(creative => {
         if (post.type !== creative.type) return false;
 
-        let mediaMatches = false;
-        
-        // Match by image/video URL
+        // 1. Try matching by caption first (normalized to ignore spaces, newlines, casing, punctuation)
+        if (post.caption && creative.caption) {
+          const cleanPost = post.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          if (cleanPost && cleanPost === cleanCreative) return true;
+        }
+
+        // 2. Fallback to strict media URL matching (useful if captions are missing or empty)
         if (post.type === 'image') {
-          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) mediaMatches = true;
+          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) return true;
         } else if (post.type === 'video') {
-          if (post.url && creative.videoUrl && post.url === creative.videoUrl) mediaMatches = true;
-          else if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) mediaMatches = true;
+          if (post.url && creative.videoUrl && post.url === creative.videoUrl) return true;
+          if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) return true;
         } else if (post.type === 'carousel') {
           const postImg = post.slides?.[0]?.image;
           const creativeImg = creative.slides?.[0]?.image || creative.thumbnailBase64;
-          if (postImg && creativeImg && postImg === creativeImg) mediaMatches = true;
+          if (postImg && creativeImg && postImg === creativeImg) return true;
         }
 
-        if (!mediaMatches) return false;
-
-        // If media matches, also check caption (if both exist)
-        if (post.caption && creative.caption) {
-          if (post.caption.trim() !== creative.caption.trim()) return false;
-        }
-
-        return true;
+        return false;
       });
 
       if (isAlreadySaved) {
@@ -1941,16 +1939,28 @@ const DashboardStrategy = () => {
     if (!campaignImage) return false;
     return creativeLibrary.some(creative => {
       if (creative.type !== 'image') return false;
-      return creative.thumbnailBase64 === campaignImage;
+      if (creative.thumbnailBase64 === campaignImage) return true;
+      if (campaignBody && creative.caption) {
+        const cleanBody = campaignBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        if (cleanBody && cleanBody === cleanCreative) return true;
+      }
+      return false;
     });
-  }, [campaignImage, creativeLibrary]);
+  }, [campaignImage, creativeLibrary, campaignBody]);
 
   const handleSaveCampaignImage = async () => {
     if (!campaignImage) return;
 
     const isAlreadySaved = creativeLibrary.some(creative => {
       if (creative.type !== 'image') return false;
-      return creative.thumbnailBase64 === campaignImage;
+      if (creative.thumbnailBase64 === campaignImage) return true;
+      if (campaignBody && creative.caption) {
+        const cleanBody = campaignBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        if (cleanBody && cleanBody === cleanCreative) return true;
+      }
+      return false;
     });
 
     if (isAlreadySaved) {
