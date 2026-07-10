@@ -9,19 +9,14 @@ import DMAutomation from "@/components/DMAutomation";
 import CampaignChannels from "@/components/CampaignChannels";
 import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
-import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
-import WaitlistDialog from "@/components/WaitlistDialog";
+import FreeCreativesSection from "@/components/FreeCreativesSection";
 import DomeGallery from "@/components/ui/DomeGallery";
-import LaunchCurtain from "@/components/ui/LaunchCurtain";
-
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const navigate = useNavigate();
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-  const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
-  const [isWaitlistJoined, setIsWaitlistJoined] = useState(false);
   const [domeImages, setDomeImages] = useState<{ src: string, alt: string }[] | undefined>(undefined);
 
   useEffect(() => {
@@ -82,14 +77,7 @@ const Index = () => {
 
     checkUserStatus();
     fetchSiteSettings();
-
-    const joined = localStorage.getItem("syncsocio_waitlist_joined") === "true";
-    setIsWaitlistJoined(joined);
   }, [navigate]);
-
-  const handleWaitlistSuccess = () => {
-    setIsWaitlistJoined(true);
-  };
 
   return (
     <div className="min-h-screen relative">
@@ -101,18 +89,8 @@ const Index = () => {
           </div>
         </div>
       )}
-      <div className="bg-primary/90 px-4 py-2 text-center text-xs sm:text-sm font-medium text-primary-foreground backdrop-blur-md relative z-50">
-        🚀 We are launching soon! Stay tuned for early access.
-      </div>
       <Navbar />
-      <HeroSection
-        onWaitlistClick={() => setIsWaitlistOpen(true)}
-        isJoined={isWaitlistJoined}
-      />
-
-
-
-      <WhatWeAre />
+      <HeroSection onWaitlistClick={() => navigate("/signup")} />      <WhatWeAre />
       <Features />
       <CreativeShowcase />
 
@@ -122,20 +100,10 @@ const Index = () => {
       <HowItWorks />
       <DMAutomation />
       <CampaignChannels />
-      <Pricing onWaitlistClick={() => setIsWaitlistOpen(true)} />
+      <Pricing onWaitlistClick={() => navigate("/signup")} />
       <FAQ />
-      <CTASection
-        onWaitlistClick={() => setIsWaitlistOpen(true)}
-        isJoined={isWaitlistJoined}
-      />
+      <FreeCreativesSection />
       <Footer />
-
-      <WaitlistDialog
-        open={isWaitlistOpen}
-        onOpenChange={setIsWaitlistOpen}
-        onSuccess={handleWaitlistSuccess}
-      />
-      <LaunchCurtain />
     </div>
   );
 };

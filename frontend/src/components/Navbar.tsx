@@ -162,19 +162,19 @@ const Navbar = () => {
           ) : (
             <>
               <Button
-                disabled
                 variant="ghost"
                 size="sm"
-                className="text-[0.78rem] font-semibold text-gray-400 cursor-not-allowed rounded-full px-4 hover:bg-transparent"
+                className="text-[0.78rem] font-semibold text-gray-600 hover:text-gray-900 rounded-full px-4 hover:bg-gray-100/70"
+                asChild
               >
-                Login
+                <Link to="/login">Login</Link>
               </Button>
-              <button
-                disabled
-                className="rounded-full px-5 py-2 bg-gray-100 text-gray-400 text-[0.78rem] font-bold cursor-not-allowed"
+              <Button
+                className="rounded-full px-5 py-2 bg-primary text-primary-foreground text-[0.78rem] font-bold hover:opacity-90"
+                asChild
               >
-                Sign up
-              </button>
+                <Link to="/signup">Sign up</Link>
+              </Button>
             </>
           )}
         </div>
@@ -236,18 +236,20 @@ const Navbar = () => {
                 ) : (
                   <>
                     <Button
-                      disabled
                       variant="ghost"
-                      className="w-full rounded-full font-semibold text-gray-400 cursor-not-allowed hover:bg-transparent"
+                      className="w-full rounded-full font-semibold text-gray-600 hover:bg-gray-50"
+                      asChild
+                      onClick={() => setMobileOpen(false)}
                     >
-                      Login
+                      <Link to="/login">Login</Link>
                     </Button>
-                    <button
-                      disabled
-                      className="w-full text-center rounded-full py-2.5 bg-gray-100 text-gray-400 text-sm font-bold cursor-not-allowed"
+                    <Button
+                      className="w-full rounded-full bg-primary text-primary-foreground font-bold hover:opacity-90"
+                      asChild
+                      onClick={() => setMobileOpen(false)}
                     >
-                      Sign up
-                    </button>
+                      <Link to="/signup">Sign up</Link>
+                    </Button>
                   </>
                 )}
               </div>

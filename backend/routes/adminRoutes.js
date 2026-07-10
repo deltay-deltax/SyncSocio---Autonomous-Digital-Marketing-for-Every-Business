@@ -38,6 +38,7 @@ import {
   getActiveUsersDetails,
   getSiteSettings,
   updateSiteSettings,
+  getLeads,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -99,6 +100,9 @@ router.get('/system/health', getSystemHealth);
 // ─── Waitlist ─────────────────────────────────────────────────────────────────
 router.get('/waitlist', getWaitlist);
 router.delete('/waitlist/:id', deleteWaitlistEntry);
+
+// ─── Leads ────────────────────────────────────────────────────────────────────
+router.get('/leads', getLeads);
 
 // ─── Meta Testers ─────────────────────────────────────────────────────────────
 router.get('/meta-testers', getMetaTesterRequests);

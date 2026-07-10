@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/coupons', icon: Ticket, label: 'Coupons' },
   { to: '/system-health', icon: Activity, label: 'System Health' },
   { to: '/waitlist', icon: ClipboardList, label: 'Waitlist' },
+  { to: '/leads', icon: ClipboardList, label: 'Leads' },
   { to: '/testers', icon: ShieldCheck, label: 'Tester' },
   { to: '/landing-gallery', icon: LayoutDashboard, label: 'Landing Gallery' },
 ];
