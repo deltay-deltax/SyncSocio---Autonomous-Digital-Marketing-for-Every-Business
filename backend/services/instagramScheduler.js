@@ -51,6 +51,9 @@ export const startInstagramScheduler = () => {
                 } catch (publishError) {
                     console.error(`❌ [IG SCHEDULER] Error publishing post ${post._id}:`, publishError.message);
                 }
+                
+                // Add a small delay between requests to avoid tripping infrastructure rate limits (429 Too Many Requests)
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
         } catch (error) {
             console.error("⏱️ [IG SCHEDULER] Global error:", error);

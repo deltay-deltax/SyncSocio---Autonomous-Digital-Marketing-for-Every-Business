@@ -1153,11 +1153,18 @@ async def api_schedule_post(analysis_id: str, request: Request):
         # Save the actual scheduled time for History grouping
         # If it was published IMMEDIATELY (fallback), we use now. Otherwise use the target time.
         if status == "published" and result.get("permanent_url"):
-            update_fields["scheduledAt"] = datetime.now(timezone.utc).isoformat()
+            update_fields["scheduledAt"] = datetime.now(timezone.utc)
         elif post_state.get("best_posting_time"):
-            update_fields["scheduledAt"] = post_state["best_posting_time"]
+            try:
+                # best_posting_time may be an ISO string
+                if isinstance(post_state["best_posting_time"], str):
+                    update_fields["scheduledAt"] = datetime.fromisoformat(post_state["best_posting_time"].replace('Z', '+00:00'))
+                else:
+                    update_fields["scheduledAt"] = post_state["best_posting_time"]
+            except Exception:
+                update_fields["scheduledAt"] = datetime.now(timezone.utc)
         else:
-            update_fields["scheduledAt"] = datetime.now(timezone.utc).isoformat()
+            update_fields["scheduledAt"] = datetime.now(timezone.utc)
 
         await db["post_analyses"].update_one(
             {"_id": ObjectId(analysis_id)},
@@ -1250,7 +1257,7 @@ async def api_direct_publish(
             "growthFactor": 0,
             "analysis": post_state["critique"],
             "bestPostingTime": scheduledAt or datetime.now(timezone.utc).isoformat(),
-            "scheduledAt": scheduledAt or datetime.now(timezone.utc).isoformat(),
+            "scheduledAt": datetime.fromisoformat(scheduledAt.replace('Z', '+00:00')) if scheduledAt else datetime.now(timezone.utc),
             "suggestions": [],
             "status": status,
             "isAgentAssisted": False, # Flag as direct

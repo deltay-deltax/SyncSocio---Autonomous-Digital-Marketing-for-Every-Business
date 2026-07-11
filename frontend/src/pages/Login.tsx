@@ -86,7 +86,7 @@ const Login = () => {
         window.location.href = "/";
       }
     } catch (err: any) {
-      setError(getFriendlyErrorMessage(err));
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -248,7 +248,7 @@ const Login = () => {
                         window.location.href = "/";
                       }
                     } catch (err: any) {
-                      setError(getFriendlyErrorMessage(err));
+                      setError(err instanceof Error ? err.message : String(err));
                     }
                   }}
                   onError={() => setError("Google Login Configuration Missing.")}
