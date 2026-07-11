@@ -85,3 +85,10 @@ class ProductEditRequest(BaseModel):
     brand_dna: Optional[str] = ""
     instruction: str
     aspectRatio: Optional[str] = "1:1"
+
+class AutopilotRequest(BaseModel):
+    userId: str
+    language: Optional[str] = "english"
+    weeks: Optional[int] = 1
+    selectedProductIds: Optional[List[str]] = []
+    upcomingFestivals: Optional[List[Dict[str, Any]]] = []

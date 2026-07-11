@@ -25,6 +25,7 @@ import DashboardAds from './pages/dashboard/DashboardAds';
 import DashboardSettings from './pages/dashboard/DashboardSettings';
 import EditorPage from './pages/dashboard/Editor';
 import ContentStrategy from './pages/dashboard/ContentStrategy';
+import AutopilotPage from './pages/dashboard/Autopilot';
 import PostOptimizer from './pages/PostOptimizer';
 import DashboardDMs from './pages/dashboard/DashboardDMs';
 import ContentMix from './pages/dashboard/ContentMix';
@@ -116,6 +117,7 @@ function App() {
             <Route path="buy-credits" element={<CreditTopup />} />
             <Route path="billing" element={<DashboardBilling />} />
             <Route path="editor" element={<EditorPage />} />
+            <Route path="autopilot" element={<AutopilotPage />} />
           </Route>
         </Route>
 
