@@ -60,6 +60,10 @@ def run_autopilot_planner(
         festivals_dossier.append(f"- {f_name} {f_emoji} (Date: {f_date}, Type: {f_type})")
     festivals_section = "\n".join(festivals_dossier) if festivals_dossier else "No upcoming festivals."
     
+    # Build the exact set of valid product IDs to include in the prompt
+    valid_product_ids = [str(p.get("_id", "")) for p in products]
+    valid_ids_json = json.dumps(valid_product_ids)
+    
     prompt = f"""
     You are the Chief Autopilot Planner Agent for SyncSocio AI.
     Your objective is to generate a comprehensive {post_count}-day content plan ({weeks} week(s), 7 posts per week, Monday through Sunday).
@@ -79,34 +83,33 @@ def run_autopilot_planner(
     ═══════════ PRODUCTS CATALOG ═══════════
     {products_section}
     
+    ═══════════ VALID PRODUCT IDs (MUST use ONLY these) ═══════════
+    {valid_ids_json}
+    
     ═══════════ UPCOMING FESTIVALS IN TIMELINE ═══════════
     {festivals_section}
     
     ═══════════ MANDATORY PLANNING CONSTRAINTS ═══════════
-    1. TIMELINE LENGTH: You MUST generate exactly {post_count} posts (7 posts per week).
-    2. PRODUCT COVERAGE: You MUST select one product to promote in each post. Every product listed in the PRODUCTS CATALOG above MUST be featured at least once in the campaign.
-    3. PRODUCT MAPPING: For each post, choose contextually the most appropriate product (e.g. if the post focuses on a specific pain point, map it to the product that solves it). Assign its exact MongoDB ID in the "product_id" field.
-    4. FESTIVAL MATCHING: If there are upcoming festivals, at least one post in that week should celebrate that festival, organically featuring the product in the spirit of the holiday. Include the festival name in the "festival_name" field for that post.
-    5. LANGUAGE: All output "caption" fields must be fully written in: {language}.
+    1. TIMELINE LENGTH: You MUST generate EXACTLY {post_count} posts — no more, no fewer. Count carefully before outputting.
+    2. PRODUCT IDs: In the "product_id" field, you MUST use ONLY IDs from the VALID PRODUCT IDs list above. NEVER invent or modify a product ID. Any post with an invalid product ID will be discarded.
+    3. PRODUCT COVERAGE: Every product in the catalog MUST appear in at least one post.
+    4. PRODUCT MAPPING: For each post, choose contextually the most appropriate product. Assign its exact MongoDB ID in the "product_id" field.
+    5. FESTIVAL MATCHING: If there are upcoming festivals, at least one post in that week should celebrate that festival. Include the festival name in the "festival_name" field for that post.
+    6. LANGUAGE: All output "caption" fields must be fully written in: {language}.
     
     ═══════════ JSON OUTPUT SPEC (For each post) ═══════════
     Return a list of JSON objects, each with:
     - week: (integer) The week index (1 to {weeks})
     - day: (string) The day of the week (e.g., "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-    - product_id: (string) The exact product ID from the catalog that this post features
+    - product_id: (string) MUST be one of: {valid_ids_json}
     - topic: (string) A catchy one-line viral topic/title for this post
     - image_prompt: (string) A simple 2-3 line ad creative prompt/concept. DO NOT include color descriptions, lighting instructions, complex visual details, layout specifications, or mention days/dates. Just describe a simple, high-impact creative concept featuring the product.
     - caption: (string) A complete copywriting social media caption (with hook, body, CTA, and 3-5 hashtags) written entirely in {language}.
     - festival_name: (string or null) The name of the festival if this post is a festival post, otherwise null.
 
-    Output format: Return ONLY a valid JSON list of {post_count} objects. No extra text, headers, or markdown blocks.
+    Output format: Return ONLY a valid JSON list of EXACTLY {post_count} objects. No extra text, headers, or markdown blocks.
     """
-    print("\n" + "="*50)
-    print("PROMPT PASSED TO AUTOPILOT PLANNER AGENT:")
-    print("="*50)
-    print(prompt)
-    print("="*50 + "\n")
-
+    
     llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
     response = llm.invoke([
         SystemMessage(content=f"You are a structured planning agent. Output exactly a JSON list of {post_count} campaign posts. Output no other text than the JSON list."),
@@ -123,7 +126,15 @@ def run_autopilot_planner(
     else:
         calendar = json.loads(content)
         
-    return calendar
+    # VALIDATION LOGIC
+    # 1. Filter out posts with invalid product IDs
+    valid_calendar = [post for post in calendar if post.get("product_id") in valid_product_ids]
+    
+    # 2. Ensure total count is correct by truncating or padding (if necessary)
+    if len(valid_calendar) > post_count:
+        valid_calendar = valid_calendar[:post_count]
+    
+    return valid_calendar
 
 def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, Any], products_map: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     """
@@ -131,6 +142,8 @@ def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, 
     """
     prod_id = post.get("product_id")
     prod = products_map.get(prod_id)
+    if prod is None:
+        print(f"[Autopilot Visuals] ⚠️  WARNING: product_id '{prod_id}' not found in products_map (known IDs: {list(products_map.keys())}). Skipping product image reference.")
     image_ref = prod.get("imageBase64") if prod else None
     
     print(f"[Autopilot Visuals] Generating image for week={post.get('week')} day={post.get('day')}...")

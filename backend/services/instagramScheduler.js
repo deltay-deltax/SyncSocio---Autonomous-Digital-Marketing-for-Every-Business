@@ -11,7 +11,9 @@ export const startInstagramScheduler = () => {
         try {
             const now = new Date();
             
-            // Find posts scheduled for Instagram where the time has arrived
+            // Find posts scheduled for Instagram where the time has arrived.
+            // NOTE: We exclude 'publishing' to prevent the race condition where a slow
+            // publish call causes the next cron tick to pick up the same post again.
             const duePosts = await PostAnalysis.find({
                 isScheduled: true,
                 status: 'scheduled',
@@ -25,10 +27,26 @@ export const startInstagramScheduler = () => {
 
             for (const post of duePosts) {
                 try {
+                    // ── RACE CONDITION FIX ──────────────────────────────────────────
+                    // Atomically claim the post by setting status → 'publishing'.
+                    // If another cron tick already claimed it (status changed), this
+                    // findOneAndUpdate returns null and we skip — preventing double publish.
+                    const claimed = await PostAnalysis.findOneAndUpdate(
+                        { _id: post._id, status: 'scheduled' }, // only claim if still 'scheduled'
+                        { $set: { status: 'publishing' } },
+                        { new: false }
+                    );
+
+                    if (!claimed) {
+                        console.log(`⏱️ [IG SCHEDULER] Post ${post._id} already being processed — skipping.`);
+                        continue;
+                    }
+                    // ────────────────────────────────────────────────────────────────
+
                     console.log(`⏱️ [IG SCHEDULER] Triggering immediate IG publish for Post: ${post._id}`);
                     
-                    // Call the AI service but override payload for immediate Instagram publish
-                    // We set scheduledAt to null so it doesn't trigger the skip logic in post_validator
+                    // Call the AI service but override payload for immediate Instagram publish.
+                    // We set scheduledAt to null so it doesn't trigger the skip logic in post_validator.
                     const aiResponse = await axios.post(
                         `${AI_SERVICE_URL}/schedule-post/${post._id}`,
                         { 
@@ -41,15 +59,20 @@ export const startInstagramScheduler = () => {
                     const isSuccess = aiResponse.data.status === 'published';
                     
                     if (isSuccess) {
-                        post.status = 'published';
-                        await post.save();
+                        await PostAnalysis.findByIdAndUpdate(post._id, { $set: { status: 'published' } });
                         console.log(`✅ [IG SCHEDULER] Successfully published to Instagram for Post: ${post._id}`);
                     } else {
-                        console.log(`❌ [IG SCHEDULER] Publish failed for Post: ${post._id}`);
+                        // Revert to 'scheduled' so it can be retried on the next cron tick
+                        await PostAnalysis.findByIdAndUpdate(post._id, { $set: { status: 'scheduled' } });
+                        console.log(`❌ [IG SCHEDULER] Publish failed for Post: ${post._id} — reverted to scheduled`);
                     }
 
                 } catch (publishError) {
                     console.error(`❌ [IG SCHEDULER] Error publishing post ${post._id}:`, publishError.message);
+                    // Revert to 'scheduled' on error so it can be retried
+                    try {
+                        await PostAnalysis.findByIdAndUpdate(post._id, { $set: { status: 'scheduled' } });
+                    } catch (_) {}
                 }
                 
                 // Add a small delay between requests to avoid tripping infrastructure rate limits (429 Too Many Requests)
