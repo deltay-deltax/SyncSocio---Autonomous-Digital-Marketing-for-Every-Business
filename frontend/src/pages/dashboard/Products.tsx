@@ -85,11 +85,14 @@ function imgSrc(b64: string) {
 
 const cleanPriceValue = (val: any): string => {
   if (val === undefined || val === null) return '';
-  const str = String(val);
-  // Extract the first valid number (integer or decimal) from the string.
-  // This correctly handles formats like "Rs. 249", "₹249", "$29.99", "249.00", etc.
-  // The old regex left the period from "Rs." making "Rs. 249" become ".249".
-  const match = str.match(/\d+(?:\.\d+)?/);
+  const str = String(val).trim();
+  // Step 1: Strip all currency symbols, letters, and spaces — keep digits, commas, and period
+  // This handles "Rs. 249", "₹1,199", "$29.99", "MRP 999", etc.
+  const stripped = str.replace(/[^\d,.]/g, '');
+  // Step 2: Remove commas (Indian thousand separators like "1,199" → "1199")
+  const withoutCommas = stripped.replace(/,/g, '');
+  // Step 3: Extract the first valid number (handles leading periods from "Rs." leftovers)
+  const match = withoutCommas.match(/\d+(?:\.\d+)?/);
   return match ? match[0] : '';
 };
 
