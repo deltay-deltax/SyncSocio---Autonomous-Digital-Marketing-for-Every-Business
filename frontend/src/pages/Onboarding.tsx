@@ -330,7 +330,7 @@ const Onboarding = () => {
     } catch (err: any) {
       clearInterval(statusInterval);
       console.error(err);
-      setScanError(err.message || 'Scrape connection timed out. You can skip and setup manually.');
+      setScanError(getFriendlyErrorMessage(err));
     } finally {
       setScanLoading(false);
     }
@@ -594,10 +594,30 @@ const Onboarding = () => {
                               <div className="w-4 h-4 rounded-full border border-border shadow-sm" style={{ backgroundColor: formData.secondaryColor }} />
                             </div>
                           </div>
-                          <div className="flex justify-between items-baseline">
+                          <div className="flex justify-between items-baseline border-t border-border/30 pt-3 mt-3">
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Products Cataloged:</span>
                             <span className="text-xs font-bold text-foreground">{extractedProducts.length} items</span>
                           </div>
+                          {extractedProducts.length > 0 && (
+                            <div className="mt-2 text-xs text-muted-foreground bg-muted/20 p-2 rounded-xl border border-border/30">
+                              <p className="font-bold text-[10px] mb-1.5 uppercase tracking-wider">Fetched Products:</p>
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {extractedProducts.slice(0, 5).map((p, i) => (
+                                  <span key={i} className="px-2 py-1 bg-card border border-border shadow-sm rounded-md text-[10px] truncate max-w-[150px]">
+                                    {p.name}
+                                  </span>
+                                ))}
+                                {extractedProducts.length > 5 && (
+                                  <span className="px-2 py-1 bg-muted/50 border border-border rounded-md text-[10px] font-bold">
+                                    +{extractedProducts.length - 5} more
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[9px] text-amber-600/90 font-medium">
+                                * You can edit details and upload custom images in the Products section later.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
 

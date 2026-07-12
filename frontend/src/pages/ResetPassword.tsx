@@ -44,7 +44,7 @@ const ResetPassword = () => {
       setSuccess("Password updated securely! Redirecting to login...");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err: any) {
-      setError(err.message);
+      setError(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);
     }

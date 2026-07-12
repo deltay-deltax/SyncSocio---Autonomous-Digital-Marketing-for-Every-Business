@@ -543,7 +543,15 @@ def generate_saas_strategy_images(
     def pick_caption(i: int) -> str:
         return caption_pool[i % len(caption_pool)]
 
-    assigned_refs = _select_ref_images(ref_images, count)
+    # Separate product/screenshot refs from the logo URL so that image-led
+    # templates always get the actual UI/product image, not the brand logo.
+    logo_url = brand_doc.get("logo", "")
+    product_ref_images = [r for r in ref_images if r != logo_url] if logo_url else ref_images
+    # Fall back to full pool if there are no product-only refs
+    if not product_ref_images:
+        product_ref_images = ref_images
+
+    assigned_refs = _select_ref_images(product_ref_images, count)
 
     fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
 
@@ -609,20 +617,30 @@ def generate_saas_strategy_images(
                 print(f"\n[SaaSAgent] 🔤 Image {index+1}/{count} | track=TEXT-LED | template={template_label}")
             elif is_image_led_template(t_id):
                 _track = "image_led"
-                # Pass BOTH the dashboard screenshot AND the actual logo image to FAL
-                effective_ref = [ref] if ref else []
+                # Resolve the product/dashboard ref to base64 FIRST.
+                # GPT-Image-2 edit mode only accepts binary/base64 — NOT HTTP URLs.
+                # _resolve_ref_image() handles HTTP URLs by downloading them.
+                resolved_ref = _resolve_ref_image(ref) if ref else None
+                if resolved_ref and not resolved_ref.startswith("data:"):
+                    resolved_ref = "data:image/jpeg;base64," + resolved_ref
+                # Pass BOTH the dashboard screenshot AND the brand logo to FAL
+                effective_ref = [resolved_ref] if resolved_ref else []
                 if resolved_logo:
                     effective_ref.append(resolved_logo)
                 if not effective_ref:
                     effective_ref = None
-                print(f"\n[SaaSAgent] 🖥  Image {index+1}/{count} | track=IMAGE-LED | refs={len(effective_ref) if effective_ref else 0} | template={template_label}")
+                print(f"\n[SaaSAgent] 🖥  Image {index+1}/{count} | track=IMAGE-LED | ref_resolved={'YES' if resolved_ref else 'NO'} | refs={len(effective_ref) if effective_ref else 0} | template={template_label}")
             else:
-                effective_ref = [ref] if ref else []
+                # Auto track — also resolve any HTTP URL refs to base64
+                resolved_ref = _resolve_ref_image(ref) if ref else None
+                if resolved_ref and not resolved_ref.startswith("data:"):
+                    resolved_ref = "data:image/jpeg;base64," + resolved_ref
+                effective_ref = [resolved_ref] if resolved_ref else []
                 if resolved_logo:
                     effective_ref.append(resolved_logo)
                 if not effective_ref:
                     effective_ref = None
-                print(f"\n[SaaSAgent] 🖼  Image {index+1}/{count} | track=auto | refs={len(effective_ref) if effective_ref else 0} | template={template_label or 'free'}")
+                print(f"\n[SaaSAgent] 🖼  Image {index+1}/{count} | track=auto | ref_resolved={'YES' if resolved_ref else 'NO'} | refs={len(effective_ref) if effective_ref else 0} | template={template_label or 'free'}")
 
             # Rebuild prompt with the correct include_logo flag
             prompt = build_saas_image_prompt(

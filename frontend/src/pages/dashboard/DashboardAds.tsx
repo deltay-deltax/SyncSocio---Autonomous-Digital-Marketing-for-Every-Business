@@ -52,7 +52,7 @@ const DashboardAds = () => {
           setNextScan(new Date(data.nextAnalysisAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
         }
       } catch (err: any) {
-        setError(err.message);
+        setError(getFriendlyErrorMessage(err));
       } finally {
         setLoading(false);
       }

@@ -530,6 +530,7 @@ const DashboardStrategy = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const {
+    profile: contextProfile,
     setShowNotifications,
     backgroundTasks,
     viewingTask,
@@ -540,6 +541,7 @@ const DashboardStrategy = () => {
     clearViewingTask,
     removeTask
   } = useOutletContext<{
+    profile?: any;
     setShowNotifications?: (show: boolean) => void;
     backgroundTasks?: import('./DashboardLayout').BgTask[];
     viewingTask?: import('./DashboardLayout').BgTask | null;
@@ -552,10 +554,10 @@ const DashboardStrategy = () => {
   }>() || {};
 
   // ── Profile
-  const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-  const userId = profile.user || profile._id || 'default';
-  const brandId = profile._id || 'default';
-  const brandName = (profile.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
+  const profile = contextProfile || JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+  const userId = profile?.user || profile?._id || 'default';
+  const brandId = profile?._id || 'default';
+  const brandName = (profile?.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
   const { toast } = useToast();
 
   // ── Stage / Mode
@@ -605,6 +607,11 @@ const DashboardStrategy = () => {
         setCampaignImage(imgSrc(first.image) || '');
         setCampaignBody(first.caption || '');
         if (task.mode === 'email') setCampaignSubject(first.subject || '');
+      }
+
+      if (task.mode === 'edit_media' && posts.length > 0) {
+        setPreviewPost(posts[0]);
+        setPreviewIndex(0);
       }
 
       setCurrentTaskId(null);
@@ -1049,28 +1056,26 @@ const DashboardStrategy = () => {
       const isAlreadySaved = creativeLibrary.some(creative => {
         if (post.type !== creative.type) return false;
 
-        let mediaMatches = false;
-        
-        // Match by image/video URL
+        // 1. Try matching by caption first (normalized to ignore spaces, newlines, casing, punctuation)
+        if (post.caption && creative.caption) {
+          const cleanPost = post.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          if (cleanPost && cleanPost === cleanCreative) return true;
+        }
+
+        // 2. Fallback to strict media URL matching (useful if captions are missing or empty)
         if (post.type === 'image') {
-          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) mediaMatches = true;
+          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) return true;
         } else if (post.type === 'video') {
-          if (post.url && creative.videoUrl && post.url === creative.videoUrl) mediaMatches = true;
-          else if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) mediaMatches = true;
+          if (post.url && creative.videoUrl && post.url === creative.videoUrl) return true;
+          if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) return true;
         } else if (post.type === 'carousel') {
           const postImg = post.slides?.[0]?.image;
           const creativeImg = creative.slides?.[0]?.image || creative.thumbnailBase64;
-          if (postImg && creativeImg && postImg === creativeImg) mediaMatches = true;
+          if (postImg && creativeImg && postImg === creativeImg) return true;
         }
 
-        if (!mediaMatches) return false;
-
-        // If media matches, also check caption (if both exist)
-        if (post.caption && creative.caption) {
-          if (post.caption.trim() !== creative.caption.trim()) return false;
-        }
-
-        return true;
+        return false;
       });
 
       if (isAlreadySaved) {
@@ -1480,7 +1485,7 @@ const DashboardStrategy = () => {
     if (!recipients.length) return;
 
     // Client-side guard: check domain verification status before sending
-    if (mode === 'email' && !profile?.email_domain_verified) {
+    if (mode === 'email' && !profile?.use_generic_email_sender && !profile?.email_domain_verified) {
       toast({
         title: '⚠️ Email setup required',
         description: 'Verify your email domain in Settings → Email Setup before sending campaigns.',
@@ -1534,7 +1539,7 @@ const DashboardStrategy = () => {
       console.error(err);
       toast({
         title: "Campaign Error",
-        description: 'Failed to send campaign: ' + err.message,
+        description: 'Failed to send campaign: ' + getFriendlyErrorMessage(err),
         variant: "destructive"
       });
       setSendStatus('idle');
@@ -1747,7 +1752,7 @@ const DashboardStrategy = () => {
           }
         } catch (err: any) {
           console.error('[Strategy] Generation error:', err);
-          setGenError(err.message || 'Something went wrong');
+          setGenError(getFriendlyErrorMessage(err));
           setStage('builder');
         }
         return;
@@ -1763,7 +1768,7 @@ const DashboardStrategy = () => {
       }
     } catch (err: any) {
       console.error('[Strategy] Generation setup error:', err);
-      setGenError(err.message || 'Something went wrong');
+      setGenError(getFriendlyErrorMessage(err));
       setStage('builder');
     }
   };
@@ -1941,16 +1946,28 @@ const DashboardStrategy = () => {
     if (!campaignImage) return false;
     return creativeLibrary.some(creative => {
       if (creative.type !== 'image') return false;
-      return creative.thumbnailBase64 === campaignImage;
+      if (creative.thumbnailBase64 === campaignImage) return true;
+      if (campaignBody && creative.caption) {
+        const cleanBody = campaignBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        if (cleanBody && cleanBody === cleanCreative) return true;
+      }
+      return false;
     });
-  }, [campaignImage, creativeLibrary]);
+  }, [campaignImage, creativeLibrary, campaignBody]);
 
   const handleSaveCampaignImage = async () => {
     if (!campaignImage) return;
 
     const isAlreadySaved = creativeLibrary.some(creative => {
       if (creative.type !== 'image') return false;
-      return creative.thumbnailBase64 === campaignImage;
+      if (creative.thumbnailBase64 === campaignImage) return true;
+      if (campaignBody && creative.caption) {
+        const cleanBody = campaignBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        if (cleanBody && cleanBody === cleanCreative) return true;
+      }
+      return false;
     });
 
     if (isAlreadySaved) {
@@ -2125,6 +2142,7 @@ const DashboardStrategy = () => {
   if (stage === 'results' && (mode === 'whatsapp' || mode === 'email')) {
     return (
       <CampaignResults
+        profile={profile}
         mode={mode}
         brandName={profile.brandName || brandName}
         image={campaignImage}
@@ -4285,6 +4303,7 @@ interface CampaignResultsProps {
   listNameInput: string;
   setListNameInput: (v: string) => void;
   handleSaveImportedList: () => Promise<void>;
+  profile: any;
 }
 
 const COUNTRY_CODES = [
@@ -4415,7 +4434,7 @@ const COUNTRY_CODES = [
 ];
 
 const CampaignResults: React.FC<CampaignResultsProps> = ({
-  mode, brandName, image, subject, setSubject, body, setBody,
+  profile, mode, brandName, image, subject, setSubject, body, setBody,
   recipients, setRecipients, newRecipient, setNewRecipient, whatsappCountryCode, setWhatsappCountryCode, addRecipient,
   recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage, isHeroImageSaved,
   savedLists, setSavedLists, selectedListId, setSelectedListId,
@@ -4883,9 +4902,9 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
 
             return (
               <>
-                {isEmailMode && cachedProfile?.email_from && (
+                {isEmailMode && (profile?.use_generic_email_sender ? 'creatives@syncsocio.com' : profile?.email_from) && (
                   <p className="text-center text-[11px] text-muted-foreground font-medium">
-                    📨 Sending from: <span className="font-mono text-foreground">{cachedProfile.email_from}</span>
+                    📨 Sending from: <span className="font-mono text-foreground">{profile.use_generic_email_sender ? 'creatives@syncsocio.com' : profile.email_from}</span>
                   </p>
                 )}
                 <Button

@@ -13,6 +13,7 @@ import { CreditsModal } from '@/components/CreditsModal';
 import { BackgroundGenerationsPopover } from '@/components/BackgroundGenerationsPopover';
 import { useToast } from '@/hooks/use-toast';
 import { saveTasksToIDB, loadTasksFromIDB } from '@/lib/idb';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const navGroups = [
   {
@@ -33,6 +34,7 @@ const navGroups = [
     title: 'Studio',
     items: [
       { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
+      { label: 'Sprint', icon: Zap, path: '/dashboard/autopilot' },
       { label: 'Asset Library', icon: Library, path: '/dashboard/assets' },
       { label: 'AI Editor', icon: Paintbrush, path: '/dashboard/editor' },
       { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
@@ -97,7 +99,7 @@ const DashboardLayoutContent = () => {
         // If a task was running when the page was refreshed, the connection is lost.
         return parsed.map((t: BgTask) => 
           t.status === 'generating' 
-            ? { ...t, status: 'error' as const, error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' } 
+            ? { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" } 
             : t
         );
       }
@@ -118,7 +120,7 @@ const DashboardLayoutContent = () => {
           const processed = idbTasks.map((t: BgTask) => {
             if (t.status === 'generating') {
               hasInterrupted = true;
-              return { ...t, status: 'error' as const, error: 'Interrupted by page refresh. The generation might still complete in the background—check your Asset Library in a few minutes.' };
+               return { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
             }
             return t;
           });
@@ -127,7 +129,7 @@ const DashboardLayoutContent = () => {
             axios.post(`${import.meta.env.VITE_API_URL}/api/ai/log-client-error`, {
               provider: 'OTHER',
               endpoint: 'client-generation',
-              errorMessage: 'Interrupted by page refresh'
+              errorMessage: 'Page refresh interruption'
             }, { withCredentials: true }).catch(err => console.error('Failed to log client error', err));
           }
 
@@ -180,6 +182,10 @@ const DashboardLayoutContent = () => {
       if (task.mode === 'schedule') {
         if (location.pathname !== '/dashboard/history') {
           navigate('/dashboard/history');
+        }
+      } else if (task.mode === 'autopilot') {
+        if (location.pathname !== '/dashboard/autopilot') {
+          navigate('/dashboard/autopilot');
         }
       } else {
         if (location.pathname !== '/dashboard/strategy') {
@@ -284,11 +290,11 @@ const DashboardLayoutContent = () => {
         });
       } catch (err: any) {
         console.error('[BgGeneration] failed:', err);
-        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t));
         toast({
           variant: 'destructive',
           title: 'Creative generation failed ❌',
-          description: err.message || 'Something went wrong during assets synthesis.',
+          description: getFriendlyErrorMessage(err),
         });
       }
     })();
@@ -382,11 +388,11 @@ const DashboardLayoutContent = () => {
         });
       } catch (err: any) {
         console.error('[BgAllInOne] failed:', err);
-        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t));
         toast({
           variant: 'destructive',
           title: 'All-in-One generation failed ❌',
-          description: err.message || 'Something went wrong during packages synthesis.',
+          description: getFriendlyErrorMessage(err),
         });
       }
     })();
@@ -458,7 +464,7 @@ const DashboardLayoutContent = () => {
           }
 
           setBackgroundTasks(prev => prev.map(t =>
-            t.id === taskId ? { ...t, status: 'success', posts: [previewPost, updatedPost] } : t
+            t.id === taskId ? { ...t, status: 'success', posts: [updatedPost, previewPost] } : t
           ));
         } else {
           throw new Error(data.message || 'Edit failed');
@@ -466,8 +472,143 @@ const DashboardLayoutContent = () => {
       } catch (err: any) {
         console.error('[BgEdit] failed:', err);
         setBackgroundTasks(prev => prev.map(t =>
-          t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t
+          t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t
         ));
+      }
+    })();
+
+    return taskId;
+  };
+
+  const startBackgroundAutopilot = async (
+    language: string,
+    weeks: number,
+    selectedProductIds: string[],
+    upcomingFestivals: any[]
+  ) => {
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const title = `Sprint campaign (${weeks} week${weeks > 1 ? 's' : ''})`;
+    const creditCost = weeks * 7 * 5;
+
+    const newTask: BgTask = {
+      id: taskId,
+      title,
+      status: 'generating',
+      mode: 'autopilot',
+      posts: [],
+      error: null,
+      creditCost,
+      creditReason: 'Sprint campaign generation',
+      createdAt: Date.now(),
+    };
+
+    setBackgroundTasks(prev => [newTask, ...prev]);
+
+    (async () => {
+      let creditsDeducted = false;
+      try {
+        const token = localStorage.getItem('token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        
+        // 1. Deduct Credits Upfront
+        if (creditCost > 0) {
+          const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ amount: creditCost, reason: 'Sprint campaign generation' }),
+          });
+          
+          if (!deductRes.ok) {
+            const errData = await deductRes.json().catch(() => ({}));
+            throw new Error(errData.message || 'Insufficient credits for Sprint campaign');
+          }
+          
+          const credData = await deductRes.json();
+          localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'syncsocio_credits',
+            newValue: String(credData.credits ?? 0),
+          }));
+          creditsDeducted = true;
+        }
+
+        // 2. Start AI Generation
+        const response = await fetch(`${apiBase}/ai/autopilot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            language,
+            weeks,
+            selectedProductIds,
+            upcomingFestivals
+          }),
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to generate autopilot campaign');
+        }
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          const posts = data.posts || [];
+          
+          // Credits already deducted upfront.
+
+          setBackgroundTasks(prev => prev.map(t =>
+            t.id === taskId ? { ...t, status: 'success', posts } : t
+          ));
+
+          toast({
+            title: 'Sprint campaign generated! 🚀',
+            description: `Successfully planned and generated ${posts.length} campaign posts.`,
+          });
+        } else {
+          throw new Error(data.message || 'Generation failed');
+        }
+      } catch (err: any) {
+        console.error('[BgAutopilot] failed:', err);
+        
+        if (creditsDeducted && creditCost > 0) {
+          try {
+            const token = localStorage.getItem('token');
+            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+            const refundRes = await fetch(`${apiBase}/credits/topup`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({ amount: creditCost }),
+            });
+            if (refundRes.ok) {
+              const credData = await refundRes.json();
+              localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+              window.dispatchEvent(new StorageEvent('storage', {
+                key: 'syncsocio_credits',
+                newValue: String(credData.credits ?? 0),
+              }));
+              console.log(`[BgAutopilot] Refunded ${creditCost} credits.`);
+            }
+          } catch (refundErr) {
+            console.error('[BgAutopilot] Failed to refund credits:', refundErr);
+          }
+        }
+
+        setBackgroundTasks(prev => prev.map(t =>
+          t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t
+        ));
+        toast({
+          variant: 'destructive',
+          title: 'Sprint generation failed ❌',
+          description: getFriendlyErrorMessage(err),
+        });
       }
     })();
 
@@ -531,11 +672,11 @@ const DashboardLayoutContent = () => {
 
       } catch (err: any) {
         console.error('[BgSchedule] failed:', err);
-        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err.message || 'Something went wrong' } : t));
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t));
         toast({
           variant: 'destructive',
           title: 'Action failed ❌',
-          description: err.message || 'Something went wrong while processing your posts.',
+          description: getFriendlyErrorMessage(err),
         });
       }
     })();
@@ -1022,7 +1163,7 @@ const DashboardLayoutContent = () => {
         </header>
 
         {/* PAGE CONTENT */}
-        <section className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
+        <section className="flex-1 overflow-y-auto px-4 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
           <div className="max-w-6xl mx-auto">
             <AnimatePresence>
               {showRelinkSuccess && (
@@ -1060,6 +1201,7 @@ const DashboardLayoutContent = () => {
               startBackgroundAllInOne,
               startBackgroundSchedule,
               startBackgroundEdit,
+              startBackgroundAutopilot,
               viewCompletedTask,
               clearViewingTask,
               removeTask

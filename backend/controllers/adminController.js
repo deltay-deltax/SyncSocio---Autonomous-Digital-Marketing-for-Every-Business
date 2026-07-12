@@ -10,6 +10,7 @@ import StrategyCreative from '../models/StrategyCreative.js';
 import VisitorLog from '../models/VisitorLog.js';
 import MetaTester from '../models/MetaTester.js';
 import SiteSettings from '../models/SiteSettings.js';
+import Lead from '../models/Lead.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -1190,5 +1191,16 @@ export const updateSiteSettings = async (req, res) => {
   } catch (error) {
     console.error('Error updating site settings:', error);
     return res.status(500).json({ success: false, message: 'Failed to update site settings' });
+  }
+};
+
+// --- Leads -------------------------------------------------------------------
+export const getLeads = async (req, res) => {
+  try {
+    const leads = await Lead.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, leads });
+  } catch (error) {
+    console.error('Error fetching leads:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch leads' });
   }
 };

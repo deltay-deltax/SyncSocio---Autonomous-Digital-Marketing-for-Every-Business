@@ -9,6 +9,7 @@ import { Checkout } from '@/components/Checkout';
 import { useOutletContext, Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useRazorpay } from '../../hooks/useRazorpay';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -293,7 +294,8 @@ const DashboardSettings = () => {
         primaryColor: scraped.primaryColor || formData.primaryColor,
         secondaryColor: scraped.secondaryColor || formData.secondaryColor,
         logo: scraped.logo || formData.logo,
-        typography: scraped.typography || formData.typography
+        typography: scraped.typography || formData.typography,
+        brandKeywords: Array.isArray(scraped.brandKeywords) ? scraped.brandKeywords.join(', ') : (scraped.brandKeywords || (Array.isArray(scraped.keywords) ? scraped.keywords.join(', ') : (scraped.keywords || formData.brandKeywords)))
       };
 
       // 3.5. Delete existing products before saving new ones
@@ -421,7 +423,7 @@ const DashboardSettings = () => {
         description: `Brand profile updated · ${scrapedProducts.length} product(s) reloaded.`,
       });
     } catch (err: any) {
-      toast({ title: 'Rescrape failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Rescrape failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     } finally {
       setRescraping(false);
     }
@@ -571,7 +573,7 @@ const DashboardSettings = () => {
         onClose: () => window.location.reload()
       });
     } catch (err: any) {
-      setAlertModal({ isOpen: true, message: 'Error: ' + err.message, title: 'Update Failed', type: 'error' });
+      setAlertModal({ isOpen: true, message: 'Error: ' + getFriendlyErrorMessage(err), title: 'Update Failed', type: 'error' });
     } finally {
       setUpdating(false);
     }
@@ -1025,7 +1027,7 @@ const DashboardSettings = () => {
                                   localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
                                   alert('WhatsApp account reconnected successfully.');
                                 } catch (err: any) {
-                                  alert('Error: ' + err.message);
+                                  alert('Error: ' + getFriendlyErrorMessage(err));
                                 }
                               }
                             }
@@ -1084,7 +1086,7 @@ const DashboardSettings = () => {
                                     setShowNotifications(true);
                                   }
                                 } catch (err: any) {
-                                  alert('Error: ' + err.message);
+                                  alert('Error: ' + getFriendlyErrorMessage(err));
                                 }
                               }
                             }
@@ -1596,9 +1598,11 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
   const handleToggleGeneric = async (val: boolean) => {
     setUseGeneric(val);
     setHasSelectedSender(true);
+    const updatedProfile = { ...profile, use_generic_email_sender: val, has_selected_email_sender: true };
     if (setProfile) {
-      setProfile({ ...profile, use_generic_email_sender: val, has_selected_email_sender: true });
+      setProfile(updatedProfile);
     }
+    localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
     const token = localStorage.getItem('token');
     try {
       await fetch(`${apiBase}/profile/me`, {
@@ -1651,6 +1655,11 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
           if (data.step >= 3 && data.verified) {
             setStep(3);
             if (data.verified_at) setVerifiedAt(data.verified_at);
+            const updatedProfile = { ...profile, email_domain_verified: true, email_verified_at: data.verified_at || new Date().toISOString(), email_setup_step: 3 };
+            if (setProfile) {
+              setProfile(updatedProfile);
+            }
+            localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
             clearInterval(interval);
           }
           if (data.dns_records) setDnsRecords(data.dns_records);
@@ -1658,7 +1667,7 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
       } catch {}
     }, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [step]);
+  }, [step, profile, setProfile]);
 
   const handleStart = async () => {
     const emailDomain = fromEmail.split('@')[1]?.toLowerCase() || '';
@@ -1685,7 +1694,7 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
       setStep(2);
       toast({ title: '✅ DNS records generated!', description: 'Add these 3 records to your domain registrar.' });
     } catch (err: any) {
-      toast({ title: 'Setup failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Setup failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
@@ -1704,6 +1713,11 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
       if (data.verified) {
         setStep(3);
         setVerifiedAt(new Date().toISOString());
+        const updatedProfile = { ...profile, email_domain_verified: true, email_verified_at: new Date().toISOString(), email_setup_step: 3 };
+        if (setProfile) {
+          setProfile(updatedProfile);
+        }
+        localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
         toast({ title: '🎉 Domain verified!', description: `Campaigns will now send from ${fromEmail}` });
       } else {
         if (data.updated_dns) setDnsRecords(formatDnsDisplay(data.updated_dns));
@@ -1714,7 +1728,7 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
         });
       }
     } catch (err: any) {
-      toast({ title: 'Verification failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Verification failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     } finally {
       setVerifying(false);
     }

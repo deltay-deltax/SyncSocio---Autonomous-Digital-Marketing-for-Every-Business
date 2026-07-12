@@ -141,7 +141,7 @@ const Signup = () => {
 
       setInfoMessage(data.message || "Signup submitted. Please verify your email.");
     } catch (err: any) {
-      setError(err.message);
+      setError(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -187,7 +187,7 @@ const Signup = () => {
 
       await handlePostAuthSuccess(data.token);
     } catch (err: any) {
-      setError(err.message);
+      setError(getFriendlyErrorMessage(err));
     } finally {
       setOtpLoading(false);
     }
@@ -218,7 +218,7 @@ const Signup = () => {
 
       setInfoMessage(data.message || "A new OTP has been sent to your email.");
     } catch (err: any) {
-      setError(err.message);
+      setError(getFriendlyErrorMessage(err));
     } finally {
       setResendLoading(false);
     }
@@ -461,7 +461,7 @@ const Signup = () => {
                             window.location.href = "/onboarding";
                           }
                         } catch (err: any) {
-                          setError(err.message);
+                          setError(getFriendlyErrorMessage(err));
                         }
                       }}
                       onError={() => setError("Google Login Configuration Missing.")}

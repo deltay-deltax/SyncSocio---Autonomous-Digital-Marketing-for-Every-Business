@@ -3,6 +3,7 @@ import axios from 'axios';
 import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
 import PostAnalysis from '../models/PostAnalysis.js';
+import { performStrategicAudit } from '../utils/auditAgentService.js';
 
 const router = express.Router();
 
@@ -200,6 +201,18 @@ router.get('/metrics', protect, async (req, res) => {
             }
         } catch (e) {
             console.warn('Online followers fetch warning:', e.response?.data?.error?.message || e.message);
+        }        // Trigger background audit if they have posts and either have no learnings yet or the last audit was > 24 hours ago
+        const lastAudit = brandProfile.lastStrategicAudit || new Date(0);
+        const hoursSince = (Date.now() - new Date(lastAudit).getTime()) / (1000 * 60 * 60);
+
+        if (posts.length >= 3 && (!brandProfile.agentLearnings || brandProfile.agentLearnings.length === 0 || hoursSince >= 24)) {
+            if (brandProfile.neuralState !== 'Running Audit') {
+                brandProfile.neuralState = 'Running Audit';
+                await BrandProfile.updateOne({ _id: brandProfile._id }, { $set: { neuralState: 'Running Audit' } });
+                performStrategicAudit(userId, brandProfile).catch(err => {
+                    console.error('[METRICS] Background strategic audit failed:', err);
+                });
+            }
         }
 
         res.json({
@@ -289,19 +302,19 @@ router.get('/metrics', protect, async (req, res) => {
                             avgAgentReach,
                             avgSelfReach
                         };
-                   } catch (e) {
-                       console.error("❌ [ANALYTICS] Weekly Reach Growth Fetch Error:", e.response?.data?.error || e.message);
-                       return {
-                           history: Array.from({ length: 4 }, (_, i) => ({
-                               week: `W${4-i}`,
-                               selfReach: 0,
-                               agentReach: 0,
-                               totalReach: 0
-                           })).reverse(),
-                           avgAgentReach: 0,
-                           avgSelfReach: 0
-                       };
-                   }
+                    } catch (e) {
+                        console.error("❌ [ANALYTICS] Weekly Reach Growth Fetch Error:", e.response?.data?.error || e.message);
+                        return {
+                            history: Array.from({ length: 4 }, (_, i) => ({
+                                week: `W${4-i}`,
+                                selfReach: 0,
+                                agentReach: 0,
+                                totalReach: 0
+                            })).reverse(),
+                            avgAgentReach: 0,
+                            avgSelfReach: 0
+                        };
+                    }
                 })(),
                 // --- REAL DATA: 30-Day Follower Growth (Chart 3) ---
                 followerGrowth: await (async () => {

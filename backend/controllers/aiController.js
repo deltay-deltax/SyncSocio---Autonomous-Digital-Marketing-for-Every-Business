@@ -233,3 +233,40 @@ export const updateCalendarPosts = async (req, res) => {
   }
 };
 
+export const generateAutopilotCampaign = async (req, res) => {
+  try {
+    const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
+    if (!profile) return res.status(404).json({ message: 'Brand profile not found' });
+
+    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    
+    const response = await axios.post(`${aiServiceUrl}/generate-autopilot`, {
+      userId: req.user._id.toString(),
+      language: req.body.language || 'english',
+      weeks: req.body.weeks || 1,
+      selectedProductIds: req.body.selectedProductIds || [],
+      upcomingFestivals: req.body.upcomingFestivals || []
+    });
+
+    const { createNotification } = await import('../utils/notificationHelper.js');
+    await createNotification(
+      req.user._id,
+      'success',
+      'Autopilot Campaigns Complete',
+      `Your autopilot campaign for the next ${req.body.weeks} week(s) has been generated successfully.`
+    );
+
+    await logActivity(
+      req.user._id,
+      'Autopilot Agent',
+      `Generated autopilot campaign posts for ${profile.brandName}.`,
+      'done'
+    );
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error('AI Autopilot Campaign Error:', error);
+    res.status(500).json({ message: 'Error generating autopilot campaign' });
+  }
+};
+

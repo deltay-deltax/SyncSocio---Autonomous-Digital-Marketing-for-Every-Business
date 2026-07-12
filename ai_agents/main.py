@@ -23,7 +23,7 @@ from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_video_minimax, generate_fal_video_wan, generate_fal_image_gpt2
 from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
-from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest
+from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest, AutopilotRequest
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
 from plan_agent import generate_weekly_plan
@@ -1153,11 +1153,18 @@ async def api_schedule_post(analysis_id: str, request: Request):
         # Save the actual scheduled time for History grouping
         # If it was published IMMEDIATELY (fallback), we use now. Otherwise use the target time.
         if status == "published" and result.get("permanent_url"):
-            update_fields["scheduledAt"] = datetime.now(timezone.utc).isoformat()
+            update_fields["scheduledAt"] = datetime.now(timezone.utc)
         elif post_state.get("best_posting_time"):
-            update_fields["scheduledAt"] = post_state["best_posting_time"]
+            try:
+                # best_posting_time may be an ISO string
+                if isinstance(post_state["best_posting_time"], str):
+                    update_fields["scheduledAt"] = datetime.fromisoformat(post_state["best_posting_time"].replace('Z', '+00:00'))
+                else:
+                    update_fields["scheduledAt"] = post_state["best_posting_time"]
+            except Exception:
+                update_fields["scheduledAt"] = datetime.now(timezone.utc)
         else:
-            update_fields["scheduledAt"] = datetime.now(timezone.utc).isoformat()
+            update_fields["scheduledAt"] = datetime.now(timezone.utc)
 
         await db["post_analyses"].update_one(
             {"_id": ObjectId(analysis_id)},
@@ -1250,7 +1257,7 @@ async def api_direct_publish(
             "growthFactor": 0,
             "analysis": post_state["critique"],
             "bestPostingTime": scheduledAt or datetime.now(timezone.utc).isoformat(),
-            "scheduledAt": scheduledAt or datetime.now(timezone.utc).isoformat(),
+            "scheduledAt": datetime.fromisoformat(scheduledAt.replace('Z', '+00:00')) if scheduledAt else datetime.now(timezone.utc),
             "suggestions": [],
             "status": status,
             "isAgentAssisted": False, # Flag as direct
@@ -2037,6 +2044,56 @@ async def api_product_image_editor(request: ProductEditRequest):
 
     except Exception as e:
         print(f"[ProductEditor] ❌ Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+@app.post("/generate-autopilot")
+async def api_generate_autopilot(request: AutopilotRequest):
+    try:
+        print(f"\n[Autopilot] 📥 Request: userId={request.userId} weeks={request.weeks} language={request.language}")
+        
+        # 1. Fetch brand profile from MongoDB
+        brand_doc = await brand_collection.find_one({
+            "$or": [
+                {"_id": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId},
+                {"user": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId}
+            ]
+        })
+        if not brand_doc:
+            raise HTTPException(status_code=404, detail="Brand profile not found")
+            
+        # 2. Fetch products details from MongoDB products collection
+        product_collection = db["products"]
+        product_ids = [ObjectId(pid) for pid in request.selectedProductIds if ObjectId.is_valid(pid)]
+        products = []
+        async for prod in product_collection.find({"_id": {"$in": product_ids}}):
+            prod["_id"] = str(prod["_id"])
+            if "user" in prod:
+                prod["user"] = str(prod["user"])
+            if "brandId" in prod:
+                prod["brandId"] = str(prod["brandId"])
+            products.append(prod)
+            
+        if not products:
+            raise HTTPException(status_code=400, detail="No selected products found in database")
+            
+        # 3. Call autopilot_agent
+        from autopilot_agent import generate_autopilot_campaign
+        import asyncio
+        
+        campaign_posts = await asyncio.to_thread(
+            generate_autopilot_campaign,
+            brand_info=brand_doc,
+            products=products,
+            upcoming_festivals=request.upcomingFestivals,
+            language=request.language,
+            weeks=request.weeks
+        )
+        
+        return {
+            "status": "success",
+            "posts": campaign_posts
+        }
+    except Exception as e:
+        print(f"[Autopilot] ❌ Route error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
