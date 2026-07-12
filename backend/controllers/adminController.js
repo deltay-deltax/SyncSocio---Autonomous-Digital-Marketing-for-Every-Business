@@ -201,7 +201,7 @@ export const getMetrics = async (req, res) => {
     const visitorsByDate = await VisitorLog.aggregate([
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
           count: { $sum: 1 }
         }
       },
