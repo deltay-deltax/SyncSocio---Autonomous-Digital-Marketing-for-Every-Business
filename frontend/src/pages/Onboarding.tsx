@@ -231,7 +231,7 @@ const Onboarding = () => {
       setStep(parseInt(stepParam, 10));
     }
   }, [location.search]);
-  const totalSteps = 11;
+  const totalSteps = 12;
   const [analyzingProgress, setAnalyzingProgress] = useState(0);
   const [extractedProducts, setExtractedProducts] = useState<any[]>([]);
   const [scanUrl, setScanUrl] = useState('');
@@ -371,7 +371,7 @@ const Onboarding = () => {
   const handleBack = () => setStep(prev => Math.max(prev - 1, 0));
 
   useEffect(() => {
-    if (step === 11) {
+    if (step === 12) {
       setAnalyzingProgress(0);
       const interval = setInterval(() => {
         setAnalyzingProgress(prev => {
@@ -399,7 +399,8 @@ const Onboarding = () => {
       8: { icon: <Layers size={80} strokeWidth={0.5} className="text-primary" />, title: "Visual Vibe", desc: "Establishing an aesthetic that turns heads." },
       9: { icon: <Repeat size={80} strokeWidth={0.5} className="text-primary" />, title: "Format Strategy", desc: "Choosing the best vehicles for your message." },
       10: { icon: <BarChart3 size={80} strokeWidth={0.5} className="text-primary" />, title: "Content Logistics", desc: "Setting the rhythm for your creative pipeline." },
-      11: { icon: <Zap size={80} strokeWidth={0.5} className="text-primary" />, title: "Agent DNA", desc: "Synthesizing your 12-month creative strategy." }
+      11: { icon: <Box size={80} strokeWidth={0.5} className="text-primary" />, title: "Products Review", desc: "Review cataloged products." },
+      12: { icon: <Zap size={80} strokeWidth={0.5} className="text-primary" />, title: "Agent DNA", desc: "Synthesizing your 12-month creative strategy." }
     };
     return contents[step] || contents[1];
   };
@@ -434,7 +435,7 @@ const Onboarding = () => {
           </div>
           
           <div className="flex flex-col items-center justify-center flex-grow text-center px-8 relative z-10 transition-all duration-700">
-            <div className={`mb-8 p-5 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg shadow-primary/[0.04] ${step === 11 ? 'animate-pulse' : ''}`}>
+            <div className={`mb-8 p-5 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg shadow-primary/[0.04] ${step === 12 ? 'animate-pulse' : ''}`}>
               {leftContent.icon}
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 tracking-tight">{leftContent.title}</h2>
@@ -463,14 +464,14 @@ const Onboarding = () => {
         {/* Right Panel */}
         <div className="w-full md:w-7/12 flex flex-col relative bg-card border-l border-border/50">
           
-          {step < 11 && (
+          {step < 12 && (
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-muted/60 overflow-hidden z-20 rounded-full">
               <div className="h-full gradient-bg transition-all duration-700 ease-out rounded-full" style={{ width: `${progressPercent}%` }} />
             </div>
           )}
 
           <div className="flex justify-between items-center px-8 md:px-12 pt-8 md:pt-10 pb-0 z-10">
-            {step > 0 && step < 11 ? (
+            {step > 0 && step < 12 ? (
               <button onClick={handleBack} className="flex items-center text-[11px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-[0.2em] group hover:gap-1">
                 <ChevronLeft size={14} className="mr-1 group-hover:-translate-x-0.5 transition-transform" /> BACK
               </button>
@@ -484,7 +485,7 @@ const Onboarding = () => {
             <div className="hidden md:block"></div>
             
             <div className="flex items-center gap-3">
-              {step < 11 && (
+              {step < 12 && (
                 <div className="flex items-center text-[11px] font-black text-primary px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
                   <Sparkles size={11} className="mr-1.5" /> {step === 0 ? "Auto Scan" : `Step ${step}`}
                   {step > 0 && <span className="text-muted-foreground/50 ml-1">/ {totalSteps - 1}</span>}
@@ -613,23 +614,10 @@ const Onboarding = () => {
                             <span className="text-xs font-bold text-foreground">{extractedProducts.length} items</span>
                           </div>
                           {extractedProducts.length > 0 && (
-                            <div className="mt-2 text-xs text-muted-foreground bg-muted/20 p-2 rounded-xl border border-border/30">
-                              <p className="font-bold text-[10px] mb-1.5 uppercase tracking-wider">Fetched Products:</p>
-                              <div className="flex flex-wrap gap-1.5 mb-2">
-                                {extractedProducts.slice(0, 5).map((p, i) => (
-                                  <span key={i} className="px-2 py-1 bg-card border border-border shadow-sm rounded-md text-[10px] truncate max-w-[150px]">
-                                    {p.name}
-                                  </span>
-                                ))}
-                                {extractedProducts.length > 5 && (
-                                  <span className="px-2 py-1 bg-muted/50 border border-border rounded-md text-[10px] font-bold">
-                                    +{extractedProducts.length - 5} more
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[9px] text-amber-600/90 font-medium">
-                                * You can edit details and upload custom images in the Products section later.
-                              </p>
+                            <div className="mt-2 text-[10px] text-muted-foreground bg-muted/20 p-2.5 rounded-xl border border-border/30">
+                              <span className="text-amber-600/90 font-medium">
+                                * You will review the cataloged products in the next step.
+                              </span>
                             </div>
                           )}
                         </div>
@@ -661,6 +649,48 @@ const Onboarding = () => {
                     <p className="text-[11px] text-amber-600/90 font-medium">
                       <strong>Note:</strong> The scraping agent may make mistakes. Please verify all extracted details and product types in the next steps.
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 11: Products Review */}
+              {step === 11 && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                  <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Products Review</h2>
+                  <p className="text-muted-foreground text-base mb-6 font-medium italic leading-relaxed">Here's what our agent found on your website.</p>
+                  
+                  {extractedProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 bg-muted/20 border border-border/50 rounded-2xl">
+                      <Box className="w-12 h-12 text-muted-foreground mb-3" />
+                      <p className="text-sm font-semibold text-foreground">No products found.</p>
+                      <p className="text-xs text-muted-foreground mt-1 text-center px-6">We couldn't extract any products from the provided URL. You can add them manually later.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[360px] overflow-y-auto pr-2 custom-scrollbar">
+                      {extractedProducts.map((p, i) => {
+                        const productImg = p.imageBase64 || p.image || p.imageUrl;
+                        return (
+                        <div key={i} className="flex flex-col bg-card border border-border rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                          {productImg ? (
+                            <img src={productImg} alt={p.name} className="w-full h-32 object-cover rounded-lg mb-3 border border-border/50 bg-muted" />
+                          ) : (
+                            <div className="w-full h-32 bg-muted/30 flex items-center justify-center rounded-lg mb-3 border border-border/50">
+                              <Box className="text-muted-foreground/40" size={32} />
+                            </div>
+                          )}
+                          <h3 className="text-sm font-bold text-foreground truncate" title={p.name}>{p.name}</h3>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <span className="text-xs font-semibold text-primary">{p.offerPrice || p.price || ''}</span>
+                          </div>
+                        </div>
+                      )})}
+                    </div>
+                  )}
+
+                  <div className="mt-8 shrink-0">
+                    <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
+                      CONFIRM PRODUCTS <ChevronRight size={14} className="ml-1.5 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
                   </div>
                 </div>
               )}
@@ -1202,7 +1232,7 @@ const Onboarding = () => {
               )}
 
               {/* Step 11: Synthesis */}
-              {step === 11 && (
+              {step === 12 && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col h-full py-4">
                   {analyzingProgress < 5 ? (
                     <div className="flex flex-col items-center justify-center flex-grow py-8">
