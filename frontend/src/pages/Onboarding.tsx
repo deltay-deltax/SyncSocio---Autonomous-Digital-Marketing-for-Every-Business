@@ -6,7 +6,7 @@ import {
   Camera, MapPin, FileText, ArrowRight, Check, Globe, Rocket, Users, Compass, Trophy,
   BarChart3, MessageSquare, Zap, Star, Target, Utensils, Dumbbell,
   Shirt, Cpu, GraduationCap, Sparkle, Layers, Repeat, AtSign, Heart, Box, Palette, Diamond,
-  Clock, TrendingUp, Loader2
+  Clock, TrendingUp, Loader2, LogOut
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -426,12 +426,12 @@ const Onboarding = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full border border-primary/[0.06] pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full border border-dashed border-primary/[0.04] pointer-events-none" />
 
-          <Link to="/" className="flex items-center space-x-2.5 p-10 pb-0 relative z-10 hover:opacity-80 transition-opacity cursor-pointer">
+          <div className="flex items-center space-x-2.5 p-10 pb-0 relative z-10">
             <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
               <Zap size={18} fill="currentColor" />
             </div>
             <h1 className="text-lg font-black tracking-tight text-foreground uppercase">SyncSocio</h1>
-          </Link>
+          </div>
           
           <div className="flex flex-col items-center justify-center flex-grow text-center px-8 relative z-10 transition-all duration-700">
             <div className={`mb-8 p-5 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg shadow-primary/[0.04] ${step === 11 ? 'animate-pulse' : ''}`}>
@@ -483,12 +483,26 @@ const Onboarding = () => {
             
             <div className="hidden md:block"></div>
             
-            {step < 11 && (
-              <div className="flex items-center text-[11px] font-black text-primary px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
-                <Sparkles size={11} className="mr-1.5" /> {step === 0 ? "Auto Scan" : `Step ${step}`}
-                {step > 0 && <span className="text-muted-foreground/50 ml-1">/ {totalSteps - 1}</span>}
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {step < 11 && (
+                <div className="flex items-center text-[11px] font-black text-primary px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
+                  <Sparkles size={11} className="mr-1.5" /> {step === 0 ? "Auto Scan" : `Step ${step}`}
+                  {step > 0 && <span className="text-muted-foreground/50 ml-1">/ {totalSteps - 1}</span>}
+                </div>
+              )}
+              
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('syncsocio_profile');
+                  localStorage.removeItem('syncsocio_setup_done');
+                  window.location.href = '/login';
+                }}
+                className="flex items-center text-[10px] font-black text-muted-foreground hover:text-destructive transition-all uppercase tracking-widest group px-3 py-1.5 rounded-full hover:bg-destructive/10"
+              >
+                <LogOut size={12} className="mr-1.5" /> SIGN OUT
+              </button>
+            </div>
           </div>
 
           <div className="flex-grow overflow-y-auto px-8 md:px-12 pb-16">

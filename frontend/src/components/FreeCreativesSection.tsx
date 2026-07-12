@@ -110,6 +110,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   email: formData.get("email"),
                   phone: formData.get("phone"),
                   businessName: formData.get("businessName"),
+                  website: formData.get("website"),
                   businessCategory: formData.get("businessCategory"),
                   intent: intent,
                 };
@@ -134,6 +135,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
               <Field label="Work email" name="email" type="email" placeholder="you@business.com" required />
               <Field label="Phone number" name="phone" type="tel" placeholder="+91 XXXXX XXXXX" required />
               <Field label="Business name" name="businessName" type="text" placeholder="Acme Corp" required />
+              <Field label="Website" name="website" type="text" placeholder="https://www.yourbrand.com" required />
               <SelectField 
                 label="Business category" 
                 name="businessCategory" 

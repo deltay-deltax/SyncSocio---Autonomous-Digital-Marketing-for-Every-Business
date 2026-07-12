@@ -5,9 +5,9 @@ const router = express.Router();
 
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, businessName, businessCategory, intent } = req.body;
+    const { name, email, phone, businessName, website, businessCategory, intent } = req.body;
 
-    if (!name || !email || !phone || !businessName || !businessCategory || !intent) {
+    if (!name || !email || !phone || !businessName || !website || !businessCategory || !intent) {
       return res.status(400).json({ success: false, message: 'All fields are required.' });
     }
 
@@ -16,6 +16,7 @@ router.post('/', async (req, res) => {
       email,
       phone,
       businessName,
+      website,
       businessCategory,
       intent
     });
