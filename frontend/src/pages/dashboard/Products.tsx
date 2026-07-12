@@ -86,8 +86,11 @@ function imgSrc(b64: string) {
 const cleanPriceValue = (val: any): string => {
   if (val === undefined || val === null) return '';
   const str = String(val);
-  // Remove currency symbols (₹, $, Rs., etc.), commas, and extra whitespace, keeping numbers and decimal point
-  return str.replace(/[₹$A-Za-z\s,]/g, '').trim();
+  // Extract the first valid number (integer or decimal) from the string.
+  // This correctly handles formats like "Rs. 249", "₹249", "$29.99", "249.00", etc.
+  // The old regex left the period from "Rs." making "Rs. 249" become ".249".
+  const match = str.match(/\d+(?:\.\d+)?/);
+  return match ? match[0] : '';
 };
 
 const formatPriceDisplay = (val: any, isSaas: boolean): string => {
@@ -171,13 +174,27 @@ const ProductForm: React.FC<{
       if (!res.ok) throw new Error('Scraping failed');
       const data = await res.json();
       
+      // Clean scraped prices
+      let scrapedPrice = isSaas ? (data.price || '') : cleanPriceValue(data.price || '');
+      let scrapedOffer = isSaas ? (data.offerPrice || '') : cleanPriceValue(data.offerPrice || '');
+
+      // Fix swapped prices: offerPrice should always be LESS than price (it's the discounted price).
+      // If the AI returned them in wrong order, swap them back.
+      if (!isSaas && scrapedPrice && scrapedOffer) {
+        const priceNum = parseFloat(scrapedPrice);
+        const offerNum = parseFloat(scrapedOffer);
+        if (!isNaN(priceNum) && !isNaN(offerNum) && offerNum > priceNum) {
+          [scrapedPrice, scrapedOffer] = [scrapedOffer, scrapedPrice];
+        }
+      }
+
       setForm(f => ({
         ...f,
         name: data.name || f.name,
         serviceProvider: data.serviceProvider || f.serviceProvider || '',
         description: data.description || f.description,
-        price: isSaas ? (data.price || f.price) : cleanPriceValue(data.price || f.price),
-        offerPrice: isSaas ? (data.offerPrice || f.offerPrice) : cleanPriceValue(data.offerPrice || f.offerPrice),
+        price: scrapedPrice || f.price,
+        offerPrice: scrapedOffer || f.offerPrice,
         keyBenefit: data.keyBenefit || f.keyBenefit,
         imageBase64: data.imageBase64 || f.imageBase64
       }));

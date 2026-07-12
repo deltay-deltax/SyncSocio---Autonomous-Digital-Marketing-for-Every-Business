@@ -695,8 +695,8 @@ JSON Structure:
   "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
   "serviceProvider": "The company/platform providing this service (e.g., 'AWS' or 'Amazon Web Services', 'Google Cloud', 'Stripe', 'Salesforce')",
   "description": "Short description (strictly 200 characters or less, rephrased for conciseness)",
-  "price": "Estimate/scraped price, subscription cost, or pricing model tier (e.g. '$0.023/GB', '$29/mo', 'Pay-as-you-go', 'Free Tier', or empty string if not found)",
-  "offerPrice": "Optional discount price, or lower subscription tier (or empty string)",
+  "price": "The ORIGINAL / MRP / regular (higher) price of the product shown on the page. Extract the numeric value only — strip all currency symbols (Rs., ₹, $, etc.) and return just the number (e.g., '249', '29.99'). Use an empty string if not found.",
+  "offerPrice": "The DISCOUNTED / SALE / offer (lower) price, if shown separately from the original price. MUST be strictly less than `price` — if the page only shows one price, leave this empty. Never put a higher value here than in `price`. Strip currency symbols and return just the number (e.g., '199'). Use an empty string if no separate discounted price exists.",
   "keyBenefit": "One-liner key benefit or feature of this product/service",
   "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
 }
