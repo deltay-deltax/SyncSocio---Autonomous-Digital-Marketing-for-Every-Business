@@ -426,12 +426,12 @@ const Onboarding = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full border border-primary/[0.06] pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full border border-dashed border-primary/[0.04] pointer-events-none" />
 
-          <div className="flex items-center space-x-2.5 p-10 pb-0 relative z-10">
+          <Link to="/" className="flex items-center space-x-2.5 p-10 pb-0 relative z-10 hover:opacity-80 transition-opacity cursor-pointer">
             <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
               <Zap size={18} fill="currentColor" />
             </div>
             <h1 className="text-lg font-black tracking-tight text-foreground uppercase">SyncSocio</h1>
-          </div>
+          </Link>
           
           <div className="flex flex-col items-center justify-center flex-grow text-center px-8 relative z-10 transition-all duration-700">
             <div className={`mb-8 p-5 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg shadow-primary/[0.04] ${step === 11 ? 'animate-pulse' : ''}`}>
