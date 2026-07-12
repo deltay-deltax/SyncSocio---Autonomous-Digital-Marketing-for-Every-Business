@@ -5,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 interface CheckoutProps {
   baseAmount: number;
   description: string;

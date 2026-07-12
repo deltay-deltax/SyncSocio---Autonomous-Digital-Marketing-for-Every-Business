@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { useOutletContext } from 'react-router-dom';
 import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 interface Recommendation {
   id: string;
   emoji: string;

@@ -8,6 +8,8 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import JSZip from 'jszip';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const breakpointColumnsObj = {
   default: 4,
   1280: 3,

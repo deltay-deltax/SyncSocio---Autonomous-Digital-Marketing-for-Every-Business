@@ -15,6 +15,8 @@ import { useNavigate } from 'react-router-dom';
 import { Checkout } from '@/components/Checkout';
 import { useToast } from '@/hooks/use-toast';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 // ─── TYPES ───
 type ButtonType = 'url' | 'next' | 'follow' | 'visit_profile';
 
@@ -340,7 +342,7 @@ const DashboardDMs = () => {
           throw new Error(data?.message || 'Failed to fetch flows');
         }
 
-        const mapped = Array.isArray(data?.data) ? data.data.map((item: ApiFlow) => toUIFlow(item)).filter(f => f.source !== 'ai_suggested') : [];
+        const mapped = Array.isArray(data?.data) ? data.data.map((item: ApiFlow) => toUIFlow(item)).filter((f: Flow) => f.source !== 'ai_suggested') : [];
         setFlows(mapped);
       } catch (err) {
         console.error('Failed to fetch flows:', err);

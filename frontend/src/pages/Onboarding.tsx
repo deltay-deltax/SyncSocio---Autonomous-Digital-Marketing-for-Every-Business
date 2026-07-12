@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 // ── Professional Color Picker — centered modal, portal-rendered, never clipped ──
 const getContrastColor = (hex: string) => {
   const cleanHex = hex.replace('#', '');
