@@ -1,11 +1,11 @@
 export const startKeepAlivePoller = () => {
   const AI_AGENT_URL = process.env.AI_SERVICE_URL || 'https://syncsocio-ai-agents.onrender.com';
-  const BACKEND_URL = `https://syncsocio-backend-87zk.onrender.com`; // Hardcoded for this project
+  const BACKEND_URL = process.env.BACKEND_URL || 'https://syncsocio-backend-87zk.onrender.com'; // Use env var for actual live backend
 
   console.log('Starting Keep-Alive Poller to prevent Render servers from sleeping...');
 
-  // Ping every 14 minutes (Render sleeps after 15 minutes of inactivity)
-  const PING_INTERVAL = 14 * 60 * 1000;
+  // Ping every 10 minutes (Render sleeps after 15 minutes of inactivity)
+  const PING_INTERVAL = 10 * 60 * 1000;
 
   setInterval(async () => {
     try {
