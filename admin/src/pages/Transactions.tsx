@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Search, ChevronLeft, ChevronRight, ReceiptText, RefreshCw, RotateCcw } from 'lucide-react';
 
-const API = 'http://localhost:5050/api/admin';
+const API = `\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 
 interface Transaction {
   _id: string;

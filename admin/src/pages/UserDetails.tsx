@@ -165,7 +165,7 @@ export default function UserDetails() {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('adminToken');
-      const res = await axios.get(`http://localhost:5050/api/admin/users/${id}/deep`, {
+      const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${id}/deep`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -232,7 +232,7 @@ export default function UserDetails() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await axios.put(`http://localhost:5050/api/admin/users/${id}/profile`, userForm, {
+      const res = await axios.put(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${id}/profile`, userForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -259,7 +259,7 @@ export default function UserDetails() {
         }
       };
 
-      const res = await axios.put(`http://localhost:5050/api/admin/users/${id}/brand`, formattedBrandData, {
+      const res = await axios.put(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${id}/brand`, formattedBrandData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -310,7 +310,7 @@ export default function UserDetails() {
         messages: updatedMessages
       };
 
-      const res = await axios.put(`http://localhost:5050/api/admin/users/${id}/flows/${flowId}`, payload, {
+      const res = await axios.put(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${id}/flows/${flowId}`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -326,7 +326,7 @@ export default function UserDetails() {
   const handleFlowToggleActive = async (flow: DMFlowData) => {
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.put(`http://localhost:5050/api/admin/users/${id}/flows/${flow._id}`, {
+      await axios.put(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${id}/flows/${flow._id}`, {
         active: !flow.active
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -341,7 +341,7 @@ export default function UserDetails() {
     if (!confirm('Are you sure you want to delete this flow? This action is permanent.')) return;
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.delete(`http://localhost:5050/api/admin/users/${id}/flows/${flowId}`, {
+      await axios.delete(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${id}/flows/${flowId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchDeepDetails();
@@ -367,7 +367,7 @@ export default function UserDetails() {
   const handleAssetSave = async (assetId: string) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await axios.put(`http://localhost:5050/api/admin/users/${id}/assets/${assetId}`, assetForm, {
+      const res = await axios.put(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${id}/assets/${assetId}`, assetForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -383,7 +383,7 @@ export default function UserDetails() {
     if (!confirm('Are you sure you want to delete this landing page? This action is permanent.')) return;
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.delete(`http://localhost:5050/api/admin/users/${id}/assets/${assetId}`, {
+      await axios.delete(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${id}/assets/${assetId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchDeepDetails();

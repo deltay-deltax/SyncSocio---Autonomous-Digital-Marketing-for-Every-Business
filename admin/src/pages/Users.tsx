@@ -40,7 +40,7 @@ export default function Users() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await axios.get('http://localhost:5050/api/admin/users', {
+      const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -69,11 +69,11 @@ export default function Users() {
   const handleSave = async (userId: string) => {
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.put(`http://localhost:5050/api/admin/users/${userId}/credits`, 
+      await axios.put(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${userId}/credits`, 
         { credits: editForm.credits },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      await axios.put(`http://localhost:5050/api/admin/users/${userId}/plan`, 
+      await axios.put(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${userId}/plan`, 
         { plan: editForm.plan },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -90,7 +90,7 @@ export default function Users() {
     if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.put(`http://localhost:5050/api/admin/users/${userId}/block`,
+      await axios.put(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${userId}/block`,
         { isBlocked: !currentBlocked },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -103,7 +103,7 @@ export default function Users() {
   const handleImpersonate = async (userId: string) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await axios.post(`http://localhost:5050/api/admin/users/${userId}/impersonate`, {}, {
+      const res = await axios.post(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${userId}/impersonate`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -121,7 +121,7 @@ export default function Users() {
     if (!emailModalOpen.user) return;
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.post(`http://localhost:5050/api/admin/users/${emailModalOpen.user._id}/email`, 
+      await axios.post(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${emailModalOpen.user._id}/email`, 
         emailForm,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -145,7 +145,7 @@ export default function Users() {
 
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.post(`http://localhost:5050/api/admin/users/${deleteModalOpen.user._id}/delete`, 
+      await axios.post(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/users/${deleteModalOpen.user._id}/delete`, 
         { reason: deleteReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
