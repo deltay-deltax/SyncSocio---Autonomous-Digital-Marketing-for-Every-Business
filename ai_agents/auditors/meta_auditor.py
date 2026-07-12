@@ -48,15 +48,15 @@ class MetaAuditor:
         {json.dumps(data.current_mix, indent=2)}
         
         TASK (ACTOR-CRITIC LOOP):
-        1. GLOBAL MANDATE: Discovery (REELS) is non-negotiable for growth. Even if Static reach is higher locally, prioritize Reels to exit the local maximum and reach non-followers.
-        2. GROWTH BIAS: If local data is sparse (e.g. < 5 posts analyzed), DO NOT play it safe. Force a pivot to high-syncsocio formats (70%+ Reels/Carousels).
-        3. ACTOR: Propose a new % mix (Reels, Static, Carousel) that totals 100%.
-        4. CRITIC: If the user's top-performing format (highest reach) is under-represented in their CURRENT MIX, force a pivot towards it—UNLESS that format is Static, in which case maintain a healthy Reel/Carousel ratio for discovery.
-        5. NEURAL LEARNING: Identify 3 distinct "Learnings" about this brand's audience. Be specific (e.g. "Posts before 12pm perform 30% better").
+        1. GLOBAL MANDATE: Focus on high-quality organic ads and consistent content posting. Do NOT mention or recommend Reels or Video content, as our platform currently does not support them.
+        2. GROWTH BIAS: If local data is sparse (e.g. < 5 posts analyzed), suggest a balanced mix of Static and Carousel posts to build a steady organic presence. Stay humble about what our platform can provide.
+        3. ACTOR: Propose a new % mix (Static, Carousel) that totals 100%. Keep reels at 0.
+        4. CRITIC: If the user's top-performing format (highest reach) is under-represented, gently suggest a pivot towards it.
+        5. NEURAL LEARNING: Identify 3 distinct "Learnings" about this brand's audience based on static and carousel organic content. Be specific (e.g. "Carousel posts before 12pm perform 30% better"). Do NOT mention Reels.
         
         OUTPUT FORMAT: RETURN ONLY VALID JSON.
         {{
-          "predicted_mix": {{ "reels": 70, "static": 10, "carousel": 20 }},
+          "predicted_mix": {{ "reels": 0, "static": 40, "carousel": 60 }},
           "recommendation": "...",
           "efficiency_score": 0.85,
           "top_performer_type": "{top_type}",

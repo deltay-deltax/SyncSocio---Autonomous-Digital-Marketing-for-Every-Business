@@ -80,7 +80,6 @@ const DashboardLayoutContent = () => {
   }, [location.pathname, setUnread]);
   const [loading, setLoading] = useState(() => !localStorage.getItem('syncsocio_profile'));
   const [showRelinkSuccess, setShowRelinkSuccess] = useState(false);
-  const [nextScheduled, setNextScheduled] = useState<any>(null);
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } = useNotifications();
   const [credits, setCredits] = useState<number | null>(() => {
     const cached = localStorage.getItem('syncsocio_credits');
@@ -801,47 +800,6 @@ const DashboardLayoutContent = () => {
   }, []);
 
   useEffect(() => {
-    const fetchNextScheduled = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        // Fetch full history and filter locally (more reliable)
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/posts/history`;
-
-        const res = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const now = new Date();
-
-          // Filter for upcoming posts
-          const scheduled = data
-            .filter((i: any) => {
-              if (i.status === 'failed') return false;
-              if (!i.scheduledAt) return false;
-              return new Date(i.scheduledAt) > now;
-            })
-            .sort((a: any, b: any) => {
-              const dateA = new Date(a.scheduledAt).getTime();
-              const dateB = new Date(b.scheduledAt).getTime();
-              return dateA - dateB; // Closest first
-            });
-
-          if (scheduled.length > 0) {
-            setNextScheduled(scheduled[0]);
-          } else {
-            setNextScheduled(null);
-          }
-        }
-      } catch (err) {
-        console.error('[SIDEBAR] Fetch Error:', err);
-      }
-    };
-    fetchNextScheduled();
-  }, [location.pathname]); // Refresh when navigating
-
-  useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('relinked') === 'true') {
       setShowRelinkSuccess(true);
@@ -996,34 +954,6 @@ const DashboardLayoutContent = () => {
           </div>
         ))}
       </nav>
-
-      {/* Agent Status Card in Sidebar */}
-      <div className="px-3 mt-auto mb-2">
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 rounded-[1.5rem] border border-primary/10">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="relative flex items-center justify-center">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="absolute w-2 h-2 rounded-full bg-emerald-500 animate-ping opacity-30" />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-foreground">Agent Active</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground leading-tight">
-            {nextScheduled ? (
-              <>Next post scheduled for <span className="text-foreground font-bold">{
-                (() => {
-                  const d = new Date(nextScheduled.scheduledAt);
-                  const now = new Date();
-                  const isToday = d.toDateString() === now.toDateString();
-                  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                  return `${isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })} ${time}`;
-                })()
-              }</span></>
-            ) : (
-              "Agent is monitoring for new content to optimize."
-            )}
-          </p>
-        </div>
-      </div>
     </div>
   );
 
