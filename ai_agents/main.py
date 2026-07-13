@@ -445,8 +445,8 @@ JSON Structure:
       "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
       "serviceProvider": "Company/Platform providing this service if it is a cloud/digital service or tool (e.g., 'AWS', 'Google Cloud', 'Stripe', or the brand name itself)",
       "description": "Short description of the product or service (strictly 200 characters or less, rephrased for conciseness)",
-      "price": "Estimate/scraped price, subscription cost, or pricing model tier (e.g. '$0.023/GB', '$29/mo', 'Pay-as-you-go', 'Free Tier', or numeric string e.g. '599')",
-      "offerPrice": "Optional discount/promo price or lower subscription tier (or empty string)",
+      "price": "The ORIGINAL / MRP / regular (higher) price. Return ONLY the numeric value — strip all currency symbols (Rs., ₹, $, etc.) and return just the number (e.g., '249', '29.99'). Empty string if not found.",
+      "offerPrice": "The DISCOUNTED / SALE / offer (lower) price if shown separately. MUST be strictly less than price. Strip currency symbols, return just the number. Empty string if no separate discounted price exists.",
       "keyBenefit": "One-liner key benefit or feature of this product/service",
       "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
     }
@@ -491,12 +491,54 @@ JSON Structure:
             scraped_data["products"] = products
             
         print(f"[WEBSITE SCANNER] [PRODUCTS] Skipping base64 conversion for {len(products)} products to save storage quota...")
+        
+        # Normalize price / offerPrice on every product (strip currency symbols, fix swaps)
+        scraped_data["products"] = [normalize_product_prices(p) for p in products]
                     
         return scraped_data
         
     except Exception as gpt_err:
         print(f"GPT extraction error for {url}: {gpt_err}")
         raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
+
+def _parse_price_num(val):
+    """Extract the first numeric value from a price string like 'Rs. 249', '₹1,199', '29.99'."""
+    import re
+    if not val:
+        return None
+    s = str(val).strip()
+    # Remove everything except digits, commas, periods
+    s = re.sub(r'[^\d,.]', '', s)
+    # Remove thousand-separator commas
+    s = s.replace(',', '')
+    # Extract first valid number
+    m = re.search(r'\d+(?:\.\d+)?', s)
+    return float(m.group()) if m else None
+
+def normalize_product_prices(product: dict) -> dict:
+    """
+    Clean up price / offerPrice fields on a scraped product dict:
+    - Strip currency symbols so only the numeric string remains (e.g. 'Rs. 249' → '249')
+    - If offerPrice > price (AI swapped them), swap them back
+    - If only one price exists, leave offerPrice empty
+    """
+    price_raw = product.get('price', '')
+    offer_raw = product.get('offerPrice', '')
+
+    price_num = _parse_price_num(price_raw)
+    offer_num = _parse_price_num(offer_raw)
+
+    # Normalise to plain numeric strings (strip currency symbols etc.)
+    if price_num is not None:
+        product['price'] = str(int(price_num)) if price_num == int(price_num) else str(price_num)
+    if offer_num is not None:
+        product['offerPrice'] = str(int(offer_num)) if offer_num == int(offer_num) else str(offer_num)
+
+    # Swap if AI returned them inverted (offer > price)
+    if price_num is not None and offer_num is not None and offer_num > price_num:
+        product['price'], product['offerPrice'] = product['offerPrice'], product['price']
+
+    return product
 
 
 @app.post("/scrape-single-product")
@@ -695,8 +737,8 @@ JSON Structure:
   "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
   "serviceProvider": "The company/platform providing this service (e.g., 'AWS' or 'Amazon Web Services', 'Google Cloud', 'Stripe', 'Salesforce')",
   "description": "Short description (strictly 200 characters or less, rephrased for conciseness)",
-  "price": "Estimate/scraped price, subscription cost, or pricing model tier (e.g. '$0.023/GB', '$29/mo', 'Pay-as-you-go', 'Free Tier', or empty string if not found)",
-  "offerPrice": "Optional discount price, or lower subscription tier (or empty string)",
+  "price": "The ORIGINAL / MRP / regular (higher) price of the product shown on the page. Extract the numeric value only — strip all currency symbols (Rs., ₹, $, etc.) and return just the number (e.g., '249', '29.99'). Use an empty string if not found.",
+  "offerPrice": "The DISCOUNTED / SALE / offer (lower) price, if shown separately from the original price. MUST be strictly less than `price` — if the page only shows one price, leave this empty. Never put a higher value here than in `price`. Strip currency symbols and return just the number (e.g., '199'). Use an empty string if no separate discounted price exists.",
   "keyBenefit": "One-liner key benefit or feature of this product/service",
   "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
 }
@@ -713,8 +755,8 @@ JSON Structure:
         import json
         scraped_data = json.loads(gpt_response_text)
         
-        # Keep product image URL as is to avoid local storage quota issues
-        pass
+        # Normalize price / offerPrice (strip currency symbols like 'Rs. 249' → '249', fix swapped values)
+        scraped_data = normalize_product_prices(scraped_data)
             
         return scraped_data
         

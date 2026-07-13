@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Search, Trash2, Download, Users, ClipboardList } from 'lucide-react';
 
-const API = 'http://localhost:5050/api/admin';
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 
 interface WaitlistEntry {
   _id: string;

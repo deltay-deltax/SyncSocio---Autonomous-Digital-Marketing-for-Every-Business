@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar, Clock } from 'lucide-react';
+import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar, Clock, Send, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ import Masonry from 'react-masonry-css';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import JSZip from 'jszip';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
@@ -35,13 +36,13 @@ interface IconProps {
 
 const FacebookIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 );
 
 const InstagramIcon: React.FC<IconProps> = ({ size = 16, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
   </svg>
 );
 
@@ -49,11 +50,11 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const CACHE_KEY = 'syncsocio_strategy_assets';
 
 const aspectClass: Record<string, string> = {
-  '1:1':  'aspect-square',
-  '4:5':  'aspect-[4/5]',
+  '1:1': 'aspect-square',
+  '4:5': 'aspect-[4/5]',
   '9:16': 'aspect-[9/16]',
   '16:9': 'aspect-[16/9]',
-  '2:3':  'aspect-[2/3]',
+  '2:3': 'aspect-[2/3]',
 };
 
 function imgSrc(b64: string | null | undefined) {
@@ -124,10 +125,11 @@ async function removeCache(key: string): Promise<void> {
 }
 
 const typeIcon: Record<string, any> = {
-  image:    ImageIcon,
+  image: ImageIcon,
   carousel: Layers,
-  video:    Video,
+  video: Video,
   scheduled: Clock,
+  draft:    FileText,
 };
 
 const AssetLibrary = () => {
@@ -205,7 +207,7 @@ const AssetLibrary = () => {
     };
     loadCached();
   }, [cacheKey]);
-  const [filter, setFilter] = useState<'all' | 'image' | 'carousel' | 'video' | 'scheduled'>('all');
+  const [filter, setFilter] = useState<'all' | 'image' | 'carousel' | 'video' | 'scheduled' | 'draft'>('all');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [previewAsset, setPreviewAsset] = useState<any | null>(null);
   const [previewSlide, setPreviewSlide] = useState<number>(0);
@@ -221,11 +223,11 @@ const AssetLibrary = () => {
       if (res.ok) {
         const data = await res.json();
         const serverCreatives = data.creatives || [];
-        
+
         // Use server creatives as the source of truth
         // (Caching is only used for initial instant-load, not merging)
         const uniqueCreatives = serverCreatives;
-        
+
         setAssets(uniqueCreatives);
         await setCache(cacheKey, uniqueCreatives);
       }
@@ -300,7 +302,7 @@ const AssetLibrary = () => {
         if (r.scheduledAtLocal) {
           try {
             isoStr = new Date(r.scheduledAtLocal).toISOString();
-          } catch {}
+          } catch { }
         }
         return {
           id: r.id,
@@ -319,7 +321,7 @@ const AssetLibrary = () => {
       setShowScheduleModal(false);
       setModalStep(0);
       setRecommendations([]);
-      
+
     } catch (err: any) {
       console.error('[Schedule] smart schedule error:', err);
       alert(getFriendlyErrorMessage(err));
@@ -457,9 +459,9 @@ const AssetLibrary = () => {
 
     const isVideo = asset.type === 'video';
     const src = isVideo ? (asset.videoUrl || asset.thumbnailBase64)
-              : asset.type === 'image' ? asset.thumbnailBase64
-              : asset.type === 'carousel' ? asset.slides?.[0]?.image
-              : asset.thumbnailBase64;
+      : asset.type === 'image' ? asset.thumbnailBase64
+        : asset.type === 'carousel' ? asset.slides?.[0]?.image
+          : asset.thumbnailBase64;
     if (!src) return;
 
     const srcUrl = isVideo && asset.videoUrl ? asset.videoUrl : imgSrc(src);
@@ -470,22 +472,52 @@ const AssetLibrary = () => {
 
   const filtered = (
     filter === 'all'
-      ? assets
+      ? assets.filter((a) => a.status !== 'draft')
       : filter === 'scheduled'
       ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
-      : assets.filter((a) => a.type === filter)
+      : filter === 'draft'
+      ? assets.filter((a) => a.status === 'draft')
+      : assets.filter((a) => a.type === filter && a.status !== 'draft')
+        ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
+        : assets.filter((a) => a.type === filter)
   )
     .slice()
     .sort((a, b) => {
       const aDone = a.status === 'scheduled' || a.status === 'posted' || a.status === 'published';
       const bDone = b.status === 'scheduled' || b.status === 'posted' || b.status === 'published';
+      if (a.status === 'draft' && b.status !== 'draft') return -1;
+      if (a.status !== 'draft' && b.status === 'draft') return 1;
       if (aDone && !bDone) return 1;
       if (!aDone && bDone) return -1;
-      
+
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA;
     });
+
+  // Handle arrow key navigation for asset preview
+  useEffect(() => {
+    if (!previewAsset) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Find current index
+      const currentIndex = filtered.findIndex(a => a._id === previewAsset._id);
+      if (currentIndex === -1) return;
+
+      if (e.key === 'ArrowLeft') {
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : filtered.length - 1;
+        setPreviewAsset(filtered[prevIndex]);
+        setPreviewSlide(0); // Reset slide if it's a carousel
+      } else if (e.key === 'ArrowRight') {
+        const nextIndex = currentIndex < filtered.length - 1 ? currentIndex + 1 : 0;
+        setPreviewAsset(filtered[nextIndex]);
+        setPreviewSlide(0);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewAsset, filtered]);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -501,10 +533,14 @@ const AssetLibrary = () => {
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide w-full pb-2 scroll-smooth select-none shrink-0">
-        {(['all', 'image', 'carousel', 'video', 'scheduled'] as const).map((f) => {
+        {(['all', 'image', 'carousel', 'video', 'draft', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
           const label = f === 'scheduled' 
             ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}` 
+            : f === 'draft'
+            ? 'Draft Emails'
+          const label = f === 'scheduled'
+            ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}`
             : f;
           return (
             <button
@@ -526,7 +562,9 @@ const AssetLibrary = () => {
                 )}>
                   {f === 'scheduled'
                     ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published').length
-                    : assets.filter((a) => a.type === f).length}
+                    : f === 'draft'
+                    ? assets.filter((a) => a.status === 'draft').length
+                    : assets.filter((a) => a.type === f && a.status !== 'draft').length}
                 </span>
               )}
             </button>
@@ -596,12 +634,12 @@ const AssetLibrary = () => {
               const thumbSrc = asset.type === 'carousel'
                 ? imgSrc(asset.slides?.[0]?.image)
                 : imgSrc(asset.thumbnailBase64);
-              const Icon = typeIcon[asset.type] || ImageIcon;
+              const Icon = asset.status === 'draft' ? typeIcon.draft : (typeIcon[asset.type] || ImageIcon);
 
               const isSelected = selectedAssetIds.includes(asset._id);
               const isScheduled = asset.status === 'scheduled' && (!asset.scheduledAt || new Date(asset.scheduledAt) > new Date());
               const isPosted = asset.status === 'posted' || asset.status === 'published' || (asset.status === 'scheduled' && asset.scheduledAt && new Date(asset.scheduledAt) <= new Date());
-              
+
               return (
                 <motion.div
                   key={asset._id}
@@ -624,8 +662,12 @@ const AssetLibrary = () => {
                         setSelectedAssetIds([...selectedAssetIds, asset._id]);
                       }
                     } else {
-                      setPreviewAsset(asset);
-                      setPreviewSlide(0);
+                      if (asset.status === 'draft') {
+                        navigate(`/dashboard/strategy?draftId=${asset._id}`);
+                      } else {
+                        setPreviewAsset(asset);
+                        setPreviewSlide(0);
+                      }
                     }
                   }}
                 >
@@ -660,7 +702,7 @@ const AssetLibrary = () => {
                     {/* Type badge */}
                     <div className="absolute top-2 right-2 flex items-center gap-1 bg-foreground/60 backdrop-blur-md text-background text-[9px] font-bold px-2 py-1 rounded-full capitalize z-10">
                       <Icon size={9} />
-                      {asset.type}
+                      {asset.status === 'draft' ? 'Email Draft' : asset.type}
                     </div>
 
                     {/* Scheduled / Posted Badge */}
@@ -680,6 +722,18 @@ const AssetLibrary = () => {
                     {/* Hover overlay with actions - only visible if not in selection mode */}
                     {!selectionMode && (
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
+                        {asset.status === 'draft' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/dashboard/strategy?draftId=${asset._id}`);
+                            }}
+                            className="w-11 h-11 rounded-full bg-blue-500/80 backdrop-blur-md text-white hover:bg-blue-500 hover:scale-105 transition flex items-center justify-center shadow-lg"
+                            title="Load into Campaigns to send"
+                          >
+                            <Send size={16} />
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -734,7 +788,17 @@ const AssetLibrary = () => {
 
                   {/* Caption */}
                   <div className="p-3">
-                    <p className="text-[11px] text-foreground leading-relaxed line-clamp-2">{asset.caption}</p>
+                    <p className="text-[11px] text-foreground leading-relaxed line-clamp-2">
+                      {(() => {
+                        if (asset.status === 'draft') {
+                          try {
+                            const parsed = JSON.parse(asset.caption);
+                            return parsed.subject ? `Subject: ${parsed.subject} — ${parsed.body}` : parsed.body || asset.caption;
+                          } catch (e) {}
+                        }
+                        return asset.caption;
+                      })()}
+                    </p>
                     {asset.idea && (
                       <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1 italic">"{asset.idea}"</p>
                     )}
@@ -789,12 +853,29 @@ const AssetLibrary = () => {
                   />
                 ) : previewAsset.type === 'carousel' && previewAsset.slides?.length > 0 ? (
                   <div className="relative flex flex-col items-center justify-center w-full">
-                    <img
-                      src={imgSrc(previewAsset.slides[previewSlide]?.image)}
-                      alt={`Slide ${previewSlide + 1}`}
-                      className="w-full h-auto max-h-[55vh] md:max-h-[60vh] object-contain max-w-full"
-                      loading="lazy"
-                    />
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={previewSlide}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.15 }}
+                        src={imgSrc(previewAsset.slides[previewSlide]?.image)}
+                        alt={`Slide ${previewSlide + 1}`}
+                        className="w-full h-auto max-h-[55vh] md:max-h-[60vh] object-contain max-w-full cursor-grab active:cursor-grabbing"
+                        loading="lazy"
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.2}
+                        onDragEnd={(e, { offset }) => {
+                          if (offset.x < -40) {
+                            setPreviewSlide(prev => (prev < previewAsset.slides.length - 1 ? prev + 1 : 0));
+                          } else if (offset.x > 40) {
+                            setPreviewSlide(prev => (prev > 0 ? prev - 1 : previewAsset.slides.length - 1));
+                          }
+                        }}
+                      />
+                    </AnimatePresence>
                     {/* Navigation dots */}
                     {previewAsset.slides.length > 1 && (
                       <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10">
@@ -845,10 +926,19 @@ const AssetLibrary = () => {
               {/* Right panel: Caption & Hashtags */}
               <div className="w-full md:w-[360px] shrink-0 border-t md:border-t-0 md:border-l border-border/60 flex flex-col bg-card overflow-hidden">
                 <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Instagram Post Caption</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {previewAsset.status === 'draft' ? 'Email Draft Content' : 'Instagram Post Caption'}
+                  </span>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(previewAsset.caption || '');
+                      let text = previewAsset.caption || '';
+                      if (previewAsset.status === 'draft') {
+                        try {
+                          const parsed = JSON.parse(previewAsset.caption);
+                          text = `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
+                        } catch (e) {}
+                      }
+                      navigator.clipboard.writeText(text);
                       setCopiedAsset(true);
                       setTimeout(() => setCopiedAsset(false), 2000);
                     }}
@@ -872,12 +962,34 @@ const AssetLibrary = () => {
                     )}
                   </button>
                 </div>
-                
+
                 <div className="flex-1 overflow-y-auto p-5 select-text custom-scrollbar">
                   <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                    {previewAsset.caption || "No caption generated."}
+                    {(() => {
+                      if (previewAsset.status === 'draft') {
+                        try {
+                          const parsed = JSON.parse(previewAsset.caption);
+                          return `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
+                        } catch (e) {}
+                      }
+                      return previewAsset.caption || "No caption generated.";
+                    })()}
                   </p>
                 </div>
+                {previewAsset.status === 'draft' && (
+                  <div className="p-4 border-t border-border/50 bg-muted/10">
+                    <Button
+                      onClick={() => {
+                        setPreviewAsset(null);
+                        navigate(`/dashboard/strategy?draftId=${previewAsset._id}`);
+                      }}
+                      className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center justify-center gap-2 shadow-md border-0"
+                    >
+                      <Send size={12} />
+                      Load into Campaigns to send
+                    </Button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -1079,8 +1191,8 @@ const AssetLibrary = () => {
                     {recommendations.map((rec, index) => {
                       const Icon = typeIcon[rec.type] || ImageIcon;
                       return (
-                        <div 
-                          key={rec.id} 
+                        <div
+                          key={rec.id}
                           className="p-5 rounded-2xl border border-slate-200/80 space-y-4 transition-all duration-200 shadow-sm"
                           style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
                         >
@@ -1096,7 +1208,7 @@ const AssetLibrary = () => {
 
                             {/* Caption / description preview */}
                             <div className="flex-1 min-w-0">
-                              <span 
+                              <span
                                 className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mb-1.5"
                                 style={{ backgroundColor: '#ffe4e6', color: '#e11d48' }}
                               >

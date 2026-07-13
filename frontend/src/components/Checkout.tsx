@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
@@ -28,7 +29,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
 }) => {
   const { toast } = useToast();
   const isRazorpayLoaded = useRazorpay();
-  
+
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
@@ -105,8 +106,8 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
   const handlePayNow = async () => {
     if (!billing.fullName || !billing.email) {
-       toast({ title: 'Missing Info', description: 'Please provide at least your full name and email.', variant: 'destructive' });
-       return;
+      toast({ title: 'Missing Info', description: 'Please provide at least your full name and email.', variant: 'destructive' });
+      return;
     }
     if (!isRazorpayLoaded) {
       toast({ title: 'Error', description: 'Payment gateway is loading. Please try again.', variant: 'destructive' });
@@ -117,21 +118,21 @@ export const Checkout: React.FC<CheckoutProps> = ({
     try {
       const token = localStorage.getItem('token');
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      
+
       const orderRes = await fetch(`${API_BASE}/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ 
-           amount: total, 
-           type, 
-           plan: planName, 
-           creditsAdded,
-           couponCode: appliedCoupon?.code || '',
-           discountPercentage: appliedCoupon?.discountPercentage || 0,
-           discountAmount: discountAmount
+        body: JSON.stringify({
+          amount: total,
+          type,
+          plan: planName,
+          creditsAdded,
+          couponCode: appliedCoupon?.code || '',
+          discountPercentage: appliedCoupon?.discountPercentage || 0,
+          discountAmount: discountAmount
         })
       });
-      
+
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.message || 'Failed to create order');
 
@@ -155,18 +156,18 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok || !verifyData.success) throw new Error(verifyData.message || 'Payment verification failed');
-            
+
             toast({ title: 'Payment Successful', description: 'Your order has been processed.' });
             onSuccess(verifyData);
           } catch (err: any) {
-             toast({ title: 'Verification Failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
+            toast({ title: 'Verification Failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
           } finally {
-             setIsProcessing(false);
+            setIsProcessing(false);
           }
         },
-        prefill: { 
-           name: billing.fullName, 
-           email: billing.email 
+        prefill: {
+          name: billing.fullName,
+          email: billing.email
         },
         theme: { color: '#2563EB' },
         modal: {
@@ -258,7 +259,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
             </div>
             {appliedCoupon && (
               <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /><path d="m9 12 2 2 4-4" /></svg>
                 {appliedCoupon.code} — {appliedCoupon.discountPercentage}% off
               </div>
             )}
@@ -302,7 +303,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
                 </div>
                 <p className="text-xs text-black leading-relaxed">
                   You can pay directly via card using your standard <strong>Visa/Mastercard Debit & Credit Cards</strong> issued in Nepal.
-                  <br/><br/>
+                  <br /><br />
                   If you prefer to pay using <strong>UPI</strong>, you can use your local mobile banking app or <strong>connectIPS</strong> via cross-border instant remittance to India.
                 </p>
                 <div className="rounded-lg bg-background/50 border border-border/40 p-3.5 text-[11px] space-y-2.5">

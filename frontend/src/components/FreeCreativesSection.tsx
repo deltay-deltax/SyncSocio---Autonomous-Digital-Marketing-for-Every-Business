@@ -137,6 +137,12 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   businessName: formData.get("businessName") as string,
                   website: formData.get("website") as string,
                   businessCategory: formData.get("businessCategory") as string,
+                  name: formData.get("name"),
+                  email: formData.get("email"),
+                  phone: formData.get("phone"),
+                  businessName: formData.get("businessName"),
+                  website: formData.get("website"),
+                  businessCategory: formData.get("businessCategory"),
                   intent: intent,
                   _gotcha: formData.get("_gotcha") as string,
                 };
@@ -232,6 +238,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
               <Field label="Business name" name="businessName" type="text" placeholder="Acme Corp" required />
               <Field label="Website link (optional)" name="website" type="url" placeholder="https://www.example.com" />
               
+              <Field label="Website" name="website" type="text" placeholder="https://www.yourbrand.com" required />
               <SelectField 
                 label="Business category" 
                 name="businessCategory" 
