@@ -202,7 +202,7 @@ export const getMetrics = async (req, res) => {
     const visitorsByDate = await VisitorLog.aggregate([
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
           count: { $sum: 1 }
         }
       },
@@ -1202,5 +1202,41 @@ export const getLeads = async (req, res) => {
   } catch (error) {
     console.error('Error fetching leads:', error);
     return res.status(500).json({ success: false, message: 'Failed to fetch leads' });
+  }
+};
+
+export const getScheduledPosts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const query = { isScheduled: true };
+
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+
+    const posts = await PostAnalysis.find(query)
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await PostAnalysis.countDocuments(query);
+
+    res.json({
+      success: true,
+      posts,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching scheduled posts:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

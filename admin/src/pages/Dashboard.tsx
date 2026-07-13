@@ -114,8 +114,8 @@ const Modal = ({
 };
 
 const fmt = (d: string) => {
-  const safeDate = typeof d === 'string' ? d.replace(/Z$/, '') : d;
-  return new Date(safeDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 const PlanBadge = ({ plan }: { plan: string }) => {

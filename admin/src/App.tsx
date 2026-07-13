@@ -13,6 +13,7 @@ import Waitlist from './pages/Waitlist';
 import Leads from './pages/Leads';
 import Testers from './pages/Testers';
 import LandingGallery from './pages/LandingGallery';
+import ScheduledPosts from './pages/ScheduledPosts';
 import './App.css';
 
 // Protected Route for Admin
@@ -46,6 +47,7 @@ function App() {
             <Route path="leads" element={<Leads />} />
             <Route path="testers" element={<Testers />} />
             <Route path="landing-gallery" element={<LandingGallery />} />
+            <Route path="scheduled-posts" element={<ScheduledPosts />} />
           </Route>
         </Route>
 

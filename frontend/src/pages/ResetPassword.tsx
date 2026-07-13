@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { checkPasswordStrength } from "./Signup";
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const ResetPassword = () => {
   const { resetToken } = useParams();
   const [showPassword, setShowPassword] = useState(false);

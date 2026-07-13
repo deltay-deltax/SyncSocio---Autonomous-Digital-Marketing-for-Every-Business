@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { WEEK_PLAN, type ContentType } from "@/lib/content-plan";
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const TYPE_META: Record<
   ContentType,
   { label: string; icon: React.ElementType; tint: string; ring: string }
