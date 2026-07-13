@@ -176,6 +176,3 @@ const DashboardAds = () => {
 
 export default DashboardAds;
 
-function getFriendlyErrorMessage(err: any): React.SetStateAction<string | null> {
-  throw new Error('Function not implemented.');
-}
