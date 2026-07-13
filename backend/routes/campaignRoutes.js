@@ -4,7 +4,28 @@ import { protect } from '../middleware/authMiddleware.js';
 import EmailList from '../models/EmailList.js';
 import PhoneList from '../models/PhoneList.js';
 import BrandProfile from '../models/BrandProfile.js';
+import User from '../models/User.js';
 import { createNotification } from '../utils/notificationHelper.js';
+
+// ── Email Quota Helper ────────────────────────────────────────────────────────
+const EMAIL_QUOTAS = { starter: 500, elite: 2000 };
+
+function getPlanQuota(plan = '') {
+  const p = plan.toLowerCase();
+  if (p.includes('elite')) return EMAIL_QUOTAS.elite;
+  if (p.includes('starter') || p.includes('brand')) return EMAIL_QUOTAS.starter;
+  return 0; // Free / no plan
+}
+
+async function checkAndResetQuota(user) {
+  const now = new Date();
+  const resetAt = new Date(user.email_quota_reset_at || 0);
+  if (now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()) {
+    user.email_sends_this_month = 0;
+    user.email_quota_reset_at = now;
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 const router = express.Router();
 
@@ -106,6 +127,30 @@ router.post('/phone-lists', protect, async (req, res) => {
   }
 });
 
+// ── GET /campaigns/email-quota ── returns current usage for the UI bar
+router.get('/email-quota', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    await checkAndResetQuota(user);
+    await user.save();
+    const limit = getPlanQuota(user.plan);
+    const used = user.email_sends_this_month || 0;
+    const nextReset = new Date(user.email_quota_reset_at || Date.now());
+    nextReset.setMonth(nextReset.getMonth() + 1, 1);
+    nextReset.setHours(0, 0, 0, 0);
+    res.json({
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
+      resetAt: nextReset.toISOString(),
+      plan: user.plan || 'free'
+    });
+  } catch (err) {
+    console.error('[EmailQuota] Error fetching quota:', err);
+    res.status(500).json({ message: 'Failed to fetch email quota' });
+  }
+});
+
 // Send email campaign
 router.post('/send', protect, async (req, res) => {
   const { recipients, subject, body, image } = req.body;
@@ -116,6 +161,29 @@ router.post('/send', protect, async (req, res) => {
 
     const isHtml = body.includes('<') && (body.includes('</') || body.includes('/>'));
     const cleanBody = isHtml ? body.replace(/[\r\n]+/g, ' ').replace(/>\s+</g, '><').trim() : body;
+
+    // ── EMAIL QUOTA GUARD ────────────────────────────────────────────────────
+    const sendingUser = await User.findById(req.user._id);
+    await checkAndResetQuota(sendingUser);
+    const quota = getPlanQuota(sendingUser.plan);
+    if (quota === 0) {
+      return res.status(403).json({
+        code: 'NO_EMAIL_PLAN',
+        message: 'Upgrade to a Starter or Elite plan to send email campaigns.'
+      });
+    }
+    const alreadySent = sendingUser.email_sends_this_month || 0;
+    const toSend = recipients.length;
+    if (alreadySent + toSend > quota) {
+      return res.status(429).json({
+        code: 'EMAIL_QUOTA_EXCEEDED',
+        message: `Monthly email limit reached. You've used ${alreadySent} of ${quota} emails this month. You can send ${Math.max(0, quota - alreadySent)} more.`,
+        used: alreadySent,
+        limit: quota,
+        remaining: Math.max(0, quota - alreadySent)
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     const brandName = profile?.brandName || 'SyncSocio';
@@ -196,6 +264,10 @@ router.post('/send', protect, async (req, res) => {
         }
       }
     };
+
+    // Increment quota counter before async send (ensures count is accurate)
+    sendingUser.email_sends_this_month = alreadySent + toSend;
+    await sendingUser.save();
 
     // Trigger async throttled sending sequence
     sendWithThrottle().then(async () => {

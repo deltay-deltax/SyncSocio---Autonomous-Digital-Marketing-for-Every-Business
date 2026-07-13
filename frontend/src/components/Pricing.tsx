@@ -13,6 +13,7 @@ const plans = [
     description: "For small businesses, local brands, SaaS startups, and service companies getting started with AI-powered content.",
     features: [
       "200 credits/month",
+      "500 email campaigns/month",
       "1 active brand profile",
       "Import or Add Up to 50 Products",
       "All image generation types",
@@ -35,6 +36,7 @@ const plans = [
     description: "For growing D2C and ecommerce brands ready to scale content, automate campaigns, and generate videos — all from one platform.",
     features: [
       "700 credits/month",
+      "2,000 email campaigns/month",
       "2 brand profiles",
       "Import or Add Up to 100 Products",
       "Everything in Starter",

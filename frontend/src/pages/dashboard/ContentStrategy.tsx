@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Image as ImageIcon, Layers, Video, Plus, Shuffle, Sparkles, ArrowLeft, ArrowRight,
@@ -667,7 +667,7 @@ const DashboardStrategy = () => {
               setMode('email');
               setStage('results');
               setCampaignImage(imgSrc(draft.thumbnailBase64) || '');
-              
+
               try {
                 const parsed = JSON.parse(draft.caption);
                 setCampaignSubject(parsed.subject || '');
@@ -1575,6 +1575,24 @@ const DashboardStrategy = () => {
           setSendStatus('idle');
           return;
         }
+        if (errData.code === 'EMAIL_QUOTA_EXCEEDED') {
+          toast({
+            title: '🚫 Monthly email limit reached',
+            description: errData.message || 'You have used all your email quota for this month. Upgrade your plan to send more.',
+            variant: 'destructive'
+          });
+          setSendStatus('idle');
+          return;
+        }
+        if (errData.code === 'NO_EMAIL_PLAN') {
+          toast({
+            title: '🔒 Plan required',
+            description: 'Upgrade to a Starter or Elite plan to send email campaigns.',
+            variant: 'destructive'
+          });
+          setSendStatus('idle');
+          return;
+        }
         throw new Error(errData.message || 'Failed to send campaign');
       }
     } catch (err: any) {
@@ -2003,7 +2021,7 @@ const DashboardStrategy = () => {
         try {
           const parsed = JSON.parse(creative.caption);
           creativeBody = parsed.body || creativeBody;
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (campaignBody && creativeBody) {
@@ -2032,7 +2050,7 @@ const DashboardStrategy = () => {
         try {
           const parsed = JSON.parse(creative.caption);
           creativeBody = parsed.body || creativeBody;
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (campaignBody && creativeBody) {
@@ -4543,6 +4561,33 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const { toast } = useToast();
 
+  // ── Email Quota State ──────────────────────────────────────────────────────
+  const [emailQuota, setEmailQuota] = useState<{ used: number; limit: number; remaining: number; resetAt: string } | null>(null);
+  const [quotaLoading, setQuotaLoading] = useState(false);
+
+  useEffect(() => {
+    if (mode !== 'email') return;
+    const fetchQuota = async () => {
+      setQuotaLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${NODE_BASE}/campaigns/email-quota`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setEmailQuota(data);
+        }
+      } catch (e) {
+        console.error('[EmailQuota] Failed to fetch quota', e);
+      } finally {
+        setQuotaLoading(false);
+      }
+    };
+    fetchQuota();
+  }, [mode]);
+  // ──────────────────────────────────────────────────────────────────────────
+
   const [showRefineModal, setShowRefineModal] = useState(false);
   const [refineInstruction, setRefineInstruction] = useState('');
   const [isRefining, setIsRefining] = useState(false);
@@ -4588,6 +4633,18 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
 
   const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // ── Quota bar helpers ──────────────────────────────────────────────────────
+  const quotaPct = emailQuota && emailQuota.limit > 0 ? Math.min(100, Math.round((emailQuota.used / emailQuota.limit) * 100)) : 0;
+  const quotaColor = quotaPct >= 100 ? '#ef4444' : quotaPct >= 80 ? '#f59e0b' : '#22c55e';
+  const quotaLabel = emailQuota
+    ? `${emailQuota.used.toLocaleString()} / ${emailQuota.limit.toLocaleString()} emails sent this month`
+    : '';
+  const quotaResetLabel = emailQuota
+    ? `Resets ${new Date(emailQuota.resetAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    : '';
+  const isQuotaFull = emailQuota ? emailQuota.remaining <= 0 : false;
+  // ──────────────────────────────────────────────────────────────────────────
 
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
@@ -4995,12 +5052,62 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
             )}
           </div>
 
-          {/* Send button */}
+          {/* Email Quota Bar + Send button */}
           {(() => {
             const isEmailMode = mode === 'email';
 
             return (
               <>
+                {/* ─── Email Quota Usage Bar ─── */}
+                {isEmailMode && (
+                  <div className="rounded-2xl border border-border bg-card/60 p-4 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-semibold text-foreground flex items-center gap-1.5">
+                        <span>📧</span> Monthly Email Usage
+                      </span>
+                      {quotaLoading ? (
+                        <span className="text-[11px] text-muted-foreground animate-pulse">Loading…</span>
+                      ) : emailQuota ? (
+                        <span className="text-[11px] font-mono" style={{ color: quotaColor }}>
+                          {emailQuota.remaining.toLocaleString()} remaining
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {/* Progress bar */}
+                    {emailQuota && (
+                      <>
+                        <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${quotaPct}%`, backgroundColor: quotaColor }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-muted-foreground">{quotaLabel}</span>
+                          <span className="text-[10px] text-muted-foreground/70">{quotaResetLabel}</span>
+                        </div>
+                        {isQuotaFull && (
+                          <div className="flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/30 px-3 py-2">
+                            <span className="text-red-400 text-sm">🚫</span>
+                            <p className="text-[11px] text-red-400 font-medium">
+                              Monthly limit reached. Upgrade your plan or wait for next month's reset.
+                            </p>
+                          </div>
+                        )}
+                        {!isQuotaFull && recipients.length > 0 && recipients.length > (emailQuota?.remaining ?? Infinity) && (
+                          <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2">
+                            <span className="text-amber-400 text-sm">⚠️</span>
+                            <p className="text-[11px] text-amber-400 font-medium">
+                              You have {emailQuota?.remaining} emails left but selected {recipients.length} recipients. Reduce your list to proceed.
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {isEmailMode && (profile?.use_generic_email_sender ? 'creatives@syncsocio.com' : profile?.email_from) && (
                   <p className="text-center text-[11px] text-muted-foreground font-medium">
                     📨 Sending from: <span className="font-mono text-foreground">{profile.use_generic_email_sender ? 'creatives@syncsocio.com' : profile.email_from}</span>
@@ -5008,21 +5115,25 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 )}
                 <Button
                   onClick={sendCampaign}
-                  disabled={!recipients.length || sendStatus !== 'idle'}
+                  disabled={!recipients.length || sendStatus !== 'idle' || isQuotaFull || (isEmailMode && emailQuota != null && recipients.length > emailQuota.remaining)}
                   size="lg"
                   className={cn(
                     'w-full h-12 rounded-2xl font-bold gap-2',
-                    sendStatus === 'sent'
-                      ? 'bg-emerald-500 hover:bg-emerald-500 text-white'
-                      : isWA
-                        ? 'bg-[#25D366] hover:bg-[#20bb5a] text-white'
-                        : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+                    isQuotaFull && isEmailMode
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                      : sendStatus === 'sent'
+                        ? 'bg-emerald-500 hover:bg-emerald-500 text-white'
+                        : isWA
+                          ? 'bg-[#25D366] hover:bg-[#20bb5a] text-white'
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
                   )}
                 >
                   {sendStatus === 'sending' ? (
                     <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending…</>
                   ) : sendStatus === 'sent' ? (
                     <><CheckCheck size={16} /> Sent to {recipients.length} recipients!</>
+                  ) : isQuotaFull && isEmailMode ? (
+                    <>🚫 Monthly limit reached</>
                   ) : (
                     <><Send size={16} /> {isWA ? `Send WhatsApp blast` : `Send email campaign`}{recipients.length > 0 ? ` → ${recipients.length}` : ''}</>
                   )}
@@ -5030,6 +5141,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
               </>
             );
           })()}
+
 
         </div>
       </div>

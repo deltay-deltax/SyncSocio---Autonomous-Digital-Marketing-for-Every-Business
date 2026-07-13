@@ -77,7 +77,17 @@ const userSchema = new mongoose.Schema({
   },
   lastLogin: {
     type: Date
+  },
+  // ── Email Campaign Quota ──────────────────────────────────────────────────
+  email_sends_this_month: {
+    type: Number,
+    default: 0
+  },
+  email_quota_reset_at: {
+    type: Date,
+    default: Date.now
   }
+  // ─────────────────────────────────────────────────────────────────────────
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);
