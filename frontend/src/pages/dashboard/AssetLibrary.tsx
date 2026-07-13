@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar, Clock } from 'lucide-react';
+import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar, Clock, Send, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Masonry from 'react-masonry-css';
@@ -116,6 +116,7 @@ const typeIcon: Record<string, any> = {
   carousel: Layers,
   video: Video,
   scheduled: Clock,
+  draft:    FileText,
 };
 
 const AssetLibrary = () => {
@@ -193,7 +194,7 @@ const AssetLibrary = () => {
     };
     loadCached();
   }, [cacheKey]);
-  const [filter, setFilter] = useState<'all' | 'image' | 'carousel' | 'video' | 'scheduled'>('all');
+  const [filter, setFilter] = useState<'all' | 'image' | 'carousel' | 'video' | 'scheduled' | 'draft'>('all');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [previewAsset, setPreviewAsset] = useState<any | null>(null);
   const [previewSlide, setPreviewSlide] = useState<number>(0);
@@ -458,8 +459,12 @@ const AssetLibrary = () => {
 
   const filtered = (
     filter === 'all'
-      ? assets
+      ? assets.filter((a) => a.status !== 'draft')
       : filter === 'scheduled'
+      ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
+      : filter === 'draft'
+      ? assets.filter((a) => a.status === 'draft')
+      : assets.filter((a) => a.type === filter && a.status !== 'draft')
         ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
         : assets.filter((a) => a.type === filter)
   )
@@ -467,6 +472,8 @@ const AssetLibrary = () => {
     .sort((a, b) => {
       const aDone = a.status === 'scheduled' || a.status === 'posted' || a.status === 'published';
       const bDone = b.status === 'scheduled' || b.status === 'posted' || b.status === 'published';
+      if (a.status === 'draft' && b.status !== 'draft') return -1;
+      if (a.status !== 'draft' && b.status === 'draft') return 1;
       if (aDone && !bDone) return 1;
       if (!aDone && bDone) return -1;
 
@@ -513,8 +520,12 @@ const AssetLibrary = () => {
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide w-full pb-2 scroll-smooth select-none shrink-0">
-        {(['all', 'image', 'carousel', 'video', 'scheduled'] as const).map((f) => {
+        {(['all', 'image', 'carousel', 'video', 'draft', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
+          const label = f === 'scheduled' 
+            ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}` 
+            : f === 'draft'
+            ? 'Draft Emails'
           const label = f === 'scheduled'
             ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}`
             : f;
@@ -538,7 +549,9 @@ const AssetLibrary = () => {
                 )}>
                   {f === 'scheduled'
                     ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published').length
-                    : assets.filter((a) => a.type === f).length}
+                    : f === 'draft'
+                    ? assets.filter((a) => a.status === 'draft').length
+                    : assets.filter((a) => a.type === f && a.status !== 'draft').length}
                 </span>
               )}
             </button>
@@ -608,7 +621,7 @@ const AssetLibrary = () => {
               const thumbSrc = asset.type === 'carousel'
                 ? imgSrc(asset.slides?.[0]?.image)
                 : imgSrc(asset.thumbnailBase64);
-              const Icon = typeIcon[asset.type] || ImageIcon;
+              const Icon = asset.status === 'draft' ? typeIcon.draft : (typeIcon[asset.type] || ImageIcon);
 
               const isSelected = selectedAssetIds.includes(asset._id);
               const isScheduled = asset.status === 'scheduled' && (!asset.scheduledAt || new Date(asset.scheduledAt) > new Date());
@@ -636,8 +649,12 @@ const AssetLibrary = () => {
                         setSelectedAssetIds([...selectedAssetIds, asset._id]);
                       }
                     } else {
-                      setPreviewAsset(asset);
-                      setPreviewSlide(0);
+                      if (asset.status === 'draft') {
+                        navigate(`/dashboard/strategy?draftId=${asset._id}`);
+                      } else {
+                        setPreviewAsset(asset);
+                        setPreviewSlide(0);
+                      }
                     }
                   }}
                 >
@@ -672,7 +689,7 @@ const AssetLibrary = () => {
                     {/* Type badge */}
                     <div className="absolute top-2 right-2 flex items-center gap-1 bg-foreground/60 backdrop-blur-md text-background text-[9px] font-bold px-2 py-1 rounded-full capitalize z-10">
                       <Icon size={9} />
-                      {asset.type}
+                      {asset.status === 'draft' ? 'Email Draft' : asset.type}
                     </div>
 
                     {/* Scheduled / Posted Badge */}
@@ -692,6 +709,18 @@ const AssetLibrary = () => {
                     {/* Hover overlay with actions - only visible if not in selection mode */}
                     {!selectionMode && (
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
+                        {asset.status === 'draft' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/dashboard/strategy?draftId=${asset._id}`);
+                            }}
+                            className="w-11 h-11 rounded-full bg-blue-500/80 backdrop-blur-md text-white hover:bg-blue-500 hover:scale-105 transition flex items-center justify-center shadow-lg"
+                            title="Load into Campaigns to send"
+                          >
+                            <Send size={16} />
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -723,7 +752,17 @@ const AssetLibrary = () => {
 
                   {/* Caption */}
                   <div className="p-3">
-                    <p className="text-[11px] text-foreground leading-relaxed line-clamp-2">{asset.caption}</p>
+                    <p className="text-[11px] text-foreground leading-relaxed line-clamp-2">
+                      {(() => {
+                        if (asset.status === 'draft') {
+                          try {
+                            const parsed = JSON.parse(asset.caption);
+                            return parsed.subject ? `Subject: ${parsed.subject} — ${parsed.body}` : parsed.body || asset.caption;
+                          } catch (e) {}
+                        }
+                        return asset.caption;
+                      })()}
+                    </p>
                     {asset.idea && (
                       <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1 italic">"{asset.idea}"</p>
                     )}
@@ -851,10 +890,19 @@ const AssetLibrary = () => {
               {/* Right panel: Caption & Hashtags */}
               <div className="w-full md:w-[360px] shrink-0 border-t md:border-t-0 md:border-l border-border/60 flex flex-col bg-card overflow-hidden">
                 <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Instagram Post Caption</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {previewAsset.status === 'draft' ? 'Email Draft Content' : 'Instagram Post Caption'}
+                  </span>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(previewAsset.caption || '');
+                      let text = previewAsset.caption || '';
+                      if (previewAsset.status === 'draft') {
+                        try {
+                          const parsed = JSON.parse(previewAsset.caption);
+                          text = `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
+                        } catch (e) {}
+                      }
+                      navigator.clipboard.writeText(text);
                       setCopiedAsset(true);
                       setTimeout(() => setCopiedAsset(false), 2000);
                     }}
@@ -881,9 +929,31 @@ const AssetLibrary = () => {
 
                 <div className="flex-1 overflow-y-auto p-5 select-text custom-scrollbar">
                   <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                    {previewAsset.caption || "No caption generated."}
+                    {(() => {
+                      if (previewAsset.status === 'draft') {
+                        try {
+                          const parsed = JSON.parse(previewAsset.caption);
+                          return `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
+                        } catch (e) {}
+                      }
+                      return previewAsset.caption || "No caption generated.";
+                    })()}
                   </p>
                 </div>
+                {previewAsset.status === 'draft' && (
+                  <div className="p-4 border-t border-border/50 bg-muted/10">
+                    <Button
+                      onClick={() => {
+                        setPreviewAsset(null);
+                        navigate(`/dashboard/strategy?draftId=${previewAsset._id}`);
+                      }}
+                      className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center justify-center gap-2 shadow-md border-0"
+                    >
+                      <Send size={12} />
+                      Load into Campaigns to send
+                    </Button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>

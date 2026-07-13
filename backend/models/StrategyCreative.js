@@ -49,7 +49,7 @@ const strategyCreativeSchema = new mongoose.Schema({
   // Status: hearted = saved to library
   status: {
     type: String,
-    enum: ['hearted', 'rejected', 'scheduled', 'posted'],
+    enum: ['hearted', 'rejected', 'scheduled', 'posted', 'draft'],
     default: 'hearted',
   },
   scheduledAt: {
