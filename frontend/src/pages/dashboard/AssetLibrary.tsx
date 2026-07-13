@@ -535,12 +535,10 @@ const AssetLibrary = () => {
       <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide w-full pb-2 scroll-smooth select-none shrink-0">
         {(['all', 'image', 'carousel', 'video', 'draft', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
-          const label = f === 'scheduled' 
-            ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}` 
-            : f === 'draft'
-            ? 'Draft Emails'
           const label = f === 'scheduled'
             ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}`
+            : f === 'draft'
+            ? 'Draft Emails'
             : f;
           return (
             <button
