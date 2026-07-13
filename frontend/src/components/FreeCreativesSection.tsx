@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Check, ArrowRight, X } from "lucide-react";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 type Intent = "creatives" | "demo";
 
@@ -57,7 +59,30 @@ export default function FreeCreativesSection() {
 
 function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [phone, setPhone] = useState<string | undefined>("");
+  const [country, setCountry] = useState<any>("IN");
   const isDemo = intent === "demo";
+
+  useEffect(() => {
+    // Using XMLHttpRequest to bypass the GlobalErrorContext fetch interceptor.
+    // This prevents ad-blockers (which block ipapi.co) from triggering the global "System Interruption" modal.
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://ipapi.co/json/');
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (data.country_code) {
+          setCountry(data.country_code);
+        }
+      } catch (e) {
+        // Silently fallback to 'IN'
+      }
+    };
+    // Silently ignore network/CORS errors
+    xhr.onerror = () => {};
+    xhr.send();
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/70 backdrop-blur-sm">
@@ -106,13 +131,61 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
                 const data = {
-                  name: formData.get("name"),
-                  email: formData.get("email"),
-                  phone: formData.get("phone"),
-                  businessName: formData.get("businessName"),
-                  businessCategory: formData.get("businessCategory"),
+                  name: formData.get("name") as string,
+                  email: formData.get("email") as string,
+                  phone: phone || "",
+                  businessName: formData.get("businessName") as string,
+                  website: formData.get("website") as string,
+                  businessCategory: formData.get("businessCategory") as string,
                   intent: intent,
+                  _gotcha: formData.get("_gotcha") as string,
                 };
+
+                setFormError("");
+
+                // Email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+                if (!emailRegex.test(data.email.trim())) {
+                  setFormError("Please enter a valid email address.");
+                  return;
+                }
+
+                // Catch common email typos
+                const lowerEmail = data.email.trim().toLowerCase();
+                const domainPart = lowerEmail.split('@')[1];
+                
+                if (domainPart && domainPart.startsWith('gmail.') && domainPart !== 'gmail.com') {
+                  setFormError("It looks like there is a typo in your email (e.g. @gmail.com).");
+                  return;
+                }
+                if (domainPart && domainPart.startsWith('gamil.')) {
+                  setFormError("It looks like there is a typo in your email (did you mean @gmail.com?).");
+                  return;
+                }
+                if (domainPart && domainPart.startsWith('yahoo.') && domainPart !== 'yahoo.com' && domainPart !== 'yahoo.in' && domainPart !== 'yahoo.co.uk') {
+                  setFormError("It looks like there is a typo in your email (e.g. @yahoo.com).");
+                  return;
+                }
+
+                // Name validation
+                const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ\s\'\-]{2,50}$/;
+                if (!nameRegex.test(data.name.trim())) {
+                  setFormError("Please enter a valid name (no numbers or special symbols).");
+                  return;
+                }
+                
+                // Block keyboard smashes
+                const lowerName = data.name.trim().toLowerCase();
+                if (/asdf|qwer|zxcv|asds|test|fake|dummy/.test(lowerName)) {
+                  setFormError("Please enter a valid professional name.");
+                  return;
+                }
+
+                // Phone validation (Strict country-specific validation)
+                if (!data.phone || !isValidPhoneNumber(data.phone)) {
+                  setFormError("Please enter a valid phone number for your country.");
+                  return;
+                }
 
                 try {
                   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
@@ -123,17 +196,42 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   });
                   if (res.ok) {
                     setSubmitted(true);
+                  } else {
+                    const result = await res.json();
+                    setFormError(result.message || "Failed to submit. Please try again.");
                   }
                 } catch (error) {
                   console.error("Failed to submit", error);
+                  setFormError("Network error. Please try again later.");
                 }
               }}
               className="mt-6 space-y-4"
             >
+              {/* Honeypot field (hidden from real users, bots will fill it) */}
+              <input type="text" name="_gotcha" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+              
               <Field label="Name" name="name" type="text" placeholder="John Doe" required />
               <Field label="Work email" name="email" type="email" placeholder="you@business.com" required />
-              <Field label="Phone number" name="phone" type="tel" placeholder="+91 XXXXX XXXXX" required />
+              
+              <div className="text-left">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Phone number
+                </label>
+                <div className="mt-1.5 w-full h-11 px-3 rounded-xl border border-border/60 bg-background flex items-center focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                  <PhoneInput
+                    international
+                    defaultCountry={country}
+                    value={phone}
+                    onChange={setPhone}
+                    className="w-full bg-transparent text-sm outline-none"
+                    style={{ "--PhoneInput-color--focus": "transparent" } as React.CSSProperties}
+                  />
+                </div>
+              </div>
+
               <Field label="Business name" name="businessName" type="text" placeholder="Acme Corp" required />
+              <Field label="Website link (optional)" name="website" type="url" placeholder="https://www.example.com" />
+              
               <SelectField 
                 label="Business category" 
                 name="businessCategory" 
@@ -147,6 +245,11 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                 ]}
                 required
               />
+              {formError && (
+                <div className="text-red-500 text-sm font-medium text-center bg-red-500/10 py-2 rounded-lg">
+                  {formError}
+                </div>
+              )}
               <button
                 type="submit"
                 className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-all"

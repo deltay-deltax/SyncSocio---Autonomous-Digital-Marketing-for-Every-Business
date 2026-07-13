@@ -39,6 +39,7 @@ import {
   getSiteSettings,
   updateSiteSettings,
   getLeads,
+  getScheduledPosts,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -111,5 +112,8 @@ router.put('/meta-testers/:id/approve', toggleMetaTesterApproval);
 // ─── Site Settings ────────────────────────────────────────────────────────────
 router.get('/settings', getSiteSettings);
 router.put('/settings', updateSiteSettings);
+
+// ─── Scheduled Posts ──────────────────────────────────────────────────────────
+router.get('/scheduled-posts', getScheduledPosts);
 
 export default router;

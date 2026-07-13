@@ -262,3 +262,23 @@ html {
 .my-masonry-grid_column > div {
   margin-bottom: 16px;
 }
+/* Phone Input Overrides */
+.PhoneInput {
+  display: flex;
+  align-items: center;
+}
+.PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 0.875rem;
+  color: inherit;
+}
+.PhoneInputCountry {
+  margin-right: 0.5rem;
+}
+.PhoneInputCountrySelectArrow {
+  opacity: 0.5;
+}
