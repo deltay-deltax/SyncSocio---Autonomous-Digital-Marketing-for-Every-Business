@@ -6,8 +6,6 @@ import { ArrowLeft, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
-import { getFriendlyErrorMessage } from '@/lib/errorHandler';
-
 interface CheckoutProps {
   baseAmount: number;
   description: string;

@@ -20,7 +20,6 @@ import { useToast } from '@/hooks/use-toast';
 import JSZip from 'jszip';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
-import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const breakpointColumnsObj = {
   default: 4,
@@ -129,7 +128,7 @@ const typeIcon: Record<string, any> = {
   carousel: Layers,
   video: Video,
   scheduled: Clock,
-  draft:    FileText,
+  draft: FileText,
 };
 
 const AssetLibrary = () => {
@@ -474,12 +473,12 @@ const AssetLibrary = () => {
     filter === 'all'
       ? assets.filter((a) => a.status !== 'draft')
       : filter === 'scheduled'
-      ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
-      : filter === 'draft'
-      ? assets.filter((a) => a.status === 'draft')
-      : assets.filter((a) => a.type === filter && a.status !== 'draft')
         ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
-        : assets.filter((a) => a.type === filter)
+        : filter === 'draft'
+          ? assets.filter((a) => a.status === 'draft')
+          : assets.filter((a) => a.type === filter && a.status !== 'draft')
+            ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
+            : assets.filter((a) => a.type === filter)
   )
     .slice()
     .sort((a, b) => {
@@ -538,8 +537,8 @@ const AssetLibrary = () => {
           const label = f === 'scheduled'
             ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}`
             : f === 'draft'
-            ? 'Draft Emails'
-            : f;
+              ? 'Draft Emails'
+              : f;
           return (
             <button
               key={f}
@@ -561,8 +560,8 @@ const AssetLibrary = () => {
                   {f === 'scheduled'
                     ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published').length
                     : f === 'draft'
-                    ? assets.filter((a) => a.status === 'draft').length
-                    : assets.filter((a) => a.type === f && a.status !== 'draft').length}
+                      ? assets.filter((a) => a.status === 'draft').length
+                      : assets.filter((a) => a.type === f && a.status !== 'draft').length}
                 </span>
               )}
             </button>
@@ -768,7 +767,7 @@ const AssetLibrary = () => {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
+                              <AlertDialogAction
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDelete(asset._id);
@@ -792,7 +791,7 @@ const AssetLibrary = () => {
                           try {
                             const parsed = JSON.parse(asset.caption);
                             return parsed.subject ? `Subject: ${parsed.subject} — ${parsed.body}` : parsed.body || asset.caption;
-                          } catch (e) {}
+                          } catch (e) { }
                         }
                         return asset.caption;
                       })()}
@@ -934,7 +933,7 @@ const AssetLibrary = () => {
                         try {
                           const parsed = JSON.parse(previewAsset.caption);
                           text = `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
-                        } catch (e) {}
+                        } catch (e) { }
                       }
                       navigator.clipboard.writeText(text);
                       setCopiedAsset(true);
@@ -968,7 +967,7 @@ const AssetLibrary = () => {
                         try {
                           const parsed = JSON.parse(previewAsset.caption);
                           return `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
-                        } catch (e) {}
+                        } catch (e) { }
                       }
                       return previewAsset.caption || "No caption generated.";
                     })()}
