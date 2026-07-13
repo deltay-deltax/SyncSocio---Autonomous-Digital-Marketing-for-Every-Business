@@ -1185,6 +1185,7 @@ const DashboardSettings = () => {
                 const planFeatures = !isElite 
                   ? [
                       '200 credits/month',
+                      '500 email campaigns/month',
                       '1 active brand profile',
                       'All image generation types',
                       'Festival calendar',
@@ -1196,6 +1197,7 @@ const DashboardSettings = () => {
                     ]
                   : [
                       '700 credits/month',
+                      '2,000 email campaigns/month',
                       '1 active brand profile',
                       'All image generation types',
                       'Festival calendar & suggestions',

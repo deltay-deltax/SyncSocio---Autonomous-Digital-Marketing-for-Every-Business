@@ -41,6 +41,7 @@ const plans: Plan[] = [
     postsPerMonth: '200 credits/month',
     features: [
       "200 credits/month",
+      "500 email campaigns/month",
       "1 active brand profile",
       "Import or Add Up to 50 Products",
       "All image generation types",
@@ -65,6 +66,7 @@ const plans: Plan[] = [
     postsPerMonth: '700 credits/month',
     features: [
       "700 credits/month",
+      "2,000 email campaigns/month",
       "2 brand profiles",
       "Import or Add Up to 100 Products",
       "Everything in Starter",
