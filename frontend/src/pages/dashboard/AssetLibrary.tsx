@@ -477,8 +477,6 @@ const AssetLibrary = () => {
         : filter === 'draft'
           ? assets.filter((a) => a.status === 'draft')
           : assets.filter((a) => a.type === filter && a.status !== 'draft')
-            ? assets.filter((a) => a.status === 'scheduled' || a.status === 'posted' || a.status === 'published')
-            : assets.filter((a) => a.type === filter)
   )
     .slice()
     .sort((a, b) => {
