@@ -4897,7 +4897,6 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
 
           {/* Send button */}
           {(() => {
-            const cachedProfile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
             const isEmailMode = mode === 'email';
 
             return (
