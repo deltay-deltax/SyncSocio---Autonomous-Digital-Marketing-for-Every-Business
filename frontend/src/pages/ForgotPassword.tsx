@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useLocation } from "react-router-dom";
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const ForgotPassword = () => {
   const location = useLocation();
   const [email, setEmail] = useState(location.state?.email || "");

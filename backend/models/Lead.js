@@ -24,6 +24,7 @@ const leadSchema = new mongoose.Schema({
   },
   website: {
     type: String,
+    required: false,
     required: true,
     trim: true,
   },

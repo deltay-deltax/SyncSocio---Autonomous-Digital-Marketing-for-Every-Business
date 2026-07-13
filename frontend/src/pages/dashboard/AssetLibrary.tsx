@@ -3,10 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar, Clock, Send, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import Masonry from 'react-masonry-css';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import JSZip from 'jszip';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const breakpointColumnsObj = {
@@ -731,21 +744,44 @@ const AssetLibrary = () => {
                         >
                           <Download size={18} />
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(asset._id);
-                          }}
-                          disabled={deleting === asset._id}
-                          className="w-11 h-11 rounded-full bg-rose-500/80 backdrop-blur-md text-white hover:bg-rose-500 hover:scale-105 transition flex items-center justify-center shadow-lg"
-                          title="Remove from library"
-                        >
-                          {deleting === asset._id ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 size={16} />
-                          )}
-                        </button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                              disabled={deleting === asset._id}
+                              className="w-11 h-11 rounded-full bg-rose-500/80 backdrop-blur-md text-white hover:bg-rose-500 hover:scale-105 transition flex items-center justify-center shadow-lg"
+                              title="Remove from library"
+                            >
+                              {deleting === asset._id ? (
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 size={16} />
+                              )}
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove from library?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove this creative from your library? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(asset._id);
+                                }}
+                                className="bg-rose-500 hover:bg-rose-600"
+                              >
+                                Remove
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
                   </div>

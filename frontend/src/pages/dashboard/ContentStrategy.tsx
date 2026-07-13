@@ -18,6 +18,8 @@ import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import { useToast } from '@/hooks/use-toast';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const breakpointColumnsObj = {
   default: 3,
   1024: 2,

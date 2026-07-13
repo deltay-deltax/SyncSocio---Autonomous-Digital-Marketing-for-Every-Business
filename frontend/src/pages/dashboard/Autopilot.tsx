@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 // IDB Helpers for Asset Library matching ContentStrategy
 const IDB_NAME = 'SyncSocioAssetCache';
 const IDB_STORE = 'assets';
@@ -375,7 +377,7 @@ export default function AutopilotPage() {
       toast({
         variant: 'destructive',
         title: 'Launch Failed',
-        description: err.message || 'Could not queue background autopilot task.'
+        description: getFriendlyErrorMessage(err)
       });
     }
   };
