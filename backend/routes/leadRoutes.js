@@ -12,7 +12,6 @@ router.post('/', async (req, res) => {
       console.log('Bot detected via honeypot. Discarding lead silently.');
       return res.status(201).json({ success: true, message: 'Lead submitted successfully.' }); // Fake success
     }
-    const { name, email, phone, businessName, website, businessCategory, intent } = req.body;
 
     if (!name || !email || !phone || !businessName || !website || !businessCategory || !intent) {
       return res.status(400).json({ success: false, message: 'All fields are required.' });
