@@ -4622,12 +4622,13 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           {saveHeroImage && (
             <Button
               onClick={saveHeroImage}
+              disabled={isHeroImageSaved}
               variant="outline"
               size="sm"
               className={cn(
                 "rounded-xl gap-2 transition",
                 isHeroImageSaved
-                  ? "text-rose-500 border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20"
+                  ? "text-rose-500 border-rose-500/20 bg-rose-500/10 cursor-not-allowed"
                   : "text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20"
               )}
             >
