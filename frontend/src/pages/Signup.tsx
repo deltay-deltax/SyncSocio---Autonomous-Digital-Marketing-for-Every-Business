@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const PLAN_STORAGE_KEY = "syncsocio_selected_plan";
 
 const socialStats = [

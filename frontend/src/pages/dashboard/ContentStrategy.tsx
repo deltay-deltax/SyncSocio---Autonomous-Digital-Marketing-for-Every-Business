@@ -18,6 +18,8 @@ import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import { useToast } from '@/hooks/use-toast';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const breakpointColumnsObj = {
   default: 3,
   1024: 2,
@@ -607,6 +609,11 @@ const DashboardStrategy = () => {
         setCampaignImage(imgSrc(first.image) || '');
         setCampaignBody(first.caption || '');
         if (task.mode === 'email') setCampaignSubject(first.subject || '');
+      }
+
+      if (task.mode === 'edit_media' && posts.length > 0) {
+        setPreviewPost(posts[0]);
+        setPreviewIndex(0);
       }
 
       setCurrentTaskId(null);
@@ -4991,7 +4998,6 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
 
           {/* Send button */}
           {(() => {
-            const cachedProfile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
             const isEmailMode = mode === 'email';
 
             return (

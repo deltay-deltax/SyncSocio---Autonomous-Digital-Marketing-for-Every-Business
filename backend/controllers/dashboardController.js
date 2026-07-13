@@ -78,9 +78,9 @@ export const getDashboardSummary = async (req, res) => {
 
           let topPostInfo = null;
           let engagementRate = '0.0';
+          let totalPostReach = 0;
 
           if (postsFromLast7Days.length > 0) {
-            let totalPostReach = 0;
             let totalPostSaves = 0;
 
             const postsWithInsights = postsFromLast7Days.slice(0, 10).map((post) => {
@@ -137,6 +137,10 @@ export const getDashboardSummary = async (req, res) => {
              static: Math.round((staticCount / totalMix) * 100),
              carousel: Math.round((carouselCount / totalMix) * 100)
           };
+
+          if (!reachThisWeek || reachThisWeek === 0) {
+             reachThisWeek = totalPostReach;
+          }
 
           realMetrics = {
             postsThisMonth,
@@ -280,11 +284,11 @@ export const getDashboardSummary = async (req, res) => {
 export const getDashboardFeed = async (req, res) => res.json({ posts: [] });
 export const getDashboardAnalytics = async (req, res) => {
   const insights = [
-      'Reels consistently outperform static posts by 4x in reach',
+      'High-quality organic ads consistently drive strong engagement',
       'Posting between 7-9 PM drives 62% of your weekly engagement',
       'Carousel posts have the highest save rate at 3.2%',
       'Your audience is most active on Wednesday and Saturday',
-      'Food process videos get 2.8x more shares than finished product shots',
+      'Consistent static posts help build a steady organic presence',
     ];
   res.json({ hourlyData: [], postBreakdown: [], insights });
 };

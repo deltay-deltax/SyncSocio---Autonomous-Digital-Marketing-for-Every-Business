@@ -13,6 +13,7 @@ interface BrandProfile {
   businessCategory: string;
   DM_Automation_Service: boolean;
   createdAt: string;
+  logo?: string;
 }
 
 export default function Brands() {
@@ -28,7 +29,7 @@ export default function Brands() {
         // We might need to add it to adminController or just fetch users and aggregate.
         // Actually, let's create a generic API call to a `/api/admin/brands` route 
         // that I'll add to the backend right after this!
-        const res = await axios.get('http://localhost:5050/api/admin/brands', {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/brands`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.success) {
@@ -59,9 +60,15 @@ export default function Brands() {
           <div key={brand._id} className="glass-card border border-transparent rounded-2xl p-6 shadow-sm hover:border-blue-500/30 transition-all flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-blue-500/10 rounded-xl">
-                  <Briefcase className="text-blue-500" size={24} />
-                </div>
+                {brand.logo ? (
+                  <div className="h-14 w-14 rounded-xl overflow-hidden flex items-center justify-center bg-white border border-border shadow-sm p-1.5">
+                    <img src={brand.logo} alt={`${brand.brandName} logo`} className="w-full h-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="p-3 bg-blue-500/10 rounded-xl flex items-center justify-center h-14 w-14">
+                    <Briefcase className="text-blue-500" size={24} />
+                  </div>
+                )}
                 {brand.DM_Automation_Service && (
                   <span className="px-2.5 py-1 bg-violet-500/10 text-violet-500 text-xs rounded-full font-medium">DM Automation Active</span>
                 )}

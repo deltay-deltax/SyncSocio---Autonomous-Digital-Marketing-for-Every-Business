@@ -6,6 +6,8 @@ import { Controller, ControllerProps, FieldPath, FieldValues, FormProvider, useF
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const Form = FormProvider;
 
 type FormFieldContextValue<
@@ -111,7 +113,7 @@ FormDescription.displayName = "FormDescription";
 const FormMessage = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
   ({ className, children, ...props }, ref) => {
     const { error, formMessageId } = useFormField();
-    const body = error ? String(error?.message) : children;
+    const body = error ? String(getFriendlyErrorMessage(error)) : children;
 
     if (!body) {
       return null;

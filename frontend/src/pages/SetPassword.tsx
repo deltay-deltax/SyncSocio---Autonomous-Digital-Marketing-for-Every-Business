@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const SetPassword = () => {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');

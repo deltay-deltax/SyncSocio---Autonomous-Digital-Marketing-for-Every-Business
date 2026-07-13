@@ -86,10 +86,13 @@ export const schedulePost = async (req, res) => {
       { timeout: 120000 }
     );
 
-    // Notify user based on REAL agent outcome
     const isSuccess = aiResponse.data.status === 'published';
     
     if (isSuccess) {
+      post.status = 'published';
+      post.isScheduled = false;
+      await post.save();
+
       await createNotification(
         req.user._id,
         'success',
@@ -411,11 +414,14 @@ export const smartSchedulePosts = async (req, res) => {
           const isDirect = aiResponse.data.status === 'published';
           if (isDirect) {
             creative.status = 'posted';
+            postAnalysis.status = 'published';
+            postAnalysis.isScheduled = false;
           } else {
             creative.status = 'scheduled';
             creative.scheduledAt = new Date(recommendation.scheduledAt);
           }
           await creative.save();
+          await postAnalysis.save();
           
           await createNotification(
             userId,

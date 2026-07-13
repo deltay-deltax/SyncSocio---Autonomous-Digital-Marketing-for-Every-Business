@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 const PLAN_STORAGE_KEY = "syncsocio_selected_plan";
 
 const socialStats = [
@@ -86,7 +88,7 @@ const Login = () => {
         window.location.href = "/";
       }
     } catch (err: any) {
-      setError(getFriendlyErrorMessage(err));
+      setError(err instanceof Error ? getFriendlyErrorMessage(err) : String(err));
     } finally {
       setLoading(false);
     }
@@ -248,7 +250,7 @@ const Login = () => {
                         window.location.href = "/";
                       }
                     } catch (err: any) {
-                      setError(getFriendlyErrorMessage(err));
+                      setError(err instanceof Error ? getFriendlyErrorMessage(err) : String(err));
                     }
                   }}
                   onError={() => setError("Google Login Configuration Missing.")}

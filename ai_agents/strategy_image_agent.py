@@ -243,11 +243,37 @@ def _to_jpeg_b64(raw_b64: str) -> Optional[str]:
         import io as _io
 
         raw_bytes = base64.b64decode(raw_b64)
-        img = Image.open(_io.BytesIO(raw_bytes))
+        
+        # Check if it's an SVG by looking at the first bytes
+        if b"<svg" in raw_bytes[:1024].lower():
+            from svglib.svglib import svg2rlg
+            from reportlab.graphics import renderPM
+            import tempfile
+            import os
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".svg") as f:
+                f.write(raw_bytes)
+                temp_path = f.name
+                
+            drawing = svg2rlg(temp_path)
+            os.remove(temp_path)
+            
+            if drawing:
+                png_buffer = _io.BytesIO()
+                renderPM.drawToFile(drawing, png_buffer, fmt="PNG")
+                img = Image.open(_io.BytesIO(png_buffer.getvalue()))
+            else:
+                raise ValueError("svglib could not parse SVG")
+        else:
+            img = Image.open(_io.BytesIO(raw_bytes))
 
-        # Ensure RGB (AVIF/PNG can be RGBA or P-mode)
+        # Ensure RGB (AVIF/PNG/SVG can be RGBA or P-mode)
         if img.mode in ("RGBA", "LA", "P"):
-            img = img.convert("RGB")
+            # Composite over white background to avoid black background on transparent logos
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            mask = img.split()[-1] if img.mode in ("RGBA", "LA") else None
+            bg.paste(img, mask=mask)
+            img = bg
         elif img.mode != "RGB":
             img = img.convert("RGB")
 

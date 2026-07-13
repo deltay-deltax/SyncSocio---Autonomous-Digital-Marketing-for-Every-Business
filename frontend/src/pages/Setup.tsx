@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useRazorpay } from '../hooks/useRazorpay';
 import { Checkout } from '@/components/Checkout';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 // ─── Types ───────────────────────────────────────────────────────────
 type Screen = 'checklist' | 'instagram' | 'plan' | 'checkout' | 'activation';
 

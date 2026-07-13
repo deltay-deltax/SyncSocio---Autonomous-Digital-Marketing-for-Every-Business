@@ -22,6 +22,12 @@ const leadSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  website: {
+    type: String,
+    required: false,
+    required: true,
+    trim: true,
+  },
   businessCategory: {
     type: String,
     required: true,

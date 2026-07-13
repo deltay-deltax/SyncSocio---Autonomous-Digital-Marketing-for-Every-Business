@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { useOutletContext } from 'react-router-dom';
 import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+
 interface Recommendation {
   id: string;
   emoji: string;
@@ -28,8 +30,8 @@ const DashboardAds = () => {
 
   if (profile && !profile.instagramIsConnected) {
     return (
-      <ConnectInstagramFallback 
-        title="Connect Instagram to View Ad Recommendations" 
+      <ConnectInstagramFallback
+        title="Connect Instagram to View Ad Recommendations"
         description="SyncSocio needs a connected Instagram account to scan your top-performing organic posts and recommend high-ROI paid boost campaigns."
         metaTesterStatus={profile?.metaTesterStatus}
       />
@@ -84,15 +86,15 @@ const DashboardAds = () => {
           </div>
           <p className="text-sm text-muted-foreground">AI identified high-ROI posts for your brand</p>
           {nextScan && (
-             <p className="text-[10px] text-primary/60 font-black uppercase tracking-widest mt-1">
-               Strategic Refresh: {nextScan}
-             </p>
+            <p className="text-[10px] text-primary/60 font-black uppercase tracking-widest mt-1">
+              Strategic Refresh: {nextScan}
+            </p>
           )}
         </div>
         <div className="hidden sm:block">
-           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
-             <Sparkles size={12} /> Ads Agent Active
-           </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
+            <Sparkles size={12} /> Ads Agent Active
+          </span>
         </div>
       </div>
 
@@ -100,8 +102,8 @@ const DashboardAds = () => {
         <Card className="border-border/50 bg-white/50 backdrop-blur-sm">
           <CardContent className="py-20 text-center">
             <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-               <Target className="text-muted-foreground" size={28} />
-             </div>
+              <Target className="text-muted-foreground" size={28} />
+            </div>
             <p className="text-lg font-bold text-foreground">No boost candidates yet</p>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto mt-1">The Ads Agent only recommends posts with "Viral Momentum". Keep posting to find your next winner!</p>
           </CardContent>
@@ -154,7 +156,7 @@ const DashboardAds = () => {
                           <span className="font-bold text-foreground text-[10px] text-right line-clamp-2">{rec.audience}</span>
                         </div>
                       </div>
-                      <Button 
+                      <Button
                         onClick={() => handleBoost(rec.id)}
                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 text-[10px] font-black uppercase tracking-widest h-11 rounded-xl shadow-xl shadow-primary/20 hover-lift"
                       >
@@ -173,3 +175,4 @@ const DashboardAds = () => {
 };
 
 export default DashboardAds;
+

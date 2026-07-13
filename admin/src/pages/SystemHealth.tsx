@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, Clock, X, DollarSign, BarChart2, ChevronRight,
 } from 'lucide-react';
 
-const API = 'http://localhost:5050/api/admin';
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 const REFRESH_INTERVAL = 30_000;
 
 interface ProviderStat {

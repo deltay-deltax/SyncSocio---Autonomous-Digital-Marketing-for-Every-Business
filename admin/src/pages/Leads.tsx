@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Download, Users, ClipboardList } from 'lucide-react';
+import { parsePhoneNumber } from 'libphonenumber-js';
 
-const API = 'http://localhost:5050/api/admin';
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 
 interface LeadEntry {
   _id: string;
@@ -10,6 +11,7 @@ interface LeadEntry {
   email: string;
   phone: string;
   businessName: string;
+  website?: string;
   businessCategory: string;
   intent: string;
   createdAt: string;
@@ -19,6 +21,20 @@ const INTENT_STYLES: Record<string, string> = {
   creatives: 'bg-violet-500/10 text-violet-400',
   demo: 'bg-emerald-500/10 text-emerald-400',
   default: 'bg-gray-500/10 text-gray-400',
+};
+
+const formatPhone = (phone: string) => {
+  if (!phone) return '-';
+  try {
+    const phoneNumber = parsePhoneNumber(phone);
+    if (phoneNumber) {
+      return phoneNumber.formatInternational();
+    }
+  } catch (error) {
+    // If it fails to parse (e.g. legacy invalid numbers), we fallback to some basic spacing
+    return phone.replace(/(\+\d{2})(\d+)/, '$1 $2');
+  }
+  return phone;
 };
 
 export default function Leads() {
@@ -47,12 +63,14 @@ export default function Leads() {
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
   const handleExportCSV = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Business Name', 'Category', 'Intent', 'Submitted Date'];
+    const headers = ['Name', 'Email', 'Phone', 'Business Name', 'Website', 'Category', 'Intent', 'Submitted Date'];
     const rows = entries.map(e => [
       e.name,
       e.email,
-      e.phone,
+      formatPhone(e.phone),
       e.businessName,
+      e.website || '-',
+      e.website || '',
       e.businessCategory,
       e.intent,
       new Date(e.createdAt).toLocaleDateString('en-IN')
@@ -126,8 +144,13 @@ export default function Leads() {
             <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
               <tr className="divide-x divide-border/50">
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Name</th>
+                  <th className="px-6 py-4 text-xs font-black tracking-widest text-muted-foreground uppercase text-left">Contact Info</th>
+                  <th className="px-6 py-4 text-xs font-black tracking-widest text-muted-foreground uppercase text-left">Business</th>
+                  <th className="px-6 py-4 text-xs font-black tracking-widest text-muted-foreground uppercase text-left">Website</th>
+                  <th className="px-6 py-4 text-xs font-black tracking-widest text-muted-foreground uppercase text-left">Category</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Contact Info</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Business</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Website</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Category</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Intent</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Submitted Date</th>
@@ -136,13 +159,13 @@ export default function Leads() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground animate-pulse">
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground animate-pulse">
                     Loading leads...
                   </td>
                 </tr>
               ) : entries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <Users className="mx-auto mb-2 text-muted-foreground" size={32} />
                     <p className="text-muted-foreground">
                       No leads entries yet.
@@ -153,10 +176,21 @@ export default function Leads() {
                 <tr key={entry._id} className="hover:bg-muted/10 transition-colors divide-x divide-border/50">
                   <td className="px-6 py-4 font-medium text-foreground whitespace-nowrap">{entry.name}</td>
                   <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
-                    <div>{entry.email}</div>
-                    <div className="text-xs mt-1 text-muted-foreground">{entry.phone}</div>
+                    <div className="font-medium text-foreground/80">{entry.email}</div>
+                    <div className="text-xs mt-1 text-muted-foreground">{formatPhone(entry.phone)}</div>
                   </td>
                   <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{entry.businessName}</td>
+                  <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                    {entry.website ? (
+                      <a href={entry.website.startsWith('http') ? entry.website : `https://${entry.website}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        {entry.website.replace(/^https?:\/\//, '')}
+                      <a href={entry.website} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        {entry.website}
+                      </a>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{entry.businessCategory}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`capitalize px-2.5 py-1 text-xs rounded-full font-medium ${
