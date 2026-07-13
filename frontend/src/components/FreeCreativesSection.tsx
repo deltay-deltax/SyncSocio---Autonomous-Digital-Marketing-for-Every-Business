@@ -8,7 +8,7 @@ export default function FreeCreativesSection() {
   const [intent, setIntent] = useState<Intent | null>(null);
 
   return (
-    <section className="relative py-24 bg-background overflow-hidden border-t border-border/40">
+    <section id="free-creatives" className="relative py-24 bg-background overflow-hidden border-t border-border/40">
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-primary/20 blur-3xl opacity-60" />
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full bg-accent/20 blur-3xl opacity-40" />
@@ -110,6 +110,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   email: formData.get("email"),
                   phone: formData.get("phone"),
                   businessName: formData.get("businessName"),
+                  website: formData.get("website"),
                   businessCategory: formData.get("businessCategory"),
                   intent: intent,
                 };
@@ -134,6 +135,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
               <Field label="Work email" name="email" type="email" placeholder="you@business.com" required />
               <Field label="Phone number" name="phone" type="tel" placeholder="+91 XXXXX XXXXX" required />
               <Field label="Business name" name="businessName" type="text" placeholder="Acme Corp" required />
+              <Field label="Website" name="website" type="text" placeholder="https://www.yourbrand.com" required />
               <SelectField 
                 label="Business category" 
                 name="businessCategory" 

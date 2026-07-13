@@ -9,6 +9,7 @@ import { Checkout } from '@/components/Checkout';
 import { useOutletContext, Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useRazorpay } from '../../hooks/useRazorpay';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -293,7 +294,8 @@ const DashboardSettings = () => {
         primaryColor: scraped.primaryColor || formData.primaryColor,
         secondaryColor: scraped.secondaryColor || formData.secondaryColor,
         logo: scraped.logo || formData.logo,
-        typography: scraped.typography || formData.typography
+        typography: scraped.typography || formData.typography,
+        brandKeywords: Array.isArray(scraped.brandKeywords) ? scraped.brandKeywords.join(', ') : (scraped.brandKeywords || (Array.isArray(scraped.keywords) ? scraped.keywords.join(', ') : (scraped.keywords || formData.brandKeywords)))
       };
 
       // 3.5. Delete existing products before saving new ones

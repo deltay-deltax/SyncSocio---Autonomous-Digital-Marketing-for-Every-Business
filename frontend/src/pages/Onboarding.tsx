@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { HexColorPicker } from "react-colorful";
-import { 
+import {
   Sparkles, ChevronLeft, ShieldCheck, DollarSign, Building2, ChevronRight,
   Camera, MapPin, FileText, ArrowRight, Check, Globe, Rocket, Users, Compass, Trophy,
   BarChart3, MessageSquare, Zap, Star, Target, Utensils, Dumbbell,
   Shirt, Cpu, GraduationCap, Sparkle, Layers, Repeat, AtSign, Heart, Box, Palette, Diamond,
-  Clock, TrendingUp, Loader2
+  Clock, TrendingUp, Loader2, LogOut
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 // ── Professional Color Picker — centered modal, portal-rendered, never clipped ──
 const getContrastColor = (hex: string) => {
@@ -65,8 +66,8 @@ const ColorInput = ({ label, value, onChange }: { label: string; value: string; 
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
           className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       </button>
 
@@ -92,7 +93,7 @@ const ColorInput = ({ label, value, onChange }: { label: string; value: string; 
                   className="w-6 h-6 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
                     fill="none" stroke={textColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
@@ -147,25 +148,25 @@ interface LogoProps {
 
 const InstagramLogo = ({ active }: LogoProps) => (
   <svg className={`w-6 h-6 transition-all duration-300 ${active ? 'fill-[#E1306C]' : 'fill-slate-300'}`} viewBox="0 0 24 24">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608C4.604 2.527 5.871 2.257 7.237 2.195 8.503 2.137 8.883 2.125 12.087 2.125zm0-2.163C8.741 0 8.333.014 7.053.072 2.695.272.272 2.69.072 7.048.014 8.329 0 8.737 0 11.996s.014 3.668.072 4.948c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.668-.014 4.948-.072c4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zm0 10.162a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608C4.604 2.527 5.871 2.257 7.237 2.195 8.503 2.137 8.883 2.125 12.087 2.125zm0-2.163C8.741 0 8.333.014 7.053.072 2.695.272.272 2.69.072 7.048.014 8.329 0 8.737 0 11.996s.014 3.668.072 4.948c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.668-.014 4.948-.072c4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zm0 10.162a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
   </svg>
 );
 
 const FacebookLogo = ({ active }: LogoProps) => (
   <svg className={`w-6 h-6 transition-all duration-300 ${active ? 'fill-[#1877F2]' : 'fill-slate-300'}`} viewBox="0 0 24 24">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 );
 
 const XLogo = ({ active }: LogoProps) => (
   <svg className={`w-5 h-5 transition-all duration-300 ${active ? 'fill-slate-900' : 'fill-slate-300'}`} viewBox="0 0 24 24">
-    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
+    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
   </svg>
 );
 
 const LinkedInLogo = ({ active }: LogoProps) => (
   <svg className={`w-6 h-6 transition-all duration-300 ${active ? 'fill-[#0A66C2]' : 'fill-slate-300'}`} viewBox="0 0 24 24">
-    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.064 2.064 0 1 1 0-4.128 2.064 2.064 0 0 1 0 4.128zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.064 2.064 0 1 1 0-4.128 2.064 2.064 0 0 1 0 4.128zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
   </svg>
 );
 
@@ -231,7 +232,7 @@ const Onboarding = () => {
       setStep(parseInt(stepParam, 10));
     }
   }, [location.search]);
-  const totalSteps = 11;
+  const totalSteps = 12;
   const [analyzingProgress, setAnalyzingProgress] = useState(0);
   const [extractedProducts, setExtractedProducts] = useState<any[]>([]);
   const [scanUrl, setScanUrl] = useState('');
@@ -248,11 +249,11 @@ const Onboarding = () => {
       setScanError('Please enter a website URL');
       return;
     }
-    
+
     setScanLoading(true);
     setScanError('');
     setScanSuccess(false);
-    
+
     const statuses = [
       'Initializing scan...',
       'Connecting to website host...',
@@ -262,7 +263,7 @@ const Onboarding = () => {
       'Rephrasing brand core and messaging...',
       'Cataloging product offerings...'
     ];
-    
+
     let statusIndex = 0;
     setScanStatus(statuses[0]);
     const statusInterval = setInterval(() => {
@@ -271,7 +272,7 @@ const Onboarding = () => {
         setScanStatus(statuses[statusIndex]);
       }
     }, 2000);
-    
+
     try {
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
       const response = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
@@ -281,21 +282,21 @@ const Onboarding = () => {
         },
         body: JSON.stringify({ url: scanUrl })
       });
-      
+
       clearInterval(statusInterval);
-      
+
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.detail || 'Failed to extract website details');
       }
-      
+
       const data = await response.json();
-      
+
       let comps = data.competitors || [];
       while (comps.length < 2) {
         comps.push('');
       }
-      
+
       setFormData(prev => ({
         ...prev,
         brandName: data.brandName || prev.brandName,
@@ -320,11 +321,11 @@ const Onboarding = () => {
         logo: data.logo || prev.logo,
         typography: data.typography || prev.typography
       }));
-      
+
       if (data.products && Array.isArray(data.products)) {
         setExtractedProducts(data.products);
       }
-      
+
       setScanSuccess(true);
       setScanStatus('Scan complete! Brand DNA synthesized.');
     } catch (err: any) {
@@ -371,7 +372,7 @@ const Onboarding = () => {
   const handleBack = () => setStep(prev => Math.max(prev - 1, 0));
 
   useEffect(() => {
-    if (step === 11) {
+    if (step === 12) {
       setAnalyzingProgress(0);
       const interval = setInterval(() => {
         setAnalyzingProgress(prev => {
@@ -399,7 +400,8 @@ const Onboarding = () => {
       8: { icon: <Layers size={80} strokeWidth={0.5} className="text-primary" />, title: "Visual Vibe", desc: "Establishing an aesthetic that turns heads." },
       9: { icon: <Repeat size={80} strokeWidth={0.5} className="text-primary" />, title: "Format Strategy", desc: "Choosing the best vehicles for your message." },
       10: { icon: <BarChart3 size={80} strokeWidth={0.5} className="text-primary" />, title: "Content Logistics", desc: "Setting the rhythm for your creative pipeline." },
-      11: { icon: <Zap size={80} strokeWidth={0.5} className="text-primary" />, title: "Agent DNA", desc: "Synthesizing your 12-month creative strategy." }
+      11: { icon: <Box size={80} strokeWidth={0.5} className="text-primary" />, title: "Products Review", desc: "Review cataloged products." },
+      12: { icon: <Zap size={80} strokeWidth={0.5} className="text-primary" />, title: "Agent DNA", desc: "Synthesizing your 12-month creative strategy." }
     };
     return contents[step] || contents[1];
   };
@@ -414,7 +416,7 @@ const Onboarding = () => {
       <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-primary/[0.04] blur-[80px] pointer-events-none" />
 
       <div className="bg-card rounded-[2rem] shadow-[0_25px_80px_-20px_hsl(221_83%_53%/0.1),0_0_0_1px_hsl(220_15%_90%/0.8)] w-full max-w-[1080px] flex flex-col md:flex-row overflow-hidden min-h-[660px] max-h-[92vh] relative z-10 transition-all duration-500">
-        
+
         {/* Left Panel */}
         <div className="w-full md:w-5/12 hidden md:flex flex-col justify-between overflow-hidden relative" style={{ background: 'linear-gradient(180deg, hsl(214 100% 97%) 0%, hsl(221 83% 53% / 0.06) 100%)' }}>
           {/* Dot grid pattern */}
@@ -432,23 +434,22 @@ const Onboarding = () => {
             </div>
             <h1 className="text-lg font-black tracking-tight text-foreground uppercase">SyncSocio</h1>
           </div>
-          
+
           <div className="flex flex-col items-center justify-center flex-grow text-center px-8 relative z-10 transition-all duration-700">
-            <div className={`mb-8 p-5 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg shadow-primary/[0.04] ${step === 11 ? 'animate-pulse' : ''}`}>
+            <div className={`mb-8 p-5 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-lg shadow-primary/[0.04] ${step === 12 ? 'animate-pulse' : ''}`}>
               {leftContent.icon}
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 tracking-tight">{leftContent.title}</h2>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-[220px] font-medium">
               {leftContent.desc}
             </p>
-            
+
             <div className="flex items-center space-x-1.5 mt-10">
               {[...Array(totalSteps - 1)].map((_, idx) => (
-                <div 
-                  key={idx} 
-                  className={`rounded-full transition-all duration-500 ${
-                    step === idx + 1 ? 'w-7 h-2 gradient-bg shadow-md shadow-primary/30' : idx + 1 < step ? 'w-2 h-2 bg-primary/30' : 'w-2 h-2 bg-border'
-                  }`}
+                <div
+                  key={idx}
+                  className={`rounded-full transition-all duration-500 ${step === idx + 1 ? 'w-7 h-2 gradient-bg shadow-md shadow-primary/30' : idx + 1 < step ? 'w-2 h-2 bg-primary/30' : 'w-2 h-2 bg-border'
+                    }`}
                 />
               ))}
             </div>
@@ -462,15 +463,15 @@ const Onboarding = () => {
 
         {/* Right Panel */}
         <div className="w-full md:w-7/12 flex flex-col relative bg-card border-l border-border/50">
-          
-          {step < 11 && (
+
+          {step < 12 && (
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-muted/60 overflow-hidden z-20 rounded-full">
               <div className="h-full gradient-bg transition-all duration-700 ease-out rounded-full" style={{ width: `${progressPercent}%` }} />
             </div>
           )}
 
           <div className="flex justify-between items-center px-8 md:px-12 pt-8 md:pt-10 pb-0 z-10">
-            {step > 0 && step < 11 ? (
+            {step > 0 && step < 12 ? (
               <button onClick={handleBack} className="flex items-center text-[11px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-[0.2em] group hover:gap-1">
                 <ChevronLeft size={14} className="mr-1 group-hover:-translate-x-0.5 transition-transform" /> BACK
               </button>
@@ -480,20 +481,34 @@ const Onboarding = () => {
                 <span>SyncSocio</span>
               </Link>
             )}
-            
+
             <div className="hidden md:block"></div>
-            
-            {step < 11 && (
-              <div className="flex items-center text-[11px] font-black text-primary px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
-                <Sparkles size={11} className="mr-1.5" /> {step === 0 ? "Auto Scan" : `Step ${step}`}
-                {step > 0 && <span className="text-muted-foreground/50 ml-1">/ {totalSteps - 1}</span>}
-              </div>
-            )}
+
+            <div className="flex items-center gap-3">
+              {step < 12 && (
+                <div className="flex items-center text-[11px] font-black text-primary px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
+                  <Sparkles size={11} className="mr-1.5" /> {step === 0 ? "Auto Scan" : `Step ${step}`}
+                  {step > 0 && <span className="text-muted-foreground/50 ml-1">/ {totalSteps - 1}</span>}
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('syncsocio_profile');
+                  localStorage.removeItem('syncsocio_setup_done');
+                  window.location.href = '/login';
+                }}
+                className="flex items-center text-[10px] font-black text-muted-foreground hover:text-destructive transition-all uppercase tracking-widest group px-3 py-1.5 rounded-full hover:bg-destructive/10"
+              >
+                <LogOut size={12} className="mr-1.5" /> SIGN OUT
+              </button>
+            </div>
           </div>
 
           <div className="flex-grow overflow-y-auto px-8 md:px-12 pb-16">
             <div className="max-w-[420px] mx-auto w-full flex flex-col mt-6">
-              
+
               {/* Step 0: Website Scan */}
               {step === 0 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
@@ -501,36 +516,36 @@ const Onboarding = () => {
                   <p className="text-muted-foreground text-base mb-8 font-medium italic leading-relaxed">
                     Instantly import your brand. Drop your link and our AI agent will extract your brand details, tone, and products.
                   </p>
-                  
+
                   {!scanLoading && !scanSuccess && (
                     <div className="space-y-6">
                       <div>
                         <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Website URL</label>
                         <div className="relative">
                           <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={16} />
-                          <input 
-                            type="text" 
-                            placeholder="e.g. www.yourbrand.com" 
+                          <input
+                            type="text"
+                            placeholder="e.g. www.yourbrand.com"
                             value={scanUrl}
                             onChange={(e) => setScanUrl(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleScanWebsite()}
-                            className="w-full bg-background text-foreground text-sm font-semibold rounded-xl pl-12 pr-5 py-4 outline-none focus:ring-2 focus:ring-primary/15 transition-all border border-border/80 focus:border-primary/40 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" 
+                            className="w-full bg-background text-foreground text-sm font-semibold rounded-xl pl-12 pr-5 py-4 outline-none focus:ring-2 focus:ring-primary/15 transition-all border border-border/80 focus:border-primary/40 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal"
                           />
                         </div>
                         {scanError && (
                           <p className="text-destructive text-xs font-semibold mt-2.5 px-1">{scanError}</p>
                         )}
                       </div>
-                      
+
                       <div className="space-y-3 pt-2">
-                        <button 
+                        <button
                           onClick={handleScanWebsite}
                           className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110"
                         >
                           Auto-Scan Website <Sparkles size={14} className="ml-1.5 animate-pulse" />
                         </button>
-                        
-                        <button 
+
+                        <button
                           onClick={() => setStep(1)}
                           className="w-full bg-transparent hover:bg-muted/30 text-muted-foreground hover:text-foreground border border-border rounded-xl py-4 text-sm font-bold transition-all flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98]"
                         >
@@ -594,22 +609,29 @@ const Onboarding = () => {
                               <div className="w-4 h-4 rounded-full border border-border shadow-sm" style={{ backgroundColor: formData.secondaryColor }} />
                             </div>
                           </div>
-                          <div className="flex justify-between items-baseline">
+                          <div className="flex justify-between items-baseline border-t border-border/30 pt-3 mt-3">
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Products Cataloged:</span>
                             <span className="text-xs font-bold text-foreground">{extractedProducts.length} items</span>
                           </div>
+                          {extractedProducts.length > 0 && (
+                            <div className="mt-2 text-[10px] text-muted-foreground bg-muted/20 p-2.5 rounded-xl border border-border/30">
+                              <span className="text-amber-600/90 font-medium">
+                                * You will review the cataloged products in the next step.
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div className="space-y-2.5">
-                        <button 
+                        <button
                           onClick={() => setStep(1)}
                           className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center uppercase tracking-widest active:scale-[0.98] hover:brightness-110"
                         >
                           Review Brand Identity <ChevronRight size={14} className="ml-1" />
                         </button>
-                        
-                        <button 
+
+                        <button
                           onClick={() => {
                             setScanSuccess(false);
                             setScanUrl('');
@@ -631,18 +653,61 @@ const Onboarding = () => {
                 </div>
               )}
 
+              {/* Step 11: Products Review */}
+              {step === 11 && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                  <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Products Review</h2>
+                  <p className="text-muted-foreground text-base mb-6 font-medium italic leading-relaxed">Here's what our agent found on your website.</p>
+
+                  {extractedProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 bg-muted/20 border border-border/50 rounded-2xl">
+                      <Box className="w-12 h-12 text-muted-foreground mb-3" />
+                      <p className="text-sm font-semibold text-foreground">No products found.</p>
+                      <p className="text-xs text-muted-foreground mt-1 text-center px-6">We couldn't extract any products from the provided URL. You can add them manually later.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[360px] overflow-y-auto pr-2 custom-scrollbar">
+                      {extractedProducts.map((p, i) => {
+                        const productImg = p.imageBase64 || p.image || p.imageUrl;
+                        return (
+                          <div key={i} className="flex flex-col bg-card border border-border rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                            {productImg ? (
+                              <img src={productImg} alt={p.name} className="w-full h-32 object-cover rounded-lg mb-3 border border-border/50 bg-muted" />
+                            ) : (
+                              <div className="w-full h-32 bg-muted/30 flex items-center justify-center rounded-lg mb-3 border border-border/50">
+                                <Box className="text-muted-foreground/40" size={32} />
+                              </div>
+                            )}
+                            <h3 className="text-sm font-bold text-foreground truncate" title={p.name}>{p.name}</h3>
+                            <div className="flex items-center justify-between mt-1.5">
+                              <span className="text-xs font-semibold text-primary">{p.offerPrice || p.price || ''}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="mt-8 shrink-0">
+                    <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
+                      CONFIRM PRODUCTS <ChevronRight size={14} className="ml-1.5 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Step 1: Identity */}
               {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Identity</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic leading-relaxed">Let's start with your brand's digital entity.</p>
-                  
+
                   <div className="space-y-6">
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Brand Name</label>
                         <input type="text" placeholder="e.g. Nexus Digital" value={formData.brandName}
-                          onChange={(e) => setFormData({...formData, brandName: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
                           className="w-full bg-background text-foreground text-sm font-semibold rounded-xl px-5 py-3.5 outline-none focus:ring-2 focus:ring-primary/15 transition-all border border-border/80 focus:border-primary/40 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" />
                       </div>
                       <div>
@@ -650,12 +715,12 @@ const Onboarding = () => {
                         <div className="relative">
                           <AtSign className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={14} />
                           <input type="text" placeholder="@yourbrand" value={formData.socialHandle}
-                            onChange={(e) => setFormData({...formData, socialHandle: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, socialHandle: e.target.value })}
                             className="w-full bg-background text-foreground text-sm font-semibold rounded-xl pl-11 pr-5 py-3.5 outline-none focus:ring-2 focus:ring-primary/15 transition-all border border-border/80 focus:border-primary/40 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" />
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Business Category</label>
                       <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
@@ -685,21 +750,20 @@ const Onboarding = () => {
                           { id: 'SaaS & Digital', icon: Cpu },
                           { id: 'Other', icon: Sparkles }
                         ].map(cat => (
-                          <div key={cat.id} onClick={() => setFormData({...formData, businessCategory: cat.id, otherCategory: cat.id !== 'Other' ? '' : formData.otherCategory})}
-                            className={`px-3 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center group hover:shadow-sm ${
-                              formData.businessCategory === cat.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
-                            }`}>
+                          <div key={cat.id} onClick={() => setFormData({ ...formData, businessCategory: cat.id, otherCategory: cat.id !== 'Other' ? '' : formData.otherCategory })}
+                            className={`px-3 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center group hover:shadow-sm ${formData.businessCategory === cat.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
+                              }`}>
                             <cat.icon className={`mr-2 shrink-0 transition-colors ${formData.businessCategory === cat.id ? 'text-primary' : 'text-muted-foreground/50 group-hover:text-primary/40'}`} size={14} />
                             <span className={`text-[10px] font-bold uppercase tracking-tight truncate ${formData.businessCategory === cat.id ? 'text-foreground' : 'text-muted-foreground font-medium'}`}>{cat.id}</span>
                           </div>
                         ))}
                       </div>
-                      
+
                       {formData.businessCategory === 'Other' && (
                         <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
                           <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Custom Category</label>
                           <input type="text" placeholder="e.g. Pet Care, Logistics..." value={formData.otherCategory}
-                            onChange={(e) => setFormData({...formData, otherCategory: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, otherCategory: e.target.value })}
                             className="w-full bg-background text-foreground text-sm font-semibold rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/15 transition-all border border-border/80 focus:border-primary/40 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" />
                         </div>
                       )}
@@ -719,7 +783,7 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">The Vision</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">What is our primary directive?</p>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Social Media Goal</label>
@@ -730,10 +794,9 @@ const Onboarding = () => {
                           { id: 'Build brand awareness', icon: Sparkles },
                           { id: 'Get leads / enquiries', icon: MessageSquare }
                         ].map(goal => (
-                          <div key={goal.id} onClick={() => setFormData({...formData, mainGoal: goal.id})}
-                            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${
-                              formData.mainGoal === goal.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
-                            }`}>
+                          <div key={goal.id} onClick={() => setFormData({ ...formData, mainGoal: goal.id })}
+                            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${formData.mainGoal === goal.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
+                              }`}>
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center mr-3 shrink-0 ${formData.mainGoal === goal.id ? 'bg-primary/20' : 'bg-card shadow-sm'}`}>
                               <goal.icon size={14} className={formData.mainGoal === goal.id ? 'text-primary' : 'text-muted-foreground/50'} />
                             </div>
@@ -749,7 +812,7 @@ const Onboarding = () => {
                       <div className="relative">
                         <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={14} />
                         <input type="text" placeholder="e.g. www.yourwebsite.com" value={formData.website}
-                          onChange={(e) => setFormData({...formData, website: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                           className="w-full bg-background text-foreground text-xs font-semibold rounded-xl pl-12 pr-5 py-4 outline-none border border-border/80 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" />
                       </div>
                     </div>
@@ -768,7 +831,7 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Market</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">Geographic target points.</p>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Target Country</label>
@@ -781,11 +844,10 @@ const Onboarding = () => {
                               ...formData,
                               location: { ...formData.location, country }
                             })}
-                            className={`py-3.5 rounded-xl text-xs font-bold uppercase transition-all border ${
-                              formData.location.country === country
+                            className={`py-3.5 rounded-xl text-xs font-bold uppercase transition-all border ${formData.location.country === country
                                 ? 'gradient-bg text-white border-primary shadow-md'
                                 : 'bg-card text-muted-foreground border-border hover:border-primary/20'
-                            }`}
+                              }`}
                           >
                             {country}
                           </button>
@@ -797,7 +859,7 @@ const Onboarding = () => {
                       <div className="relative">
                         <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" size={16} />
                         <input type="text" placeholder="e.g. London" value={formData.location.city}
-                          onChange={(e) => setFormData({...formData, location: {...formData.location, city: e.target.value}})}
+                          onChange={(e) => setFormData({ ...formData, location: { ...formData.location, city: e.target.value } })}
                           className="w-full bg-background text-foreground text-xs font-semibold rounded-xl pl-12 pr-5 py-4 outline-none border border-border/80 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 shadow-sm placeholder:text-muted-foreground/40 placeholder:font-normal" />
                       </div>
                     </div>
@@ -816,12 +878,12 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">The Edge</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">Your "Unfair Advantage" in the market.</p>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Unique Selling Point</label>
                       <textarea rows={3} placeholder="e.g. We use sustainable materials that last for a decade." value={formData.usp}
-                        onChange={(e) => setFormData({...formData, usp: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, usp: e.target.value })}
                         className="w-full bg-background text-foreground text-xs font-semibold rounded-xl px-5 py-4 outline-none border border-border/80 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 shadow-sm resize-none leading-relaxed placeholder:text-muted-foreground/40 placeholder:font-normal" />
                     </div>
                     <div>
@@ -829,23 +891,23 @@ const Onboarding = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="relative">
                           <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={14} />
-                          <input type="text" placeholder="@rival_one" 
+                          <input type="text" placeholder="@rival_one"
                             value={formData.competitors[0] || ''}
                             onChange={(e) => {
                               const newCompetitors = [...formData.competitors];
                               newCompetitors[0] = e.target.value;
-                              setFormData({...formData, competitors: newCompetitors});
+                              setFormData({ ...formData, competitors: newCompetitors });
                             }}
                             className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl pl-10 pr-4 py-3 outline-none border border-border" />
                         </div>
                         <div className="relative">
                           <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" size={14} />
-                          <input type="text" placeholder="@rival_two" 
+                          <input type="text" placeholder="@rival_two"
                             value={formData.competitors[1] || ''}
                             onChange={(e) => {
                               const newCompetitors = [...formData.competitors];
                               newCompetitors[1] = e.target.value;
-                              setFormData({...formData, competitors: newCompetitors});
+                              setFormData({ ...formData, competitors: newCompetitors });
                             }}
                             className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl pl-10 pr-4 py-3 outline-none border border-border" />
                         </div>
@@ -866,7 +928,7 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-1 tracking-tight">Demographics</h2>
                   <p className="text-muted-foreground text-sm mb-6 font-medium italic">Target persona mapping.</p>
-                  
+
                   <div className="space-y-5">
                     <div>
                       <label className="block text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 px-1">Audience Type</label>
@@ -875,14 +937,13 @@ const Onboarding = () => {
                           const isSelected = formData.targetAudiences.includes(group);
                           return (
                             <div key={group} onClick={() => {
-                              const next = isSelected 
+                              const next = isSelected
                                 ? formData.targetAudiences.filter(a => a !== group)
                                 : [...formData.targetAudiences, group];
-                              setFormData({...formData, targetAudiences: next});
+                              setFormData({ ...formData, targetAudiences: next });
                             }}
-                              className={`px-4 py-3 rounded-xl border transition-all cursor-pointer flex items-center ${
-                                isSelected ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
-                              }`}>
+                              className={`px-4 py-3 rounded-xl border transition-all cursor-pointer flex items-center ${isSelected ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
+                                }`}>
                               <div className={`w-3.5 h-3.5 rounded-sm border-2 mr-3 flex items-center justify-center transition-all ${isSelected ? 'border-primary gradient-bg' : 'border-border'}`}>
                                 {isSelected && <Check size={10} className="text-white" strokeWidth={5} />}
                               </div>
@@ -897,7 +958,7 @@ const Onboarding = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Age Span</label>
-                        <select value={formData.ageRange} onChange={(e) => setFormData({...formData, ageRange: e.target.value})}
+                        <select value={formData.ageRange} onChange={(e) => setFormData({ ...formData, ageRange: e.target.value })}
                           className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl px-4 py-3.5 outline-none border border-border appearance-none cursor-pointer">
                           <option value="">Select</option>
                           <option value="18-24">18 – 24</option>
@@ -910,10 +971,9 @@ const Onboarding = () => {
                         <label className="block text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Gender Focus</label>
                         <div className="flex bg-muted/50 rounded-xl p-1 border border-border">
                           {['All', 'Male', 'Female'].map(g => (
-                            <button key={g} onClick={() => setFormData({...formData, genderFocus: g})}
-                              className={`flex-grow py-2 rounded-lg text-xs font-black transition-all ${
-                                formData.genderFocus === g ? 'bg-card text-primary shadow-sm border border-border' : 'text-muted-foreground/50'
-                              }`}>
+                            <button key={g} onClick={() => setFormData({ ...formData, genderFocus: g })}
+                              className={`flex-grow py-2 rounded-lg text-xs font-black transition-all ${formData.genderFocus === g ? 'bg-card text-primary shadow-sm border border-border' : 'text-muted-foreground/50'
+                                }`}>
                               {g}
                             </button>
                           ))}
@@ -935,12 +995,12 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Psychology</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">What is the problem we are solving?</p>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Customer Pain Point</label>
                       <textarea rows={6} placeholder="Describe the struggle your audience faces..." value={formData.painPoint}
-                        onChange={(e) => setFormData({...formData, painPoint: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, painPoint: e.target.value })}
                         className="w-full bg-background text-foreground text-xs font-semibold rounded-2xl px-6 py-5 outline-none border border-border/80 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 shadow-sm resize-none leading-relaxed placeholder:text-muted-foreground/40 placeholder:font-normal" />
                     </div>
                     <div className="flex items-center space-x-3 px-2">
@@ -962,7 +1022,7 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Personality</h2>
                   <p className="text-muted-foreground text-base mb-6 font-medium italic">The brand's vocal signature.</p>
-                  
+
                   <div className="space-y-2.5">
                     {[
                       { id: 'Warm & Friendly', sub: 'Kind and supportive.', icon: Heart },
@@ -971,10 +1031,9 @@ const Onboarding = () => {
                       { id: 'Inspirational', sub: 'Uplifting and powerful.', icon: Rocket },
                       { id: 'Luxury & Premium', sub: 'Sophisticated and exclusive.', icon: Star }
                     ].map(tone => (
-                      <div key={tone.id} onClick={() => setFormData({...formData, brandTone: tone.id})}
-                        className={`flex items-center p-3.5 border rounded-xl cursor-pointer transition-all ${
-                          formData.brandTone === tone.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
-                        }`}>
+                      <div key={tone.id} onClick={() => setFormData({ ...formData, brandTone: tone.id })}
+                        className={`flex items-center p-3.5 border rounded-xl cursor-pointer transition-all ${formData.brandTone === tone.id ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
+                          }`}>
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center mr-4 transition-all ${formData.brandTone === tone.id ? 'gradient-bg text-white shadow-md' : 'bg-card shadow-sm text-muted-foreground/50'}`}>
                           <tone.icon size={16} />
                         </div>
@@ -1000,7 +1059,7 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Visual Vibe</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">Establishing the aesthetic DNA.</p>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Select A Vibe</label>
@@ -1011,10 +1070,9 @@ const Onboarding = () => {
                           { id: 'Luxury', icon: Diamond },
                           { id: 'Edgy', icon: Zap }
                         ].map(vibe => (
-                          <div key={vibe.id} onClick={() => setFormData({...formData, visualVibe: vibe.id})}
-                            className={`py-6 rounded-xl border transition-all cursor-pointer text-center flex flex-col items-center justify-center group ${
-                              formData.visualVibe === vibe.id ? 'gradient-bg text-white border-primary shadow-lg' : 'bg-muted/40 text-muted-foreground border-border hover:border-border'
-                            }`}>
+                          <div key={vibe.id} onClick={() => setFormData({ ...formData, visualVibe: vibe.id })}
+                            className={`py-6 rounded-xl border transition-all cursor-pointer text-center flex flex-col items-center justify-center group ${formData.visualVibe === vibe.id ? 'gradient-bg text-white border-primary shadow-lg' : 'bg-muted/40 text-muted-foreground border-border hover:border-border'
+                              }`}>
                             <vibe.icon size={20} className={`mb-2 transition-colors ${formData.visualVibe === vibe.id ? 'text-white' : 'text-muted-foreground/50 group-hover:text-primary/40'}`} />
                             <span className="text-xs font-black uppercase tracking-widest">{vibe.id}</span>
                           </div>
@@ -1025,7 +1083,7 @@ const Onboarding = () => {
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Brand Keywords</label>
                       <input type="text" placeholder="e.g. Sustainable, Authentic, Bold..." value={formData.brandKeywords}
-                        onChange={(e) => setFormData({...formData, brandKeywords: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, brandKeywords: e.target.value })}
                         className="w-full bg-muted/30 text-foreground text-xs font-bold rounded-xl px-5 py-4 outline-none border border-border transition-all" />
                     </div>
 
@@ -1048,7 +1106,7 @@ const Onboarding = () => {
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Brand Logo (Optional)</label>
                       <input type="file" ref={logoInputRef} className="hidden" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
-                      <div 
+                      <div
                         onClick={() => logoInputRef.current?.click()}
                         className="border-2 border-dashed border-border/80 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer group"
                       >
@@ -1083,7 +1141,7 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Format Strategy</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">Content vehicles of choice (Multi-select).</p>
-                  
+
                   <div className="space-y-3">
                     {[
                       { id: 'Reels', icon: Camera },
@@ -1093,18 +1151,16 @@ const Onboarding = () => {
                     ].map(type => (
                       <div key={type.id} onClick={() => {
                         const next = formData.contentTypes.includes(type.id) ? formData.contentTypes.filter(t => t !== type.id) : [...formData.contentTypes, type.id];
-                        setFormData({...formData, contentTypes: next});
+                        setFormData({ ...formData, contentTypes: next });
                       }}
-                        className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${
-                          formData.contentTypes.includes(type.id) ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
-                        }`}>
+                        className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.contentTypes.includes(type.id) ? 'border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30 shadow-sm shadow-primary/[0.05]' : 'border-border/70 bg-card hover:border-primary/20 hover:bg-primary/[0.02]'
+                          }`}>
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-4 ${formData.contentTypes.includes(type.id) ? 'gradient-bg text-white' : 'bg-card shadow-sm text-muted-foreground/50'}`}>
                           <type.icon size={16} />
                         </div>
                         <span className={`text-xs font-black uppercase tracking-tight ${formData.contentTypes.includes(type.id) ? 'text-foreground' : 'text-muted-foreground'}`}>{type.id}</span>
-                        <div className={`ml-auto w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${
-                          formData.contentTypes.includes(type.id) ? 'gradient-bg border-primary' : 'border-border'
-                        }`}>
+                        <div className={`ml-auto w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${formData.contentTypes.includes(type.id) ? 'gradient-bg border-primary' : 'border-border'
+                          }`}>
                           {formData.contentTypes.includes(type.id) && <Check size={12} className="text-white" strokeWidth={5} />}
                         </div>
                       </div>
@@ -1124,16 +1180,15 @@ const Onboarding = () => {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Growth Logistics</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">Rhythm and analytics baseline.</p>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Posting Frequency</label>
                       <div className="grid grid-cols-3 gap-2">
                         {['Daily', '3-4x / wk', 'Once / wk'].map(freq => (
-                          <button key={freq} onClick={() => setFormData({...formData, postingFrequency: freq})}
-                            className={`py-3.5 rounded-xl text-[11px] font-black uppercase transition-all border ${
-                              formData.postingFrequency === freq ? 'gradient-bg text-white border-primary shadow-md' : 'bg-card text-muted-foreground border-border'
-                            }`}>
+                          <button key={freq} onClick={() => setFormData({ ...formData, postingFrequency: freq })}
+                            className={`py-3.5 rounded-xl text-[11px] font-black uppercase transition-all border ${formData.postingFrequency === freq ? 'gradient-bg text-white border-primary shadow-md' : 'bg-card text-muted-foreground border-border'
+                              }`}>
                             {freq}
                           </button>
                         ))}
@@ -1146,13 +1201,13 @@ const Onboarding = () => {
                         <div>
                           <span className="text-[11px] font-bold text-muted-foreground uppercase block mb-1">Followers</span>
                           <input type="number" placeholder="0" value={formData.analytics.followers}
-                            onChange={(e) => setFormData({...formData, analytics: {...formData.analytics, followers: e.target.value}})}
+                            onChange={(e) => setFormData({ ...formData, analytics: { ...formData.analytics, followers: e.target.value } })}
                             className="w-full bg-card text-foreground text-lg font-black outline-none px-4 py-2 rounded-xl shadow-sm border border-border" />
                         </div>
                         <div>
                           <span className="text-[11px] font-bold text-muted-foreground uppercase block mb-1">Reach</span>
                           <input type="number" placeholder="0" value={formData.analytics.reach}
-                            onChange={(e) => setFormData({...formData, analytics: {...formData.analytics, reach: e.target.value}})}
+                            onChange={(e) => setFormData({ ...formData, analytics: { ...formData.analytics, reach: e.target.value } })}
                             className="w-full bg-card text-foreground text-lg font-black outline-none px-4 py-2 rounded-xl shadow-sm border border-border" />
                         </div>
                       </div>
@@ -1168,7 +1223,7 @@ const Onboarding = () => {
               )}
 
               {/* Step 11: Synthesis */}
-              {step === 11 && (
+              {step === 12 && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col h-full py-4">
                   {analyzingProgress < 5 ? (
                     <div className="flex flex-col items-center justify-center flex-grow py-8">
@@ -1202,8 +1257,8 @@ const Onboarding = () => {
                     <div className="flex flex-col h-full animate-in zoom-in-95 duration-500 py-2">
                       <div className="text-center mb-6">
                         <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 mx-auto text-primary shadow-lg border border-primary/20 relative overflow-hidden group">
-                           <div className="absolute inset-0 bg-primary/20 scale-0 group-hover:scale-100 transition-transform duration-500 rounded-full blur-xl" />
-                           <Check size={32} strokeWidth={3} className="relative z-10" />
+                          <div className="absolute inset-0 bg-primary/20 scale-0 group-hover:scale-100 transition-transform duration-500 rounded-full blur-xl" />
+                          <Check size={32} strokeWidth={3} className="relative z-10" />
                         </div>
                         <h2 className="text-3xl font-bold text-foreground tracking-tight">System Optimized</h2>
                         <p className="text-muted-foreground text-[10px] font-black mt-1 uppercase tracking-[0.3em] opacity-60">Brand DNA Synthesis v1.0</p>
@@ -1215,7 +1270,7 @@ const Onboarding = () => {
                           <div className="absolute top-0 right-0 p-8 opacity-[0.03] rotate-12 pointer-events-none">
                             <Zap size={140} />
                           </div>
-                          
+
                           <div className="flex items-center gap-3 mb-6">
                             <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[9px] font-black text-primary uppercase tracking-widest">
                               Identity Verified
@@ -1223,7 +1278,7 @@ const Onboarding = () => {
                             <div className="h-px flex-1 bg-border/50" />
                           </div>
 
-                           <h3 className="text-2xl font-bold text-foreground leading-tight mb-6">
+                          <h3 className="text-2xl font-bold text-foreground leading-tight mb-6">
                             {formData.brandName || 'Untitled Brand'} is ready for <span className="text-primary italic">creative velocity</span>.
                           </h3>
 
@@ -1313,7 +1368,7 @@ const Onboarding = () => {
                                   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
                                   const res = await fetch(`${BASE_URL}/profile`, {
                                     method: 'POST',
-                                    headers: { 
+                                    headers: {
                                       'Content-Type': 'application/json',
                                       'Authorization': `Bearer ${token}`
                                     },
@@ -1392,11 +1447,11 @@ const Onboarding = () => {
 
       {/* Legal Modals */}
       {activeModal && createPortal(
-        <div 
+        <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setActiveModal(null)}
         >
-          <div 
+          <div
             className="bg-card w-full max-w-lg mx-4 rounded-2xl shadow-2xl border border-border/80 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300"
             onClick={e => e.stopPropagation()}
           >
@@ -1404,7 +1459,7 @@ const Onboarding = () => {
               <h3 className="text-lg font-bold text-foreground">
                 {activeModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
               </h3>
-              <button 
+              <button
                 onClick={() => setActiveModal(null)}
                 className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
               >
@@ -1670,7 +1725,7 @@ const Onboarding = () => {
               )}
             </div>
             <div className="p-4 border-t border-border/50 bg-muted/10 flex justify-end">
-              <button 
+              <button
                 onClick={() => setActiveModal(null)}
                 className="px-6 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors"
               >

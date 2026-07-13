@@ -609,6 +609,11 @@ const DashboardStrategy = () => {
         if (task.mode === 'email') setCampaignSubject(first.subject || '');
       }
 
+      if (task.mode === 'edit_media' && posts.length > 0) {
+        setPreviewPost(posts[0]);
+        setPreviewIndex(0);
+      }
+
       setCurrentTaskId(null);
     } else if (task.status === 'error') {
       setGenError(task.error || 'Something went wrong');

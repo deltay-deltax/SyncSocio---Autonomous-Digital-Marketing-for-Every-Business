@@ -137,5 +137,10 @@ export async function performStrategicAudit(userId, brandProfile) {
   } catch (error) {
     console.error(`[AUDIT] ❌ Error in background audit for ${userId}:`, error.message);
     await logActivity(userId, 'Neural Pulse', `Audit failed: ${error.message}`, 'error');
+    try {
+      await BrandProfile.updateOne({ user: userId }, { $set: { neuralState: 'Idle' } });
+    } catch (dbErr) {
+      console.error(`[AUDIT] Failed to reset neuralState to Idle:`, dbErr.message);
+    }
   }
 }

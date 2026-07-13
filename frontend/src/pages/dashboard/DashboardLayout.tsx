@@ -13,6 +13,7 @@ import { CreditsModal } from '@/components/CreditsModal';
 import { BackgroundGenerationsPopover } from '@/components/BackgroundGenerationsPopover';
 import { useToast } from '@/hooks/use-toast';
 import { saveTasksToIDB, loadTasksFromIDB } from '@/lib/idb';
+import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const navGroups = [
   {
@@ -33,6 +34,7 @@ const navGroups = [
     title: 'Studio',
     items: [
       { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
+      { label: 'Sprint', icon: Zap, path: '/dashboard/autopilot' },
       { label: 'Asset Library', icon: Library, path: '/dashboard/assets' },
       { label: 'AI Editor', icon: Paintbrush, path: '/dashboard/editor' },
       { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
@@ -78,7 +80,6 @@ const DashboardLayoutContent = () => {
   }, [location.pathname, setUnread]);
   const [loading, setLoading] = useState(() => !localStorage.getItem('syncsocio_profile'));
   const [showRelinkSuccess, setShowRelinkSuccess] = useState(false);
-  const [nextScheduled, setNextScheduled] = useState<any>(null);
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } = useNotifications();
   const [credits, setCredits] = useState<number | null>(() => {
     const cached = localStorage.getItem('syncsocio_credits');
@@ -97,7 +98,7 @@ const DashboardLayoutContent = () => {
         // If a task was running when the page was refreshed, the connection is lost.
         return parsed.map((t: BgTask) => 
           t.status === 'generating' 
-            ? { ...t, status: 'error', error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" } 
+            ? { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" } 
             : t
         );
       }
@@ -118,7 +119,7 @@ const DashboardLayoutContent = () => {
           const processed = idbTasks.map((t: BgTask) => {
             if (t.status === 'generating') {
               hasInterrupted = true;
-               return { ...t, status: 'error', error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
+               return { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
             }
             return t;
           });
@@ -180,6 +181,10 @@ const DashboardLayoutContent = () => {
       if (task.mode === 'schedule') {
         if (location.pathname !== '/dashboard/history') {
           navigate('/dashboard/history');
+        }
+      } else if (task.mode === 'autopilot') {
+        if (location.pathname !== '/dashboard/autopilot') {
+          navigate('/dashboard/autopilot');
         }
       } else {
         if (location.pathname !== '/dashboard/strategy') {
@@ -458,7 +463,7 @@ const DashboardLayoutContent = () => {
           }
 
           setBackgroundTasks(prev => prev.map(t =>
-            t.id === taskId ? { ...t, status: 'success', posts: [previewPost, updatedPost] } : t
+            t.id === taskId ? { ...t, status: 'success', posts: [updatedPost, previewPost] } : t
           ));
         } else {
           throw new Error(data.message || 'Edit failed');
@@ -468,6 +473,141 @@ const DashboardLayoutContent = () => {
         setBackgroundTasks(prev => prev.map(t =>
           t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t
         ));
+      }
+    })();
+
+    return taskId;
+  };
+
+  const startBackgroundAutopilot = async (
+    language: string,
+    weeks: number,
+    selectedProductIds: string[],
+    upcomingFestivals: any[]
+  ) => {
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const title = `Sprint campaign (${weeks} week${weeks > 1 ? 's' : ''})`;
+    const creditCost = weeks * 7 * 5;
+
+    const newTask: BgTask = {
+      id: taskId,
+      title,
+      status: 'generating',
+      mode: 'autopilot',
+      posts: [],
+      error: null,
+      creditCost,
+      creditReason: 'Sprint campaign generation',
+      createdAt: Date.now(),
+    };
+
+    setBackgroundTasks(prev => [newTask, ...prev]);
+
+    (async () => {
+      let creditsDeducted = false;
+      try {
+        const token = localStorage.getItem('token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        
+        // 1. Deduct Credits Upfront
+        if (creditCost > 0) {
+          const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ amount: creditCost, reason: 'Sprint campaign generation' }),
+          });
+          
+          if (!deductRes.ok) {
+            const errData = await deductRes.json().catch(() => ({}));
+            throw new Error(errData.message || 'Insufficient credits for Sprint campaign');
+          }
+          
+          const credData = await deductRes.json();
+          localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'syncsocio_credits',
+            newValue: String(credData.credits ?? 0),
+          }));
+          creditsDeducted = true;
+        }
+
+        // 2. Start AI Generation
+        const response = await fetch(`${apiBase}/ai/autopilot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            language,
+            weeks,
+            selectedProductIds,
+            upcomingFestivals
+          }),
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to generate autopilot campaign');
+        }
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          const posts = data.posts || [];
+          
+          // Credits already deducted upfront.
+
+          setBackgroundTasks(prev => prev.map(t =>
+            t.id === taskId ? { ...t, status: 'success', posts } : t
+          ));
+
+          toast({
+            title: 'Sprint campaign generated! 🚀',
+            description: `Successfully planned and generated ${posts.length} campaign posts.`,
+          });
+        } else {
+          throw new Error(data.message || 'Generation failed');
+        }
+      } catch (err: any) {
+        console.error('[BgAutopilot] failed:', err);
+        
+        if (creditsDeducted && creditCost > 0) {
+          try {
+            const token = localStorage.getItem('token');
+            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+            const refundRes = await fetch(`${apiBase}/credits/topup`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({ amount: creditCost }),
+            });
+            if (refundRes.ok) {
+              const credData = await refundRes.json();
+              localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
+              window.dispatchEvent(new StorageEvent('storage', {
+                key: 'syncsocio_credits',
+                newValue: String(credData.credits ?? 0),
+              }));
+              console.log(`[BgAutopilot] Refunded ${creditCost} credits.`);
+            }
+          } catch (refundErr) {
+            console.error('[BgAutopilot] Failed to refund credits:', refundErr);
+          }
+        }
+
+        setBackgroundTasks(prev => prev.map(t =>
+          t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t
+        ));
+        toast({
+          variant: 'destructive',
+          title: 'Sprint generation failed ❌',
+          description: getFriendlyErrorMessage(err),
+        });
       }
     })();
 
@@ -660,47 +800,6 @@ const DashboardLayoutContent = () => {
   }, []);
 
   useEffect(() => {
-    const fetchNextScheduled = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        // Fetch full history and filter locally (more reliable)
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/posts/history`;
-
-        const res = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const now = new Date();
-
-          // Filter for upcoming posts
-          const scheduled = data
-            .filter((i: any) => {
-              if (i.status === 'failed') return false;
-              if (!i.scheduledAt) return false;
-              return new Date(i.scheduledAt) > now;
-            })
-            .sort((a: any, b: any) => {
-              const dateA = new Date(a.scheduledAt).getTime();
-              const dateB = new Date(b.scheduledAt).getTime();
-              return dateA - dateB; // Closest first
-            });
-
-          if (scheduled.length > 0) {
-            setNextScheduled(scheduled[0]);
-          } else {
-            setNextScheduled(null);
-          }
-        }
-      } catch (err) {
-        console.error('[SIDEBAR] Fetch Error:', err);
-      }
-    };
-    fetchNextScheduled();
-  }, [location.pathname]); // Refresh when navigating
-
-  useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('relinked') === 'true') {
       setShowRelinkSuccess(true);
@@ -855,34 +954,6 @@ const DashboardLayoutContent = () => {
           </div>
         ))}
       </nav>
-
-      {/* Agent Status Card in Sidebar */}
-      <div className="px-3 mt-auto mb-2">
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 rounded-[1.5rem] border border-primary/10">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="relative flex items-center justify-center">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="absolute w-2 h-2 rounded-full bg-emerald-500 animate-ping opacity-30" />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-foreground">Agent Active</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground leading-tight">
-            {nextScheduled ? (
-              <>Next post scheduled for <span className="text-foreground font-bold">{
-                (() => {
-                  const d = new Date(nextScheduled.scheduledAt);
-                  const now = new Date();
-                  const isToday = d.toDateString() === now.toDateString();
-                  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                  return `${isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })} ${time}`;
-                })()
-              }</span></>
-            ) : (
-              "Agent is monitoring for new content to optimize."
-            )}
-          </p>
-        </div>
-      </div>
     </div>
   );
 
@@ -1022,7 +1093,7 @@ const DashboardLayoutContent = () => {
         </header>
 
         {/* PAGE CONTENT */}
-        <section className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
+        <section className="flex-1 overflow-y-auto px-4 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
           <div className="max-w-6xl mx-auto">
             <AnimatePresence>
               {showRelinkSuccess && (
@@ -1060,6 +1131,7 @@ const DashboardLayoutContent = () => {
               startBackgroundAllInOne,
               startBackgroundSchedule,
               startBackgroundEdit,
+              startBackgroundAutopilot,
               viewCompletedTask,
               clearViewingTask,
               removeTask

@@ -1,22 +1,31 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-dotenv.config({ path: '/Users/himanshunikam/Desktop/Velocity_AaaS_MajorProject/backend/.env' });
+import path from 'path';
+
+dotenv.config({ path: path.resolve('d:\\Major_Project\\backend\\.env') });
 
 const run = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    const ApiLog = (await import('../models/ApiLog.js')).default;
-    const logs = await ApiLog.find().sort({ createdAt: -1 }).limit(3);
-    for (const log of logs) {
-      console.log('ID:', log._id);
-      console.log('Raw createdAt:', log.createdAt);
-      console.log('ISO:', log.createdAt.toISOString());
-      console.log('en-IN:', new Date(log.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute:'2-digit' }));
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        const PostAnalysis = (await import('../models/PostAnalysis.js')).default;
+        
+        const posts = await PostAnalysis.find({
+            isScheduled: true,
+            status: 'scheduled'
+        });
+        
+        console.log(`Found ${posts.length} scheduled posts.`);
+        posts.forEach(post => {
+            console.log(`Post ID: ${post._id}`);
+            console.log(`Scheduled At: ${post.scheduledAt}`);
+            console.log(`Platforms: ${JSON.stringify(post.platforms)}`);
+            console.log('---');
+        });
+        
+        process.exit(0);
+    } catch (e) {
+        console.error(e);
+        process.exit(1);
     }
-    process.exit(0);
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
-  }
-};
+}
 run();

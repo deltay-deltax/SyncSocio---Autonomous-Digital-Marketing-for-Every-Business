@@ -85,9 +85,15 @@ function imgSrc(b64: string) {
 
 const cleanPriceValue = (val: any): string => {
   if (val === undefined || val === null) return '';
-  const str = String(val);
-  // Remove currency symbols (₹, $, Rs., etc.), commas, and extra whitespace, keeping numbers and decimal point
-  return str.replace(/[₹$A-Za-z\s,]/g, '').trim();
+  const str = String(val).trim();
+  // Step 1: Strip all currency symbols, letters, and spaces — keep digits, commas, and period
+  // This handles "Rs. 249", "₹1,199", "$29.99", "MRP 999", etc.
+  const stripped = str.replace(/[^\d,.]/g, '');
+  // Step 2: Remove commas (Indian thousand separators like "1,199" → "1199")
+  const withoutCommas = stripped.replace(/,/g, '');
+  // Step 3: Extract the first valid number (handles leading periods from "Rs." leftovers)
+  const match = withoutCommas.match(/\d+(?:\.\d+)?/);
+  return match ? match[0] : '';
 };
 
 const formatPriceDisplay = (val: any, isSaas: boolean): string => {
@@ -171,13 +177,27 @@ const ProductForm: React.FC<{
       if (!res.ok) throw new Error('Scraping failed');
       const data = await res.json();
       
+      // Clean scraped prices
+      let scrapedPrice = isSaas ? (data.price || '') : cleanPriceValue(data.price || '');
+      let scrapedOffer = isSaas ? (data.offerPrice || '') : cleanPriceValue(data.offerPrice || '');
+
+      // Fix swapped prices: offerPrice should always be LESS than price (it's the discounted price).
+      // If the AI returned them in wrong order, swap them back.
+      if (!isSaas && scrapedPrice && scrapedOffer) {
+        const priceNum = parseFloat(scrapedPrice);
+        const offerNum = parseFloat(scrapedOffer);
+        if (!isNaN(priceNum) && !isNaN(offerNum) && offerNum > priceNum) {
+          [scrapedPrice, scrapedOffer] = [scrapedOffer, scrapedPrice];
+        }
+      }
+
       setForm(f => ({
         ...f,
         name: data.name || f.name,
         serviceProvider: data.serviceProvider || f.serviceProvider || '',
         description: data.description || f.description,
-        price: isSaas ? (data.price || f.price) : cleanPriceValue(data.price || f.price),
-        offerPrice: isSaas ? (data.offerPrice || f.offerPrice) : cleanPriceValue(data.offerPrice || f.offerPrice),
+        price: scrapedPrice || f.price,
+        offerPrice: scrapedOffer || f.offerPrice,
         keyBenefit: data.keyBenefit || f.keyBenefit,
         imageBase64: data.imageBase64 || f.imageBase64
       }));

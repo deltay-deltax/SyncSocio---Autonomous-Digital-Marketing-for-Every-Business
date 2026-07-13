@@ -21,7 +21,7 @@ export function getFriendlyErrorMessage(error: any, defaultMsg = 'Oops! Somethin
   
   // Not found
   if (lowerMsg.includes('not found') || lowerMsg.includes('404')) {
-    return 'We couldn\\'t find what you were looking for. It might have been moved or deleted.';
+    return "We couldn't find what you were looking for. It might have been moved or deleted.";
   }
   
   // Timeouts
