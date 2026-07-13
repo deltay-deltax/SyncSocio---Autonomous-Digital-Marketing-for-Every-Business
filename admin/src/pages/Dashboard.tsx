@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
-const API = `\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 
 interface Transaction {
   _id: string;

@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { TrendingUp, Users, IndianRupee, Crown } from 'lucide-react';
 
-const API = `\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 interface MonthlyRevenue {

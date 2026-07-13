@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Ticket, Plus, Trash2, Tag, Percent, Copy, Check, Calendar, ToggleLeft, ToggleRight } from 'lucide-react';
 
-const API = `\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 
 interface Coupon {
   _id: string;

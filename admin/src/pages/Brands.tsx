@@ -28,7 +28,7 @@ export default function Brands() {
         // We might need to add it to adminController or just fetch users and aggregate.
         // Actually, let's create a generic API call to a `/api/admin/brands` route 
         // that I'll add to the backend right after this!
-        const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/brands`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/brands`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.success) {

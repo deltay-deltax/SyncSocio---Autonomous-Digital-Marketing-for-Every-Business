@@ -6,7 +6,7 @@ export default function LandingGallery() {
   const [images, setImages] = useState<string[]>(Array(85).fill(''));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || `\${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
+  const API_URL = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
 
   useEffect(() => {
     fetchSettings();
