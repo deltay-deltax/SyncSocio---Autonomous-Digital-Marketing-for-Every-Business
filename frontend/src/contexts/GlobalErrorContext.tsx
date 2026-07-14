@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, RefreshCw, Zap } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface GlobalErrorContextType {
   hasError: boolean;
@@ -13,48 +13,56 @@ const GlobalErrorContext = createContext<GlobalErrorContextType | undefined>(und
 export const GlobalErrorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [hasError, setHasError] = useState(false);
 
+  // Only match requests to our own Node backend (port 5050).
+  // Explicitly excludes localhost:8000 (AI service), localhost:5173 (Vite),
+  // and all external URLs (Facebook, Razorpay, Google, etc.)
+  const isNodeBackend = (url: string): boolean => {
+    try {
+      const u = new URL(url, window.location.href);
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const apiOrigin = new URL(API_BASE).origin; // e.g. "http://localhost:5050"
+      return u.origin === apiOrigin;
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
-    // 1. Global Axios Interceptor
+    // ── Axios interceptor: only 5xx from our Node backend ──────────────────
     const axiosInterceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (!error.response || error.response.status >= 500) {
+        const url = error.config?.url || '';
+        if (isNodeBackend(url) && (!error.response || error.response.status >= 500)) {
           setHasError(true);
         }
         return Promise.reject(error);
       }
     );
 
-    // 2. Global Fetch Interceptor
+    // ── Fetch interceptor: only 5xx from our Node backend ──────────────────
+    // ALL other URLs (localhost:8000, facebook.com, razorpay, etc.) are silently passed through.
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request)?.url || '';
       try {
         const response = await originalFetch(...args);
-        if (response.status >= 500) {
+        if (isNodeBackend(url) && response.status >= 500) {
           setHasError(true);
         }
         return response;
-      } catch (error) {
-        // Network errors (CORS, offline, etc.)
-        setHasError(true);
-        throw error;
+      } catch (err) {
+        // Only surface network-level failures from our own backend — never from external services
+        if (isNodeBackend(url)) {
+          setHasError(true);
+        }
+        throw err;
       }
     };
-
-    // 3. Global Promise Rejection & Runtime Errors
-    const handleGlobalError = (event: PromiseRejectionEvent | ErrorEvent) => {
-        // Optional: Filter for specific severe errors
-        setHasError(true);
-    };
-
-    window.addEventListener('unhandledrejection', handleGlobalError);
-    window.addEventListener('error', handleGlobalError);
 
     return () => {
       axios.interceptors.response.eject(axiosInterceptor);
       window.fetch = originalFetch;
-      window.removeEventListener('unhandledrejection', handleGlobalError);
-      window.removeEventListener('error', handleGlobalError);
     };
   }, []);
 
@@ -78,7 +86,7 @@ export const GlobalErrorProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 <div className="absolute inset-0 bg-rose-500/10 rounded-[2rem] animate-pulse" />
                 <AlertTriangle size={40} className="text-rose-500 relative z-10" />
               </div>
-              
+
               <h2 className="text-2xl font-bold text-slate-900 mb-3">System Interruption</h2>
               <p className="text-sm text-slate-500 leading-relaxed mb-10 font-medium">
                 We are facing a problem with our servers. <br/>

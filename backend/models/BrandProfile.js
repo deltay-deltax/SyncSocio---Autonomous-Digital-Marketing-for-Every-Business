@@ -92,6 +92,10 @@ const brandProfileSchema = new mongoose.Schema({
     type: String,
     default: ""
   },
+  whatsappWABAId: {
+    type: String,
+    default: ""
+  },
   selectedPlan: {
     type: String,
     default: 'Free'
