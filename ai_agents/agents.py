@@ -413,7 +413,7 @@ def visual_illustrator_node(state: GraphState):
     brand_dna = (
         f"Brand: {brand.get('brandName')}. "
         f"Country: {country}. "
-        f"Category: {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", "General"))}. "
+        f"Category: {(brand.get('otherCategory') if brand.get('businessCategory') == 'Other' and brand.get('otherCategory') else brand.get('businessCategory', 'General'))}. "
         f"Tone: {brand.get('brandTone')}. "
         f"Primary Color: {brand.get('primaryColor')}. "
         f"Secondary Color: {brand.get('secondaryColor')}. "
@@ -445,7 +445,7 @@ def visual_illustrator_node(state: GraphState):
             if brand_usp:
                 strategic_context = f"Topic: {topic}. Brand USP: {brand_usp}."
             else:
-                strategic_context = f"Topic: {topic}. Category: {(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", 'General'))}."
+                strategic_context = f"Topic: {topic}. Category: {(brand.get('otherCategory') if brand.get('businessCategory') == 'Other' and brand.get('otherCategory') else brand.get('businessCategory', 'General'))}."
         
         # strategic_context: no hard char-cap — preserve full product context for image model
         # (scene_base[:250] cap on the final LLM scene output is retained below)
