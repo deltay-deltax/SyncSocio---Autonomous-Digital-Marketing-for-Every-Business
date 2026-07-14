@@ -50,12 +50,12 @@ const getWebhookVerifyToken = () => {
   return process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN || process.env.JWT_SECRET || '';
 };
 
-const createFlowQuery = ({ userId, brandId, mediaId }) => {
+const createFlowQuery = ({ userId, brandId, mediaId, trigger = 'comment' }) => {
   const query = {
     user: userId,
     $or: [{ brandId }, { brandId: { $exists: false } }],
     active: true,
-    trigger: 'comment',
+    trigger,
   };
 
   if (safeTrim(mediaId)) {
@@ -105,8 +105,8 @@ const keywordMatchScore = (incomingText, configuredKeyword) => {
   return 0;
 };
 
-const findBestFlowMatch = async ({ userId, brandId, incomingText, mediaId }) => {
-  const query = createFlowQuery({ userId, brandId, mediaId });
+const findBestFlowMatch = async ({ userId, brandId, incomingText, mediaId, trigger = 'comment' }) => {
+  const query = createFlowQuery({ userId, brandId, mediaId, trigger });
   const candidates = await DMFlow.find(query).sort({ updatedAt: -1 }).limit(50);
 
   let bestFlow = null;
@@ -361,9 +361,11 @@ const extractMentionEvents = (entry = {}) => {
     if (!value) continue;
 
     const mediaId = safeTrim(value.media_id || value.id);
-    const senderId = safeTrim(value.sender?.id || value.user?.id);
+    // Meta's test payload and some real mention events don't include a sender.
+    // Use comment_id or media_id as a fallback so the event isn't silently dropped.
+    const senderId = safeTrim(value.sender?.id || value.user?.id || value.comment_id || value.media_id);
 
-    if (!mediaId || !senderId) continue;
+    if (!mediaId) continue;
 
     if (processedMentionMediaIds.has(mediaId)) continue;
     processedMentionMediaIds.add(mediaId);
@@ -371,6 +373,7 @@ const extractMentionEvents = (entry = {}) => {
 
     events.push({ mediaId, senderId });
   }
+
 
   // Meta may deliver story mentions as messaging attachments instead of changes[].
   for (const msg of messaging) {
@@ -724,12 +727,19 @@ const sendStandardMessage = async ({ pageToken, igScopedId, messagePayload, page
 };
 
 const processMentionEventForProfile = async (profile, event) => {
-  console.log(`processMention: sender="${event.senderId}"`);
+  console.log(`processMention: sender="${event.senderId}" mediaId="${event.mediaId}"`);
 
   const automations = profile.automations || {};
   if (!automations.storyMention?.active) {
     console.log('processMention: storyMention automation is inactive. Skipping.');
     return false;
+  }
+
+  // If senderId looks like a media ID (test event placeholder), skip DM but log success
+  const isTestEvent = !event.senderId || event.senderId === event.mediaId;
+  if (isTestEvent) {
+    console.log('processMention: ✅ Test event received — story mention automation is active and configured correctly. (No DM sent for test events)');
+    return true;
   }
 
   const messagePayload = { text: automations.storyMention.message || "Hey! 🙌 Thanks so much for tagging us in your story — we really appreciate it! ❤️" };
@@ -886,7 +896,43 @@ const processMessageEventForProfile = async (profile, event) => {
     }
   }
 
-  // Auto-reply fallback for ANY DM
+  // ─── DM KEYWORD FLOW MATCH ───────────────────────────────────────────
+  // Check if the incoming DM text matches a dm_keyword trigger flow
+  const dmKeywordMatch = await findBestFlowMatch({
+    userId: profile.user,
+    brandId: profile._id,
+    incomingText: event.text,
+    mediaId: '',
+    trigger: 'dm_keyword',
+  });
+
+  if (dmKeywordMatch.flow) {
+    console.log(`processMessage: Matched dm_keyword flow: ${dmKeywordMatch.flow._id} (score=${dmKeywordMatch.score})`);
+    const messagePayload = buildDmMessagePayload(dmKeywordMatch.flow, profile);
+    if (messagePayload) {
+      try {
+        const pageToken = await resolvePageToken(profile);
+        if (!pageToken) {
+          console.error('DM keyword flow: Could not resolve page token.');
+        } else {
+          await sleep(1500);
+          await sendStandardMessage({
+            pageToken,
+            igScopedId: event.senderId,
+            messagePayload,
+            pageId: profile.instagramPageId,
+          });
+          await DMFlow.updateOne({ _id: dmKeywordMatch.flow._id }, { $inc: { 'stats.triggered': 1, 'stats.replied': 1 } });
+          console.log(`processMessage: dm_keyword DM sent successfully to ${event.senderId}`);
+          return true;
+        }
+      } catch (err) {
+        console.error('DM keyword flow send failed', err?.response?.data || err.message);
+      }
+    }
+  }
+
+
   try {
     const automations = profile.automations || {};
     const isActive = automations.defaultReply?.active;
@@ -957,13 +1003,25 @@ const processWebhookPayload = async (payload) => {
 
   for (const entry of entries) {
     console.log(`Processing entry ID: ${entry?.id}`);
-    const profiles = await findProfilesForEntry(entry?.id);
+    let profiles = await findProfilesForEntry(entry?.id);
     console.log(`Found ${profiles.length} profiles for entry ID ${entry?.id}`);
     
+    // Meta sends id:"0" for synthetic test events from the Webhooks dashboard.
+    // In that case fall back to all connected profiles so the event is processed.
+    if (profiles.length === 0 && String(entry?.id) === '0') {
+      console.log('Entry ID is "0" (Meta test event) — falling back to all connected profiles.');
+      profiles = await BrandProfile.find({
+        instagramIsConnected: true,
+        instagramAccessToken: { $exists: true, $ne: '' },
+      }).select('user instagramAccessToken instagramPageAccessToken instagramBusinessAccountId instagramPageId instagramUsername automations').lean();
+      console.log(`Fallback found ${profiles.length} connected profiles.`);
+    }
+
     if (profiles.length === 0) {
       console.log('No matched profiles found in DB for this entry ID. Skipping.');
       continue;
     }
+
 
     const commentEvents = extractCommentEvents(entry);
     const messageEvents = extractMessageEvents(entry);
