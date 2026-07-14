@@ -573,6 +573,7 @@ const DashboardStrategy = () => {
   });
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
 
   React.useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -667,6 +668,7 @@ const DashboardStrategy = () => {
               setMode('email');
               setStage('results');
               setCampaignImage(imgSrc(draft.thumbnailBase64) || '');
+              setCurrentDraftId(draft._id);
 
               try {
                 const parsed = JSON.parse(draft.caption);
@@ -1169,6 +1171,7 @@ const DashboardStrategy = () => {
   const openMode = (m: Mode) => {
     setMode(m);
     setStage('builder');
+    setCurrentDraftId(null);
     if (m === 'all_in_one') {
       setCount(1);
       setLanguage('english');
@@ -1195,6 +1198,7 @@ const DashboardStrategy = () => {
   const backToPick = () => {
     setStage('pick');
     setMode(null);
+    setCurrentDraftId(null);
     setIdea('');
     setUploads([]);
     setProductName('');
@@ -1563,6 +1567,25 @@ const DashboardStrategy = () => {
 
       if (res.ok) {
         setSendStatus('sent');
+        
+        // Automatically delete from drafts if sent successfully
+        if (currentDraftId && mode === 'email') {
+          try {
+            const delRes = await fetch(`${NODE_BASE}/strategy-assets/${currentDraftId}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (delRes.ok) {
+              const newLib = creativeLibrary.filter(c => c._id !== currentDraftId);
+              setCreativeLibrary(newLib);
+              const cacheKey = `syncsocio_strategy_assets_${brandId}`;
+              await setCache(cacheKey, newLib);
+              setCurrentDraftId(null);
+            }
+          } catch (e) {
+            console.error('Failed to delete draft after sending', e);
+          }
+        }
       } else {
         // Handle specific backend error codes
         const errData = await res.json().catch(() => ({}));
@@ -1838,6 +1861,7 @@ const DashboardStrategy = () => {
     setGenerated([]);
     setGenError(null);
     setSendStatus('idle');
+    setCurrentDraftId(null);
     setSavedIndices(new Set());
     setShowHeartPop({});
     setAvatarDescription('');
@@ -1894,6 +1918,7 @@ const DashboardStrategy = () => {
 
         // No localStorage fallback needed anymore since we use robust IndexedDB above.
         // This prevents QuotaExceededError crashes when the app tries to save profiles later.
+        return data.creative._id;
       } else {
         // Revert optimistic UI if failed
         setSavedCount((n) => Math.max(0, n - 1));
@@ -2014,8 +2039,6 @@ const DashboardStrategy = () => {
       if (isEmail && creative.status !== 'draft') return false;
       if (!isEmail && creative.status === 'draft') return false;
 
-      if (creative.thumbnailBase64 === campaignImage) return true;
-
       let creativeBody = creative.caption;
       if (creative.status === 'draft') {
         try {
@@ -2024,12 +2047,22 @@ const DashboardStrategy = () => {
         } catch (e) { }
       }
 
+      let isBodyMatch = false;
       if (campaignBody && creativeBody) {
         const cleanBody = campaignBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
         const cleanCreative = creativeBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-        if (cleanBody && cleanBody === cleanCreative) return true;
+        isBodyMatch = (cleanBody === cleanCreative);
+      } else if (!campaignBody && !creativeBody) {
+        isBodyMatch = true;
       }
-      return false;
+
+      const isImageMatch = (creative.thumbnailBase64 === campaignImage);
+
+      if (isEmail) {
+        return isImageMatch && isBodyMatch;
+      } else {
+        return isImageMatch || isBodyMatch;
+      }
     });
   }, [campaignImage, creativeLibrary, campaignBody, mode]);
 
@@ -2043,8 +2076,6 @@ const DashboardStrategy = () => {
       if (isEmail && creative.status !== 'draft') return false;
       if (!isEmail && creative.status === 'draft') return false;
 
-      if (creative.thumbnailBase64 === campaignImage) return true;
-
       let creativeBody = creative.caption;
       if (creative.status === 'draft') {
         try {
@@ -2053,12 +2084,22 @@ const DashboardStrategy = () => {
         } catch (e) { }
       }
 
+      let isBodyMatch = false;
       if (campaignBody && creativeBody) {
         const cleanBody = campaignBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
         const cleanCreative = creativeBody.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-        if (cleanBody && cleanBody === cleanCreative) return true;
+        isBodyMatch = (cleanBody === cleanCreative);
+      } else if (!campaignBody && !creativeBody) {
+        isBodyMatch = true;
       }
-      return false;
+
+      const isImageMatch = (creative.thumbnailBase64 === campaignImage);
+
+      if (isEmail) {
+        return isImageMatch && isBodyMatch;
+      } else {
+        return isImageMatch || isBodyMatch;
+      }
     });
 
     if (existingCreative) {
@@ -2074,6 +2115,10 @@ const DashboardStrategy = () => {
 
           const cacheKey = `syncsocio_strategy_assets_${brandId}`;
           await setCache(cacheKey, updatedLibrary);
+
+          if (currentDraftId === existingCreative._id) {
+            setCurrentDraftId(null);
+          }
 
           toast({
             title: mode === 'email' ? "Draft Removed" : "Campaign Image Removed",
@@ -2093,6 +2138,24 @@ const DashboardStrategy = () => {
       return;
     }
 
+    if (currentDraftId && mode === 'email') {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${NODE_BASE}/strategy-assets/${currentDraftId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const newLib = creativeLibrary.filter(c => c._id !== currentDraftId);
+          setCreativeLibrary(newLib);
+          const cacheKey = `syncsocio_strategy_assets_${brandId}`;
+          await setCache(cacheKey, newLib);
+        }
+      } catch (err) {
+        console.error('Failed to delete previous draft', err);
+      }
+    }
+
     const post: GeneratedPost = {
       type: 'image',
       image: campaignImage,
@@ -2102,7 +2165,10 @@ const DashboardStrategy = () => {
       sectionType: 'image'
     };
 
-    await handleHeart(post, 9999, mode === 'email' ? 'draft' : undefined);
+    const newDraftId = await handleHeart(post, 9999, mode === 'email' ? 'draft' : undefined);
+    if (newDraftId && mode === 'email') {
+      setCurrentDraftId(newDraftId);
+    }
   };
 
   const handleDoubleTap = (post: GeneratedPost, index: number) => {
