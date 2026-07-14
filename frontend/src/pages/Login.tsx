@@ -59,6 +59,7 @@ const Login = () => {
       
       // --- META REVIEW BYPASS ---
       if (email.trim().toLowerCase() === 'supportvelocitydm@gmail.com') {
+        localStorage.setItem('isMetaReviewer', 'true');
         window.location.href = "/setup";
         return;
       }
