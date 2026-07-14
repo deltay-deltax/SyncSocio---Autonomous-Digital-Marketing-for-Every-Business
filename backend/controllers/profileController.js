@@ -134,11 +134,12 @@ export const getProfile = async (req, res) => {
     }
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     
-    const user = await User.findById(req.user._id).select('planExpiresAt credits plan');
+    const user = await User.findById(req.user._id).select('planExpiresAt credits plan email');
     const profileObj = profile.toObject();
     profileObj.userPlanExpiresAt = user?.planExpiresAt;
     profileObj.userCredits = user?.credits;
     profileObj.userPlan = user?.plan;
+    profileObj.userEmail = user?.email;
     
     // Check if there is a pending Meta Tester request
     const pendingTester = await MetaTester.findOne({ userId: req.user._id, status: 'pending' });

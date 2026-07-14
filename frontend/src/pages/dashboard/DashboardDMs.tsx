@@ -199,7 +199,8 @@ const DashboardDMs = () => {
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
   const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
   const isElite = planName.includes('elite');
-  const hasDMAutomationAccess = isElite || profile?.dmAddonActive;
+  const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
+  const hasDMAutomationAccess = isElite || profile?.dmAddonActive || isMetaReviewer;
 
   const handleBuyAddon = () => {
     setCheckoutData({
