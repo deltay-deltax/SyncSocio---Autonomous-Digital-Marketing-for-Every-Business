@@ -4,19 +4,16 @@ import BrandProfile from '../models/BrandProfile.js';
 
 const FB_API_VERSION = 'v25.0';
 
-export const startMetricsPoller = () => {
-    console.log("🚀 Starting Meta Metrics Poller (Runs every 2 hours)");
-    
-    // Run every 2 hours at minute 0
-    cron.schedule('0 */2 * * *', async () => {
-        console.log("⏱️ [CRON] Running 2-hour Meta Metrics Fetch...");
-        try {
-            const brands = await BrandProfile.find({
-                instagramAccessToken: { $exists: true, $ne: "" },
-                instagramBusinessAccountId: { $exists: true, $ne: "" }
-            });
+export const runMetricsFetch = async () => {
+    console.log("⏱️ [CRON] Running Meta Metrics Fetch...");
+    try {
+        const brands = await BrandProfile.find({
+            instagramAccessToken: { $exists: true, $ne: "" },
+            instagramBusinessAccountId: { $exists: true, $ne: "" }
+        });
 
-            console.log(`⏱️ [CRON] Found ${brands.length} active brands to update.`);
+        console.log(`⏱️ [CRON] Found ${brands.length} active brands to update.`);
+
 
             for (const brand of brands) {
                 try {
@@ -125,9 +122,15 @@ export const startMetricsPoller = () => {
                     console.error(`⏱️ [CRON] Error updating brand ${brand._id}:`, brandError.message);
                 }
             }
-            console.log("⏱️ [CRON] 2-hour Meta Metrics Fetch complete.");
-        } catch (error) {
-            console.error("⏱️ [CRON] Global error in metrics poller:", error);
-        }
-    });
+        console.log("⏱️ [CRON] Meta Metrics Fetch complete.");
+    } catch (error) {
+        console.error("⏱️ [CRON] Global error in metrics poller:", error);
+    }
+};
+
+export const startMetricsPoller = () => {
+    console.log("🚀 Starting Meta Metrics Poller (Runs every 2 hours)");
+    
+    // Run every 2 hours at minute 0
+    cron.schedule('0 */2 * * *', runMetricsFetch);
 };

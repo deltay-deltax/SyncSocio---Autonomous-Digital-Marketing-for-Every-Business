@@ -245,23 +245,51 @@ const pollProfileComments = async (profile) => {
     });
 
     const mediaItems = mediaRes.data?.data || [];
+
+    // Also add any specific posts targeted by active DM flows (may not be in last 5)
+    const specificFlows = await DMFlow.find({
+      user: profile.user,
+      active: true,
+      trigger: 'comment',
+      targetType: 'specific',
+      targetMediaId: { $exists: true, $ne: '' },
+    }).select('targetMediaId').lean();
+
+    const recentIds = new Set(mediaItems.map(m => m.id));
+    for (const flow of specificFlows) {
+      if (flow.targetMediaId && !recentIds.has(flow.targetMediaId)) {
+        mediaItems.push({ id: flow.targetMediaId, _fromFlow: true });
+        console.log(`[POLLER] 📌 Also checking specific post from flow: ${flow.targetMediaId}`);
+      }
+    }
+
+    console.log(`[POLLER] Found ${mediaItems.length} posts to check (${specificFlows.length} from specific flows)`);
     if (mediaItems.length === 0) return;
 
     for (const media of mediaItems) {
+
       // 2. Fetch comments on each media
       const commentsRes = await axios.get(`${FB_API_BASE}/${media.id}/comments`, {
         params: { fields: 'id,text,username,timestamp', access_token: token },
       });
 
       const comments = commentsRes.data?.data || [];
+      console.log(`[POLLER] Post ${media.id} → ${comments.length} comments`);
 
       for (const comment of comments) {
+        const commentAgeMs = Date.now() - new Date(comment.timestamp).getTime();
+        const commentAgeMin = Math.round(commentAgeMs / 60000);
+
         // 1. Skip already-processed comments in-memory
-        if (processedCommentIds.has(comment.id)) continue;
+        if (processedCommentIds.has(comment.id)) {
+          console.log(`[POLLER]   ↳ "${comment.text}" by @${comment.username} — SKIP (already processed in memory)`);
+          continue;
+        }
 
         const existingReplyLog = await hasCommentReplyLog({ user: profile.user, commentId: comment.id });
         if (existingReplyLog) {
           processedCommentIds.add(comment.id);
+          console.log(`[POLLER]   ↳ "${comment.text}" by @${comment.username} — SKIP (already replied in DB)`);
           continue;
         }
 
@@ -269,18 +297,20 @@ const pollProfileComments = async (profile) => {
         const alreadyProcessed = await DMFlowFollowUp.findOne({ commentId: comment.id }).lean();
         if (alreadyProcessed) {
           processedCommentIds.add(comment.id);
+          console.log(`[POLLER]   ↳ "${comment.text}" by @${comment.username} — SKIP (followup exists in DB)`);
           continue;
         }
 
         // Mark as processed IMMEDIATELY to prevent double-processing
         processedCommentIds.add(comment.id);
 
-        // 3. Skip old comments (older than 5 minutes) to avoid replying to historical data
-        const commentAge = Date.now() - new Date(comment.timestamp).getTime();
-        if (commentAge > 5 * 60 * 1000) {
-          processedCommentIds.add(comment.id);
+        // 3. Skip old comments (older than 10 minutes) to avoid replying to historical data
+        if (commentAgeMs > 10 * 60 * 1000) {
+          console.log(`[POLLER]   ↳ "${comment.text}" by @${comment.username} — SKIP (too old: ${commentAgeMin}m)`);
           continue;
         }
+
+        console.log(`[POLLER]   ↳ "${comment.text}" by @${comment.username} — 🆕 NEW (${commentAgeMin}m old) — checking flows...`);
 
         console.log(`[POLLER] New comment detected! ID: ${comment.id} | Text: "${comment.text}" | By: ${comment.username}`);
 

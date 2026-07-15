@@ -117,6 +117,35 @@ export const signup = async (req, res) => {
 
     let user;
 
+    // --- META REVIEW BYPASS ---
+    const isMetaReviewer = normalizedEmail === 'supportvelocitydm@gmail.com';
+    if (isMetaReviewer) {
+      if (existingUser) {
+        // Reset their brand completely
+        await BrandProfile.deleteMany({ user: existingUser._id });
+        existingUser.activeBrandId = null;
+        
+        existingUser.name = name;
+        existingUser.password = hashedPassword;
+        existingUser.isVerified = true;
+        user = await existingUser.save();
+      } else {
+        user = await User.create({
+          name,
+          email: normalizedEmail,
+          password: hashedPassword,
+          isVerified: true,
+        });
+      }
+
+      return res.status(200).json({
+        message: 'Signup successful!',
+        token: generateToken(user._id),
+        user,
+      });
+    }
+    // --- END BYPASS ---
+
     if (existingUser) {
       existingUser.name = name;
       existingUser.password = hashedPassword;
@@ -155,6 +184,16 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email: email?.toLowerCase().trim() });
+    
+    // --- META REVIEW BYPASS ---
+    const isMetaReviewer = email?.toLowerCase().trim() === 'supportvelocitydm@gmail.com';
+    if (isMetaReviewer && user) {
+        await BrandProfile.deleteMany({ user: user._id });
+        user.activeBrandId = null;
+        await user.save();
+    }
+    // --- END BYPASS ---
+
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (user.isBlocked) {

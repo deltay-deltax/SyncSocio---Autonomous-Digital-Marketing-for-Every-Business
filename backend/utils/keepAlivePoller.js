@@ -7,7 +7,7 @@ export const startKeepAlivePoller = () => {
   // Ping every 10 minutes (Render sleeps after 15 minutes of inactivity)
   const PING_INTERVAL = 10 * 60 * 1000;
 
-  setInterval(async () => {
+  const doPing = async () => {
     try {
       console.log('Sending keep-alive ping to AI Agents...');
       const aiRes = await fetch(`${AI_AGENT_URL}/health`);
@@ -23,5 +23,13 @@ export const startKeepAlivePoller = () => {
     } catch (err) {
       console.error('Backend self-ping failed:', err.message);
     }
-  }, PING_INTERVAL);
+  };
+
+  // 🔑 Fire immediately on startup so the AI agent is pinged right after a deployment,
+  // preventing the ~10-minute gap that causes Render to kill it.
+  setTimeout(doPing, 15 * 1000); // small delay to let server fully boot first
+
+  // Then continue pinging on the regular interval
+  setInterval(doPing, PING_INTERVAL);
 };
+

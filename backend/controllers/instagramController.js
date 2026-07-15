@@ -1,6 +1,7 @@
 import BrandProfile from '../models/BrandProfile.js';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import { runMetricsFetch } from '../services/metricsPoller.js';
 
 dotenv.config();
 
@@ -284,6 +285,12 @@ export const instagramCallback = async (req, res) => {
       },
       { returnDocument: 'after', upsert: true }
     );
+
+    // Trigger metrics poller for this brand immediately so analytics populate instantly
+    setImmediate(() => {
+      console.log('🚀 Triggering immediate metrics fetch for newly connected brand');
+      runMetricsFetch().catch(e => console.error('Immediate metrics fetch failed:', e));
+    });
 
     const subscriptionResult = await subscribeWebhookTargets({
       accessToken,
