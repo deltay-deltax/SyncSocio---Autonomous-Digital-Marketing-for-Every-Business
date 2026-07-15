@@ -424,6 +424,7 @@ const STUDIOS: Studio[] = [
     hoverBorder: "hover:border-emerald-400 hover:ring-1 hover:ring-emerald-400",
   },
   */
+
   {
     id: "email",
     title: "Email Campaign",

@@ -116,7 +116,13 @@ const DashboardSettings = () => {
   }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('Brand Profile');
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('code') || params.get('error')) {
+      return 'Connected Accounts';
+    }
+    return 'Brand Profile';
+  });
   const [brands, setBrands] = useState<any[]>([]);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const razorpayLoaded = useRazorpay();
@@ -978,126 +984,8 @@ const DashboardSettings = () => {
                   )}
 
 
-                  {/* WhatsApp Connection */}
-                  {/*
-                  {profile.whatsappIsConnected ? (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
-                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
-                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-tr from-[#128C7E] to-[#25D366] border border-green-500/30">
-                          <WhatsAppIcon size={28} className="text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-black text-foreground truncate">{profile.whatsappNumber || 'Connected'}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest truncate">Active Connection</span>
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full sm:w-auto shrink-0 text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
-                        onClick={async () => {
-                          const num = prompt("Step 1/3: Enter your WhatsApp Business Number to reconnect:", profile.whatsappNumber || '');
-                          if (num) {
-                            const phoneId = prompt("Step 2/3: Enter your Meta WhatsApp Phone ID:", profile.whatsappPhoneId || '');
-                            if (phoneId !== null) {
-                              const accessToken = prompt("Step 3/3: Enter your Meta Permanent Access Token:", profile.whatsappAccessToken || '');
-                              if (accessToken !== null) {
-                                try {
-                                  const token = localStorage.getItem('token');
-                                  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                                  const profileRes = await fetch(`${apiBase}/profile`, {
-                                    method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`
-                                    },
-                                    body: JSON.stringify({
-                                      whatsappIsConnected: true,
-                                      whatsappNumber: num,
-                                      whatsappPhoneId: phoneId,
-                                      whatsappAccessToken: accessToken
-                                    })
-                                  });
-                                  if (!profileRes.ok) throw new Error('Failed to reconnect WhatsApp');
-                                  const updatedProfile = await profileRes.json();
-                                  setProfile(updatedProfile);
-                                  localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
-                                  alert('WhatsApp account reconnected successfully.');
-                                } catch (err: any) {
-                                  alert('Error: ' + getFriendlyErrorMessage(err));
-                                }
-                              }
-                            }
-                          }
-                        }}
-                      >
-                        <RefreshCw size={14} className="mr-2 shrink-0" /> Reconnect
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
-                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
-                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
-                          <WhatsAppIcon size={28} className="text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-black text-foreground truncate">WhatsApp Business API</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <div className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest truncate">Not Connected</span>
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        className="w-full sm:w-auto shrink-0 bg-green-600 hover:bg-green-700 text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
-                        onClick={async () => {
-                          const num = prompt("Step 1/3: Enter your WhatsApp Business Number to connect:");
-                          if (num) {
-                            const phoneId = prompt("Step 2/3: Enter your Meta WhatsApp Phone ID:");
-                            if (phoneId !== null) {
-                              const accessToken = prompt("Step 3/3: Enter your Meta Permanent Access Token:");
-                              if (accessToken !== null) {
-                                try {
-                                  const token = localStorage.getItem('token');
-                                  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                                  const profileRes = await fetch(`${apiBase}/profile`, {
-                                    method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`
-                                    },
-                                    body: JSON.stringify({
-                                      whatsappIsConnected: true,
-                                      whatsappNumber: num,
-                                      whatsappPhoneId: phoneId,
-                                      whatsappAccessToken: accessToken
-                                    })
-                                  });
-                                  if (!profileRes.ok) throw new Error('Failed to connect WhatsApp');
-                                  const updatedProfile = await profileRes.json();
-                                  setProfile(updatedProfile);
-                                  localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
-                                  alert('WhatsApp account connected successfully.');
-                                  if (setShowNotifications) {
-                                    setShowNotifications(true);
-                                  }
-                                } catch (err: any) {
-                                  alert('Error: ' + getFriendlyErrorMessage(err));
-                                }
-                              }
-                            }
-                          }
-                        }}
-                      >
-                        Connect
-                      </Button>
-                    </div>
-                  )}
-                  */}
+                  {/* WhatsApp Connection - Hidden pending Meta App Review */}
+                  {/* <WhatsAppConnectionCard profile={profile} setProfile={setProfile} /> */}
               </div>
             </CardContent>
             </Card>
@@ -2324,5 +2212,313 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
         document.body
       )}
     </>
+  );
+
+};
+
+// ── WhatsAppConnectionCard Component ──────────────────────────────────────────
+// Handles Meta's standard OAuth redirect for WhatsApp.
+// If automated ID resolution fails due to permissions, it displays a manual setup form.
+const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProfile: (p: any) => void }) => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [manualPhoneId, setManualPhoneId] = useState(profile.whatsappPhoneId === 'pending_setup' ? '' : profile.whatsappPhoneId || '');
+  const [manualWabaId, setManualWabaId] = useState(profile.whatsappWABAId === 'pending_setup' ? '' : profile.whatsappWABAId || '');
+  const [savingManual, setSavingManual] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(profile.whatsappPhoneId === 'pending_setup' || profile.whatsappWABAId === 'pending_setup');
+  
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+  const FB_APP_ID = import.meta.env.VITE_FB_APP_ID || '1491990322515220';
+
+  // Sync state if profile changes
+  useEffect(() => {
+    setManualPhoneId(profile.whatsappPhoneId === 'pending_setup' ? '' : profile.whatsappPhoneId || '');
+    setManualWabaId(profile.whatsappWABAId === 'pending_setup' ? '' : profile.whatsappWABAId || '');
+    if (profile.whatsappPhoneId === 'pending_setup' || profile.whatsappWABAId === 'pending_setup') {
+      setShowManualForm(true);
+    }
+  }, [profile]);
+
+  const handleSaveManual = async () => {
+    if (!manualPhoneId || !manualWabaId) {
+      toast({ title: 'Error', description: 'Please enter both Phone ID and WABA ID.', variant: 'destructive' });
+      return;
+    }
+    setSavingManual(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/whatsapp/callback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          isManualConfig: true,
+          phoneNumberId: manualPhoneId,
+          wabaId: manualWabaId
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save configuration.');
+
+      const updatedProfile = {
+        ...profile,
+        whatsappIsConnected: true,
+        whatsappPhoneId: data.profile?.whatsappPhoneId,
+        whatsappWABAId: data.profile?.whatsappWABAId,
+      };
+      setProfile(updatedProfile);
+      localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
+      setShowManualForm(false);
+      toast({ title: 'Success', description: 'WhatsApp details saved successfully.' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingManual(false);
+    }
+  };
+
+  useEffect(() => {
+    // Check if we just returned from Facebook OAuth
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+
+    if (error) {
+      toast({ title: 'Connection Failed', description: params.get('error_description') || 'Facebook login was cancelled.', variant: 'destructive' });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (code) {
+      setLoading(true);
+      // Exchange code for token
+      const token = localStorage.getItem('token');
+      const redirectUri = window.location.origin + window.location.pathname; // Should be http://localhost:5173/dashboard/settings
+
+      fetch(`${apiBase}/whatsapp/callback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          code,
+          isManualOAuth: true,
+          redirectUri
+        }),
+      })
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) throw new Error(data.message || 'Connection failed');
+        
+        const updatedProfile = {
+          ...profile,
+          whatsappIsConnected: true,
+          whatsappPhoneId: data.profile?.whatsappPhoneId || 'pending_setup',
+          whatsappWABAId: data.profile?.whatsappWABAId || 'pending_setup',
+        };
+        setProfile(updatedProfile);
+        localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
+
+        toast({ title: '✅ WhatsApp Connected!', description: 'Your WhatsApp Business account is now linked.' });
+      })
+      .catch((err: any) => {
+        toast({ title: 'Connection Failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
+      })
+      .finally(() => {
+        setLoading(false);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
+    }
+  }, []);
+
+  const launchEmbeddedSignup = () => {
+    setLoading(true);
+    // Use manual OAuth redirect instead of FB.login to completely avoid popup blockers and silent SDK failures
+    const redirectUri = window.location.origin + window.location.pathname; // Usually http://localhost:5173/dashboard/settings
+    const scope = 'whatsapp_business_management,whatsapp_business_messaging,business_management';
+    
+    // Redirect the entire page to Facebook OAuth dialog
+    window.location.href = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code`;
+  };
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/whatsapp/disconnect`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to disconnect');
+
+      const updatedProfile = {
+        ...profile,
+        whatsappIsConnected: false,
+        whatsappPhoneId: '',
+        whatsappAccessToken: '',
+        whatsappWABAId: '',
+      };
+      setProfile(updatedProfile);
+      localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
+      toast({ title: 'Disconnected', description: 'WhatsApp Business account has been unlinked.' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
+  if (profile.whatsappIsConnected) {
+    return (
+      <div className="flex flex-col gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+            <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-tr from-[#128C7E] to-[#25D366] border border-green-500/30">
+              <WhatsAppIcon size={24} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-black text-foreground truncate">
+                {profile.whatsappNumber || 'WhatsApp Business'}
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest truncate">Active Connection</span>
+              </div>
+              {profile.whatsappPhoneId && (
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-mono truncate">Phone ID: {profile.whatsappPhoneId}</p>
+              )}
+              {profile.whatsappWABAId && (
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-mono truncate">WABA ID: {profile.whatsappWABAId}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+            <Button
+              onClick={() => setShowManualForm(!showManualForm)}
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+            >
+              {showManualForm ? 'Hide Settings' : 'Configure Manually'}
+            </Button>
+            <Button
+              onClick={launchEmbeddedSignup}
+              disabled={loading}
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+            >
+              {loading ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <RefreshCw size={14} className="mr-2 shrink-0" />}
+              Reconnect
+            </Button>
+            <Button
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-destructive/30 text-destructive hover:bg-destructive/10 px-5"
+            >
+              {disconnecting ? 'Unlinking...' : 'Disconnect'}
+            </Button>
+          </div>
+        </div>
+
+        {showManualForm && (
+          <div className="mt-2 pt-4 border-t border-border/50 flex flex-col gap-4">
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest text-foreground">Manual API Configuration</h4>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                If Meta failed to auto-detect your WhatsApp IDs (often due to Sandbox/App Review restrictions), copy and paste them from your Meta Developer Portal below:
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">WhatsApp Phone ID</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 104829381029381"
+                  value={manualPhoneId}
+                  onChange={(e) => setManualPhoneId(e.target.value)}
+                  className="h-11 px-4 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">WABA ID (WhatsApp Business Account ID)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 883920193810293"
+                  value={manualWabaId}
+                  onChange={(e) => setManualWabaId(e.target.value)}
+                  className="h-11 px-4 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={handleSaveManual}
+              disabled={savingManual}
+              className="self-end h-11 rounded-xl text-xs font-black uppercase tracking-widest px-6 text-white shadow-md bg-green-600 hover:bg-green-700"
+            >
+              {savingManual ? <RefreshCw size={14} className="mr-2 animate-spin" /> : null}
+              Save Configuration
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-[#128C7E]/5 to-[#25D366]/5 border border-dashed border-green-500/30 hover:border-green-500/50 transition-all">
+      <div className="flex items-start gap-4">
+        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-gradient-to-tr from-[#128C7E]/20 to-[#25D366]/20 border border-green-500/20">
+          <WhatsAppIcon size={28} className="text-green-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-black text-foreground truncate">WhatsApp Business API</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <div className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+            Connect your WhatsApp Business number to send bulk campaign blasts, promotional messages, and automated replies directly from SyncSocio.
+          </p>
+        </div>
+      </div>
+
+      {/* Permissions list */}
+      <div className="flex flex-col gap-1.5 pl-1">
+        {[
+          'Send WhatsApp campaign blasts to your contacts',
+          'Upload and attach creative images to messages',
+          'Manage message templates via WABA',
+        ].map((perm, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+            <CheckCircle2 size={13} className="text-green-500 shrink-0" />
+            {perm}
+          </div>
+        ))}
+      </div>
+
+      <Button
+        onClick={launchEmbeddedSignup}
+        disabled={loading}
+        className="w-full sm:w-auto h-11 rounded-xl text-xs font-black uppercase tracking-widest px-6 text-white shadow-lg"
+        style={{ background: 'linear-gradient(135deg, #128C7E, #25D366)' }}
+      >
+        {loading ? (
+          <RefreshCw size={15} className="mr-2 animate-spin" />
+        ) : (
+          <WhatsAppIcon size={16} className="mr-2" />
+        )}
+        {loading ? 'Connecting...' : 'Connect WhatsApp Business'}
+      </Button>
+      <p className="text-[10px] text-muted-foreground text-center">
+        A secure Meta popup will appear. Select your WhatsApp Business number and grant permissions.
+      </p>
+    </div>
   );
 };

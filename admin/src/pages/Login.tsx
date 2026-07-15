@@ -20,7 +20,7 @@ export default function Login() {
       const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin/login`, { email, password });
       if (res.data.success) {
         localStorage.setItem('adminToken', res.data.token);
-        navigate('/dashboard');
+        navigate('/');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid admin credentials');

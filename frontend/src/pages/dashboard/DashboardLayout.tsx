@@ -27,6 +27,7 @@ const navGroups = [
     title: 'Socials',
     items: [
       { label: 'Feed', icon: Rss, path: '/dashboard/feed' },
+      { label: 'DM Automation', icon: MessageSquare, path: '/dashboard/dms' },
       { label: 'Ads', icon: Target, path: '/dashboard/ads' },
     ]
   },
@@ -916,10 +917,14 @@ const DashboardLayoutContent = () => {
               const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
               const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
               const isElite = planName.includes('elite');
-              const hasDMAutomationAccess =
-                !isPlanExpired &&
-                (isElite || profile?.DM_Automation_Service === true);
+              const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
+              const hasDMAutomationAccess = isElite || profile?.dmAddonActive || isMetaReviewer;
               const isLocked = item.label === 'DM Automation' && !hasDMAutomationAccess;
+
+              // Completely hide DM Automation for everyone except the designated Meta reviewer
+              if (item.label === 'DM Automation' && !isMetaReviewer) {
+                return null;
+              }
 
               return (
                 <NavLink

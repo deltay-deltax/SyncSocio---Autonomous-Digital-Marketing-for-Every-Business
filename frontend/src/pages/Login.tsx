@@ -57,6 +57,14 @@ const Login = () => {
       
       localStorage.setItem("token", data.token);
       
+      // --- META REVIEW BYPASS ---
+      if (email.trim().toLowerCase() === 'supportvelocitydm@gmail.com') {
+        localStorage.setItem('isMetaReviewer', 'true');
+        window.location.href = "/setup";
+        return;
+      }
+      // --- END BYPASS ---
+
       // Fetch profile status to determine redirect
       try {
         const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";

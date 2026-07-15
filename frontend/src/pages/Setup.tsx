@@ -351,6 +351,16 @@ const Setup = () => {
   };
 
   const proceedToCheckout = (planName: string) => {
+    setSelectedPlan(planName);
+    
+    // --- META REVIEW BYPASS ---
+    if (localStorage.getItem('isMetaReviewer') === 'true' || onboardingData?.userEmail === 'supportvelocitydm@gmail.com') {
+      localStorage.setItem('syncsocio_dm_automation', dmToggles[planName] ? 'true' : 'false');
+      setScreen('activation');
+      return;
+    }
+    // --- END BYPASS ---
+
     const basePrice = planName === 'Elite' ? 3199 : 999;
     let currentPrice = basePrice;
     
@@ -364,7 +374,6 @@ const Setup = () => {
     }
     
     setSelectedPlanAmount(currentPrice);
-    setSelectedPlan(planName);
     setScreen('checkout');
   };
 
@@ -616,7 +625,7 @@ const Setup = () => {
           </div>
 
           {/* CTA */}
-          {onboardingData?.isTesterEnabled ? (
+          {(onboardingData?.isTesterEnabled || onboardingData?.userEmail === 'supportvelocitydm@gmail.com' || localStorage.getItem('isMetaReviewer') === 'true') ? (
             <Button
               onClick={handleInstagramConnect}
               className="w-full h-12 text-sm font-semibold"

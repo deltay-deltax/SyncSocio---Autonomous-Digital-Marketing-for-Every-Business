@@ -26,6 +26,7 @@ import couponRoutes from './routes/couponRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import siteRoutes from './routes/siteRoutes.js';
+import whatsappRoutes from './routes/whatsappRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import {
   receiveInstagramWebhook,
@@ -83,6 +84,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/site', siteRoutes);
 app.use('/api/leads', leadRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

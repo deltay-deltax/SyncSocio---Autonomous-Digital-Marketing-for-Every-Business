@@ -51,6 +51,7 @@ export const listDMFlows = async (req, res) => {
       user: req.user._id,
       $or: [{ brandId }, { brandId: { $exists: false } }]
     };
+    console.log(`[DM FLOW] LIST → userId: ${req.user._id} | activeBrandId: ${brandId}`);
 
     if (req.query.active === 'true' || req.query.active === 'false') {
       query.active = req.query.active === 'true';
@@ -87,12 +88,13 @@ export const getDMFlowById = async (req, res) => {
 export const createDMFlow = async (req, res) => {
   try {
     const payload = buildFlowPayload(req.body);
+    console.log(`[DM FLOW] CREATE → userId: ${req.user._id} | activeBrandId: ${req.user.activeBrandId} | keyword: "${payload.keyword}" | trigger: ${payload.trigger}`);
     const flow = await DMFlow.create({
       user: req.user._id,
       brandId: req.user.activeBrandId,
       ...payload,
     });
-
+    console.log(`[DM FLOW] CREATE → SAVED with _id: ${flow._id} | user: ${flow.user} | brandId: ${flow.brandId}`);
     return res.status(201).json(flow);
   } catch (error) {
     return handleControllerError(res, error, 'Failed to create DM flow.');
@@ -121,7 +123,7 @@ export const setDMFlowActiveState = async (req, res) => {
     if (typeof req.body.active !== 'boolean') {
       return res.status(400).json({ message: 'active must be a boolean value.' });
     }
-
+    console.log(`[DM FLOW] SET ACTIVE → flowId: ${req.params.id} | active: ${req.body.active} | userId: ${req.user._id}`);
     const flow = await DMFlow.findOneAndUpdate(
       { _id: req.params.id },
       { active: req.body.active, source: 'user' },
@@ -129,9 +131,10 @@ export const setDMFlowActiveState = async (req, res) => {
     );
 
     if (!flow) {
+      console.log(`[DM FLOW] SET ACTIVE → flow ${req.params.id} NOT FOUND in DB`);
       return res.status(404).json({ message: 'DM flow not found.' });
     }
-
+    console.log(`[DM FLOW] SET ACTIVE → UPDATED flow "${flow.name}" | brandId: ${flow.brandId} | active: ${flow.active}`);
     return res.status(200).json(flow);
   } catch (error) {
     return handleControllerError(res, error, 'Failed to update DM flow active state.');

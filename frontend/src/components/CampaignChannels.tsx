@@ -17,7 +17,8 @@ const emailPreview = {
 };
 
 const CampaignChannels = () => {
-  const [channel, setChannel] = useState<Channel>("whatsapp");
+  // const [channel, setChannel] = useState<Channel>("whatsapp");
+  const [channel, setChannel] = useState<Channel>("email");
   const [sentCount, setSentCount] = useState(0);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ const CampaignChannels = () => {
         {/* Channel toggle */}
         <div className="flex items-center justify-center gap-2 mb-10">
           <div className="inline-flex p-1 rounded-full border border-border/50 bg-card/40 backdrop-blur-sm">
-            {(["whatsapp", "email"] as Channel[]).map((c) => {
+            {(["email"] as Channel[]).map((c) => {
               const isActive = c === channel;
               const Icon = c === "whatsapp" ? MessageSquare : Mail;
               return (
@@ -79,7 +80,7 @@ const CampaignChannels = () => {
                     />
                   )}
                   <Icon size={14} className="relative z-10 text-primary" />
-                  <span className="relative z-10 capitalize">{c === "whatsapp" ? "WhatsApp (Coming Soon)" : "Email Campaign"}</span>
+                  <span className="relative z-10 capitalize">{c === "whatsapp" ? "WhatsApp Campaign" : "Email Campaign"}</span>
                 </button>
               );
             })}

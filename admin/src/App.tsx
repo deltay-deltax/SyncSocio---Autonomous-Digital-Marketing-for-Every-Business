@@ -14,6 +14,8 @@ import Leads from './pages/Leads';
 import Testers from './pages/Testers';
 import LandingGallery from './pages/LandingGallery';
 import ScheduledPosts from './pages/ScheduledPosts';
+import AdminEntry from './pages/AdminEntry';
+import Generations from './pages/Generations';
 import './App.css';
 
 // Protected Route for Admin
@@ -32,8 +34,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         
         <Route element={<AdminRoute />}>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<AdminEntry />} />
+          <Route path="/leads-management" element={<Leads />} />
+          <Route element={<Layout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="users/:id" element={<UserDetails />} />
@@ -44,10 +47,10 @@ function App() {
             <Route path="refunds" element={<Transactions />} />
             <Route path="system-health" element={<SystemHealth />} />
             <Route path="waitlist" element={<Waitlist />} />
-            <Route path="leads" element={<Leads />} />
             <Route path="testers" element={<Testers />} />
             <Route path="landing-gallery" element={<LandingGallery />} />
             <Route path="scheduled-posts" element={<ScheduledPosts />} />
+            <Route path="generations" element={<Generations />} />
           </Route>
         </Route>
 

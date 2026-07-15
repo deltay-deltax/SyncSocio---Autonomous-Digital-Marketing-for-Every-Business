@@ -11,6 +11,7 @@ import VisitorLog from '../models/VisitorLog.js';
 import MetaTester from '../models/MetaTester.js';
 import SiteSettings from '../models/SiteSettings.js';
 import Lead from '../models/Lead.js';
+import PostAnalysis from '../models/PostAnalysis.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -1205,6 +1206,41 @@ export const getLeads = async (req, res) => {
   }
 };
 
+export const addLead = async (req, res) => {
+  try {
+    const newLead = await Lead.create({
+      ...req.body,
+      source: 'manual'
+    });
+    return res.status(201).json({ success: true, lead: newLead });
+  } catch (error) {
+    console.error('Error adding lead manually:', error);
+    return res.status(500).json({ success: false, message: 'Failed to add lead' });
+  }
+};
+
+export const updateLead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, comments } = req.body;
+    
+    const updateData = {};
+    if (status !== undefined) updateData.status = status;
+    if (comments !== undefined) updateData.comments = comments;
+
+    const lead = await Lead.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: false });
+    
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    return res.status(200).json({ success: true, lead });
+  } catch (error) {
+    console.error('Error updating lead:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update lead' });
+  }
+};
+
 export const getScheduledPosts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -1237,6 +1273,40 @@ export const getScheduledPosts = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching scheduled posts:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+
+// --- Generations -------------------------------------------------------------
+export const getGenerations = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const query = {};
+    if (req.query.type) {
+      query.type = req.query.type;
+    }
+    const generations = await StrategyCreative.find(query)
+      .populate('user', 'name email')
+      .populate('brandId', 'companyName industry')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await StrategyCreative.countDocuments(query);
+    res.json({
+      success: true,
+      generations,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching generations:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
