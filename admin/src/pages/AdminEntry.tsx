@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, LogOut, ArrowRight, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, LogOut, ArrowRight, ClipboardList } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
 
 export default function AdminEntry() {
