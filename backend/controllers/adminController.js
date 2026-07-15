@@ -1223,7 +1223,6 @@ export const updateLead = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, comments, name, email, phone, businessName, website, businessCategory } = req.body;
-    const { status, comments } = req.body;
     
     const updateData = {};
     if (status !== undefined) updateData.status = status;

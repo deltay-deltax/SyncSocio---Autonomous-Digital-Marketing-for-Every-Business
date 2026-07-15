@@ -42,7 +42,6 @@ export default function AdminEntry() {
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Admin Dashboard Card */}
-            <div 
             <div
               onClick={() => navigate('/dashboard')}
               className="glass-card group cursor-pointer hover:border-blue-500/50 transition-all duration-300 p-8 rounded-2xl flex flex-col items-center text-center hover-lift"
@@ -60,7 +59,6 @@ export default function AdminEntry() {
             </div>
 
             {/* Leads & Brands Management Card */}
-            <div 
             <div
               onClick={() => navigate('/leads-management')}
               className="glass-card group cursor-pointer hover:border-violet-500/50 transition-all duration-300 p-8 rounded-2xl flex flex-col items-center text-center hover-lift"
