@@ -82,8 +82,12 @@ export default function Leads() {
         setEntries(res.data.leads);
         setTotal(res.data.leads.length);
       }
-    } catch {
+    } catch (error) {
       console.error('Failed to fetch leads');
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        localStorage.removeItem('adminToken');
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
