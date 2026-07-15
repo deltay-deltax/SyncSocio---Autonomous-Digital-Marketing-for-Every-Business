@@ -1222,11 +1222,18 @@ export const addLead = async (req, res) => {
 export const updateLead = async (req, res) => {
   try {
     const { id } = req.params;
+    const { status, comments, name, email, phone, businessName, website, businessCategory } = req.body;
     const { status, comments } = req.body;
     
     const updateData = {};
     if (status !== undefined) updateData.status = status;
     if (comments !== undefined) updateData.comments = comments;
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (businessName !== undefined) updateData.businessName = businessName;
+    if (website !== undefined) updateData.website = website;
+    if (businessCategory !== undefined) updateData.businessCategory = businessCategory;
 
     const lead = await Lead.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: false });
     

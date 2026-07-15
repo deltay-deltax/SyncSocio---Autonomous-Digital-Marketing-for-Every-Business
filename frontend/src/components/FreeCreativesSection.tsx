@@ -137,12 +137,6 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   businessName: formData.get("businessName") as string,
                   website: formData.get("website") as string,
                   businessCategory: formData.get("businessCategory") as string,
-                  name: formData.get("name"),
-                  email: formData.get("email"),
-                  phone: formData.get("phone"),
-                  businessName: formData.get("businessName"),
-                  website: formData.get("website"),
-                  businessCategory: formData.get("businessCategory"),
                   intent: intent,
                   _gotcha: formData.get("_gotcha") as string,
                 };
@@ -150,41 +144,45 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                 setFormError("");
 
                 // Email validation
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
-                if (!emailRegex.test(data.email.trim())) {
-                  setFormError("Please enter a valid email address.");
-                  return;
-                }
+                if (data.email) {
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+                  if (!emailRegex.test(data.email.trim())) {
+                    setFormError("Please enter a valid email address.");
+                    return;
+                  }
 
-                // Catch common email typos
-                const lowerEmail = data.email.trim().toLowerCase();
-                const domainPart = lowerEmail.split('@')[1];
-                
-                if (domainPart && domainPart.startsWith('gmail.') && domainPart !== 'gmail.com') {
-                  setFormError("It looks like there is a typo in your email (e.g. @gmail.com).");
-                  return;
-                }
-                if (domainPart && domainPart.startsWith('gamil.')) {
-                  setFormError("It looks like there is a typo in your email (did you mean @gmail.com?).");
-                  return;
-                }
-                if (domainPart && domainPart.startsWith('yahoo.') && domainPart !== 'yahoo.com' && domainPart !== 'yahoo.in' && domainPart !== 'yahoo.co.uk') {
-                  setFormError("It looks like there is a typo in your email (e.g. @yahoo.com).");
-                  return;
+                  // Catch common email typos
+                  const lowerEmail = data.email.trim().toLowerCase();
+                  const domainPart = lowerEmail.split('@')[1];
+                  
+                  if (domainPart && domainPart.startsWith('gmail.') && domainPart !== 'gmail.com') {
+                    setFormError("It looks like there is a typo in your email (e.g. @gmail.com).");
+                    return;
+                  }
+                  if (domainPart && domainPart.startsWith('gamil.')) {
+                    setFormError("It looks like there is a typo in your email (did you mean @gmail.com?).");
+                    return;
+                  }
+                  if (domainPart && domainPart.startsWith('yahoo.') && domainPart !== 'yahoo.com' && domainPart !== 'yahoo.in' && domainPart !== 'yahoo.co.uk') {
+                    setFormError("It looks like there is a typo in your email (e.g. @yahoo.com).");
+                    return;
+                  }
                 }
 
                 // Name validation
-                const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ\s\'\-]{2,50}$/;
-                if (!nameRegex.test(data.name.trim())) {
-                  setFormError("Please enter a valid name (no numbers or special symbols).");
-                  return;
-                }
-                
-                // Block keyboard smashes
-                const lowerName = data.name.trim().toLowerCase();
-                if (/asdf|qwer|zxcv|asds|test|fake|dummy/.test(lowerName)) {
-                  setFormError("Please enter a valid professional name.");
-                  return;
+                if (data.name) {
+                  const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ\s\'\-]{2,50}$/;
+                  if (!nameRegex.test(data.name.trim())) {
+                    setFormError("Please enter a valid name (no numbers or special symbols).");
+                    return;
+                  }
+                  
+                  // Block keyboard smashes
+                  const lowerName = data.name.trim().toLowerCase();
+                  if (/asdf|qwer|zxcv|asds|test|fake|dummy/.test(lowerName)) {
+                    setFormError("Please enter a valid professional name.");
+                    return;
+                  }
                 }
 
                 // Phone validation (Strict country-specific validation)
@@ -216,8 +214,8 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
               {/* Honeypot field (hidden from real users, bots will fill it) */}
               <input type="text" name="_gotcha" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
               
-              <Field label="Name" name="name" type="text" placeholder="John Doe" required />
-              <Field label="Work email" name="email" type="email" placeholder="you@business.com" required />
+              <Field label="Name" name="name" type="text" placeholder="John Doe" />
+              <Field label="Work email" name="email" type="email" placeholder="you@business.com" />
               
               <div className="text-left">
                 <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -237,8 +235,6 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
 
               <Field label="Business name" name="businessName" type="text" placeholder="Acme Corp" required />
               <Field label="Website link (optional)" name="website" type="url" placeholder="https://www.example.com" />
-              
-              <Field label="Website" name="website" type="text" placeholder="https://www.yourbrand.com" required />
               <SelectField 
                 label="Business category" 
                 name="businessCategory" 

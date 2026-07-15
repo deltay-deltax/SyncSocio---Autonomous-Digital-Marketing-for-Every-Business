@@ -268,3 +268,22 @@ html {
 .my-masonry-grid_column > div {
   margin-bottom: 16px;
 }
+
+/* react-phone-number-input overrides */
+.phone-input-container {
+  display: flex;
+  align-items: center;
+}
+.phone-input-container .PhoneInputCountry {
+  margin-right: 12px;
+}
+.phone-input-container .PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+.phone-input-container .PhoneInputCountrySelectArrow {
+  opacity: 0.5;
+}
