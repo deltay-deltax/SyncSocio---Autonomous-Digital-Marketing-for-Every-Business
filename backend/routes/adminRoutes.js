@@ -42,6 +42,7 @@ import {
   addLead,
   updateLead,
   getScheduledPosts,
+  getGenerations,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -119,5 +120,8 @@ router.put('/settings', updateSiteSettings);
 
 // ─── Scheduled Posts ──────────────────────────────────────────────────────────
 router.get('/scheduled-posts', getScheduledPosts);
+
+// ─── Generations ──────────────────────────────────────────────────────────────
+router.get('/generations', getGenerations);
 
 export default router;

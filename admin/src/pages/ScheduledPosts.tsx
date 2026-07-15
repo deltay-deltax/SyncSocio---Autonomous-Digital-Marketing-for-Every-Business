@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, CalendarClock, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarClock, RefreshCw } from 'lucide-react';
 
 const API = 'http://localhost:5050/api/admin';
 
