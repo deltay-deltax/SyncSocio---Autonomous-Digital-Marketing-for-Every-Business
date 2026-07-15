@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Download, Users, ClipboardList, Plus, Save, X, ArrowLeft, Mail, Phone, Globe, Briefcase } from 'lucide-react';
+import { Download, Users, ClipboardList, Plus, Save, X, ArrowLeft, Mail, Phone, Globe, Briefcase, Edit2 } from 'lucide-react';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 
 interface LeadEntry {
@@ -24,13 +25,25 @@ interface LeadEntry {
 const formatPhone = (phone: string) => {
   if (!phone) return '-';
   try {
-    const phoneNumber = parsePhoneNumber(phone);
+    // If phone doesn't have a '+', parse it with 'IN' as default country
+    const phoneNumber = phone.startsWith('+') ? parsePhoneNumber(phone) : parsePhoneNumber(phone, 'IN');
     if (phoneNumber) {
       return phoneNumber.formatInternational();
     }
   } catch (error) {
-    return phone.replace(/(\+\d{2})(\d+)/, '$1 $2');
+    // Fallback if libphonenumber fails
   }
+  
+  // Custom fallback formatter
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  if (cleaned.length > 10) {
+    const countryCodeLength = cleaned.length - 10;
+    const isPlus = cleaned.startsWith('+');
+    const cc = isPlus ? cleaned.substring(0, countryCodeLength) : `+${cleaned.substring(0, countryCodeLength)}`;
+    const num = cleaned.substring(countryCodeLength);
+    return `${cc} ${num.substring(0, 5)} ${num.substring(5)}`;
+  }
+  
   return phone;
 };
 
@@ -49,11 +62,13 @@ export default function Leads() {
   const [entries, setEntries] = useState<LeadEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  // Manual Add Modal State
+  // Manual Add/Edit Modal State
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newLead, setNewLead] = useState({
-    name: '', email: '', phone: '', businessName: '', website: '', businessCategory: '', intent: 'manual'
+    name: '', email: '', phone: '', businessName: '', website: '', businessCategory: '', customCategory: '', intent: 'manual'
   });
 
   const fetchEntries = useCallback(async () => {
@@ -93,19 +108,59 @@ export default function Leads() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await axios.post(`${API}/leads`, newLead, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
-        setEntries([res.data.lead, ...entries]);
-        setTotal(prev => prev + 1);
-        setShowAddModal(false);
-        setNewLead({ name: '', email: '', phone: '', businessName: '', website: '', businessCategory: '', intent: 'manual' });
+      
+      const submitData = { ...newLead };
+      if (submitData.businessCategory === 'Other' && submitData.customCategory) {
+        submitData.businessCategory = submitData.customCategory;
       }
+      
+      if (editingId) {
+        // Edit mode
+        await axios.put(`${API}/leads/${editingId}`, submitData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setEntries(prev => prev.map(e => e._id === editingId ? { ...e, ...submitData } : e));
+      } else {
+        // Add mode
+        const res = await axios.post(`${API}/leads`, submitData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success) {
+          setEntries([res.data.lead, ...entries]);
+          setTotal(prev => prev + 1);
+        }
+      }
+      
+      setShowAddModal(false);
+      setEditingId(null);
+      setNewLead({ name: '', email: '', phone: '', businessName: '', website: '', businessCategory: '', customCategory: '', intent: 'manual' });
     } catch (error) {
-      console.error('Failed to add lead:', error);
-      alert('Failed to add lead');
+      console.error('Failed to save lead:', error);
+      alert('Failed to save lead');
     }
+  };
+
+  const openEditModal = (entry: LeadEntry) => {
+    let cat = entry.businessCategory || '';
+    let customCat = '';
+    const standardCategories = ['E-commerce', 'SaaS', 'Agency', 'Local Business', 'Creator', 'Food & Beverage', 'Fashion & Apparel'];
+    if (cat && !standardCategories.includes(cat)) {
+      customCat = cat;
+      cat = 'Other';
+    }
+    
+    setNewLead({
+      name: entry.name || '',
+      email: entry.email || '',
+      phone: entry.phone || '',
+      businessName: entry.businessName || '',
+      website: entry.website || '',
+      businessCategory: cat,
+      customCategory: customCat,
+      intent: entry.intent || 'manual'
+    });
+    setEditingId(entry._id);
+    setShowAddModal(true);
   };
 
   const handleExportCSV = () => {
@@ -158,19 +213,43 @@ export default function Leads() {
               Track and manage your approached brands. <span className="font-semibold text-slate-700">{total.toLocaleString()}</span> entries total.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm shadow-blue-600/20"
-            >
-              <Plus size={16} /> Add Brand
-            </button>
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium transition-all shadow-sm"
-            >
-              <Download size={16} /> Export
-            </button>
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            {/* Filter Dropdown */}
+            <div className="relative group min-w-[160px]">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full appearance-none pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 cursor-pointer outline-none transition-all hover:bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+              >
+                <option value="all">Filter: All Leads</option>
+                <option value="new">Filter: New / Uncontacted</option>
+                <option value="yellow">Filter: Talking Stage</option>
+                <option value="green">Filter: Approved / Client</option>
+                <option value="red">Filter: Rejected</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setEditingId(null);
+                  setNewLead({ name: '', email: '', phone: '', businessName: '', website: '', businessCategory: '', customCategory: '', intent: 'manual' });
+                  setShowAddModal(true);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm shadow-blue-600/20"
+              >
+                <Plus size={16} /> Add Brand
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium transition-all shadow-sm"
+              >
+                <Download size={16} /> Export
+              </button>
+            </div>
           </div>
         </div>
 
@@ -196,7 +275,9 @@ export default function Leads() {
               </button>
             </div>
           ) : (
-            entries.map(entry => {
+            entries
+              .filter((entry) => filterStatus === 'all' || entry.status === filterStatus || (!entry.status && filterStatus === 'new'))
+              .map((entry) => {
               const statusConfig = getStatusConfig(entry.status || 'new');
               
               return (
@@ -220,6 +301,13 @@ export default function Leads() {
                                 <Globe size={14} /> {entry.website.replace(/^https?:\/\//, '')}
                               </a>
                             )}
+                            <button
+                              onClick={() => openEditModal(entry)}
+                              className="flex items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors ml-2"
+                              title="Edit Lead"
+                            >
+                              <Edit2 size={14} /> Edit
+                            </button>
                           </div>
                         </div>
 
@@ -310,12 +398,12 @@ export default function Leads() {
         </div>
       </div>
 
-      {/* Add Lead Modal */}
+      {/* Add/Edit Lead Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
           <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
-              <h3 className="text-lg font-bold text-slate-900">Add Brand Manually</h3>
+              <h3 className="text-lg font-bold text-slate-900">{editingId ? 'Edit Brand' : 'Add Brand Manually'}</h3>
               <button 
                 onClick={() => setShowAddModal(false)} 
                 className="text-slate-400 hover:text-slate-600 bg-white border border-slate-200 p-1.5 rounded-lg transition-colors shadow-sm"
@@ -326,9 +414,9 @@ export default function Leads() {
             
             <form onSubmit={handleAddLead} className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Name</label>
                 <input 
-                  required type="text" 
+                  type="text" 
                   value={newLead.businessName} onChange={e => setNewLead({...newLead, businessName: e.target.value})}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
                   placeholder="e.g. Acme Corp"
@@ -337,29 +425,30 @@ export default function Leads() {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Name <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Name</label>
                   <input 
-                    required type="text" 
+                    type="text" 
                     value={newLead.name} onChange={e => setNewLead({...newLead, name: e.target.value})}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
                     placeholder="John Doe"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone <span className="text-red-500">*</span></label>
-                  <input 
-                    required type="tel" 
-                    value={newLead.phone} onChange={e => setNewLead({...newLead, phone: e.target.value})}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
-                    placeholder="+1 234 567 8900"
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone</label>
+                  <PhoneInput
+                    international
+                    defaultCountry="IN"
+                    value={newLead.phone}
+                    onChange={(value) => setNewLead({...newLead, phone: value || ''})}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none phone-input-container"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
                 <input 
-                  required type="email" 
+                  type="email" 
                   value={newLead.email} onChange={e => setNewLead({...newLead, email: e.target.value})}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
                   placeholder="contact@acme.com"
@@ -376,14 +465,13 @@ export default function Leads() {
                     placeholder="example.com"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Category <span className="text-red-500">*</span></label>
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Category</label>
                   <select 
-                    required
                     value={newLead.businessCategory} onChange={e => setNewLead({...newLead, businessCategory: e.target.value})}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none cursor-pointer" 
                   >
-                    <option value="" disabled>Select category</option>
+                    <option value="">Select category (optional)</option>
                     <option value="E-commerce">E-commerce</option>
                     <option value="SaaS">SaaS</option>
                     <option value="Agency">Agency</option>
@@ -391,8 +479,17 @@ export default function Leads() {
                     <option value="Creator">Creator / Influencer</option>
                     <option value="Food & Beverage">Food & Beverage</option>
                     <option value="Fashion & Apparel">Fashion & Apparel</option>
-                    <option value="Other">Other</option>
+                    <option value="Other">Other (Please specify)</option>
                   </select>
+                  
+                  {newLead.businessCategory === 'Other' && (
+                    <input 
+                      type="text" 
+                      value={newLead.customCategory} onChange={e => setNewLead({...newLead, customCategory: e.target.value})}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none animate-in fade-in slide-in-from-top-2" 
+                      placeholder="Type your category here..."
+                    />
+                  )}
                 </div>
               </div>
               
@@ -408,7 +505,7 @@ export default function Leads() {
                   type="submit" 
                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-all shadow-sm shadow-blue-600/20 flex items-center gap-2"
                 >
-                  <Save size={16} /> Save Brand
+                  <Save size={16} /> {editingId ? 'Save Changes' : 'Save Brand'}
                 </button>
               </div>
             </form>

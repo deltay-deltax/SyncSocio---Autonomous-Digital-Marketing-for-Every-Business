@@ -79,35 +79,13 @@ export const signup = async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     const existingUser = await User.findOne({ email: normalizedEmail });
 
-    if (existingUser) {
-      // Check if onboarding is complete
-      const profile = await BrandProfile.findOne({ user: existingUser._id });
-      const onboardingComplete = profile && profile.selectedPlan && profile.selectedPlan !== 'Free';
+    const isMetaReviewer = normalizedEmail === 'supportvelocitydm@gmail.com';
 
-      if (onboardingComplete) {
-        if (normalizedEmail.endsWith('@gmail.com') || existingUser.googleId) {
-          return res.status(400).json({ message: 'Already have an account? Try logging in either through email/password or Google sign-in.' });
-        }
-        return res.status(400).json({ message: 'Already have an account? Try signing in.' });
+    if (existingUser && !isMetaReviewer) {
+      if (existingUser.googleId) {
+        return res.status(400).json({ message: 'Account already exists. Please try logging in with Google.' });
       }
-
-      // Onboarding is NOT complete: welcome back flow
-      if (existingUser.isVerified === true) {
-        if (!existingUser.password) {
-          return res.status(400).json({ message: 'This email is linked to an account using OAuth. Please sign in via Google/Apple.' });
-        }
-        const isMatch = await bcrypt.compare(password, existingUser.password);
-        if (!isMatch) {
-          return res.status(400).json({ message: 'Welcome back! To continue your setup, please enter your correct password.' });
-        }
-
-        // Correct password: log in directly to continue onboarding/setup
-        return res.status(200).json({
-          message: 'Welcome back! Continue where you left off',
-          token: generateToken(existingUser._id),
-          user: existingUser
-        });
-      }
+      return res.status(400).json({ message: 'Account already exists. Please try logging in.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -118,7 +96,6 @@ export const signup = async (req, res) => {
     let user;
 
     // --- META REVIEW BYPASS ---
-    const isMetaReviewer = normalizedEmail === 'supportvelocitydm@gmail.com';
     if (isMetaReviewer) {
       if (existingUser) {
         // Reset their brand completely
