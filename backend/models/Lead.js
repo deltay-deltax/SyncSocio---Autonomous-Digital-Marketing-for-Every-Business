@@ -25,7 +25,6 @@ const leadSchema = new mongoose.Schema({
   website: {
     type: String,
     required: false,
-    required: true,
     trim: true,
   },
   businessCategory: {
@@ -34,8 +33,22 @@ const leadSchema = new mongoose.Schema({
   },
   intent: {
     type: String,
-    required: true,
-    enum: ['creatives', 'demo'],
+    required: false,
+    default: 'other',
+  },
+  status: {
+    type: String,
+    enum: ['green', 'yellow', 'red', 'new'],
+    default: 'new',
+  },
+  comments: {
+    type: String,
+    default: '',
+  },
+  source: {
+    type: String,
+    enum: ['website', 'manual'],
+    default: 'website',
   },
 }, { timestamps: true });
 

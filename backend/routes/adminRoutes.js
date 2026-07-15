@@ -39,6 +39,8 @@ import {
   getSiteSettings,
   updateSiteSettings,
   getLeads,
+  addLead,
+  updateLead,
   getScheduledPosts,
 } from '../controllers/adminController.js';
 
@@ -104,6 +106,8 @@ router.delete('/waitlist/:id', deleteWaitlistEntry);
 
 // ─── Leads ────────────────────────────────────────────────────────────────────
 router.get('/leads', getLeads);
+router.post('/leads', addLead);
+router.put('/leads/:id', updateLead);
 
 // ─── Meta Testers ─────────────────────────────────────────────────────────────
 router.get('/meta-testers', getMetaTesterRequests);
