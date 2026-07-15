@@ -15,6 +15,7 @@ import Testers from './pages/Testers';
 import LandingGallery from './pages/LandingGallery';
 import ScheduledPosts from './pages/ScheduledPosts';
 import AdminEntry from './pages/AdminEntry';
+import Generations from './pages/Generations';
 import './App.css';
 
 // Protected Route for Admin
@@ -49,6 +50,7 @@ function App() {
             <Route path="testers" element={<Testers />} />
             <Route path="landing-gallery" element={<LandingGallery />} />
             <Route path="scheduled-posts" element={<ScheduledPosts />} />
+            <Route path="generations" element={<Generations />} />
           </Route>
         </Route>
 
