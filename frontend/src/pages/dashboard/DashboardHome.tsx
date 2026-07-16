@@ -8,9 +8,15 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 import { FESTIVALS_2026 } from '@/components/FestivalCalendar';
 
-const getNextFestival = () => {
+const getNextFestival = (country?: string) => {
   const todayStr = new Date().toISOString().split('T')[0];
-  const sorted = [...FESTIVALS_2026].sort((a, b) => a.date.localeCompare(b.date));
+  let validFestivals = FESTIVALS_2026;
+  
+  if (country && country.toLowerCase() !== 'india' && country.toLowerCase() !== 'nepal') {
+    validFestivals = FESTIVALS_2026.filter((f) => !['hindu', 'regional', 'national'].includes(f.type));
+  }
+
+  const sorted = [...validFestivals].sort((a, b) => a.date.localeCompare(b.date));
   let next = sorted.find(f => f.date >= todayStr);
   if (!next) next = sorted[0];
   return next;
@@ -364,7 +370,7 @@ const DashboardHome = () => {
 
               {/* Row 3: Coming up festival */}
               {(() => {
-                const nextFest = getNextFestival();
+                const nextFest = getNextFestival(profile?.location?.country);
                 return (
                   <div
                     onClick={() => navigate('/dashboard/strategy?mode=festival')}
