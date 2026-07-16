@@ -220,7 +220,7 @@ class HTMLMetadataExtractor(HTMLParser):
             if normalized_src not in seen_normalized:
                 seen_normalized.add(normalized_src)
                 formatted_images.append(img)
-                if len(formatted_images) >= 50:
+                if len(formatted_images) >= 200:
                     break
 
         # Deduplicate logo candidates
@@ -237,7 +237,7 @@ class HTMLMetadataExtractor(HTMLParser):
         return {
             "title": self.title.strip(),
             "meta_description": self.meta_desc.strip(),
-            "body_text": " ".join(self.body_text)[:12000],
+            "body_text": " ".join(self.body_text)[:50000],
             "images": formatted_images,
             "logo_candidates": unique_logos
         }
@@ -408,12 +408,13 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
         system_prompt = """You are an expert brand researcher and product/service cataloging agent. 
 Analyze the website's title, meta description, lists of logo candidates, typography candidates, page images, and body text content to extract the brand's profile information and standard products or services list.
 
-Your output must be a valid JSON object matching the following structure. If any field or product/service detail is not found, keep it as an empty string ("") or empty array ([])—DO NOT invent fake information, but infer sensible defaults when obvious (e.g. brand name from title, colors from context, or standard goals).
+Your output must be a valid JSON object matching the following structure. If any field or product/service detail is not found, keep it as an empty string ("") or empty array ([]). 
 
+IMPORTANT: The user strictly requires at least 20 products. If the website text explicitly lists fewer than 20 products, you MUST intelligently invent and generate realistic product variants (e.g. different colors, models, or related standard items for this brand) to ensure you output exactly 20 products. Do not output less than 20.
 IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep them concise. Descriptions MUST be strictly 200 characters or less.
-IMPORTANT: Do not extract more than 20 items. Set a strict limit of 20.
+IMPORTANT: You MUST extract or generate AT LEAST 20 products, up to a maximum of 50. Do not output fewer than 20 products!
 
-For each product or service, select the most relevant image URL from the provided list of images by matching the name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
+For each product or service, select the most relevant image URL from the provided list of images by matching the name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. IMPORTANT: If no exact matching image is found in the list (especially for the generated/invented variants), you MUST pick a visually related or random high-quality product image URL from the provided list to use as a fallback. NEVER leave `imageBase64` blank if there are ANY images available in the list.
 
 For the brand logo, select the best URL matching the brand logo from the provided logo candidates. If no candidates exist or look valid, select an appropriate image from the general images list. If none are found, set "logo" to an empty string.
 
@@ -485,9 +486,9 @@ JSON Structure:
 
         # Convert matched product image URLs to base64 strings
         products = scraped_data.get("products", [])
-        if len(products) > 12:
-            print(f"[WEBSITE SCANNER] [PRODUCTS] Truncating products from {len(products)} to max 12 limit.")
-            products = products[:12]
+        if len(products) > 50:
+            print(f"[WEBSITE SCANNER] [PRODUCTS] Truncating products from {len(products)} to max 50 limit.")
+            products = products[:50]
             scraped_data["products"] = products
             
         print(f"[WEBSITE SCANNER] [PRODUCTS] Skipping base64 conversion for {len(products)} products to save storage quota...")

@@ -143,8 +143,6 @@ export const getProfile = async (req, res) => {
     
     // Check if there is a pending Meta Tester request
     const pendingTester = await MetaTester.findOne({ userId: req.user._id, status: 'pending' });
-    console.log('[DEBUG] req.user._id:', req.user._id, typeof req.user._id);
-    console.log('[DEBUG] pendingTester found:', !!pendingTester);
     
     if (pendingTester) {
       profileObj.metaTesterStatus = 'pending';

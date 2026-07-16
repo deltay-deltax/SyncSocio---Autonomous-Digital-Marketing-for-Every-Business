@@ -34,7 +34,7 @@ export const startInstagramScheduler = () => {
                     const claimed = await PostAnalysis.findOneAndUpdate(
                         { _id: post._id, status: 'scheduled' }, // only claim if still 'scheduled'
                         { $set: { status: 'publishing' } },
-                        { new: false }
+                        { returnDocument: 'before' }
                     );
 
                     if (!claimed) {
@@ -62,16 +62,16 @@ export const startInstagramScheduler = () => {
                         await PostAnalysis.findByIdAndUpdate(post._id, { $set: { status: 'published' } });
                         console.log(`✅ [IG SCHEDULER] Successfully published to Instagram for Post: ${post._id}`);
                     } else {
-                        // Revert to 'scheduled' so it can be retried on the next cron tick
-                        await PostAnalysis.findByIdAndUpdate(post._id, { $set: { status: 'scheduled' } });
-                        console.log(`❌ [IG SCHEDULER] Publish failed for Post: ${post._id} — reverted to scheduled`);
+                        // Mark as 'failed' instead of reverting to 'scheduled' to prevent infinite retries
+                        await PostAnalysis.findByIdAndUpdate(post._id, { $set: { status: 'failed' } });
+                        console.log(`❌ [IG SCHEDULER] Publish failed for Post: ${post._id} — marked as failed`);
                     }
 
                 } catch (publishError) {
                     console.error(`❌ [IG SCHEDULER] Error publishing post ${post._id}:`, publishError.message);
-                    // Revert to 'scheduled' on error so it can be retried
+                    // Mark as 'failed' on error so it does not infinite loop
                     try {
-                        await PostAnalysis.findByIdAndUpdate(post._id, { $set: { status: 'scheduled' } });
+                        await PostAnalysis.findByIdAndUpdate(post._id, { $set: { status: 'failed' } });
                     } catch (_) {}
                 }
                 
