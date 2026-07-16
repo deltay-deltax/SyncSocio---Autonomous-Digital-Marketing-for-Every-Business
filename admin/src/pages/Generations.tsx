@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight, Image as ImageIcon, Film, Layers, RefreshCw } from 'lucide-react';
 
-const API = 'http://localhost:5050/api/admin';
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 
 interface Generation {
   _id: string;
