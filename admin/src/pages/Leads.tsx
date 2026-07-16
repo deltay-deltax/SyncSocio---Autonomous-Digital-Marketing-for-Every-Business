@@ -42,6 +42,7 @@ const formatPhone = (phone: string) => {
     const cc = isPlus ? cleaned.substring(0, countryCodeLength) : `+${cleaned.substring(0, countryCodeLength)}`;
     const num = cleaned.substring(countryCodeLength);
     return `${cc} ${num.substring(0, 5)} ${num.substring(5)}`;
+    return phone.replace(/(\+\d{2})(\d+)/, '$1 $2');
   }
   
   return phone;
@@ -69,6 +70,12 @@ export default function Leads() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newLead, setNewLead] = useState({
     name: '', email: '', phone: '', businessName: '', website: '', businessCategory: '', customCategory: '', intent: 'manual'
+  });
+
+  // Manual Add Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newLead, setNewLead] = useState({
+    name: '', email: '', phone: '', businessName: '', website: '', businessCategory: '', intent: 'manual'
   });
 
   const fetchEntries = useCallback(async () => {
@@ -165,6 +172,19 @@ export default function Leads() {
     });
     setEditingId(entry._id);
     setShowAddModal(true);
+      const res = await axios.post(`${API}/leads`, newLead, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        setEntries([res.data.lead, ...entries]);
+        setTotal(prev => prev + 1);
+        setShowAddModal(false);
+        setNewLead({ name: '', email: '', phone: '', businessName: '', website: '', businessCategory: '', intent: 'manual' });
+      }
+    } catch (error) {
+      console.error('Failed to add lead:', error);
+      alert('Failed to add lead');
+    }
   };
 
   const handleExportCSV = () => {
@@ -269,6 +289,45 @@ export default function Leads() {
               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                 <Users className="text-slate-400" size={32} />
               </div>
+
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Leads & Brands Management
+            </h2>
+            <p className="text-slate-500 mt-1 text-sm">
+              Track and manage your approached brands. <span className="font-semibold text-slate-700">{total.toLocaleString()}</span> entries total.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm shadow-blue-600/20"
+            >
+              <Plus size={16} /> Add Brand
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium transition-all shadow-sm"
+            >
+              <Download size={16} /> Export
+            </button>
+          </div>
+        </div>
+
+        {/* Entries Grid */}
+        <div className="grid grid-cols-1 gap-6">
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-slate-500 text-sm font-medium">Loading your leads...</p>
+            </div>
+          ) : entries.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
+              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                <Users className="text-slate-400" size={32} />
+              </div>
               <h3 className="text-lg font-bold text-slate-900">No leads found</h3>
               <p className="text-slate-500 mt-1 text-sm max-w-md">You haven't added any brands or received any website leads yet.</p>
               <button
@@ -282,6 +341,7 @@ export default function Leads() {
             entries
               .filter((entry) => filterStatus === 'all' || entry.status === filterStatus || (!entry.status && filterStatus === 'new'))
               .map((entry) => {
+            entries.map(entry => {
               const statusConfig = getStatusConfig(entry.status || 'new');
               
               return (
@@ -378,6 +438,20 @@ export default function Leads() {
                         <Save size={12} /> Auto-saves
                       </div>
                     </div>
+                    </div>
+                  </div>
+
+                  {/* Right Sticky Note Column */}
+                  <div className="w-full xl:w-[400px] border-t xl:border-t-0 xl:border-l border-slate-200 bg-amber-50/50 flex flex-col relative group">
+                    <div className="p-4 border-b border-amber-200/50 flex items-center justify-between bg-amber-100/30">
+                      <div className="flex items-center gap-2 text-amber-700 font-bold text-sm tracking-wide">
+                        <ClipboardList size={16} className="text-amber-500" />
+                        CRM NOTES
+                      </div>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-amber-600/60 text-xs font-medium">
+                        <Save size={12} /> Auto-saves
+                      </div>
+                    </div>
                     
                     <textarea
                       defaultValue={entry.comments}
@@ -403,11 +477,13 @@ export default function Leads() {
       </div>
 
       {/* Add/Edit Lead Modal */}
+      {/* Add Lead Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
           <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
               <h3 className="text-lg font-bold text-slate-900">{editingId ? 'Edit Brand' : 'Add Brand Manually'}</h3>
+              <h3 className="text-lg font-bold text-slate-900">Add Brand Manually</h3>
               <button 
                 onClick={() => setShowAddModal(false)} 
                 className="text-slate-400 hover:text-slate-600 bg-white border border-slate-200 p-1.5 rounded-lg transition-colors shadow-sm"
@@ -421,6 +497,9 @@ export default function Leads() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Name</label>
                 <input 
                   type="text" 
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Name <span className="text-red-500">*</span></label>
+                <input 
+                  required type="text" 
                   value={newLead.businessName} onChange={e => setNewLead({...newLead, businessName: e.target.value})}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
                   placeholder="e.g. Acme Corp"
@@ -432,6 +511,9 @@ export default function Leads() {
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Name</label>
                   <input 
                     type="text" 
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Name <span className="text-red-500">*</span></label>
+                  <input 
+                    required type="text" 
                     value={newLead.name} onChange={e => setNewLead({...newLead, name: e.target.value})}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
                     placeholder="John Doe"
@@ -445,6 +527,12 @@ export default function Leads() {
                     value={newLead.phone}
                     onChange={(value) => setNewLead({...newLead, phone: value || ''})}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none phone-input-container"
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone <span className="text-red-500">*</span></label>
+                  <input 
+                    required type="tel" 
+                    value={newLead.phone} onChange={e => setNewLead({...newLead, phone: e.target.value})}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
+                    placeholder="+1 234 567 8900"
                   />
                 </div>
               </div>
@@ -453,6 +541,9 @@ export default function Leads() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
                 <input 
                   type="email" 
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
+                <input 
+                  required type="email" 
                   value={newLead.email} onChange={e => setNewLead({...newLead, email: e.target.value})}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
                   placeholder="contact@acme.com"
@@ -476,6 +567,14 @@ export default function Leads() {
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none cursor-pointer" 
                   >
                     <option value="">Select category (optional)</option>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Category <span className="text-red-500">*</span></label>
+                  <select 
+                    required
+                    value={newLead.businessCategory} onChange={e => setNewLead({...newLead, businessCategory: e.target.value})}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none cursor-pointer" 
+                  >
+                    <option value="" disabled>Select category</option>
                     <option value="E-commerce">E-commerce</option>
                     <option value="SaaS">SaaS</option>
                     <option value="Agency">Agency</option>
@@ -494,6 +593,8 @@ export default function Leads() {
                       placeholder="Type your category here..."
                     />
                   )}
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
               </div>
               
@@ -510,6 +611,7 @@ export default function Leads() {
                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-all shadow-sm shadow-blue-600/20 flex items-center gap-2"
                 >
                   <Save size={16} /> {editingId ? 'Save Changes' : 'Save Brand'}
+                  <Save size={16} /> Save Brand
                 </button>
               </div>
             </form>

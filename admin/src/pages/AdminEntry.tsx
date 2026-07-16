@@ -13,6 +13,7 @@ export default function AdminEntry() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02] pointer-events-none"></div>
+      
 
       {/* Header */}
       <header className="h-16 bg-card/80 backdrop-blur-lg border-b border-border z-20 flex items-center justify-between px-6">
@@ -41,6 +42,7 @@ export default function AdminEntry() {
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Admin Dashboard Card */}
+            <div 
             <div
               onClick={() => navigate('/dashboard')}
               className="glass-card group cursor-pointer hover:border-blue-500/50 transition-all duration-300 p-8 rounded-2xl flex flex-col items-center text-center hover-lift"
@@ -50,6 +52,7 @@ export default function AdminEntry() {
               </div>
               <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-400 transition-colors">Admin Dashboard</h3>
               <p className="text-muted-foreground mb-8">Manage users, transactions, analytics, brands, coupons, and system health.</p>
+              
 
               <div className="mt-auto flex items-center text-blue-500 font-medium group-hover:gap-2 transition-all">
                 Enter Dashboard <ArrowRight className="w-5 h-5 ml-1" />
@@ -57,6 +60,7 @@ export default function AdminEntry() {
             </div>
 
             {/* Leads & Brands Management Card */}
+            <div 
             <div
               onClick={() => navigate('/leads-management')}
               className="glass-card group cursor-pointer hover:border-violet-500/50 transition-all duration-300 p-8 rounded-2xl flex flex-col items-center text-center hover-lift"
@@ -66,6 +70,7 @@ export default function AdminEntry() {
               </div>
               <h3 className="text-2xl font-bold mb-3 group-hover:text-violet-400 transition-colors">Leads & Brands</h3>
               <p className="text-muted-foreground mb-8">Track approached brands, manage statuses, sticky notes, and add new leads manually.</p>
+              
 
               <div className="mt-auto flex items-center text-violet-500 font-medium group-hover:gap-2 transition-all">
                 Enter Leads Management <ArrowRight className="w-5 h-5 ml-1" />
