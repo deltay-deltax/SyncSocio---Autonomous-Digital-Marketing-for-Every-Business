@@ -705,8 +705,17 @@ const DashboardStrategy = () => {
   const [language, setLanguage] = useState<string>('english');
 
   React.useEffect(() => {
-    if (profile?.location?.country?.toLowerCase() === 'nepal') {
+    const c = profile?.location?.country?.toLowerCase();
+    if (c === 'nepal') {
       if (language !== 'english' && language !== 'nepali') {
+        setLanguage('english');
+      }
+    } else if (c === 'india') {
+      if (language !== 'english' && language !== 'hindi' && language !== 'hinglish') {
+        setLanguage('english');
+      }
+    } else {
+      if (language !== 'english') {
         setLanguage('english');
       }
     }
@@ -4417,14 +4426,22 @@ const LanguagePicker = ({
   let availableLanguages = languages;
 
   if (isAiUgc) {
-    availableLanguages = country?.toLowerCase() === 'nepal'
-      ? [{ id: 'english', label: 'English', flag: '🇬🇧' }]
-      : languages.filter(l => l.id === 'english' || l.id === 'hindi');
-  } else if (country?.toLowerCase() === 'nepal') {
-    availableLanguages = [
-      { id: 'english', label: 'English', flag: '🇬🇧' },
-      { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
-    ];
+    if (country?.toLowerCase() === 'nepal') {
+      availableLanguages = [{ id: 'english', label: 'English', flag: '🇬🇧' }];
+    } else if (country?.toLowerCase() === 'india') {
+      availableLanguages = languages.filter(l => l.id === 'english' || l.id === 'hindi');
+    } else {
+      availableLanguages = languages.filter(l => l.id === 'english');
+    }
+  } else {
+    if (country?.toLowerCase() === 'nepal') {
+      availableLanguages = languages.filter(l => l.id === 'english' || l.id === 'nepali');
+    } else if (country?.toLowerCase() === 'india') {
+      availableLanguages = languages.filter(l => l.id === 'english' || l.id === 'hindi' || l.id === 'hinglish');
+    } else {
+      // For all other new countries, strictly lock to English
+      availableLanguages = languages.filter(l => l.id === 'english');
+    }
   }
 
   return (
