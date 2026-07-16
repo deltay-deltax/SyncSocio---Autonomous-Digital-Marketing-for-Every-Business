@@ -107,9 +107,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             # Image-to-image flow using GPT-Image-2 Edit endpoint
             print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image with {len(data_urls)} refs...")
             print(f"  has_ref    : YES ({size_kb} KB)")
-            print(f"\n--- PROMPT SENT TO FAL gpt-image-2/edit ---")
-            print(prompt)
-            print("--------------------------------------\n")
+            print(f"  prompt     : {prompt[:120].strip()}...")
 
             edit_arguments = {
                 "prompt": prompt,
@@ -146,9 +144,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             print(f"\nFAL ENGINE (gpt-image-2): Generating static image...")
             print(f"  image_size : {image_size}")
             print(f"  has_ref    : NO")
-            print(f"\n--- PROMPT SENT TO FAL gpt-image-2 ---")
-            print(prompt)
-            print("--------------------------------------\n")
+            print(f"  prompt     : {prompt[:120].strip()}...")
 
             arguments = {
                 "prompt": prompt,
@@ -163,13 +159,11 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
         # Extract image URL and convert to base64 for consistent return shape
         if result and "images" in result and len(result["images"]) > 0:
             image_url = result["images"][0]["url"]
-            import requests
-            response = requests.get(image_url)
-            if response.status_code == 200:
-                b64_image = base64.b64encode(response.content).decode('utf-8')
-                return {"image": b64_image, "status": "success"}
-            else:
-                raise Exception(f"Failed to download image from FAL response: {response.status_code}")
+            # Return the Fal CDN URL directly — no need to download and re-encode.
+            # Storing the raw base64 (3-5 MB per image) causes OOM on multi-post runs.
+            # All downstream callers (Seedance stage-2, strategy agent, autopilot)
+            # handle HTTPS URLs just fine.
+            return {"image": image_url, "status": "success"}
         else:
             raise Exception("No image data in FAL response")
 
@@ -283,16 +277,10 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                 else:
                     raise e
             
-            # Extract and convert to base64
+            # Return the Fal CDN URL directly — avoids downloading 3-5 MB per slide
             if result and "images" in result and len(result["images"]) > 0:
                 image_url = result["images"][0]["url"]
-                
-                response = requests.get(image_url)
-                if response.status_code == 200:
-                    b64_image = base64.b64encode(response.content).decode('utf-8')
-                    return {"image": b64_image, "status": "success", "index": i}
-                else:
-                    raise Exception(f"Failed to download carousel slide {i+1}")
+                return {"image": image_url, "status": "success", "index": i}
             else:
                 raise Exception(f"No image data for slide {i+1}")
 
@@ -471,19 +459,42 @@ def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:
     
     try:
         print(f"FAL ENGINE (Seedance 2.0 Image-to-Video Fast): Generating {duration}s 720p video...")
-        if image.startswith("http://") or image.startswith("https://") or image.startswith("data:"):
-            image_url = image
+
+        # ── Step 1: Resolve image to a public HTTPS URL ──────────────────────
+        # Seedance rejects large base64 data URIs with 422 errors.
+        # Always upload to Fal CDN to get a stable public URL.
+        if image.startswith("http://") or image.startswith("https://"):
+            image_url = image  # Already a public URL, use directly
         else:
-            if "base64," in image:
-                image = image.split("base64,")[1]
-            image_url = f"data:image/jpeg;base64,{image}"
+            # Strip data URI prefix if present
+            if image.startswith("data:"):
+                # e.g. "data:image/webp;base64,UklGR..."
+                header, raw_b64 = image.split(",", 1)
+                mime = header.split(":")[1].split(";")[0]  # e.g. "image/webp"
+            else:
+                raw_b64 = image.split("base64,")[1] if "base64," in image else image
+                # Detect MIME type based on base64 magic bytes
+                if raw_b64.startswith("iVBORw0KGgo"):
+                    mime = "image/png"
+                elif raw_b64.startswith("UklGR"):
+                    mime = "image/webp"
+                elif raw_b64.startswith("R0lGOD"):
+                    mime = "image/gif"
+                else:
+                    mime = "image/jpeg"
+
+            print(f"  Uploading base64 image ({mime}) to Fal CDN...")
+            image_bytes = base64.b64decode(raw_b64)
+            # fal_client.upload() returns a public CDN URL
+            image_url = fal_client.upload(image_bytes, mime)
+            print(f"  ✅ Uploaded to: {image_url}")
         
         arguments = {
             "prompt": prompt,
             "image_url": image_url,
             "resolution": "720p",
             "aspect_ratio": aspect_ratio,
-            "duration": duration,
+            "duration": str(duration),
             "generate_audio": True
         }
         
@@ -512,5 +523,7 @@ def generate_fal_video_seedance(prompt: str, image: str, aspect_ratio: str = "9:
             
     except Exception as e:
         print(f"FAL SEEDANCE ENGINE ERROR: {str(e)}")
-        # Fallback to minimax
-        return generate_fal_video_minimax(prompt, "6s")
+        return {
+            "status": "error",
+            "message": f"Seedance video generation failed: {str(e)}"
+        }

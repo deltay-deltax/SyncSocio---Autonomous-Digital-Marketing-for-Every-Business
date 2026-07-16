@@ -174,7 +174,7 @@ def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, 
             if res_logo and res_logo not in task_refs:
                 task_refs.append(res_logo)
             
-        print(f"\n--- PROMPT SENT TO FAL gpt-image-2 (Autopilot) ---\n{rich_prompt}\n--------------------------------------\n")
+        print(f"  prompt     : {rich_prompt[:120].strip()}...")
             
         result = generate_fal_image_gpt2(prompt=rich_prompt, image=task_refs, image_size="square_hd")
         post["image"] = result.get("image", "")
