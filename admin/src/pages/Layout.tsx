@@ -71,6 +71,20 @@ export default function Layout() {
           </button>
         </div>
 
+        {/* Switch to Leads Button */}
+        <div className="px-3 py-3 border-b border-border">
+          <button 
+            onClick={() => navigate('/leads-management')}
+            className="w-full flex items-center justify-between bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 text-violet-400 px-3 py-2.5 rounded-xl transition-all text-sm font-medium group"
+          >
+            <div className="flex items-center gap-2">
+              <ClipboardList size={16} />
+              <span>Switch to Leads</span>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
           {NAV_ITEMS.map(({ to, icon: Icon, label }) => (

@@ -4,8 +4,29 @@ import axios from 'axios';
 import { 
   ArrowLeft, Save, Bot, Smartphone, Mail, Globe, 
   Trash2, Edit, Check, X, User, 
-  Layers, Award, Radio, RefreshCw
+  Layers, Award, Radio, RefreshCw,
+  Store, Send, Layout, Database, ShieldCheck, Lock, CheckCircle2, Link2,
+  MessageCircle
 } from 'lucide-react';
+
+const InstagramIcon = ({ className, size = 24 }: { className?: string; size?: number }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
 
 interface UserData {
   _id: string;
@@ -415,464 +436,552 @@ export default function UserDetails() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-[1200px] mx-auto p-2">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
-        <div className="space-y-2">
-          <Link to="/users" className="text-sm text-blue-400 hover:underline flex items-center gap-1.5 mb-2">
-            <ArrowLeft size={14} /> Back to Users
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-2">
+        <div className="space-y-3">
+          <Link to="/users" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 mb-2 transition-colors">
+            <ArrowLeft size={16} /> Back to Users
           </Link>
           <div className="flex items-center gap-3">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">{userData.email}</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">{userData.email}</h2>
             {userData.isVerified ? (
-              <span className="px-2.5 py-0.5 bg-green-500/10 text-green-400 text-xs rounded-full font-semibold border border-green-500/20">Verified</span>
+              <span className="px-2.5 py-1 bg-green-50 text-green-600 text-xs rounded-md font-semibold border border-green-200 flex items-center gap-1">
+                <CheckCircle2 size={12} /> Verified
+              </span>
             ) : (
-              <span className="px-2.5 py-0.5 bg-yellow-500/10 text-yellow-400 text-xs rounded-full font-semibold border border-yellow-500/20">Pending</span>
+              <span className="px-2.5 py-1 bg-yellow-50 text-yellow-600 text-xs rounded-md font-semibold border border-yellow-200">Pending</span>
             )}
-            <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full font-semibold border border-blue-500/20 uppercase">
-              {userData.plan || 'Free Plan'}
+            <span className="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs rounded-md font-semibold border border-blue-200 uppercase tracking-wider">
+              {userData.plan || 'Free'}
             </span>
           </div>
-          <p className="text-muted-foreground text-sm">
-            ID: <span className="font-mono text-xs">{userData._id}</span> • Joined on {new Date(typeof userData.createdAt === 'string' ? userData.createdAt.replace(/Z$/, '') : userData.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+          <p className="text-slate-500 text-sm flex items-center gap-2">
+            <span>ID: {userData._id}</span>
+            <span className="text-slate-300">•</span>
+            <span>Joined on {new Date(typeof userData.createdAt === 'string' ? userData.createdAt.replace(/Z$/, '') : userData.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
           </p>
         </div>
         
-        <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-2xl border border-border">
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Credits Available</div>
-            <div className="text-2xl font-bold text-emerald-400">{userData.credits || 0}</div>
+        <div className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 min-w-[200px]">
+          <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+            <Database className="text-green-500" size={24} />
+          </div>
+          <div>
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Credits Available</div>
+            <div className="text-2xl font-bold text-green-500 leading-none">{userData.credits || 0}</div>
           </div>
         </div>
       </div>
 
       {/* Tabs Row */}
-      <div className="flex border-b border-border gap-2 overflow-x-auto pb-px">
-        {(['general', 'brand', 'flows', 'assets'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-3 border-b-2 font-medium text-sm transition-all capitalize whitespace-nowrap ${
-              activeTab === tab
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab === 'general' ? 'General Profile' : tab === 'brand' ? 'Brand & Setup' : tab === 'flows' ? 'DM Automations' : 'Landing Pages'}
-          </button>
-        ))}
+      <div className="flex border-b border-slate-200 gap-8">
+        {[
+          { id: 'general', label: 'General Profile', icon: User },
+          { id: 'brand', label: 'Brand & Setup', icon: Store },
+          { id: 'flows', label: 'DM Automations', icon: Send },
+          { id: 'assets', label: 'Landing Pages', icon: Layout }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-1 py-4 border-b-2 font-medium text-sm transition-all ${
+                isActive
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Icon size={16} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Panels */}
-      <div className="mt-6">
+      <div className="mt-6 pb-20">
         
         {/* Tab 1: General Info */}
         {activeTab === 'general' && (
-          <form onSubmit={handleUserSave} className="space-y-6 max-w-2xl glass-card border border-transparent rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 border-b border-border pb-4 mb-4">
-              <User className="text-blue-400" size={20} />
-              <h3 className="text-lg font-semibold text-foreground">Core User Profile Info</h3>
+          <form onSubmit={handleUserSave} className="space-y-8 bg-white border border-slate-100 rounded-2xl p-8 shadow-sm">
+            <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <User className="text-blue-500" size={20} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">Core User Profile Info</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Email Address</label>
+                <label className="text-sm font-semibold text-slate-500">Email Address</label>
                 <input
                   type="email"
                   required
                   value={userForm.email}
                   onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Full Name</label>
+                <label className="text-sm font-semibold text-slate-500">Full Name</label>
                 <input
                   type="text"
                   value={userForm.name}
                   onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
                   placeholder="e.g. Himanshu Nikam"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Subscription Plan</label>
+                <label className="text-sm font-semibold text-slate-500">Subscription Plan</label>
                 <select
                   value={userForm.plan}
                   onChange={(e) => setUserForm({ ...userForm, plan: e.target.value })}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow appearance-none"
                 >
                   <option value="">Free</option>
                   <option value="Pro">Pro</option>
+                  <option value="Starter">Starter</option>
                   <option value="Enterprise">Enterprise</option>
                 </select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Credits Balance</label>
+                <label className="text-sm font-semibold text-slate-500">Credits Balance</label>
                 <input
                   type="number"
                   required
                   value={userForm.credits}
                   onChange={(e) => setUserForm({ ...userForm, credits: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-muted/20 p-4 rounded-xl border border-border">
-              <input
-                type="checkbox"
-                id="isVerified"
-                checked={userForm.isVerified}
-                onChange={(e) => setUserForm({ ...userForm, isVerified: e.target.checked })}
-                className="h-4 w-4 bg-background border border-border rounded text-blue-500 focus:ring-blue-500"
-              />
-              <label htmlFor="isVerified" className="text-sm font-medium text-foreground cursor-pointer select-none">
-                Mark User Account as Verified
+            <div className="space-y-4 pt-4">
+              <label 
+                htmlFor="isVerified" 
+                className={`flex items-center justify-between p-5 rounded-xl border cursor-pointer transition-colors ${
+                  userForm.isVerified 
+                    ? 'bg-green-50/50 border-green-200' 
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <input
+                    type="checkbox"
+                    id="isVerified"
+                    checked={userForm.isVerified}
+                    onChange={(e) => setUserForm({ ...userForm, isVerified: e.target.checked })}
+                    className="w-5 h-5 rounded border-gray-300 text-green-500 focus:ring-green-500 bg-white"
+                  />
+                  <div>
+                    <div className={`font-bold text-sm ${userForm.isVerified ? 'text-green-700' : 'text-slate-700'}`}>Mark User Account as Verified</div>
+                    <div className="text-slate-500 text-xs mt-0.5">This user is currently verified and has full access.</div>
+                  </div>
+                </div>
+                {userForm.isVerified && <ShieldCheck className="text-green-500" size={24} />}
+              </label>
+
+              <label 
+                htmlFor="isBlocked" 
+                className={`flex items-center justify-between p-5 rounded-xl border cursor-pointer transition-colors ${
+                  userForm.isBlocked 
+                    ? 'bg-red-50/50 border-red-200' 
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <input
+                    type="checkbox"
+                    id="isBlocked"
+                    checked={userForm.isBlocked}
+                    onChange={(e) => setUserForm({ ...userForm, isBlocked: e.target.checked })}
+                    className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-500 bg-white"
+                  />
+                  <div>
+                    <div className={`font-bold text-sm ${userForm.isBlocked ? 'text-red-600' : 'text-red-500'}`}>Restrict / Block User Account Access</div>
+                    <div className="text-slate-500 text-xs mt-0.5">This will restrict the user from accessing the platform.</div>
+                  </div>
+                </div>
+                {userForm.isBlocked && <Lock className="text-red-500" size={24} />}
+                {!userForm.isBlocked && <Lock className="text-red-400 opacity-50" size={24} />}
               </label>
             </div>
 
-            <div className="flex items-center gap-3 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
-              <input
-                type="checkbox"
-                id="isBlocked"
-                checked={userForm.isBlocked}
-                onChange={(e) => setUserForm({ ...userForm, isBlocked: e.target.checked })}
-                className="h-4 w-4 bg-background border border-border rounded text-red-500 focus:ring-red-500"
-              />
-              <label htmlFor="isBlocked" className="text-sm font-medium text-red-400 cursor-pointer select-none">
-                Restrict / Block User Account Access
-              </label>
+            <div className="pt-2">
+              <button
+                type="submit"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors"
+              >
+                <Save size={18} /> Save Profile Changes
+              </button>
             </div>
-
-            <button
-              type="submit"
-              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
-            >
-              <Save size={16} /> Save Profile Changes
-            </button>
           </form>
         )}
 
         {/* Tab 2: Brand Profile & Integrations */}
         {activeTab === 'brand' && (
-          <form onSubmit={handleBrandSave} className="space-y-8 max-w-4xl">
-            {/* Core Brand Details */}
-            <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-3 border-b border-border pb-4">
-                <Award className="text-blue-400" size={20} />
-                <h3 className="text-lg font-semibold text-foreground">Brand Profile Settings</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Brand Name</label>
-                  <input
-                    type="text"
-                    value={brandForm.brandName}
-                    onChange={(e) => setBrandForm({ ...brandForm, brandName: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                    placeholder="Brand Name"
-                  />
+          <form onSubmit={handleBrandSave} className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-8 max-w-[1200px] items-start">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Core Brand Details */}
+              <div className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm space-y-6">
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                    <Store className="text-blue-500" size={20} />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">Brand Profile Settings</h3>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Social Handle</label>
-                  <input
-                    type="text"
-                    value={brandForm.socialHandle}
-                    onChange={(e) => setBrandForm({ ...brandForm, socialHandle: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                    placeholder="@socialhandle"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Website</label>
-                  <input
-                    type="text"
-                    value={brandForm.website}
-                    onChange={(e) => setBrandForm({ ...brandForm, website: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                    placeholder="https://example.com"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">City</label>
+                    <label className="text-xs font-semibold text-slate-500">Brand Name</label>
+                    <input
+                      type="text"
+                      value={brandForm.brandName}
+                      onChange={(e) => setBrandForm({ ...brandForm, brandName: e.target.value })}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
+                      placeholder="Brand Name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500">Social Handle</label>
+                    <input
+                      type="text"
+                      value={brandForm.socialHandle}
+                      onChange={(e) => setBrandForm({ ...brandForm, socialHandle: e.target.value })}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
+                      placeholder="@socialhandle"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_0.5fr_0.5fr] gap-x-6 gap-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500">Website</label>
+                    <input
+                      type="text"
+                      value={brandForm.website}
+                      onChange={(e) => setBrandForm({ ...brandForm, website: e.target.value })}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
+                      placeholder="https://example.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500">City</label>
                     <input
                       type="text"
                       value={brandForm.city}
                       onChange={(e) => setBrandForm({ ...brandForm, city: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
                       placeholder="City"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Country</label>
+                    <label className="text-xs font-semibold text-slate-500">Country</label>
                     <input
                       type="text"
                       value={brandForm.country}
                       onChange={(e) => setBrandForm({ ...brandForm, country: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
                       placeholder="Country"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Business Category</label>
-                  <input
-                    type="text"
-                    value={brandForm.businessCategory}
-                    onChange={(e) => setBrandForm({ ...brandForm, businessCategory: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                    placeholder="e.g. E-Commerce, Software, Creator"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500">Business Category</label>
+                    <select
+                      value={brandForm.businessCategory}
+                      onChange={(e) => setBrandForm({ ...brandForm, businessCategory: e.target.value })}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow appearance-none"
+                    >
+                      <option value="">Select Category</option>
+                      <option value="Fashion & Apparel">Fashion & Apparel</option>
+                      <option value="E-Commerce">E-Commerce</option>
+                      <option value="Software">Software</option>
+                      <option value="Creator">Creator</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500">Natural Agent State</label>
+                    <select
+                      value={brandForm.neuralState}
+                      onChange={(e) => setBrandForm({ ...brandForm, neuralState: e.target.value })}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow appearance-none"
+                    >
+                      <option value="Idle">Idle</option>
+                      <option value="Auditing">Auditing</option>
+                      <option value="Generating Content">Generating Content</option>
+                      <option value="Active Pollers">Active Pollers</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Neural Agent State</label>
-                  <select
-                    value={brandForm.neuralState}
-                    onChange={(e) => setBrandForm({ ...brandForm, neuralState: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                  >
-                    <option value="Idle">Idle</option>
-                    <option value="Auditing">Auditing</option>
-                    <option value="Generating Content">Generating Content</option>
-                    <option value="Active Pollers">Active Pollers</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Unique Selling Proposition (USP)</label>
+                <div className="space-y-2 relative">
+                  <label className="text-xs font-semibold text-slate-500">Unique Selling Proposition (USP)</label>
                   <textarea
                     value={brandForm.usp}
                     onChange={(e) => setBrandForm({ ...brandForm, usp: e.target.value })}
-                    rows={3}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
+                    rows={4}
+                    className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow resize-none"
                     placeholder="Describe brand's core value proposition..."
                   />
+                  <div className="absolute bottom-3 right-4 text-[10px] text-slate-400 font-medium">{brandForm.usp.length}/250</div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Brand Tone</label>
-                    <input
-                      type="text"
+                    <label className="text-xs font-semibold text-slate-500">Brand Tone</label>
+                    <select
                       value={brandForm.brandTone}
                       onChange={(e) => setBrandForm({ ...brandForm, brandTone: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                      placeholder="e.g. Professional, Friendly, Bold"
-                    />
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow appearance-none"
+                    >
+                      <option value="">Select Tone</option>
+                      <option value="Warm & Friendly">Warm & Friendly</option>
+                      <option value="Professional">Professional</option>
+                      <option value="Bold">Bold</option>
+                    </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Visual Vibe</label>
-                    <input
-                      type="text"
+                    <label className="text-xs font-semibold text-slate-500">Visual Vibe</label>
+                    <select
                       value={brandForm.visualVibe}
                       onChange={(e) => setBrandForm({ ...brandForm, visualVibe: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                      placeholder="e.g. Minimalist, Dark Neon, High Contrast"
-                    />
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow appearance-none"
+                    >
+                      <option value="">Select Vibe</option>
+                      <option value="Minimalist">Minimalist</option>
+                      <option value="Dark Neon">Dark Neon</option>
+                      <option value="High Contrast">High Contrast</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Target Audiences (Comma separated)</label>
+                    <label className="text-xs font-semibold text-slate-500">Target Audience (Comma separated)</label>
                     <input
                       type="text"
                       value={brandForm.targetAudiences}
                       onChange={(e) => setBrandForm({ ...brandForm, targetAudiences: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                      placeholder="Developers, Tech Savvy Teens, Small Businesses"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
+                      placeholder="e.g. Students, Young Adults"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Competitors (Comma separated)</label>
+                    <label className="text-xs font-semibold text-slate-500">Competitors (Comma separated)</label>
                     <input
                       type="text"
                       value={brandForm.competitors}
                       onChange={(e) => setBrandForm({ ...brandForm, competitors: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:border-blue-500 focus:outline-none text-sm"
-                      placeholder="CompetitorA, CompetitorB"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow"
+                      placeholder="e.g. Nike, Adidas"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 bg-muted/20 p-4 rounded-xl border border-border">
-                  <input
-                    type="checkbox"
-                    id="DM_Automation_Service"
-                    checked={brandForm.DM_Automation_Service}
-                    onChange={(e) => setBrandForm({ ...brandForm, DM_Automation_Service: e.target.checked })}
-                    className="h-4 w-4 bg-background border border-border rounded text-blue-500 focus:ring-blue-500"
-                  />
-                  <label htmlFor="DM_Automation_Service" className="text-sm font-medium text-foreground cursor-pointer select-none">
-                    Enable Agent DM Automation Engine
+                <div className="pt-2">
+                  <label 
+                    htmlFor="DM_Automation_Service" 
+                    className="flex items-center gap-4 p-5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      id="DM_Automation_Service"
+                      checked={brandForm.DM_Automation_Service}
+                      onChange={(e) => setBrandForm({ ...brandForm, DM_Automation_Service: e.target.checked })}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 bg-white"
+                    />
+                    <div>
+                      <div className="font-bold text-sm text-slate-900">Enable Agent DM Automation Engine</div>
+                      <div className="text-slate-500 text-xs mt-0.5">Allow system to handle and automate DM conversations.</div>
+                    </div>
                   </label>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors"
+              >
+                <Save size={18} /> Save Brand Settings
+              </button>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Integrations & Credentials Override */}
+              <div className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm space-y-6">
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                    <Link2 className="text-blue-500" size={20} />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">Integrations & Credentials Override</h3>
+                </div>
+
+                {/* Instagram */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:border-slate-200 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center shrink-0">
+                        <InstagramIcon className="text-pink-500" size={20} />
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm text-slate-900">Instagram Integration</div>
+                        <div className="text-slate-500 text-xs mt-0.5">Connect and manage your Instagram account.</div>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={brandForm.instagramIsConnected}
+                        onChange={(e) => setBrandForm({ ...brandForm, instagramIsConnected: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                  
+                  {brandForm.instagramIsConnected && (
+                    <div className="grid grid-cols-1 gap-4 pt-2 pl-4 border-l-2 border-slate-100 ml-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500">IG Username</label>
+                        <input
+                          type="text"
+                          value={brandForm.instagramUsername}
+                          onChange={(e) => setBrandForm({ ...brandForm, instagramUsername: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500">IG Account ID</label>
+                        <input
+                          type="text"
+                          value={brandForm.instagramUserId}
+                          onChange={(e) => setBrandForm({ ...brandForm, instagramUserId: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500">IG Access Token</label>
+                        <input
+                          type="text"
+                          value={brandForm.instagramAccessToken}
+                          onChange={(e) => setBrandForm({ ...brandForm, instagramAccessToken: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Gmail */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:border-slate-200 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                        <Mail className="text-red-500" size={20} />
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm text-slate-900">Gmail Connection</div>
+                        <div className="text-slate-500 text-xs mt-0.5">Connect Gmail to enable email notifications.</div>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={brandForm.gmailIsConnected}
+                        onChange={(e) => setBrandForm({ ...brandForm, gmailIsConnected: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                  
+                  {brandForm.gmailIsConnected && (
+                    <div className="grid grid-cols-1 gap-4 pt-2 pl-4 border-l-2 border-slate-100 ml-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500">Connected Email</label>
+                        <input
+                          type="email"
+                          value={brandForm.gmailEmail}
+                          onChange={(e) => setBrandForm({ ...brandForm, gmailEmail: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* WhatsApp */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:border-slate-200 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                        <Smartphone className="text-green-500" size={20} />
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm text-slate-900">WhatsApp Business API</div>
+                        <div className="text-slate-500 text-xs mt-0.5">Connect WhatsApp API for messaging capabilities.</div>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={brandForm.whatsappIsConnected}
+                        onChange={(e) => setBrandForm({ ...brandForm, whatsappIsConnected: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                  
+                  {brandForm.whatsappIsConnected && (
+                    <div className="grid grid-cols-1 gap-4 pt-2 pl-4 border-l-2 border-slate-100 ml-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500">WhatsApp Number</label>
+                        <input
+                          type="text"
+                          value={brandForm.whatsappNumber}
+                          onChange={(e) => setBrandForm({ ...brandForm, whatsappNumber: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          placeholder="+919876543210"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500">Phone ID</label>
+                        <input
+                          type="text"
+                          value={brandForm.whatsappPhoneId}
+                          onChange={(e) => setBrandForm({ ...brandForm, whatsappPhoneId: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500">Access Token</label>
+                        <input
+                          type="text"
+                          value={brandForm.whatsappAccessToken}
+                          onChange={(e) => setBrandForm({ ...brandForm, whatsappAccessToken: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-
-            {/* Social & Channel Connections */}
-            <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-3 border-b border-border pb-4">
-                <Layers className="text-blue-400" size={20} />
-                <h3 className="text-lg font-semibold text-foreground">Integrations & Credentials Override</h3>
-              </div>
-
-              {/* Instagram */}
-              <div className="p-4 bg-muted/10 rounded-xl border border-border space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-semibold text-foreground">
-                    <Radio className="text-pink-500" size={18} />
-                    Instagram Integration
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={brandForm.instagramIsConnected}
-                      onChange={(e) => setBrandForm({ ...brandForm, instagramIsConnected: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-                  </label>
-                </div>
-                
-                {brandForm.instagramIsConnected && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">IG Username</label>
-                      <input
-                        type="text"
-                        value={brandForm.instagramUsername}
-                        onChange={(e) => setBrandForm({ ...brandForm, instagramUsername: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">IG Account ID</label>
-                      <input
-                        type="text"
-                        value={brandForm.instagramUserId}
-                        onChange={(e) => setBrandForm({ ...brandForm, instagramUserId: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">IG Access Token</label>
-                      <input
-                        type="text"
-                        value={brandForm.instagramAccessToken}
-                        onChange={(e) => setBrandForm({ ...brandForm, instagramAccessToken: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground text-xs focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Gmail */}
-              <div className="p-4 bg-muted/10 rounded-xl border border-border space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-semibold text-foreground">
-                    <Mail className="text-red-500" size={18} />
-                    Gmail Connection
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={brandForm.gmailIsConnected}
-                      onChange={(e) => setBrandForm({ ...brandForm, gmailIsConnected: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-                  </label>
-                </div>
-                
-                {brandForm.gmailIsConnected && (
-                  <div className="grid grid-cols-1 gap-4 pt-2">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">Connected Email</label>
-                      <input
-                        type="email"
-                        value={brandForm.gmailEmail}
-                        onChange={(e) => setBrandForm({ ...brandForm, gmailEmail: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* WhatsApp */}
-              <div className="p-4 bg-muted/10 rounded-xl border border-border space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-semibold text-foreground">
-                    <Smartphone className="text-green-500" size={18} />
-                    WhatsApp Business API
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={brandForm.whatsappIsConnected}
-                      onChange={(e) => setBrandForm({ ...brandForm, whatsappIsConnected: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-                  </label>
-                </div>
-                
-                {brandForm.whatsappIsConnected && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">WhatsApp Number</label>
-                      <input
-                        type="text"
-                        value={brandForm.whatsappNumber}
-                        onChange={(e) => setBrandForm({ ...brandForm, whatsappNumber: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground text-xs focus:outline-none focus:border-blue-500"
-                        placeholder="+919876543210"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">Phone ID</label>
-                      <input
-                        type="text"
-                        value={brandForm.whatsappPhoneId}
-                        onChange={(e) => setBrandForm({ ...brandForm, whatsappPhoneId: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">Access Token</label>
-                      <input
-                        type="text"
-                        value={brandForm.whatsappAccessToken}
-                        onChange={(e) => setBrandForm({ ...brandForm, whatsappAccessToken: e.target.value })}
-                        className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground text-xs focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
-            >
-              <Save size={16} /> Save Brand Settings
-            </button>
           </form>
         )}
 
