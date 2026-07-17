@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
 import BrandProfile from '../models/BrandProfile.js';
+import Coupon from '../models/Coupon.js';
 import { sendInvoiceEmail, generatePDFBuffer, genInvoiceNo, fmtDate, resolvePack, sendPaymentFailedEmail } from '../utils/sendInvoiceEmail.js';
 
 export const createOrder = async (req, res) => {
@@ -88,6 +89,10 @@ export const verifyPayment = async (req, res) => {
       transaction.status = 'completed';
       transaction.razorpayPaymentId = razorpay_payment_id;
       await transaction.save();
+
+      if (transaction.couponCode) {
+        await Coupon.updateOne({ code: transaction.couponCode }, { $inc: { timesUsed: 1 } });
+      }
 
       const user = await User.findById(transaction.user);
       if (user) {
