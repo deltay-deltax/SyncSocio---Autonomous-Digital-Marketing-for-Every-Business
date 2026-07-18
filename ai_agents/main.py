@@ -21,7 +21,8 @@ from dm_flow_agent import process_calendar_for_dm_flows
 from asset_agent import generate_asset_content
 from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
-from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_video_minimax, generate_fal_video_wan, generate_fal_image_gpt2
+from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_image_gpt2
+from veo_engine import generate_veo_video
 from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
 from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest, AutopilotRequest
 from post_validator import validate_post, optimize_post, publisher_node
@@ -900,8 +901,8 @@ async def api_generate_strategy(brand_info: BrandInfo):
                     "linkedPostId": post.get("id"),
                     "linkedPostTopic": post.get("topic", ""),
                     "stats": {"triggered": 0, "replied": 0, "clicked": 0, "conversions": 0},
-                    "createdAt": datetime.now(),
-                    "updatedAt": datetime.now(),
+                    "createdAt": datetime.now(timezone.utc),
+                    "updatedAt": datetime.now(timezone.utc),
                 }
                 try:
                     insert_result = await dm_flows_collection.insert_one(dm_flow_doc)
@@ -916,7 +917,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
             "userId": ObjectId(brand_info.userId),
             "posts": calendar,
             "durationWeeks": duration_weeks,
-            "createdAt": datetime.now(),
+            "createdAt": datetime.now(timezone.utc),
             "status": "active"
         }
         
@@ -1090,7 +1091,7 @@ async def api_validate_post(
             "bestPostingTime": result.get("best_posting_time", ""),
             "suggestions": result.get("suggestions", []),
             "status": "analyzed",
-            "createdAt": datetime.now()
+            "createdAt": datetime.now(timezone.utc)
         }
         insert_result = await db["post_analyses"].insert_one(analysis_entry)
 
@@ -1304,7 +1305,7 @@ async def api_direct_publish(
             "suggestions": [],
             "status": status,
             "isAgentAssisted": False, # Flag as direct
-            "createdAt": datetime.now(),
+            "createdAt": datetime.now(timezone.utc),
             "platforms": platforms_dict
         }
         
@@ -1697,12 +1698,13 @@ Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
             )
             type_str = "carousel"
         elif request.format == "Reel":
-            # Use FAL.ai Wan Video for lowest budget
-            print("Using FAL.ai Wan Video for Reel generation...")
-            result = generate_fal_video_wan(
+            # Use Google Veo 3.1 Fast for video generation
+            print("Using Google Veo 3.1 Fast for Reel generation...")
+            result = generate_veo_video(
                 prompt=refined_prompt,
                 image=request.image,
-                aspect_ratio="9:16"
+                aspect_ratio="9:16",
+                duration=8
             )
             type_str = "video"
         else:
@@ -1842,7 +1844,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 "costInCents": cost_in_cents,
                 "isError": False,
                 "errorMessage": "",
-                "createdAt": datetime.now()
+                "createdAt": datetime.now(timezone.utc)
             }
             await apilogs_collection.insert_one(apilog_doc)
             print(f"[StrategyImages] 💰 Logged API cost: {cost_in_cents} cents for {len(posts)} posts")

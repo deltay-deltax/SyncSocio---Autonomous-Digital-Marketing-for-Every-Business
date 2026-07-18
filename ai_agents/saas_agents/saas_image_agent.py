@@ -37,9 +37,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fal_visual_engine import (
     generate_fal_image_gpt2,
     generate_fal_carousel_ideogram,
-    generate_fal_video_wan,
-    generate_fal_video_seedance,
 )
+from veo_engine import generate_veo_video
 from saas_agents.saas_profiles import get_saas_profile
 
 
@@ -856,14 +855,14 @@ Create a high-quality, photorealistic portrait image of this UGC creator/present
                         index=index,
                     )
                     
-                    # Stage 2: Take the generated hero image and send it to Seedance Image-to-Video
-                    print(f"[SaaSAgent] UGC Stage 2: Animating starting image with Seedance Fast Image-to-Video...")
-                    result = generate_fal_video_seedance(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio, duration="8")
+                    # Stage 2: Take the generated hero image and animate it with Veo 3.1 Fast
+                    print(f"[SaaSAgent] UGC Stage 2: Animating starting image with Google Veo 3.1 Fast...")
+                    result = generate_veo_video(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=8)
                 else:
-                    # Standard img2video uses Seedance Fast Image-to-Video
+                    # Standard img2video uses Google Veo 3.1 Fast
                     caption = pick_caption(index)
-                    print(f"[SaaSAgent] Animating starting image with Seedance Fast Image-to-Video...")
-                    result = generate_fal_video_seedance(prompt=video_prompt, image=ref, aspect_ratio=aspect_ratio)
+                    print(f"[SaaSAgent] Animating starting image with Google Veo 3.1 Fast...")
+                    result = generate_veo_video(prompt=video_prompt, image=ref, aspect_ratio=aspect_ratio, duration=8)
 
                 return {"url": result.get("url"), "thumbnail": result.get("thumbnail"),
                         "caption": caption, "type": "video", "index": index}
