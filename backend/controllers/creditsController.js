@@ -89,6 +89,10 @@ export const assignCredits = async (req, res) => {
         couponCode: couponCode || '',
         status: 'completed'
       });
+
+      if (couponCode) {
+        await Coupon.updateOne({ code: couponCode.toUpperCase().trim() }, { $inc: { timesUsed: 1 } });
+      }
     }
 
     // Create billing notification

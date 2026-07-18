@@ -195,11 +195,24 @@ export const getMetrics = async (req, res) => {
       .limit(5);
 
     // Visitor traffic metrics
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    const lastMonthStart = new Date(monthStart);
+    lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+
     const visitorsToday = await VisitorLog.countDocuments({ createdAt: { $gte: todayStart } });
+    const visitorsYesterday = await VisitorLog.countDocuments({ createdAt: { $gte: yesterdayStart, $lt: todayStart } });
+    
     const visitorsWeek = await VisitorLog.countDocuments({ createdAt: { $gte: weekStart } });
+    
     const visitorsMonth = await VisitorLog.countDocuments({ createdAt: { $gte: monthStart } });
+    const visitorsLastMonth = await VisitorLog.countDocuments({ createdAt: { $gte: lastMonthStart, $lt: monthStart } });
+    
     const visitorsTotal = await VisitorLog.countDocuments();
+    
     const visitorUniqueSessions = (await VisitorLog.distinct('sessionToken')).length;
+    const visitorUniqueSessionsYesterday = (await VisitorLog.distinct('sessionToken', { createdAt: { $gte: yesterdayStart, $lt: todayStart } })).length;
+    
     const visitorsByDate = await VisitorLog.aggregate([
       {
         $group: {
@@ -236,10 +249,13 @@ export const getMetrics = async (req, res) => {
         topBrands,
         recentTransactions,
         visitorsToday,
+        visitorsYesterday,
         visitorsWeek,
         visitorsMonth,
+        visitorsLastMonth,
         visitorsTotal,
         visitorUniqueSessions,
+        visitorUniqueSessionsYesterday,
         visitorsByDate
       }
     });

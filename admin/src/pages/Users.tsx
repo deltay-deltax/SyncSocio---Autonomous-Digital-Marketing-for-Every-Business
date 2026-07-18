@@ -1,7 +1,33 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Pencil, Check, X, Eye, Ban, ShieldCheck, Mail, LogIn, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Check, X, Eye, Ban, ShieldCheck, Mail, LogIn, Trash2, Search, ChevronLeft, ChevronRight, Download, UserPlus, Users as UsersIcon } from 'lucide-react';
+
+const getAvatarColor = (name: string, email: string) => {
+  const str = name || email || 'X';
+  const char = str.charAt(0).toUpperCase();
+  const colors = [
+    'bg-purple-100 text-purple-600',
+    'bg-pink-100 text-pink-600',
+    'bg-indigo-100 text-indigo-600',
+    'bg-green-100 text-green-600',
+    'bg-orange-100 text-orange-600'
+  ];
+  const idx = char.charCodeAt(0) % colors.length;
+  return colors[idx];
+};
+
+const getInitials = (name: string, email: string) => {
+  const cleanName = (name || '').trim();
+  if (cleanName) {
+    const parts = cleanName.split(/\s+/);
+    if (parts.length > 1 && parts[1].length > 0) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return cleanName.substring(0, 2).toUpperCase();
+  }
+  return (email || 'X').substring(0, 2).toUpperCase();
+};
 
 interface User {
   _id: string;
@@ -28,7 +54,7 @@ export default function Users() {
   const [verifiedFilter, setVerifiedFilter] = useState('');
   const [sortBy, setSortBy] = useState('createdAt_desc');
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 20;
+  const [pageSize, setPageSize] = useState(10);
 
   // Modals
   const [emailModalOpen, setEmailModalOpen] = useState<{open: boolean, user: User | null}>({open: false, user: null});
@@ -184,8 +210,8 @@ export default function Users() {
     return result;
   }, [users, searchQuery, planFilter, statusFilter, verifiedFilter, sortBy]);
 
-  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
-  const pagedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(filteredUsers.length / pageSize);
+  const pagedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
 
   // Reset page when filters change
   useMemo(() => setPage(1), [searchQuery, planFilter, statusFilter, verifiedFilter, sortBy]);
@@ -195,41 +221,54 @@ export default function Users() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-start justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">User Management</h2>
-          <p className="text-muted-foreground mt-1">View and manage platform users, adjust credits/plans, and restrict access.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">User Management</h2>
+          <p className="text-sm text-slate-500 mt-1">View and manage platform users, adjust credits/plans, and restrict access.</p>
         </div>
-        <span className="px-3 py-1.5 bg-blue-500/10 text-blue-400 text-sm font-semibold rounded-full border border-blue-500/20">
-          {filteredUsers.length} users
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 text-sm font-semibold rounded-lg border border-indigo-100">
+            <UsersIcon size={16} />
+            {filteredUsers.length} users
+          </span>
+          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
+            <UserPlus size={16} /> Add User
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm">
+            <Download size={16} /> Export
+          </button>
+        </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-col md:flex-row gap-3 items-center bg-card p-4 rounded-xl border border-border shadow-sm">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+      <div className="flex flex-col lg:flex-row gap-4 items-center bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="relative w-full lg:flex-1 lg:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input 
             type="text"
             placeholder="Search by email or name..."
-            className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all text-slate-700"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto ml-auto pr-2">
           <select 
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 font-medium focus:outline-none appearance-none pr-8 cursor-pointer hover:border-slate-300 transition-colors"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             value={planFilter}
             onChange={(e) => setPlanFilter(e.target.value)}
           >
             <option value="">All Plans</option>
             <option value="starter">Starter</option>
             <option value="elite">Elite</option>
+            <option value="free">Free</option>
           </select>
           <select 
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 font-medium focus:outline-none appearance-none pr-8 cursor-pointer hover:border-slate-300 transition-colors"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -238,7 +277,8 @@ export default function Users() {
             <option value="blocked">Blocked</option>
           </select>
           <select 
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 font-medium focus:outline-none appearance-none pr-8 cursor-pointer hover:border-slate-300 transition-colors"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             value={verifiedFilter}
             onChange={(e) => setVerifiedFilter(e.target.value)}
           >
@@ -247,7 +287,8 @@ export default function Users() {
             <option value="unverified">Unverified</option>
           </select>
           <select 
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 font-medium focus:outline-none appearance-none pr-8 cursor-pointer hover:border-slate-300 transition-colors"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
@@ -260,39 +301,39 @@ export default function Users() {
       </div>
 
       {/* Users Table */}
-      <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-x-auto flex-1">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
-              <tr className="divide-x divide-border/50">
-                <th className="px-6 py-4 font-medium whitespace-nowrap">Email / Name</th>
-                <th className="px-6 py-4 font-medium whitespace-nowrap">Status</th>
-                <th className="px-6 py-4 font-medium whitespace-nowrap">Plan</th>
-                <th className="px-6 py-4 font-medium whitespace-nowrap">Credits</th>
-                <th className="px-6 py-4 font-medium whitespace-nowrap">Joined</th>
-                <th className="px-6 py-4 font-medium text-right whitespace-nowrap">Actions</th>
+            <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100 bg-white tracking-wider">
+              <tr>
+                <th className="px-6 py-4 whitespace-nowrap">Email / Name</th>
+                <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                <th className="px-6 py-4 whitespace-nowrap">Plan</th>
+                <th className="px-6 py-4 whitespace-nowrap">Credits</th>
+                <th className="px-6 py-4 whitespace-nowrap">Joined</th>
+                <th className="px-6 py-4 whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-slate-100">
               {pagedUsers.map((user) => (
-                <tr key={user._id} className={`hover:bg-muted/20 transition-colors divide-x divide-border/50 ${user.isBlocked ? 'bg-red-500/5' : ''}`}>
+                <tr key={user._id} className={`hover:bg-slate-50/50 transition-colors bg-white ${user.isBlocked ? 'opacity-70' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-foreground">{user.email}</div>
-                    <div className="text-muted-foreground text-xs">{user.name || 'No name'}</div>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-sm ${getAvatarColor(user.name || '', user.email)}`}>
+                        {getInitials(user.name || '', user.email)}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900">{user.email}</div>
+                        <div className="text-slate-500 text-xs mt-0.5">{user.name || 'Unknown'}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${user.isBlocked ? 'bg-red-500' : user.isVerified ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
-                      <div className="flex gap-1.5">
-                        {user.isBlocked && (
-                          <span className="px-2 py-0.5 bg-red-500/15 text-red-400 text-xs rounded-full font-medium">Blocked</span>
-                        )}
-                        {user.isVerified ? (
-                          <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs rounded-full font-medium">Verified</span>
-                        ) : (
-                          <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-500 text-xs rounded-full font-medium">Pending</span>
-                        )}
-                      </div>
+                      <div className={`w-1.5 h-1.5 rounded-full ${user.isBlocked ? 'bg-red-500' : user.isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                      <span className={`text-xs font-semibold ${user.isBlocked ? 'text-red-500' : user.isVerified ? 'text-emerald-500' : 'text-amber-500'}`}>
+                        {user.isBlocked ? 'Blocked' : user.isVerified ? 'Verified' : 'Pending'}
+                      </span>
                     </div>
                   </td>
                   
@@ -303,11 +344,11 @@ export default function Users() {
                         type="text" 
                         value={editForm.plan}
                         onChange={(e) => setEditForm({...editForm, plan: e.target.value})}
-                        className="bg-background border border-border rounded px-2 py-1 w-24 text-sm"
+                        className="bg-white border border-slate-200 rounded px-2 py-1 w-24 text-sm font-medium text-slate-900 focus:outline-none focus:border-indigo-400"
                         placeholder="e.g. Pro"
                       />
                     ) : (
-                      <span className="text-foreground capitalize">{user.plan || 'Free'}</span>
+                      <span className="font-semibold text-slate-700 capitalize">{user.plan || 'Free'}</span>
                     )}
                   </td>
                   
@@ -317,84 +358,76 @@ export default function Users() {
                         type="number" 
                         value={editForm.credits}
                         onChange={(e) => setEditForm({...editForm, credits: parseInt(e.target.value) || 0})}
-                        className="bg-background border border-border rounded px-2 py-1 w-20 text-sm"
+                        className="bg-white border border-slate-200 rounded px-2 py-1 w-20 text-sm font-medium text-slate-900 focus:outline-none focus:border-indigo-400"
                       />
                     ) : (
-                      <span className="font-medium text-foreground">{user.credits || 0}</span>
+                      <span className="font-semibold text-slate-900">{user.credits || 0}</span>
                     )}
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-col">
-                      <span className="text-sm text-foreground">
-                        {new Date(user.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                      <span className="text-sm font-semibold text-slate-900">
+                        {new Date(user.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(user.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                      <span className="text-xs text-slate-500 mt-0.5">
+                        {new Date(user.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }).toLowerCase()}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     {editingId === user._id ? (
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-3">
                         <button 
                           onClick={() => handleSave(user._id)}
-                          className="p-1.5 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-md transition-colors"
-                          title="Save"
+                          className="text-emerald-500 hover:text-emerald-600 transition-colors"
                         >
                           <Check size={16} />
                         </button>
                         <button 
                           onClick={handleCancel}
-                          className="p-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-md transition-colors"
-                          title="Cancel"
+                          className="text-slate-400 hover:text-slate-600 transition-colors"
                         >
                           <X size={16} />
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-4 text-slate-400">
                         <button 
                           onClick={() => handleImpersonate(user._id)}
-                          className="p-1.5 text-violet-400 hover:bg-violet-400/10 rounded-md transition-colors"
-                          title="Impersonate User"
+                          className="text-indigo-500 hover:text-indigo-600 transition-colors"
                         >
-                          <LogIn size={16} />
+                          <LogIn size={15} />
                         </button>
                         <button 
                           onClick={() => setEmailModalOpen({open: true, user})}
-                          className="p-1.5 text-amber-400 hover:bg-amber-400/10 rounded-md transition-colors"
-                          title="Send Email"
+                          className="text-amber-500 hover:text-amber-600 transition-colors"
                         >
-                          <Mail size={16} />
+                          <Mail size={15} />
                         </button>
                         <Link 
                           to={`/users/${user._id}`}
-                          className="p-1.5 text-emerald-400 hover:bg-emerald-400/10 rounded-md transition-colors"
-                          title="View Deep Details"
+                          className="text-emerald-500 hover:text-emerald-600 transition-colors"
                         >
-                          <Eye size={16} />
+                          <Eye size={15} />
                         </Link>
                         <button 
                           onClick={() => handleEdit(user)}
-                          className="p-1.5 text-blue-400 hover:bg-blue-400/10 rounded-md transition-colors"
-                          title="Edit Plan/Credits"
+                          className="text-blue-500 hover:text-blue-600 transition-colors"
                         >
-                          <Pencil size={16} />
+                          <Pencil size={15} />
                         </button>
                         <button 
                           onClick={() => handleToggleBlock(user._id, !!user.isBlocked)}
-                          className={`p-1.5 rounded-md transition-colors ${user.isBlocked ? 'text-green-400 hover:bg-green-400/10' : 'text-orange-400 hover:bg-orange-400/10'}`}
-                          title={user.isBlocked ? "Unblock User" : "Block User"}
+                          className={`transition-colors ${user.isBlocked ? 'text-emerald-500 hover:text-emerald-600' : 'text-orange-500 hover:text-orange-600'}`}
                         >
-                          {user.isBlocked ? <ShieldCheck size={16} /> : <Ban size={16} />}
+                          {user.isBlocked ? <ShieldCheck size={15} /> : <Ban size={15} />}
                         </button>
                         <button 
                           onClick={() => setDeleteModalOpen({open: true, user})}
-                          className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-md transition-colors ml-2"
-                          title="GDPR Delete"
+                          className="text-red-500 hover:text-red-600 transition-colors"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     )}
@@ -404,7 +437,7 @@ export default function Users() {
               
               {pagedUsers.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500 font-medium">
                     No users match your filters.
                   </td>
                 </tr>
@@ -413,27 +446,60 @@ export default function Users() {
           </table>
         </div>
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-border flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Page <span className="font-medium text-foreground">{page}</span> of{' '}
-              <span className="font-medium text-foreground">{totalPages}</span> — {filteredUsers.length} users
+        {totalPages > 0 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-50/30">
+            <p className="text-xs font-semibold text-slate-500">
+              Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filteredUsers.length)} of {filteredUsers.length} users
             </p>
-            <div className="flex gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => p - 1)}
-                className="p-2 rounded-lg border border-border hover:bg-muted/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="p-2 rounded-lg border border-border hover:bg-muted/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight size={16} />
-              </button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500">Rows per page</span>
+                <select 
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 outline-none hover:border-slate-300 transition-colors"
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                  if (totalPages > 5) {
+                    if (p !== 1 && p !== totalPages && Math.abs(p - page) > 1) {
+                      if (p === 2 || p === totalPages - 1) return <span key={p} className="text-slate-400 text-xs px-1">...</span>;
+                      return null;
+                    }
+                  }
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${page === p ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}

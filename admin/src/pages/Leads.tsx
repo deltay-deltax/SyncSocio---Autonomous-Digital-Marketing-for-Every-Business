@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Download, Users, ClipboardList, Plus, Save, X, ArrowLeft, Mail, Phone, Globe, Briefcase, Edit2 } from 'lucide-react';
+import { Download, Users, ClipboardList, Plus, Save, X, Mail, Phone, Globe, Briefcase, Edit2, LayoutDashboard } from 'lucide-react';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PhoneInput from 'react-phone-number-input';
@@ -19,6 +19,7 @@ interface LeadEntry {
   status: 'green' | 'yellow' | 'red' | 'new';
   comments: string;
   createdAt: string;
+  updatedAt?: string;
   source: string;
 }
 
@@ -200,12 +201,25 @@ export default function Leads() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
         {isStandalone && (
-          <button 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
-          >
-            <ArrowLeft size={16} /> Back to Control Center
-          </button>
+          <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center">
+                <ClipboardList className="w-5 h-5 text-violet-600" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-slate-900">Leads & Brands</h1>
+                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Sync Socio Control Center</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-semibold transition-colors group"
+            >
+              <LayoutDashboard size={16} className="text-blue-500" />
+              Switch to Admin
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
         )}
 
         {/* Header Section */}
@@ -375,8 +389,16 @@ export default function Leads() {
                         <ClipboardList size={16} className="text-amber-500" />
                         CRM NOTES
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-amber-600/60 text-xs font-medium">
-                        <Save size={12} /> Auto-saves
+                      <div className="flex items-center gap-3">
+                        <div className="text-[11px] font-semibold text-amber-700/60">
+                          {new Date(entry.updatedAt || entry.createdAt).toLocaleDateString('en-IN', {
+                            day: '2-digit', month: 'short',
+                            hour: '2-digit', minute: '2-digit'
+                          })}
+                        </div>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-amber-600/60 text-xs font-medium">
+                          <Save size={12} /> Auto-saves
+                        </div>
                       </div>
                     </div>
                     
@@ -388,7 +410,7 @@ export default function Leads() {
                         }
                       }}
                       placeholder="Add conversation notes, next steps, or follow-up reminders here..."
-                      className="flex-1 w-full bg-transparent border-0 focus:ring-0 resize-none p-6 text-slate-700 placeholder:text-amber-900/20 text-sm leading-relaxed custom-scrollbar outline-none min-h-[200px] xl:min-h-full font-medium"
+                      className="flex-1 w-full bg-transparent border-0 focus:ring-0 resize-none p-6 text-slate-700 placeholder:text-amber-900/20 text-sm leading-relaxed custom-scrollbar outline-none min-h-[200px] overflow-y-auto font-medium"
                       style={{ 
                         backgroundImage: 'repeating-linear-gradient(transparent, transparent 27px, rgba(245, 158, 11, 0.1) 28px)',
                         backgroundAttachment: 'local',
@@ -420,27 +442,25 @@ export default function Leads() {
             
             <form onSubmit={handleAddLead} className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Name</label>
                 <input 
-                  required type="text" 
+                  type="text" 
                   value={newLead.businessName} onChange={e => setNewLead({...newLead, businessName: e.target.value})}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
-                  placeholder="e.g. Acme Corp"
                 />
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Name <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Name</label>
                   <input 
-                    required type="text" 
+                    type="text" 
                     value={newLead.name} onChange={e => setNewLead({...newLead, name: e.target.value})}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
-                    placeholder="John Doe"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone</label>
                   <PhoneInput
                     international
                     defaultCountry="IN"
@@ -452,12 +472,11 @@ export default function Leads() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
                 <input 
-                  required type="email" 
+                  type="email" 
                   value={newLead.email} onChange={e => setNewLead({...newLead, email: e.target.value})}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
-                  placeholder="contact@acme.com"
                 />
               </div>
 
@@ -468,13 +487,11 @@ export default function Leads() {
                     type="text" 
                     value={newLead.website} onChange={e => setNewLead({...newLead, website: e.target.value})}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
-                    placeholder="example.com"
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Category <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Business Category</label>
                   <select 
-                    required
                     value={newLead.businessCategory} onChange={e => setNewLead({...newLead, businessCategory: e.target.value})}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none cursor-pointer" 
                   >
