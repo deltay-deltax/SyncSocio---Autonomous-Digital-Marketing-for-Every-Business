@@ -89,11 +89,13 @@ const Login = () => {
           }
         } else {
           // No profile yet, go to onboarding
+          localStorage.setItem("syncsocio_setup_done", "false");
           window.location.href = "/onboarding";
         }
       } catch (err) {
-        // Fallback to home if profile check fails
-        window.location.href = "/";
+        // Fallback to onboarding if profile check fails, reset cache
+        localStorage.setItem("syncsocio_setup_done", "false");
+        window.location.href = "/onboarding";
       }
     } catch (err: any) {
       setError(err instanceof Error ? getFriendlyErrorMessage(err) : String(err));

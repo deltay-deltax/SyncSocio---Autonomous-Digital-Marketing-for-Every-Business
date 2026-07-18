@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,7 +28,7 @@ const breakpointColumnsObj = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Mode = 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media';
+type Mode = 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media' | 'photoshoot';
 type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '2:3';
 
 // Keep the original GeneratedPost type for real API responses
@@ -60,6 +60,7 @@ const modes: { id: Mode; label: string; icon: any; desc: string; accent: string 
   { id: 'festival', label: 'Festival', icon: PartyPopper, desc: 'Calendar-led campaigns', accent: 'from-violet-500/20 to-indigo-500/10' },
   // { id: 'whatsapp', label: 'WhatsApp Campaign', icon: MessageSquare, desc: 'Broadcast to your list', accent: 'from-green-500/20 to-emerald-500/10' },
   { id: 'email', label: 'Email Campaign', icon: Mail, desc: 'Newsletter & promo blast', accent: 'from-blue-500/20 to-indigo-500/10' },
+  { id: 'photoshoot', label: 'Photoshoot', icon: Camera, desc: 'Pure product photoshoot', accent: 'from-fuchsia-500/20 to-purple-500/10' },
 ];
 
 const aspects: { id: AspectRatio; label: string; ratio: string }[] = [
@@ -440,6 +441,22 @@ const STUDIOS: Studio[] = [
     to: "/dashboard?mode=email",
     image: "/assets/Creatives_icon/studio-email.jpg",
     hoverBorder: "hover:border-violet-400 hover:ring-1 hover:ring-violet-400",
+  },
+  {
+    id: "photoshoot",
+    title: "Photoshoot",
+    subtitle: "Pure product photography, no text",
+    icon: Camera,
+    iconTint: "text-fuchsia-600",
+    iconBg: "bg-fuchsia-100",
+    tags: [
+      { label: "Product", tint: "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-100" },
+      { label: "No Text", tint: "bg-slate-50 text-slate-600 ring-slate-200" },
+    ],
+    cta: { label: "Start Photoshoot", tint: "text-fuchsia-600" },
+    to: "/dashboard?mode=photoshoot",
+    image: "/assets/Creatives_icon/studio-image.jpg",
+    hoverBorder: "hover:border-fuchsia-400 hover:ring-1 hover:ring-fuchsia-400",
   },
 ];
 
@@ -2969,8 +2986,8 @@ const DashboardStrategy = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   // BUILDER — per-mode form
   // ─────────────────────────────────────────────────────────────────────────────
-  const isStandard = mode === 'image' || mode === 'carousel' || mode === 'video';
-  const standardCounts = mode === 'image' ? imageCounts : mode === 'carousel' ? carouselCounts : videoCounts;
+  const isStandard = mode === 'image' || mode === 'carousel' || mode === 'video' || mode === 'photoshoot';
+  const standardCounts = (mode === 'image' || mode === 'photoshoot') ? imageCounts : mode === 'carousel' ? carouselCounts : videoCounts;
   const currentMode = modes.find((m) => m.id === mode)!;
 
   return (
@@ -3522,16 +3539,18 @@ const DashboardStrategy = () => {
               </section>
             </>
           ) : (
-            <IdeaBox
-              idea={idea}
-              setIdea={setIdea}
-              placeholder={
-                mode === 'video' && videoKind === 'img2video'
-                  ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
-                  : undefined
-              }
-              label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
-            />
+            mode !== 'photoshoot' && (
+              <IdeaBox
+                idea={idea}
+                setIdea={setIdea}
+                placeholder={
+                  mode === 'video' && videoKind === 'img2video'
+                    ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
+                    : undefined
+                }
+                label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
+              />
+            )
           )}
         </>
       )}
@@ -4124,7 +4143,7 @@ const DashboardStrategy = () => {
 
                   {products.map((p) => {
                     const selected = !!selectedProducts.find((x) => x._id === p._id);
-                    const disabled = !selected && selectedProducts.length >= (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count)));
+                    const disabled = !selected && selectedProducts.length >= (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'photoshoot' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))));
                     return (
                       <button
                         key={p._id}

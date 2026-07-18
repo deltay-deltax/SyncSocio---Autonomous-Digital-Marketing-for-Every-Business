@@ -102,9 +102,11 @@ const Signup = () => {
           window.location.href = "/setup";
         }
       } else {
+        localStorage.setItem("syncsocio_setup_done", "false");
         window.location.href = "/onboarding";
       }
     } catch (err) {
+      localStorage.setItem("syncsocio_setup_done", "false");
       window.location.href = "/onboarding";
     }
   };

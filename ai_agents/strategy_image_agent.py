@@ -1140,6 +1140,68 @@ def generate_strategy_images(
             del r["index"]
             results.append(r)
 
+    # ── PHOTOSHOOT ─────────────────────────────────
+    elif layout == "photoshoot":
+        fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
+        tasks = []
+        for i in range(count):
+            prod = assigned_products[i]
+            
+            task_refs = []
+            if prod and prod.get("imageBase64"):
+                task_refs.append(prod.get("imageBase64"))
+            elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
+                task_refs.append(assigned_refs[i])
+            if brand_doc.get("logo"):
+                res_logo = _resolve_ref_image(brand_doc.get("logo"))
+                if res_logo and res_logo not in task_refs:
+                    task_refs.append(res_logo)
+            
+            c_dir = "STRICTLY NO TEXT. THE IMAGE MUST BE PURE PHOTOGRAPHY WITH NO LETTERS, LOGOS, OR CHARACTERS. Place the product in a stunning, cinematic photoshoot setting."
+            
+            prompt = build_image_prompt(
+                brand_doc, idea, aspect_ratio, 
+                product=prod, ad_template=None, 
+                language=language, custom_directive=c_dir
+            )
+            tasks.append((prompt, task_refs, i, prod))
+
+        def run_photoshoot_task(task):
+            prompt, refs, index, prod = task
+            print(f"\n[StrategyAgent] 📸 Photoshoot {index+1}/{count} | ref_image={'YES ✓' if refs else 'NONE'}")
+            
+            try:
+                result = generate_fal_image_gpt2(
+                    prompt=prompt,
+                    image=refs,
+                    image_size=fal_size,
+                )
+                return {
+                    "image":    result["image"],
+                    "caption":  "",
+                    "type":     "photoshoot",
+                    "template": "Photoshoot",
+                    "index":    index
+                }
+            except Exception as e:
+                print(f"[StrategyAgent] ❌ Photoshoot {index+1} failed: {e}")
+                return {
+                    "image":    None,
+                    "caption":  "",
+                    "type":     "photoshoot",
+                    "error":    str(e),
+                    "index":    index
+                }
+
+        print(f"[StrategyAgent] 🚀 Running photoshoot generations in parallel...")
+        with ThreadPoolExecutor(max_workers=count) as executor:
+            thread_results = list(executor.map(run_photoshoot_task, tasks))
+            
+        thread_results.sort(key=lambda x: x["index"])
+        for r in thread_results:
+            del r["index"]
+            results.append(r)
+
     # ── WHATSAPP & EMAIL ──────────────────────────────
     elif layout in ["whatsapp", "email"]:
         # Only generating 1 campaign by default (ignore count)

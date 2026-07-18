@@ -1829,7 +1829,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             cost_in_cents = 0
             endpoint = "fal-ai/gpt-image-2"
             
-            if request.layout == "image":
+            if request.layout == "image" or request.layout == "photoshoot":
                 cost_in_cents = len(posts) * 2  # Approx 2 cents per image
             elif request.layout == "carousel":
                 cost_in_cents = len(posts) * request.slideCount * 1 # Approx 1 cent per slide
