@@ -5,34 +5,34 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def test_google_connection():
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        print("❌ Error: GOOGLE_API_KEY is not set in the environment.")
+    # Point to the downloaded JSON key
+    cred_path = os.path.join(os.path.dirname(__file__), "veo_credentials.json")
+    if not os.path.exists(cred_path):
+        print(f"❌ Error: Credentials file not found at {cred_path}")
         return
-
-    print("🔑 GOOGLE_API_KEY found. Attempting to connect to Google GenAI...")
+        
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_path
+    print("🔑 Service Account JSON found. Attempting to connect to Vertex AI...")
+    
     try:
-        client = genai.Client(api_key=api_key)
+        # Connect using Vertex AI mode
+        client = genai.Client(
+            vertexai=True,
+            project="syncsocio-veo",
+            location="us-central1"
+        )
         
-        # Test 1: Fetch all models and see if Veo is in the list
-        print("📡 Fetching available models...")
-        models = client.models.list()
-        
-        veo_found = False
-        for model in models:
-            # Check if any model name contains 'veo'
-            if 'veo' in model.name.lower():
-                print(f"✅ Found Veo Model Access: {model.name}")
-                print(f"   - Display Name: {model.display_name}")
-                print(f"   - Supported Actions: {model.supported_generation_methods}")
-                veo_found = True
-                
-        if not veo_found:
-            print("⚠️ Connected successfully, but could not find a 'veo' model in your available models list.")
-            print("   Make sure your API key has access to the Veo Preview waitlist/tier.")
-        else:
-            print("🎉 SUCCESS! Your connection is working and you have access to the Veo API.")
+        print("📡 Fetching available models from Vertex AI...")
+        # In Vertex AI, listing models can sometimes be restrictive depending on permissions,
+        # but we can try to just get the specific Veo model we want to use.
+        try:
+            model = client.models.get(model='publishers/google/models/veo-3.1-generate-preview')
+            print(f"✅ Found Veo Model Access on Vertex AI: {model.name}")
+            print("🎉 SUCCESS! Your Enterprise connection is working and you have access to Veo.")
             print("   (No video was generated, so this test cost $0.00)")
+        except Exception as e:
+            print(f"⚠️ Could not fetch specific model info: {str(e)}")
+            print("   Make sure the Vertex AI API is fully enabled in your Google Cloud Console.")
             
     except Exception as e:
         print(f"❌ Connection Error: {str(e)}")
