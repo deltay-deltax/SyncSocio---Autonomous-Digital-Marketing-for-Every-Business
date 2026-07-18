@@ -33,7 +33,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Constants ────────────────────────────────────────────────────────────────
-VEO_MODEL = "veo-3.1-generate-preview"
+VEO_MODEL = "veo-3.1-fast-generate-001"
 
 # Polling config (exponential backoff for scalability)
 POLL_INITIAL_DELAY = 10      # seconds — first check
@@ -128,12 +128,19 @@ def generate_veo_video(
             "message":   "<human description>"
         }
     """
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GOOGLE_API_KEY not found in environment")
+    # Set the credentials file for Vertex AI
+    cred_path = os.path.join(os.path.dirname(__file__), "veo_credentials.json")
+    if not os.path.exists(cred_path):
+        raise ValueError(f"Vertex AI credentials not found at {cred_path}")
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_path
 
     try:
-        client = genai.Client(api_key=api_key)
+        # Initialize for Vertex AI instead of standard Developer API
+        client = genai.Client(
+            vertexai=True,
+            project="syncsocio-veo",
+            location="us-central1"
+        )
 
         # ── Build generation kwargs ──────────────────────────────────────
         gen_kwargs = {
@@ -143,6 +150,7 @@ def generate_veo_video(
                 aspect_ratio=aspect_ratio,
                 duration_seconds=duration,
                 generate_audio=True,
+                person_generation="ALLOW_ADULT",
             ),
         }
 
@@ -180,18 +188,23 @@ def generate_veo_video(
             operation = client.operations.get(operation)
 
         # ── Extract generated video ─────────────────────────────────────
-        if not operation.response or not operation.response.generated_videos:
+        if getattr(operation, 'error', None):
+            err_msg = str(operation.error)
+            print(f"VEO ENGINE API ERROR: {err_msg}")
+            raise Exception(f"Veo Backend Error: {err_msg}")
+
+        if not getattr(operation, 'response', None) or not getattr(operation.response, 'generated_videos', None):
             raise Exception("Veo returned no video in the response")
 
         generated_video = operation.response.generated_videos[0]
 
         # ── Download video bytes and save to temp file ──────────────────
-        print(f"  VEO: Downloading generated video from Google...")
-        client.files.download(file=generated_video.video)
-
+        print(f"  VEO: Extracting video bytes from Vertex response...")
+        
         tmp_dir = tempfile.mkdtemp()
         tmp_path = os.path.join(tmp_dir, f"veo_{uuid.uuid4().hex[:8]}.mp4")
-        generated_video.video.save(tmp_path)
+        with open(tmp_path, "wb") as f:
+            f.write(generated_video.video.video_bytes)
         print(f"  VEO: Saved to temp → {tmp_path}")
 
         # ── Upload to Cloudinary for a public URL ───────────────────────

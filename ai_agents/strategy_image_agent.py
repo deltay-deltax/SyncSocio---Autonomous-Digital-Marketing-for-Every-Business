@@ -854,9 +854,8 @@ def build_video_prompt(brand_doc: Dict[str, Any], idea: Optional[str], aspect: s
 Create a high-quality, aesthetic B-roll style video for Instagram Reels/TikTok.
 The video should have subtle, smooth movement (e.g. slow pan, gentle zoom).
 Lighting is cinematic and premium. No people speaking to camera.
-Subtitles/captions must be styled in a very small, minimal, neat, clean font size at the bottom of the video.
+Strictly DO NOT include any subtitles, captions, or text overlays on the video.
 Strictly DO NOT overlay any raw brand metadata, color hex codes (e.g. #0033ae), website URLs, or technical parameters as text on the screen.
-Any text or visual script in the video must be in {language}.
 Aspect ratio: {aspect}. Commercial advertising quality.
 """
 
@@ -872,9 +871,8 @@ Actor / Avatar Details: {avatar_description}. The presenter must speak in Englis
 The speaker must look directly at the camera, talking naturally.
 The speaking script / voiceover topic is: "{script}"
 Ensure natural facial expressions, friendly Indian creator-style delivery, and appropriate hand gestures.
-Subtitles/captions must be styled in a very small, minimal, neat, clean font size at the bottom of the video.
+Strictly DO NOT include any subtitles, captions, or text overlays on the video.
 Strictly DO NOT overlay any raw brand metadata, color hex codes (e.g. #0033ae), website URLs, or technical parameters as text on the screen.
-Any subtitles or text overlays must be in {language}.
 Aspect ratio: {aspect}. Commercial advertising quality.
 """
 
