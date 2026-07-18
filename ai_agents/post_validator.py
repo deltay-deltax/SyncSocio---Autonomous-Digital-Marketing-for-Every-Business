@@ -71,7 +71,7 @@ def clean_json_string(s: Any) -> str:
     return s
 
 def invoke_llm_with_fallback(prompt: str, system_message: str = "You are a JSON-only response agent."):
-    models = ["gemini-flash-latest-exp", "gemini-flash-latest", "gemini-1.5-pro-latest", "gemini-pro"]
+    models = ["gemini-flash-latest-exp", "gemini-flash-latest"]
     for model in models:
         try:
             llm = get_llm(model)
@@ -249,7 +249,7 @@ def vision_actor_node(state: PostState) -> PostState:
             """
 
             # Fallback for Vision
-            vision_models = ["gemini-flash-latest-exp", "gemini-flash-latest", "gemini-1.5-pro-latest", "gemini-pro-vision"]
+            vision_models = ["gemini-flash-latest-exp", "gemini-flash-latest"]
             response = None
             for v_model in vision_models:
                 try:

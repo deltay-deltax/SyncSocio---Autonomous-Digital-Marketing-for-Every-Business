@@ -3,8 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ArrowLeft, Save, Bot, Smartphone, Mail, Globe, 
-  Trash2, Edit, Check, X, User, 
-  Layers, Award, Radio, RefreshCw
+  Trash2, Edit, Check, X, User, RefreshCw
 } from 'lucide-react';
 
 interface UserData {
