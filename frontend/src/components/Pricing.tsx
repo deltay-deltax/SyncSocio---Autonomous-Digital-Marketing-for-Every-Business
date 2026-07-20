@@ -3,12 +3,15 @@ import { useRef, useState } from "react";
 import { Check, BotMessageSquare, HelpCircle, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const plans = [
   {
     name: "Starter",
-    basePrice: 599,
-    originalPrice: 999,
+    prices: {
+      INR: { basePrice: 599, originalPrice: 999, dmAddon: 399 },
+      USD: { basePrice: 9, originalPrice: 15, dmAddon: 5 }
+    },
     period: "/month",
     description: "For small businesses, local brands, SaaS startups, and service companies getting started with AI-powered content.",
     features: [
@@ -30,8 +33,10 @@ const plans = [
   },
   {
     name: "Elite",
-    basePrice: 1899,
-    originalPrice: 3199,
+    prices: {
+      INR: { basePrice: 1899, originalPrice: 3199, dmAddon: 399 },
+      USD: { basePrice: 29, originalPrice: 49, dmAddon: 5 }
+    },
     period: "/month",
     description: "For growing D2C and ecommerce brands ready to scale content, automate campaigns, and generate videos — all from one platform.",
     features: [
@@ -54,9 +59,27 @@ const plans = [
 ];
 
 const topups = [
-  { credits: 100, price: 299, per_credit: 2.99 },
-  { credits: 300, price: 799, per_credit: 2.66 },
-  { credits: 700, price: 1699, per_credit: 2.42 },
+  { 
+    credits: 100, 
+    prices: {
+      INR: { price: 299, per_credit: 2.99 },
+      USD: { price: 5, per_credit: 0.05 }
+    }
+  },
+  { 
+    credits: 300, 
+    prices: {
+      INR: { price: 799, per_credit: 2.66 },
+      USD: { price: 12, per_credit: 0.04 }
+    }
+  },
+  { 
+    credits: 700, 
+    prices: {
+      INR: { price: 1699, per_credit: 2.42 },
+      USD: { price: 24, per_credit: 0.03 }
+    }
+  },
 ];
 
 interface PricingProps {
@@ -67,6 +90,7 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const navigate = useNavigate();
+  const { currency, symbol, setCurrency } = useCurrency();
 
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
     "Brand": false,
@@ -88,20 +112,33 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-16 relative"
         >
           <span className="text-sm font-semibold text-primary uppercase tracking-widest mb-4 block">
             Investment
           </span>
-          <h2 className="text-sm sm:text-4xl lg:text-5xl font-bold">
+          <h2 className="text-sm sm:text-4xl lg:text-5xl font-bold mb-6">
             Simple pricing. <span className="gradient-text">No surprises.</span>
           </h2>
+
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <span className={`text-sm font-semibold ${currency === 'INR' ? 'text-foreground' : 'text-muted-foreground'}`}>INR (₹)</span>
+            <button 
+              onClick={() => setCurrency(currency === 'INR' ? 'USD' : 'INR')}
+              className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary/20 transition-colors focus:outline-none"
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-primary transition-transform ${currency === 'USD' ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+            <span className={`text-sm font-semibold ${currency === 'USD' ? 'text-foreground' : 'text-muted-foreground'}`}>USD ($)</span>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {plans.map((plan, i) => {
             const isDmEnabled = dmToggles[plan.name];
-            const currentPrice = plan.basePrice + (isDmEnabled ? 399 : 0);
+            const planPrices = plan.prices[currency];
+            const currentPrice = planPrices.basePrice + (isDmEnabled ? planPrices.dmAddon : 0);
+            const originalPrice = planPrices.originalPrice;
 
             return (
               <motion.div
@@ -130,15 +167,15 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                 <div className="flex flex-col gap-1 mb-6">
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-lg line-through ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"}`}>
-                      ₹{plan.originalPrice}
+                      {symbol}{originalPrice}
                     </span>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                      {Math.floor(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
+                      {Math.floor(((originalPrice - currentPrice) / originalPrice) * 100)}% OFF
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-0 w-full relative">
                     <div className="flex items-baseline gap-1 shrink-0">
-                      <span className="text-4xl font-bold">₹{currentPrice}</span>
+                      <span className="text-4xl font-bold">{symbol}{currentPrice}</span>
                       <span className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                         {plan.period}
                       </span>
@@ -222,25 +259,28 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
           <p className="text-sm text-muted-foreground mb-10">Get instant top-ups to power your creative campaigns without upgrading your monthly plan.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            {topups.map((topup) => (
-              <div key={topup.credits} className="glass-card rounded-2xl p-6 flex flex-col justify-between hover-lift transition-all text-center">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-2 block">Value Pack</span>
-                  <h4 className="text-2xl font-black text-foreground mb-1">{topup.credits} Credits</h4>
-                  <p className="text-xs text-muted-foreground mb-4">₹{topup.per_credit} / credit</p>
+            {topups.map((topup) => {
+              const topupPrices = topup.prices[currency];
+              return (
+                <div key={topup.credits} className="glass-card rounded-2xl p-6 flex flex-col justify-between hover-lift transition-all text-center">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-2 block">Value Pack</span>
+                    <h4 className="text-2xl font-black text-foreground mb-1">{topup.credits} Credits</h4>
+                    <p className="text-xs text-muted-foreground mb-4">{symbol}{topupPrices.per_credit} / credit</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-foreground mb-4">{symbol}{topupPrices.price}</p>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center"
+                      onClick={onWaitlistClick}
+                    >
+                      Buy Top-up
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-3xl font-bold text-foreground mb-4">₹{topup.price}</p>
-                  <Button
-                    variant="outline"
-                    className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center"
-                    onClick={onWaitlistClick}
-                  >
-                    Buy Top-up
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       </div>

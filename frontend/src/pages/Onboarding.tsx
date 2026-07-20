@@ -836,7 +836,7 @@ const Onboarding = () => {
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">Target Country</label>
                       <div className="grid grid-cols-2 gap-3 mb-2">
-                        {['India', 'Nepal', 'United States'].map(country => (
+                        {['India', 'Nepal', 'International'].map(country => (
                           <button
                             key={country}
                             type="button"

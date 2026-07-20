@@ -467,7 +467,7 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: i * 0.04 }}
-      className={cn("h-full", s.wide && "md:col-span-3", !s.wide && "md:col-span-2")}
+      className={cn("h-full", s.wide ? "md:col-span-2 lg:col-span-3" : "md:col-span-1 lg:col-span-2")}
     >
       <button
         onClick={() => onPick(s.id as Mode)}
@@ -480,7 +480,7 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
         )}
       >
         {/* Right image — absolutely positioned so it never affects left column height */}
-        <div className="absolute right-0 top-0 bottom-0 w-[140px] md:w-[170px] flex items-center justify-center pointer-events-none">
+        <div className="absolute right-0 top-0 bottom-0 w-[120px] sm:w-[140px] xl:w-[170px] flex items-center justify-center pointer-events-none">
           <img
             src={s.image}
             alt={`${s.title} preview`}
@@ -493,7 +493,7 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
         </div>
 
         {/* Left content — pr ensures it never overlaps the image */}
-        <div className="flex flex-col flex-1 min-w-0 pr-[150px] md:pr-[180px]">
+        <div className="flex flex-col flex-1 min-w-0 pr-[120px] sm:pr-[150px] xl:pr-[180px] relative z-10">
           <div
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-2xl shadow-inner shrink-0",
@@ -502,15 +502,15 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
           >
             <Icon size={20} className={s.iconTint} />
           </div>
-          <h3 className="mt-3 font-display text-base font-black tracking-tight text-foreground leading-tight">
+          <h3 className="mt-3 font-display text-base font-black tracking-tight text-foreground leading-tight line-clamp-2">
             {s.title}
           </h3>
-          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
             {s.subtitle}
           </p>
 
-          {/* Pills — single row, no wrap */}
-          <div className="mt-3 flex items-center gap-1.5 flex-nowrap">
+          {/* Pills — wrap gracefully */}
+          <div className="mt-3 flex items-center gap-1.5 flex-wrap">
             {s.tags.map((t) => (
               <span
                 key={t.label}
@@ -2968,7 +2968,7 @@ const DashboardStrategy = () => {
             </motion.div>
 
             {/* Studio grid — 6-col so wide cards can span 3 */}
-            <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-6 md:auto-rows-[210px]">
+            <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-6 md:auto-rows-[210px]">
               {STUDIOS.filter(s => {
                 if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
                 return true;
