@@ -43,6 +43,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  free_generations_remaining: {
+    type: Number,
+    default: 0
+  },
   totalCreditsPurchased: {
     type: Number,
     default: 0

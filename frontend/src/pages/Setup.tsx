@@ -32,6 +32,21 @@ interface Plan {
 // ─── Plan Data ───────────────────────────────────────────────────────
 const plans: Plan[] = [
   {
+    name: 'Free Credit',
+    price: '₹0',
+    period: '/month',
+    frequency: 'Try it out',
+    formats: '2 Image Generations',
+    postsPerMonth: '10 credits',
+    features: [
+      "10 free credits",
+      "2 image generations",
+      "Try SyncSocio freely",
+    ],
+    cta: 'Claim Free Credits',
+    ctaStyle: 'outline',
+  },
+  {
     name: 'Starter',
     price: '₹999',
     originalPrice: 999,
@@ -92,6 +107,7 @@ const TOPUPS = [
 
 // Credits awarded per plan (shown in UI — actual amount is random within range)
 const PLAN_CREDITS_DISPLAY: Record<string, { label: string; color: string; glow: string }> = {
+  'Free Credit': { label: '10 Free Credits', color: 'from-gray-400 to-gray-600', glow: 'shadow-gray-500/30' },
   'Starter':  { label: '200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
   'Elite': { label: '700 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
 };
@@ -360,6 +376,12 @@ const Setup = () => {
       return;
     }
     // --- END BYPASS ---
+
+    if (planName === 'Free Credit') {
+      localStorage.setItem('syncsocio_dm_automation', 'false');
+      setScreen('activation');
+      return;
+    }
 
     const basePrice = planName === 'Elite' ? 3199 : 999;
     let currentPrice = basePrice;
@@ -706,13 +728,15 @@ const Setup = () => {
           <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {plans.map((plan, i) => {
             const isDmEnabled = plan.name === 'Starter' ? dmToggles[plan.name] : false;
             const basePrice = parseInt(plan.price.replace('₹', ''));
             let currentPrice = 0;
             
-            if (appliedCoupon) {
+            if (plan.name === 'Free Credit') {
+              currentPrice = 0;
+            } else if (appliedCoupon) {
               if (appliedCoupon.code === 'LAUNCH') {
                 currentPrice = plan.name === 'Elite' ? 1899 : 599;
               } else {
