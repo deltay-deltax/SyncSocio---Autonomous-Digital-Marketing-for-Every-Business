@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
-import fpPromise from '@fingerprintjs/fingerprintjs';
 
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
@@ -45,7 +44,6 @@ const Signup = () => {
   const [isOtpStep, setIsOtpStep] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [fingerprint, setFingerprint] = useState("");
 
   // Clear fields on mount to prevent stale state/autofill issues
   useEffect(() => {
@@ -68,18 +66,6 @@ const Signup = () => {
     if (queryDm !== null) {
       localStorage.setItem("syncsocio_dm_automation", queryDm);
     }
-
-    // Initialize fingerprintjs
-    const loadFingerprint = async () => {
-      try {
-        const fp = await fpPromise.load();
-        const result = await fp.get();
-        setFingerprint(result.visitorId);
-      } catch (err) {
-        console.error("Fingerprint error", err);
-      }
-    };
-    loadFingerprint();
   }, []);
 
   useEffect(() => {
@@ -146,8 +132,7 @@ const Signup = () => {
         body: JSON.stringify({
           name: `${firstName} ${lastName}`.trim(),
           email,
-          password,
-          fingerprint
+          password
         })
       });
       const data = await res.json();
@@ -301,26 +286,12 @@ const Signup = () => {
           </div>
 
           <div className="bg-card rounded-xl p-5 border border-border shadow-sm mb-8">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center">
-                <Sparkles size={16} className="text-primary-foreground animate-pulse" />
+            <p className="text-sm italic text-muted-foreground mb-3">"SyncSocio took our digital campaigns from days of manual work to seconds of generation."</p>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                <Sparkles size={13} className="text-primary" />
               </div>
-              <div>
-                <div className="text-sm font-bold text-foreground">AI Generation SyncSocio</div>
-                <div className="text-xs text-muted-foreground">Creatives generated daily</div>
-              </div>
-            </div>
-            {/* Mini bar chart */}
-            <div className="flex items-end gap-1.5 h-12">
-              {[20, 35, 28, 45, 55, 48, 65, 72, 68, 85, 90, 100].map((h, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ height: 0 }}
-                  animate={{ height: `${h}%` }}
-                  transition={{ delay: 0.5 + i * 0.05, duration: 0.4 }}
-                  className="flex-1 rounded-sm gradient-bg opacity-70"
-                />
-              ))}
+              <div className="text-xs font-semibold text-foreground">Priya S. <span className="text-muted-foreground font-normal">· Founder, GlowCraft</span></div>
             </div>
           </div>
         </div>
@@ -486,8 +457,7 @@ const Signup = () => {
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                               idToken: credentialResponse.credential,
-                              isSignup: true,
-                              fingerprint
+                              isSignup: true
                             })
                           });
                           const data = await res.json();

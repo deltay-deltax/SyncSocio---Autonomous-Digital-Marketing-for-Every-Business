@@ -43,7 +43,6 @@ import {
   updateLead,
   getScheduledPosts,
   getGenerations,
-  getSignupRiskLogs,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -124,8 +123,5 @@ router.get('/scheduled-posts', getScheduledPosts);
 
 // ─── Generations ──────────────────────────────────────────────────────────────
 router.get('/generations', getGenerations);
-
-// ─── Signup Risk Logs ─────────────────────────────────────────────────────────
-router.get('/signup-risk-logs', getSignupRiskLogs);
 
 export default router;
