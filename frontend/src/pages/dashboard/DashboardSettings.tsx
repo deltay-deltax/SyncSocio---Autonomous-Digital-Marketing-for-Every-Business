@@ -746,6 +746,7 @@ const DashboardSettings = () => {
                     >
                       <option value="India">India</option>
                       <option value="Nepal">Nepal</option>
+                      <option value="International">International</option>
                     </select>
                   </Field>
                   <Field label="Industry" className="md:col-span-2">

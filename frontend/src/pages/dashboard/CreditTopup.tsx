@@ -5,16 +5,41 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Link, useOutletContext } from 'react-router-dom';
 import { Checkout } from '@/components/Checkout';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const topups = [
-  { credits: 100, price: 299, per_credit: 2.99 },
-  { credits: 300, price: 799, per_credit: 2.66 },
-  { credits: 700, price: 1699, per_credit: 2.42 },
+  { 
+    credits: 100, 
+    prices: {
+      INR: { price: 299, per_credit: 2.99 },
+      USD: { price: 5, per_credit: 0.05 }
+    }
+  },
+  { 
+    credits: 300, 
+    prices: {
+      INR: { price: 799, per_credit: 2.66 },
+      USD: { price: 12, per_credit: 0.04 }
+    }
+  },
+  { 
+    credits: 700, 
+    prices: {
+      INR: { price: 1699, per_credit: 2.42 },
+      USD: { price: 24, per_credit: 0.03 }
+    }
+  },
 ];
+
+const planPrices = {
+  Starter: { INR: 999, USD: 15 },
+  Elite: { INR: 3199, USD: 49 }
+};
 
 export const CreditTopup = () => {
   const { toast } = useToast();
   const { profile } = useOutletContext<{ profile: any }>();
+  const { currency, symbol, setCurrency } = useCurrency();
   const [buyingPack, setBuyingPack] = useState<number | null>(null);
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   const [processingPlan, setProcessingPlan] = useState(false);
@@ -52,12 +77,12 @@ export const CreditTopup = () => {
     const isElite = currentPlan.toLowerCase().includes('elite');
 
     if (actionType === 'renew') {
-       amount = isElite ? 3199 : 999;
+       amount = isElite ? planPrices.Elite[currency] : planPrices.Starter[currency];
        planStr = currentPlan;
        creditsAdded = isElite ? 700 : 200;
        typeStr = 'plan_renewal';
      } else if (actionType === 'upgrade') {
-       amount = 3199; // Full Elite Plan price
+       amount = planPrices.Elite[currency]; // Full Elite Plan price
        planStr = 'Elite';
        creditsAdded = 700; // Full Elite Plan credits
        typeStr = 'plan_upgrade';
@@ -102,6 +127,17 @@ export const CreditTopup = () => {
         <p className="text-xs text-muted-foreground mt-0.5">Top up your account or review how credits are used</p>
       </div>
 
+      <div className="flex justify-end items-center gap-2 mb-4">
+        <span className={`text-sm font-semibold ${currency === 'INR' ? 'text-foreground' : 'text-muted-foreground'}`}>INR (₹)</span>
+        <button 
+          onClick={() => setCurrency(currency === 'INR' ? 'USD' : 'INR')}
+          className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary/20 transition-colors focus:outline-none"
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-primary transition-transform ${currency === 'USD' ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
+        <span className={`text-sm font-semibold ${currency === 'USD' ? 'text-foreground' : 'text-muted-foreground'}`}>USD ($)</span>
+      </div>
+
       {/* Credit Topups Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -115,26 +151,29 @@ export const CreditTopup = () => {
         </p>
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-          {topups.map((topup) => (
-            <div key={topup.credits} className="glass-card bg-background/50 border border-border/60 rounded-2xl p-6 flex flex-col justify-between hover:shadow-md transition-all text-center">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-2 block">Value Pack</span>
-                <h4 className="text-2xl font-black text-foreground mb-1">{topup.credits} Credits</h4>
-                <p className="text-xs text-muted-foreground mb-4">₹{topup.per_credit} / credit</p>
+          {topups.map((topup) => {
+            const topupPrices = topup.prices[currency];
+            return (
+              <div key={topup.credits} className="glass-card bg-background/50 border border-border/60 rounded-2xl p-6 flex flex-col justify-between hover:shadow-md transition-all text-center">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-2 block">Value Pack</span>
+                  <h4 className="text-2xl font-black text-foreground mb-1">{topup.credits} Credits</h4>
+                  <p className="text-xs text-muted-foreground mb-4">{symbol}{topupPrices.per_credit} / credit</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-foreground mb-4">{symbol}{topupPrices.price}</p>
+                  <Button 
+                    variant="outline" 
+                    disabled={buyingPack !== null}
+                    className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center cursor-pointer"
+                    onClick={() => handleBuyTopup(topup.credits, topupPrices.price)}
+                  >
+                    {buyingPack === topup.credits ? 'Processing...' : 'Buy Top-up'}
+                  </Button>
+                </div>
               </div>
-              <div>
-                <p className="text-3xl font-bold text-foreground mb-4">₹{topup.price}</p>
-                <Button 
-                  variant="outline" 
-                  disabled={buyingPack !== null}
-                  className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center cursor-pointer"
-                  onClick={() => handleBuyTopup(topup.credits, topup.price)}
-                >
-                  {buyingPack === topup.credits ? 'Processing...' : 'Buy Top-up'}
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Credits Explained Link */}
@@ -185,14 +224,14 @@ export const CreditTopup = () => {
                         disabled={processingPlan}
                         className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:brightness-110 shadow-lg"
                       >
-                        {processingPlan ? 'Processing...' : 'Renew Starter Plan (₹999)'}
+                        {processingPlan ? 'Processing...' : `Renew Starter Plan (${symbol}${planPrices.Starter[currency]})`}
                       </Button>
                       <Button 
                         onClick={() => handlePlanAction('upgrade', profile?.userPlan || 'Starter')} 
                         disabled={processingPlan}
                         className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg"
                       >
-                        {processingPlan ? 'Processing...' : 'Upgrade to Elite (₹3199)'}
+                        {processingPlan ? 'Processing...' : `Upgrade to Elite (${symbol}${planPrices.Elite[currency]})`}
                       </Button>
                     </>
                   );
@@ -203,7 +242,7 @@ export const CreditTopup = () => {
                       disabled={processingPlan}
                       className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:brightness-110 shadow-lg"
                     >
-                      {processingPlan ? 'Processing...' : 'Renew Elite Plan (₹3199)'}
+                      {processingPlan ? 'Processing...' : `Renew Elite Plan (${symbol}${planPrices.Elite[currency]})`}
                     </Button>
                   );
                 }

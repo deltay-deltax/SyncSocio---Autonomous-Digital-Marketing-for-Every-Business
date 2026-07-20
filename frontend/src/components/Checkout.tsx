@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface CheckoutProps {
   baseAmount: number;
@@ -27,6 +28,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
 }) => {
   const { toast } = useToast();
   const isRazorpayLoaded = useRazorpay();
+  const { currency, symbol } = useCurrency();
 
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -97,8 +99,8 @@ export const Checkout: React.FC<CheckoutProps> = ({
   };
 
   // Calculations
-  const discountAmount = appliedCoupon ? Math.round(baseAmount * (appliedCoupon.discountPercentage / 100)) : 0;
-  const subtotalAfterDiscount = baseAmount - discountAmount;
+  const discountAmount = appliedCoupon ? parseFloat((baseAmount * (appliedCoupon.discountPercentage / 100)).toFixed(2)) : 0;
+  const subtotalAfterDiscount = parseFloat((baseAmount - discountAmount).toFixed(2));
   const tax = 0;
   const total = subtotalAfterDiscount;
 
@@ -122,6 +124,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           amount: total,
+          currency: currency,
           type,
           plan: planName,
           creditsAdded,
@@ -345,26 +348,26 @@ export const Checkout: React.FC<CheckoutProps> = ({
             </div>
             <div className="text-xs text-muted-foreground mt-1.5 font-medium">SyncSocio Digital Automation</div>
             <div className="mt-4 text-3xl font-black text-foreground">
-              ₹{baseAmount}
+              {symbol}{baseAmount}
             </div>
           </div>
 
           <div className="mt-6 space-y-3.5 text-sm">
             <div className="flex justify-between items-center font-medium">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="text-foreground">₹{baseAmount}</span>
+              <span className="text-foreground">{symbol}{baseAmount}</span>
             </div>
             {appliedCoupon && (
               <div className="flex justify-between items-center text-primary font-bold">
                 <span>Discount ({appliedCoupon.code})</span>
-                <span>-₹{discountAmount}</span>
+                <span>-{symbol}{discountAmount}</span>
               </div>
             )}
 
             <div className="h-px bg-border my-2.5" />
             <div className="flex justify-between items-center font-bold">
               <span className="text-foreground">Total due today</span>
-              <span className="text-xl text-foreground font-black">₹{total}</span>
+              <span className="text-xl text-foreground font-black">{symbol}{total}</span>
             </div>
           </div>
 
@@ -373,7 +376,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
             disabled={isProcessing}
             className="mt-8 w-full h-14 rounded-lg bg-primary text-primary-foreground font-bold text-base hover:opacity-95 disabled:opacity-60 transition-all shadow-lg shadow-primary/10 hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0"
           >
-            {isProcessing ? "Processing..." : `Pay now — ₹${total}`}
+            {isProcessing ? "Processing..." : `Pay now — ${symbol}${total}`}
           </button>
           <p className="mt-4 text-[11px] text-muted-foreground text-center font-medium">
             Secure payments powered by Razorpay
