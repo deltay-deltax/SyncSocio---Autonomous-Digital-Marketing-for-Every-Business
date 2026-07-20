@@ -87,6 +87,8 @@ const DashboardLayoutContent = () => {
     return cached ? parseInt(cached, 10) : null;
   });
   const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
+  const [showOutOfCreditsModal, setShowOutOfCreditsModal] = useState(false);
+  const [outOfCreditsCost, setOutOfCreditsCost] = useState(0);
   const [creditsAnim, setCreditsAnim] = useState(false);
   const [brands, setBrands] = useState<any[]>([]);
   const { toast } = useToast();
@@ -212,6 +214,15 @@ const DashboardLayoutContent = () => {
   };
 
   const startBackgroundGeneration = async (payload: any, creditCost: number, creditReason: string, mode: any) => {
+    const currentCreditsStr = localStorage.getItem('syncsocio_credits');
+    const currentCredits = parseInt(currentCreditsStr || '0', 10);
+    
+    if (creditCost > 0 && currentCredits < creditCost) {
+      setOutOfCreditsCost(creditCost);
+      setShowOutOfCreditsModal(true);
+      return null;
+    }
+
     const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const title = mode === 'all_in_one' ? 'All-in-One Pack' :
       mode === 'whatsapp' ? 'WhatsApp Blast' :
@@ -303,6 +314,15 @@ const DashboardLayoutContent = () => {
   };
 
   const startBackgroundAllInOne = async (requests: any[], creditCost: number, creditReason: string) => {
+    const currentCreditsStr = localStorage.getItem('syncsocio_credits');
+    const currentCredits = parseInt(currentCreditsStr || '0', 10);
+    
+    if (creditCost > 0 && currentCredits < creditCost) {
+      setOutOfCreditsCost(creditCost);
+      setShowOutOfCreditsModal(true);
+      return null;
+    }
+
     const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     const newTask: BgTask = {
@@ -1237,6 +1257,24 @@ const DashboardLayoutContent = () => {
       </AnimatePresence>
 
       <CreditsModal isOpen={isCreditsModalOpen} onClose={() => setIsCreditsModalOpen(false)} />
+
+      {showOutOfCreditsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-background rounded-3xl p-8 max-w-md w-full shadow-2xl border border-border">
+            <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle size={32} className="text-rose-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-center mb-2">Insufficient Credits</h2>
+            <p className="text-center text-muted-foreground mb-6 text-sm">
+              You need <span className="font-bold text-foreground">{outOfCreditsCost} credits</span> for this generation, but you only have <span className="font-bold text-foreground">{credits ?? 0}</span>.
+            </p>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowOutOfCreditsModal(false)}>Cancel</Button>
+              <Button className="flex-1 gradient-bg text-white border-0" onClick={() => { setShowOutOfCreditsModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}>Buy Plan</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

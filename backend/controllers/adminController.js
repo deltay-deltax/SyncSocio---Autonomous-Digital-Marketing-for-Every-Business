@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import BrandProfile from '../models/BrandProfile.js';
+import SignupRiskLog from '../models/SignupRiskLog.js';
 import DMFlow from '../models/DMFlow.js';
 import Asset from '../models/Asset.js';
 import Coupon from '../models/Coupon.js';
@@ -1330,5 +1331,35 @@ export const getGenerations = async (req, res) => {
   } catch (error) {
     console.error('Error fetching generations:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// ─── Signup Risk Logs ─────────────────────────────────────────────────────────
+
+export const getSignupRiskLogs = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const logs = await SignupRiskLog.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await SignupRiskLog.countDocuments();
+
+    res.json({
+      success: true,
+      data: logs,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching signup risk logs:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching logs' });
   }
 };

@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import BrandProfile from '../models/BrandProfile.js';
+import SignupRiskLog from '../models/SignupRiskLog.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
@@ -21,6 +22,47 @@ const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET || 'fallback_secret', {
     expiresIn: '30d'
   });
+};
+
+const DISPOSABLE_EMAIL_DOMAINS = [
+  'mailinator.com', '10minutemail.com', 'yopmail.com', 'guerrillamail.com', 
+  'temp-mail.org', 'tempmail.com', 'throwawaymail.com', 'sharklasers.com',
+  'fakemail.net', 'maildrop.cc', 'tempmail.net'
+];
+
+const assessSignupRisk = async (email, ipAddress, fingerprint) => {
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (DISPOSABLE_EMAIL_DOMAINS.includes(domain)) {
+    return { blocked: true, reason: 'Disposable email addresses are not allowed.' };
+  }
+
+  const riskThreshold = 2; // more than 2 recent signups
+  const timeWindow = new Date(Date.now() - 24 * 60 * 60 * 1000); // last 24h
+
+  let riskScore = 0;
+  
+  if (fingerprint) {
+    const fpCount = await SignupRiskLog.countDocuments({ fingerprint, createdAt: { $gte: timeWindow } });
+    if (fpCount >= riskThreshold) riskScore += 100;
+  }
+  
+  if (ipAddress) {
+    const ipCount = await SignupRiskLog.countDocuments({ ipAddress, createdAt: { $gte: timeWindow } });
+    if (ipCount >= riskThreshold) riskScore += 50;
+  }
+
+  await SignupRiskLog.create({
+    email,
+    ipAddress,
+    fingerprint,
+    riskScore,
+    reason: riskScore > 0 ? 'High frequency signups detected' : 'Normal'
+  });
+
+  return { 
+    blocked: false, 
+    free_generations_remaining: riskScore > 0 ? 0 : 3 
+  };
 };
 
 const OTP_EXPIRY_MINUTES = 10;
@@ -70,7 +112,7 @@ const sendOtpEmail = async (email, name, otp) => {
 };
 
 export const signup = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, fingerprint } = req.body;
   try {
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
@@ -131,6 +173,13 @@ export const signup = async (req, res) => {
       existingUser.otpExpiry = otpExpiry;
       user = await existingUser.save();
     } else {
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+      const riskAssessment = await assessSignupRisk(normalizedEmail, ipAddress, fingerprint);
+      
+      if (riskAssessment.blocked) {
+        return res.status(400).json({ message: riskAssessment.reason });
+      }
+
       user = await User.create({
         name,
         email: normalizedEmail,
@@ -138,6 +187,7 @@ export const signup = async (req, res) => {
         isVerified: false,
         otpCode: hashedOtp,
         otpExpiry,
+        free_generations_remaining: riskAssessment.free_generations_remaining,
       });
     }
 
@@ -217,7 +267,7 @@ export const login = async (req, res) => {
 };
 
 export const googleLogin = async (req, res) => {
-  const { idToken, plan, isSignup } = req.body;
+  const { idToken, plan, isSignup, fingerprint } = req.body;
   try {
     let email, name, googleId;
     if (idToken === 'mock_google_token') {
@@ -242,7 +292,21 @@ export const googleLogin = async (req, res) => {
     }
     let isNewUser = false;
     if (!user) {
-      user = await User.create({ name, email, googleId, isVerified: true, lastLogin: new Date() });
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+      const riskAssessment = await assessSignupRisk(email, ipAddress, fingerprint);
+      
+      if (riskAssessment.blocked) {
+        return res.status(400).json({ message: riskAssessment.reason });
+      }
+
+      user = await User.create({ 
+        name, 
+        email, 
+        googleId, 
+        isVerified: true, 
+        lastLogin: new Date(),
+        free_generations_remaining: riskAssessment.free_generations_remaining
+      });
       isNewUser = true;
     } else {
       if (isSignup) {
@@ -312,7 +376,7 @@ export const googleLogin = async (req, res) => {
 };
 
 export const appleLogin = async (req, res) => {
-  const { idToken, name: providedName, plan, isSignup } = req.body;
+  const { idToken, name: providedName, plan, isSignup, fingerprint } = req.body;
   try {
     let email, appleId;
     let name = providedName;
@@ -335,7 +399,21 @@ export const appleLogin = async (req, res) => {
     }
     let isNewUser = false;
     if (!user) {
-      user = await User.create({ name, email, appleId, isVerified: true, lastLogin: new Date() });
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+      const riskAssessment = await assessSignupRisk(email, ipAddress, fingerprint);
+      
+      if (riskAssessment.blocked) {
+        return res.status(400).json({ message: riskAssessment.reason });
+      }
+
+      user = await User.create({ 
+        name, 
+        email, 
+        appleId, 
+        isVerified: true, 
+        lastLogin: new Date(),
+        free_generations_remaining: riskAssessment.free_generations_remaining
+      });
       isNewUser = true;
     } else {
       if (isSignup) {
