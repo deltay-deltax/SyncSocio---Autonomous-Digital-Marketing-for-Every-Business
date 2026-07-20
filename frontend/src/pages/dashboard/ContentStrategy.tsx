@@ -455,7 +455,7 @@ const STUDIOS: Studio[] = [
     ],
     cta: { label: "Start Photoshoot", tint: "text-fuchsia-600" },
     to: "/dashboard?mode=photoshoot",
-    image: "/assets/Creatives_icon/studio-image.jpg",
+    image: "/assets/Creatives_icon/studio-photoshoot.png",
     hoverBorder: "hover:border-fuchsia-400 hover:ring-1 hover:ring-fuchsia-400",
   },
 ];
@@ -1114,48 +1114,12 @@ const DashboardStrategy = () => {
     }
   }, [brandId]);
 
-  // Sync savedIndices when generated posts or creativeLibrary changes
+  // Sync savedIndices when generated posts change
   React.useEffect(() => {
     if (generated.length === 0) {
       setSavedIndices(new Set());
-      return;
     }
-
-    const newSavedIndices = new Set<number>();
-
-    generated.forEach((post, idx) => {
-      const isAlreadySaved = creativeLibrary.some(creative => {
-        if (post.type !== creative.type) return false;
-
-        // 1. Try matching by caption first (normalized to ignore spaces, newlines, casing, punctuation)
-        if (post.caption && creative.caption) {
-          const cleanPost = post.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-          const cleanCreative = creative.caption.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-          if (cleanPost && cleanPost === cleanCreative) return true;
-        }
-
-        // 2. Fallback to strict media URL matching (useful if captions are missing or empty)
-        if (post.type === 'image') {
-          if (post.image && creative.thumbnailBase64 && post.image === creative.thumbnailBase64) return true;
-        } else if (post.type === 'video') {
-          if (post.url && creative.videoUrl && post.url === creative.videoUrl) return true;
-          if (post.thumbnail && creative.thumbnailBase64 && post.thumbnail === creative.thumbnailBase64) return true;
-        } else if (post.type === 'carousel') {
-          const postImg = post.slides?.[0]?.image;
-          const creativeImg = creative.slides?.[0]?.image || creative.thumbnailBase64;
-          if (postImg && creativeImg && postImg === creativeImg) return true;
-        }
-
-        return false;
-      });
-
-      if (isAlreadySaved) {
-        newSavedIndices.add(idx);
-      }
-    });
-
-    setSavedIndices(newSavedIndices);
-  }, [generated, creativeLibrary]);
+  }, [generated]);
 
   const pickRandom = () => {
     const targetLimit = mode === 'ecomm' ? 1 : count;
@@ -1801,7 +1765,7 @@ const DashboardStrategy = () => {
         count: currentMode === 'ecomm' ? ecommTotal : currentCount,
         slideCount,
         aspectRatio: currentAspect,
-        idea: currentMode === 'ecomm' ? '' : finalIdea,
+        idea: finalIdea,
         refImages,
         products: (currentProducts.length > 0 && !hasCustomUpload) ? currentProducts : undefined,
         language: currentLanguage,
@@ -2580,7 +2544,7 @@ const DashboardStrategy = () => {
     };
 
     return (
-      <div className="relative max-w-6xl mx-auto">
+      <div className="relative max-w-6xl mx-auto pt-8 px-6 pb-20">
         {/* Ambient gradient backdrop */}
         <div aria-hidden className={cn('absolute -top-24 -left-24 w-[420px] h-[420px] rounded-full blur-3xl opacity-30 bg-gradient-to-br', accentGrad)} />
         <div aria-hidden className={cn('absolute -bottom-32 -right-20 w-[360px] h-[360px] rounded-full blur-3xl opacity-20 bg-gradient-to-tr', accentGrad)} />
@@ -2946,7 +2910,7 @@ const DashboardStrategy = () => {
         <div className="relative min-h-screen bg-gradient-hero">
           <div className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-60" />
 
-          <div className="relative mx-auto max-w-6xl px-6 pt-0 pb-10">
+          <div className="relative mx-auto max-w-6xl px-6 pt-8 pb-20">
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -2991,7 +2955,7 @@ const DashboardStrategy = () => {
   const currentMode = modes.find((m) => m.id === mode)!;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pt-8 px-6 pb-20">
       {/* Builder header */}
       <div className="flex items-center gap-3 mb-8">
         <button onClick={backToPick} className="p-2 rounded-xl hover:bg-muted transition">
@@ -3055,7 +3019,7 @@ const DashboardStrategy = () => {
                 {mode !== 'carousel' && (
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
-                      {mode === 'image' ? 'Post count' : 'Videos'}
+                      {mode === 'photoshoot' ? 'Images' : mode === 'image' ? 'Post count' : 'Videos'}
                     </p>
                     <div className="flex gap-2 flex-wrap">
                       {standardCounts.map((c) => (
@@ -3098,33 +3062,35 @@ const DashboardStrategy = () => {
                   </div>
                 )}
 
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Aspect ratio</p>
-                  <div className="flex flex-wrap gap-2">
-                    {aspects.map((a) => (
-                      <button
-                        key={a.id}
-                        onClick={() => setAspect(a.id)}
-                        className={cn(
-                          'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2',
-                          aspect === a.id
-                            ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                            : 'bg-card border border-border text-foreground hover:border-primary/40'
-                        )}
-                      >
-                        <span>{a.label}</span>
-                        <span className={cn('text-[10px]', aspect === a.id ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-                          {a.ratio}
-                        </span>
-                      </button>
-                    ))}
+                {mode !== 'photoshoot' && (
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Aspect ratio</p>
+                    <div className="flex flex-wrap gap-2">
+                      {aspects.map((a) => (
+                        <button
+                          key={a.id}
+                          onClick={() => setAspect(a.id)}
+                          className={cn(
+                            'px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2',
+                            aspect === a.id
+                              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                              : 'bg-card border border-border text-foreground hover:border-primary/40'
+                          )}
+                        >
+                          <span>{a.label}</span>
+                          <span className={cn('text-[10px]', aspect === a.id ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+                            {a.ratio}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </section>
           )}
 
-          {(mode !== 'video' || videoKind === 'ai-ugc') && (
+          {mode !== 'photoshoot' && (mode !== 'video' || videoKind === 'ai-ugc') && (
             <LanguagePicker
               language={language}
               setLanguage={setLanguage}
@@ -4772,7 +4738,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto pt-8 px-6 pb-20">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <button onClick={back} className="p-2 rounded-xl hover:bg-muted transition">

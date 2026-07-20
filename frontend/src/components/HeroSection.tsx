@@ -49,16 +49,25 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
         <div className="max-w-4xl mx-auto text-center">
 
 
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-black uppercase tracking-widest mb-6"
+          >
+            <Sparkles className="w-3 h-3" /> AI-Powered Social Media Automation
+          </motion.div>
+
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tight mb-6"
           >
-            Do it in{" "}
-            <span className="liquid-underline">one tap.</span>
+            Your brand,{" "}
+            <span className="liquid-underline">posting itself.</span>
             <br />
-            <span className="gradient-text">Literally.</span>
+            <span className="gradient-text">Every single day.</span>
           </motion.h1>
 
           <motion.p
@@ -67,8 +76,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            The digital brain that keeps your brand posting — every day, without you lifting a finger.
-            We automate your presence — you own the results.
+            SyncSocio is the AI engine that creates on-brand content, schedules it, and publishes directly to your Instagram — fully automated, while you focus on the business.
           </motion.p>
 
           <motion.div
@@ -82,9 +90,18 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               className="gradient-bg text-primary-foreground border-0 text-base px-8 py-6 hover-lift"
               onClick={onWaitlistClick}
             >
-              Get Started for Free
+              Claim 3 Free Creatives
               <ArrowRight size={18} className="ml-2" />
             </Button>
+            <Link to="/signup">
+              <Button
+                size="lg"
+                variant="outline"
+                className="text-base px-8 py-6 hover-lift border-border/60"
+              >
+                Start free trial
+              </Button>
+            </Link>
           </motion.div>
 
           <motion.div

@@ -117,7 +117,7 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
           <span className="text-sm font-semibold text-primary uppercase tracking-widest mb-4 block">
             Investment
           </span>
-          <h2 className="text-sm sm:text-4xl lg:text-5xl font-bold mb-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
             Simple pricing. <span className="gradient-text">No surprises.</span>
           </h2>
 
