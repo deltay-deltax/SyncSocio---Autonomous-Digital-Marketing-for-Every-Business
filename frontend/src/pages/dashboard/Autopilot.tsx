@@ -62,7 +62,7 @@ const languages = [
   { id: 'english', label: 'English', flag: '🇬🇧' },
   { id: 'hinglish', label: 'Hinglish', flag: '🅷' },
   { id: 'hindi', label: 'Hindi (हिन्दी)', flag: '🇮🇳' },
-  { id: 'marathi', label: 'Marathi (मરાठी)', flag: '🌾' },
+  { id: 'marathi', label: 'Marathi (मराठी)', flag: '🌾' },
   { id: 'bengali', label: 'Bengali (বাংলা)', flag: '🌸' },
   { id: 'gujarati', label: 'Gujarati (ગુજરાતી)', flag: '🪁' },
   { id: 'punjabi', label: 'Punjabi (ਪੰਜਾਬੀ)', flag: '🌾' },
@@ -71,6 +71,7 @@ const languages = [
   { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
   { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
   { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
+  { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' },
 ];
 
 interface Product {

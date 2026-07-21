@@ -106,6 +106,7 @@ const languages = [
   { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
   { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
   { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
+  { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' },
 ];
 
 // ── Ad composition templates ─────────────────────────────────────────────────
@@ -480,13 +481,17 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
         )}
       >
         {/* Right image — absolutely positioned so it never affects left column height */}
-        <div className="absolute right-0 top-0 bottom-0 w-[120px] sm:w-[140px] xl:w-[170px] flex items-center justify-center pointer-events-none">
+        <div className={cn(
+          "absolute right-0 top-0 bottom-0 w-[120px] sm:w-[140px] xl:w-[170px] flex items-center justify-center pointer-events-none",
+          s.id === "photoshoot" && "p-3 sm:p-4"
+        )}>
           <img
             src={s.image}
             alt={`${s.title} preview`}
             loading="lazy"
             className={cn(
-              "h-full w-full object-contain transition-transform duration-500",
+              "h-full w-full transition-transform duration-500",
+              s.id === "photoshoot" ? "object-cover rounded-2xl shadow-sm" : "object-contain",
               s.id === "video" && "rotate-3"
             )}
           />
@@ -1807,13 +1812,33 @@ const DashboardStrategy = () => {
 
       if (currentMode === 'whatsapp' || currentMode === 'email') {
         try {
-          const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
+          const token = localStorage.getItem('token');
+          const startRes = await fetch(`${NODE_BASE}/ai/start-generation`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ endpoint: 'generate-strategy-images', payload }),
           });
-          const data = await res.json();
-          if (data.status === 'success' && data.posts && data.posts.length > 0) {
+          
+          if (!startRes.ok) throw new Error('Failed to start generation');
+          const { jobId } = await startRes.json();
+          let data = null;
+          
+          while (true) {
+             await new Promise(r => setTimeout(r, 5000));
+             const pollRes = await fetch(`${NODE_BASE}/ai/job/${jobId}`, {
+               headers: { Authorization: `Bearer ${token}` }
+             });
+             const job = await pollRes.json();
+             
+             if (job.status === 'success') {
+                 data = job.data;
+                 break;
+             } else if (job.status === 'error') {
+                 throw new Error(job.error || 'Generation failed');
+             }
+          }
+
+          if (data && data.status === 'success' && data.posts && data.posts.length > 0) {
             setGenerated(data.posts);
             const first = data.posts[0];
             setCampaignImage(imgSrc(first.image) || '');
@@ -1821,7 +1846,7 @@ const DashboardStrategy = () => {
             setCampaignBody(first.caption || '');
             setStage('results');
           } else {
-            setGenError(data.detail || 'Generation failed. Try again.');
+            setGenError(data?.detail || 'Generation failed. Try again.');
             setStage('builder');
           }
         } catch (err: any) {
