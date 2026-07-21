@@ -82,7 +82,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               className="gradient-bg text-primary-foreground border-0 text-base px-8 py-6 hover-lift"
               onClick={onWaitlistClick}
             >
-              Get Started for Free
+              Claim 3 Free Creatives
               <ArrowRight size={18} className="ml-2" />
             </Button>
           </motion.div>
