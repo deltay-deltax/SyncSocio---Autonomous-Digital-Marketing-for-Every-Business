@@ -177,6 +177,9 @@ def _resolve_ref_image(url_or_b64: str) -> Optional[str]:
     """
     if not url_or_b64:
         return None
+    if ".svg" in url_or_b64.lower():
+        print(f"[SaasAgent] ⚠️ Skipping SVG reference image (not supported by FAL): {url_or_b64[:60]}")
+        return None
     try:
         from PIL import Image as PILImage
         import io as _io

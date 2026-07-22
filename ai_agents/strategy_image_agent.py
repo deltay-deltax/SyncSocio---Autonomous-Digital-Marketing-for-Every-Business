@@ -108,6 +108,42 @@ ECOMM_SHOT_TYPES: List[Dict[str, str]] = [
 # For counts > 8: cycle back with a warm/cool tone variant suffix
 ECOMM_SHOT_VARIANTS = [" Warm golden tones variant.", " Cool blue-toned variant."]
 
+# ──────────────────────────────────────────────
+# Fashion E-comm: Shot-type rotation (Apparel specific)
+# ──────────────────────────────────────────────
+FASHION_ECOMM_SHOT_TYPES: List[Dict[str, str]] = [
+    {
+        "id": "full_body_front",
+        "label": "Full-Body Front View",
+        "directive": "Full-body shot. Model standing facing the camera, wearing the garment. Clean lifestyle or studio background.",
+    },
+    {
+        "id": "side_profile",
+        "label": "Side Profile & Drape",
+        "directive": "Model turned 45 degrees or walking side-profile to show the garment's drape and fit from the side.",
+    },
+    {
+        "id": "back_detail",
+        "label": "Back Detail View",
+        "directive": "Model facing directly away from the camera, showing the back design and fit of the garment.",
+    },
+    {
+        "id": "mid_torso",
+        "label": "Mid-Shot Torso",
+        "directive": "Cropped mid-shot focusing on the chest, neckline, and upper torso details. Lifestyle context.",
+    },
+    {
+        "id": "fabric_macro",
+        "label": "Fabric Close-Up",
+        "directive": "Extreme macro close-up on the garment's fabric texture, stitching, or print. No face visible. Premium lighting.",
+    },
+    {
+        "id": "flat_lay",
+        "label": "Apparel Flat-Lay",
+        "directive": "Overhead 90° flat-lay of the garment styled on a premium surface. Clean isolated look.",
+    },
+]
+
 
 # ──────────────────────────────────────────────
 # E-comm: Platform-specific visual rules
@@ -301,6 +337,10 @@ def _resolve_ref_image(url_or_b64: str) -> Optional[str]:
     if not url_or_b64:
         return None
 
+    if ".svg" in url_or_b64.lower():
+        print(f"[StrategyAgent] ⚠️  Skipping SVG reference image (not supported by FAL): {url_or_b64[:60]}")
+        return None
+
     raw_b64 = None
 
     # ── Case 1: data-URL (data:image/avif;base64,xxx) ──
@@ -443,7 +483,18 @@ def build_image_prompt(
 ) -> str:
     """Single static image prompt for gpt-image-2."""
     block = _brand_block(brand_doc)
-    
+
+    # ── Detect fashion/apparel category ─────────────────────────────────
+    _raw_cat = (
+        brand_doc.get("otherCategory")
+        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
+        else brand_doc.get("businessCategory", "")
+    ).lower()
+    _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
+                     "shoe", "accessory", "accessories", "streetwear",
+                     "ethnic", "kurta", "saree"]
+    is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
+
     product_block = ""
     if product:
         product_block = f"""
@@ -459,7 +510,6 @@ Anchor the visual to this exact product.
     idea_str = f"Campaign idea: {idea}\n" if idea and idea.strip() else ""
     logo_inst = " Incorporate the brand logo cleanly on the creative. Do not assume or add any fake logos or text."
 
-    # If it is whatsapp or email campaign, we follow the exact requested structure in request 4
     if campaign_mode == "whatsapp":
         return f"""{block}
 {product_block}
@@ -474,12 +524,9 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
 
     # ── Inject ad composition template directive (or rotate if None) ───
     template_block = ""
-    template_is_active = False  # tracks whether a structured layout (text/graphic heavy) is in use
+    template_is_active = False
 
     if custom_directive:
-        # custom_directive comes from the mixed_directives pool in the orchestrator.
-        # It may be either a camera-angle string OR a full AD_TEMPLATE_DIRECTIVES directive string.
-        # Detect which by checking if the directive matches any known template.
         template_is_active = any(
             custom_directive == t["directive"]
             for t in AD_TEMPLATE_DIRECTIVES.values()
@@ -492,10 +539,9 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
         template_is_active = True
         print(f"[ImageAgent] 🔲 Template #{ad_template}: {t['label']}")
     else:
-        # Guarantee layout variety when no template is picked by injecting random dynamic framing directives
         camera_angles = [
-            "Use a dramatic low-angle shot.", "Use an overhead flat-lay composition.", 
-            "Use an extreme close-up macro shot.", "Use an asymmetrical framing.", 
+            "Use a dramatic low-angle shot.", "Use an overhead flat-lay composition.",
+            "Use an extreme close-up macro shot.", "Use an asymmetrical framing.",
             "Use a straight-on eye-level composition.", "Use dynamic tilted framing."
         ]
         angle = random.choice(camera_angles)
@@ -503,10 +549,7 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
         template_is_active = False
         print(f"[ImageAgent] 🤖 No template selected — free composition. Shuffler: {angle}")
 
-    # ── TEXT DISCIPLINE constraint (conditional on text_mode + layout type) ──
-    # template_is_active (soft)  → always used when a structural layout is active, regardless of pill.
-    # text_mode == "low"  (new)  → one clean headline, no badges/CTAs/price tags.
-    # text_mode == "heavy"       → no TEXT DISCIPLINE line at all (old original behaviour).
+    # ── TEXT DISCIPLINE constraint ──
     if template_is_active:
         text_discipline = (
             "TEXT DISCIPLINE: Follow the layout's text and badge instructions below precisely, "
@@ -514,7 +557,7 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
             "no extra badges, ratings, or CTAs not already called for."
         )
     elif text_mode == "heavy":
-        text_discipline = ""  # no constraint — model decides freely
+        text_discipline = ""
     else:  # text_mode == "low" (default)
         text_discipline = (
             "TEXT DISCIPLINE: Include exactly one short, bold headline (3-6 words max) "
@@ -528,10 +571,12 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
 
     platform_instruction = "Make it feel native to Instagram feed."
 
-    print(f"\n[ImageAgent] 🎨 Building prompt | template={ad_template} | template_active={template_is_active} | product={'YES' if product else 'NO'} | idea={bool(idea)} | campaign={campaign_mode}")
+    print(f"\n[ImageAgent] 🎨 Building prompt | template={ad_template} | template_active={template_is_active} | product={'YES' if product else 'NO'} | idea={bool(idea)} | campaign={campaign_mode} | fashion={is_fashion}")
 
-    # Build the text discipline section — omit the block entirely for "heavy" mode
     text_discipline_block = f"\n{text_discipline}\n" if text_discipline else ""
+
+    # Simple fashion context signal — model decides all visual choices
+    fashion_note = "\nFashion brand — show the product worn or styled in a lifestyle context, not isolated on a plain background." if is_fashion else ""
 
     return f"""{block}
 {product_block}
@@ -540,7 +585,7 @@ Create a high-converting product ad creative.
 {platform_instruction}
 {logo_inst}
 Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
-Any text overlays, labels, or copy displayed in the image must be in {language}."""
+Any text overlays, labels, or copy displayed in the image must be in {language}.{fashion_note}"""
 
 # ──────────────────────────────────────────────
 # Copy generation for WhatsApp & Email
@@ -728,6 +773,7 @@ def build_ecomm_image_prompt(
     ref_image: Optional[str] = None,
     language: str = "english",
     idea: Optional[str] = None,
+    avatar_url: Optional[str] = None,
 ) -> tuple:
     """
     Dedicated E-comm listing prompt builder.
@@ -774,7 +820,18 @@ def build_ecomm_image_prompt(
         product_line = f"PRODUCT: {brand_name} flagship product. Brand packaging as hero."
         caption_product = brand_name
 
-    # ── 3. Platform rule ────────────────────────────────────────────
+    # ── 3. Detect fashion/apparel category ──────────────────────────────
+    _raw_cat = (
+        brand_doc.get("otherCategory")
+        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
+        else brand_doc.get("businessCategory", "")
+    ).lower()
+    _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
+                     "shoe", "accessory", "accessories", "streetwear",
+                     "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+    is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
+
+    # ── 4. Platform rule ────────────────────────────────────────────
     if platform == "Amazon" and shot_index == 0:
         # Amazon Main Image: Strict isolation rules, white background, no text
         platform_line = (
@@ -786,22 +843,27 @@ def build_ecomm_image_prompt(
         # Amazon Secondary Images & All Other Platforms: Info-graphics, overlays, styled backgrounds allowed
         if platform == "Amazon":
             platform_line = (
-                "PLATFORM (Amazon Secondary Image): Infographic, lifestyle, or styled composition allowed. "
+                "PLATFORM (Amazon Secondary Image): Lifestyle, or styled composition allowed. "
                 "Visually rich backgrounds and context allowed for secondary listings."
             )
         else:
             platform_rule = PLATFORM_RULES.get(platform, "Clean, premium, commercial product photography.")
             platform_line = f"PLATFORM ({platform}): {platform_rule}"
         
-        text_instruction = (
-            "Include professional, clean typographic text overlays highlighting key product benefits "
-            "or features as appropriate. "
-            "No generic watermarks or external logos."
-        )
+        if is_fashion:
+            text_instruction = "No text overlays, no typographic elements, no text, no watermarks."
+        else:
+            text_instruction = (
+                "Include professional, clean typographic text overlays highlighting key product benefits "
+                "or features as appropriate. "
+                "No generic watermarks or external logos."
+            )
 
-    # ── 4. Shot-type directive (rotation) ──────────────────────────
-    n_base = len(ECOMM_SHOT_TYPES)  # 8
-    shot   = ECOMM_SHOT_TYPES[shot_index % n_base]
+    # ── 5. Shot-type directive (rotation) ──────────────────────────
+    
+    shot_types_to_use = FASHION_ECOMM_SHOT_TYPES if is_fashion else ECOMM_SHOT_TYPES
+    n_base = len(shot_types_to_use)
+    shot   = shot_types_to_use[shot_index % n_base]
     
     directive = shot["directive"]
     if shot["id"] == "flat_lay" and (platform != "Amazon" or shot_index > 0):
@@ -819,22 +881,44 @@ def build_ecomm_image_prompt(
     caption    = f"{caption_product} · {shot['label']} ({platform}) ✨"
 
     # ── 5. Ref-image instruction ────────────────────────────────────
-    ref_line = ""
-    if ref_image:
-        ref_line = "\nREF IMAGE PROVIDED: Use the attached product image as strict visual reference. Preserve packaging exactly."
+    ref_line = f"\nREFERENCE: Keep the exact shape, material, design, and color of the product attached." if ref_image else ""
+    if avatar_url:
+        ref_line += (
+            "\n\nREF IMAGES PROVIDED: You have received a human model avatar reference image and a product reference image. "
+            "Apply the product exactly as shown onto the provided human model. "
+            "Ensure the model's face, ethnicity, and identity remain EXACTLY as pictured in the avatar reference image!"
+        )
 
     # ── 6. Final closing instruction ────────────────────────────────
     closing = (
         "Premium marketplace product listing image. "
         "Photorealistic, commercial photography quality. "
         f"{text_instruction} "
-        f"Any text overlays or words shown in the image must be in {language}."
+        f"Any text overlays or words shown in the image must be in {language}. "
+        "Everything must look ultra-realistic."
     )
+
+    # ── Detect fashion/apparel category ─────────────────────────────────
+    _raw_cat = (
+        brand_doc.get("otherCategory")
+        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
+        else brand_doc.get("businessCategory", "")
+    ).lower()
+    _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
+                     "shoe", "accessory", "accessories", "streetwear",
+                     "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+    is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
+    
+    fashion_note = ""
+    if is_fashion and (platform != "Amazon" or shot_index > 0):
+        # Amazon Main image (shot_index 0) requires pure white background isolation.
+        # But for secondary shots and other platforms, apply the fashion lifestyle directive.
+        fashion_note = "\nFashion brand — show the product worn or styled in an aspirational lifestyle context, not isolated on a plain background."
 
     idea_line = ""
     if shot_index > 0 and idea and idea.strip():
         idea_line = f"\nCAMPAIGN IDEA / OPTIONAL INSTRUCTIONS: {idea}"
-    prompt = f"{brand_line}\n{product_line}\n{platform_line}\n{shot_line}{ref_line}{idea_line}\n{closing}"
+    prompt = f"{brand_line}\n{product_line}\n{platform_line}\n{shot_line}{ref_line}{idea_line}\n{closing}{fashion_note}"
 
     print("\n" + "=" * 80)
     print(f"[EcommAgent] Shot {shot_index + 1}/{total_count} - {shot['label']} | Platform: {platform}")
@@ -861,7 +945,26 @@ def build_carousel_slide_prompts(
 
     idea_info = f"\nCampaign Idea/Topic: {idea}" if idea else ""
 
-    prompt = f"""{block}{prod_info}{idea_info}
+    # Detect fashion category for specialised copy framing
+    _raw_cat = (
+        brand_doc.get("otherCategory")
+        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
+        else brand_doc.get("businessCategory", "")
+    ).lower()
+    _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
+                     "shoe", "accessory", "accessories", "streetwear",
+                     "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+    fashion_note = ""
+    if any(k in _raw_cat for k in _FASHION_KEYS):
+        fashion_note = (
+            "\nFASHION BRAND CAROUSEL RULE: Write copy suited for fashion content — "
+            "e.g. styling guides ('5 ways to wear this'), lookbook reveals, collection drops, "
+            "'outfit of the day' concepts, fabric story, occasion dressing. "
+            "Do NOT write generic product feature lists or bland benefit bullets. "
+            "Make it aspirational, editorial, and style-forward."
+        )
+
+    prompt = f"""{block}{prod_info}{idea_info}{fashion_note}
 Write the text for an Instagram Carousel with EXACTLY {slide_count} slides.
 Output the text in {language}.
 Make it punchy and engaging. Slide 1 is the hook. The last slide is the Call to Action.
@@ -937,6 +1040,7 @@ def generate_strategy_images(
     avatar_description: Optional[str] = "",
     video_script: Optional[str] = "",
     text_mode: str = "low",  # "low" = one headline | "heavy" = no TEXT DISCIPLINE
+    avatar_url: Optional[str] = "",
 ) -> List[Dict[str, Any]]:
     """
     Orchestrates generation for all layout types.
@@ -982,10 +1086,20 @@ def generate_strategy_images(
             
             # Cost optimisation: pass only product image + logo (not all scraped ref_images)
             task_refs = []
-            if prod_for_ecomm and prod_for_ecomm.get("imageBase64"):
-                task_refs.append(prod_for_ecomm["imageBase64"])
+            
+            # 1. First, if an avatar is passed, it is the primary anchor reference for the model
+            if avatar_url:
+                res_avatar = _resolve_ref_image(avatar_url)
+                if res_avatar: task_refs.append(res_avatar)
+                
+            # 2. Add product image
+            if prod_for_ecomm:
+                if prod_for_ecomm.get("imageBase64"):
+                    task_refs.append(prod_for_ecomm["imageBase64"])
             elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
                 task_refs.append(assigned_refs[i])
+                
+            # 3. Add brand logo
             if brand_doc.get("logo"):
                 res_logo = _resolve_ref_image(brand_doc.get("logo"))
                 if res_logo and res_logo not in task_refs:
@@ -1000,6 +1114,7 @@ def generate_strategy_images(
                 ref_image=task_refs[0] if task_refs else None,
                 language=language,
                 idea=idea,
+                avatar_url=avatar_url,
             )
             tasks.append((prompt, caption, task_refs, i))
 
@@ -1091,8 +1206,9 @@ def generate_strategy_images(
             
             # Cost optimisation: pass only product image + logo (not all scraped ref_images)
             task_refs = []
-            if prod and prod.get("imageBase64"):
-                task_refs.append(prod.get("imageBase64"))
+            if prod:
+                if prod.get("imageBase64"):
+                    task_refs.append(prod.get("imageBase64"))
             elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
                 task_refs.append(assigned_refs[i])
             if brand_doc.get("logo"):
@@ -1190,8 +1306,9 @@ def generate_strategy_images(
             prod = assigned_products[i]
             
             task_refs = []
-            if prod and prod.get("imageBase64"):
-                task_refs.append(prod.get("imageBase64"))
+            if prod:
+                if prod.get("imageBase64"):
+                    task_refs.append(prod.get("imageBase64"))
             elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
                 task_refs.append(assigned_refs[i])
             if brand_doc.get("logo"):
@@ -1279,8 +1396,9 @@ def generate_strategy_images(
             
             # Cost optimisation: pass only product image + logo (not all scraped ref_images)
             task_refs = []
-            if prod and prod.get("imageBase64"):
-                task_refs.append(prod.get("imageBase64"))
+            if prod:
+                if prod.get("imageBase64"):
+                    task_refs.append(prod.get("imageBase64"))
             elif assigned_refs and index < len(assigned_refs) and assigned_refs[index]:
                 task_refs.append(assigned_refs[index])
             if brand_doc.get("logo"):

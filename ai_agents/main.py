@@ -1822,6 +1822,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 avatar_description=request.avatarDescription,
                 video_script=request.videoScript,
                 text_mode=request.textMode or "low",
+                avatar_url=request.avatarUrl,
             )
 
         # 3. Log the FAL API Cost to MongoDB (apilogs collection)
@@ -2140,6 +2141,57 @@ async def api_generate_autopilot(request: AutopilotRequest):
         }
     except Exception as e:
         print(f"[Autopilot] ❌ Route error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class AvatarRequest(BaseModel):
+    description: str
+    gender: str = "female"
+
+@app.post("/generate-avatar")
+async def generate_avatar_endpoint(req: AvatarRequest):
+    try:
+        from fal_visual_engine import generate_fal_image_gpt2
+        import asyncio
+        
+        prompt = f"""Create a photorealistic portrait of a fictional adult {req.gender} from India.
+
+The person should have natural Indian facial features and appearance while remaining unique and not resembling any real individual.
+
+{req.description}
+
+Medium-shot portrait.
+Facing directly toward the camera.
+Looking into the lens.
+Professional fashion studio photography.
+Soft diffused lighting.
+Neutral light gray background.
+High facial detail.
+Natural skin texture.
+Premium modern clothing.
+Commercial fashion catalog style.
+Photorealistic."""
+
+        # Run in thread since fal_visual_engine is sync
+        try:
+            result = await asyncio.to_thread(
+                generate_fal_image_gpt2,
+                prompt=prompt,
+                image_size="portrait_4_3"
+            )
+            return {"status": "success", "image": result["image"]}
+        except Exception as api_err:
+            error_str = str(api_err).lower()
+            if "content_policy_violation" in error_str or "content checker" in error_str:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Content Policy Violation: Your prompt was flagged by the AI safety filter. Please avoid using sensitive words (e.g., sexy, nude, attractive, etc.) and try again."
+                )
+            raise api_err
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[AvatarGen] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

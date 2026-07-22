@@ -114,6 +114,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                 "image_urls": data_urls,
                 "image_size": image_size,
                 "quality": "low",
+                "enable_safety_checker": False,
             }
             try:
                 result = fal_client.subscribe(
@@ -150,6 +151,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                 "prompt": prompt,
                 "image_size": image_size,
                 "quality": "low",
+                "enable_safety_checker": False,
             }
             result = fal_client.subscribe(
                 "fal-ai/gpt-image-2",

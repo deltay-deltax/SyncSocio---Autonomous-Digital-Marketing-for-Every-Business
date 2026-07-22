@@ -151,7 +151,24 @@ def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, 
     try:
         # Construct the exact same prompt format used in ContentStrategy
         agent_idea = post.get("image_prompt", "") or post.get("topic", "")
-        
+
+        # ── Detect fashion/apparel category ──
+        _raw_cat = (
+            brand_info.get("otherCategory")
+            if brand_info.get("businessCategory") == "Other" and brand_info.get("otherCategory")
+            else brand_info.get("businessCategory", "")
+        ).lower()
+        _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
+                         "shoe", "accessory", "accessories", "streetwear",
+                         "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+        is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
+
+        # For fashion brands, pass a simple lifestyle signal — model decides visual treatment
+        custom_directive = "Fashion lifestyle context — show the product worn or styled, not isolated." if is_fashion else None
+
+        if is_fashion:
+            print(f"[Autopilot Visuals] 👗 Fashion brand detected — applying lifestyle context.")
+
         rich_prompt = build_image_prompt(
             brand_doc=brand_info,
             idea=agent_idea,
@@ -160,7 +177,7 @@ def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, 
             ad_template=None,
             campaign_mode=None,
             language="english",
-            custom_directive=None
+            custom_directive=custom_directive
         )
         # Collect reference images (product + logo) and resolve them to JPEG base64
         task_refs = []

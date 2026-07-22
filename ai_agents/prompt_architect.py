@@ -214,8 +214,9 @@ def build_flux_prompt(
     )
 
     category_lower = (business_category or "").lower()
-    is_cpg = any(k in category_lower for k in ["beauty", "cosmetic", "skincare", "hair", "food", "beverage", "personal care"])
-    is_tech = any(k in category_lower for k in ["saas", "app", "tech", "software"])
+    is_cpg    = any(k in category_lower for k in ["beauty", "cosmetic", "skincare", "hair", "food", "beverage", "personal care"])
+    is_tech   = any(k in category_lower for k in ["saas", "app", "tech", "software"])
+    is_fashion = any(k in category_lower for k in ["fashion", "apparel", "clothing", "garment", "footwear", "shoe", "accessory", "accessories", "streetwear", "ethnic", "kurta", "saree", "jewellery", "jewelry"])
 
     if is_cpg:
         camera_rig = "shot on Phase One XF IQ4 150MP, 90mm macro lens, f/2.8, ISO 50"
@@ -239,8 +240,14 @@ def build_flux_prompt(
         f"Color grading reflects the {brand_tone} brand tone."
     )
 
+    fashion_context = (
+        "Fashion lifestyle photography — show the product worn or styled in context. "
+        "Not a product-on-table shot. "
+    ) if is_fashion else ""
+
     positive = (
         f"Commercial product photograph. {market_context}"
+        f"{fashion_context}"
         f"Subject: {product_name} — {product_description}. "
         f"Post topic: {post_topic}. "
         f"Brand: {brand_name}. Tone: {brand_tone}. Vibe: {visual_vibe}. USP: {usp}. "

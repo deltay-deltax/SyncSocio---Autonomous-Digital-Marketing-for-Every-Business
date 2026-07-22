@@ -28,6 +28,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import siteRoutes from './routes/siteRoutes.js';
 import whatsappRoutes from './routes/whatsappRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
+import avatarRoutes from './routes/avatarRoutes.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
@@ -85,6 +86,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/site', siteRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/avatars', avatarRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

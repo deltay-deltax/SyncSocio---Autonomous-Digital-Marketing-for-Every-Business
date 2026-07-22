@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,6 +43,14 @@ interface GeneratedPost {
   subject?: string;
   template?: string;
   sectionType?: string;
+}
+
+interface GlobalAvatar {
+  _id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  gender: string;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -754,6 +762,15 @@ const DashboardStrategy = () => {
   const [platform, setPlatform] = useState<string>('Amazon');
   const [ecommImgCount, setEcommImgCount] = useState<number>(4);
 
+  // ── Avatars
+  const [avatars, setAvatars] = useState<GlobalAvatar[]>([]);
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
+  const [showAvatarModal, setShowAvatarModal] = useState<boolean>(false);
+  const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string | null>(null);
+  const [newAvatarDesc, setNewAvatarDesc] = useState<string>('');
+  const [newAvatarGender, setNewAvatarGender] = useState<'male' | 'female' | 'other'>('female');
+  const [isGeneratingAvatar, setIsGeneratingAvatar] = useState<boolean>(false);
+
   // ── Image ad template (null = auto, 1–10 = specific template, -1 = all 8 variants)
   const [adTemplate, setAdTemplate] = useState<number | null>(null);
   // ── Text density mode for image generation ("low" = one clean headline | "heavy" = model decides freely)
@@ -967,7 +984,68 @@ const DashboardStrategy = () => {
     ? videoKinds.filter((v) => v.id !== 'img2video')
     : videoKinds;
 
+  // ── Fetch Avatars
+  const fetchAvatars = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${NODE_BASE}/avatars`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAvatars(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch avatars', e);
+    }
+  };
+
+  React.useEffect(() => {
+    if (mode === 'ecomm') {
+      fetchAvatars();
+    }
+  }, [mode]);
+
   // ── Fetch products
+  const handleGenerateAvatar = async () => {
+
+    if (!newAvatarDesc.trim()) return;
+    setIsGeneratingAvatar(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${NODE_BASE}/avatars/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          description: newAvatarDesc,
+          gender: newAvatarGender
+        })
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        try {
+          const errJson = JSON.parse(errText);
+          throw new Error(errJson.detail || errJson.error || errText);
+        } catch {
+          throw new Error(errText);
+        }
+      }
+      const newAvatar = await res.json();
+      setAvatars([newAvatar, ...avatars]);
+      setSelectedAvatarUrl(newAvatar.imageUrl);
+      setShowAvatarModal(false);
+      setNewAvatarDesc('');
+      toast({ title: 'Avatar Generated!', description: 'Your custom virtual model is ready.', variant: 'success' });
+    } catch (error: any) {
+      toast({ title: 'Failed to generate avatar', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsGeneratingAvatar(false);
+    }
+  };
+
   React.useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -1780,6 +1858,7 @@ const DashboardStrategy = () => {
         ...(currentMode === 'ecomm' && {
           platform,
           imageCount: ecommTotal,
+          avatarUrl: selectedAvatarUrl,
         }),
         ...((currentMode === 'image' || currentMode === 'festival') && {
           // SaaS brands: use saasFormatId (101-106) when a format is selected
@@ -3618,8 +3697,162 @@ const DashboardStrategy = () => {
           )}
 
           <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                {profile?.location?.country?.toLowerCase() !== 'nepal' ? '2' : '1'} · Virtual Model (Avatar)
+              </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Clicked Custom Avatar!');
+                  setShowAvatarModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-wide border transition-all duration-200 bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:scale-105"
+              >
+                <Plus size={12} />
+                Custom Avatar
+              </button>
+            </div>
+            {avatars.length > 0 ? (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted">
+                {avatars.map((av) => (
+                  <div
+                    key={av._id}
+                    onClick={() => setSelectedAvatarUrl(selectedAvatarUrl === av.imageUrl ? null : av.imageUrl)}
+                    className={cn(
+                      "relative shrink-0 w-24 h-24 rounded-2xl cursor-pointer overflow-hidden border-2 transition-all group",
+                      selectedAvatarUrl === av.imageUrl ? "border-primary shadow-md shadow-primary/30 scale-105" : "border-transparent opacity-80 hover:opacity-100"
+                    )}
+                  >
+                    <img src={av.imageUrl} alt={av.name} className="w-full h-full object-cover" />
+                    
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewAvatarUrl(av.imageUrl);
+                      }}
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/90 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    >
+                      <Eye size={16} />
+                    </button>
+
+                    {selectedAvatarUrl === av.imageUrl && (
+                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5 shadow z-10">
+                        <Check size={12} />
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 text-center">
+                      <p className="text-[9px] font-medium text-white truncate">{av.name}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No avatars available in the library yet.</p>
+            )}
+          </section>
+
+        <AnimatePresence>
+          {previewAvatarUrl && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
+              onClick={() => setPreviewAvatarUrl(null)}
+            >
+              <motion.img
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.95 }}
+                src={previewAvatarUrl}
+                className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain cursor-default"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button 
+                onClick={() => setPreviewAvatarUrl(null)}
+                className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-white hover:text-black transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+<AnimatePresence>
+{showAvatarModal && (
+          <motion.div
+            key="avatar-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && !isGeneratingAvatar && setShowAvatarModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl flex flex-col p-6 space-y-5"
+            >
+              <div>
+                <h3 className="text-base font-black text-foreground">Create Virtual Model ✨</h3>
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Describe your ideal model (age, ethnicity, hairstyle, vibe). A realistic AI avatar will be generated for your e-comm listings.</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  {['female', 'male'].map(g => (
+                    <button
+                      key={g}
+                      onClick={() => setNewAvatarGender(g as any)}
+                      className={cn(
+                        "flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all border",
+                        newAvatarGender === g ? "bg-primary text-primary-foreground border-primary" : "bg-muted/30 border-transparent hover:bg-muted"
+                      )}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+                <Textarea
+                  value={newAvatarDesc}
+                  onChange={(e) => setNewAvatarDesc(e.target.value)}
+                  placeholder="e.g. 24-year-old Indian female, short wavy hair, sharp jawline, olive skin..."
+                  className="rounded-xl border-border/80 bg-muted/20 h-24 text-sm font-semibold resize-none"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAvatarModal(false)}
+                  disabled={isGeneratingAvatar}
+                  className="rounded-xl px-5 h-10 text-xs font-bold border-border/70"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleGenerateAvatar}
+                  disabled={!newAvatarDesc.trim() || isGeneratingAvatar}
+                  className="rounded-xl px-6 h-10 text-xs font-bold gap-2"
+                >
+                  {isGeneratingAvatar ? <RefreshCw size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                  {isGeneratingAvatar ? 'Generating...' : 'Generate Avatar'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+          <section className="mb-6">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
-              {profile?.location?.country?.toLowerCase() !== 'nepal' ? '2' : '1'} · Image count
+              {profile?.location?.country?.toLowerCase() !== 'nepal' ? '3' : '2'} · Image count
             </p>
             <div className="flex gap-2 flex-wrap">
               {ecommImageCounts.map((c) => (
@@ -5389,7 +5622,8 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+
+        </AnimatePresence>
     </div>
   );
 };
