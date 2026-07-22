@@ -39,7 +39,8 @@ export default function FreeCreativesSection() {
               onClick={() => setIntent("creatives")}
               className="group inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/25"
             >
-              Claim my 3 free creatives
+              Claim 3 Free Creatives
+             
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
             <button
