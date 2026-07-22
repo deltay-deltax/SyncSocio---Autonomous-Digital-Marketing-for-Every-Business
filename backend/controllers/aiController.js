@@ -2,6 +2,54 @@ import axios from 'axios';
 import BrandProfile from '../models/BrandProfile.js';
 import ContentCalendar from '../models/ContentCalendar.js';
 import { logActivity } from '../utils/activityLogger.js';
+import crypto from 'crypto';
+
+const asyncJobs = new Map();
+
+export const startAsyncGeneration = async (req, res) => {
+    try {
+        const { endpoint, payload } = req.body;
+        const jobId = crypto.randomUUID();
+        
+        asyncJobs.set(jobId, { status: 'processing', data: null, error: null });
+        
+        res.status(202).json({ jobId, status: 'processing' });
+        
+        const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+        
+        axios.post(`${aiServiceUrl}/${endpoint}`, payload, { timeout: 900000 }) // 15 minute timeout for long AI videos
+            .then(response => {
+                asyncJobs.set(jobId, { status: 'success', data: response.data, error: null });
+            })
+            .catch(error => {
+                console.error('[AsyncJob] Error in background task:', error.message);
+                const errorMsg = error.response?.data?.detail || error.message || 'Generation failed';
+                asyncJobs.set(jobId, { status: 'error', data: null, error: errorMsg });
+            });
+            
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+};
+
+export const getAsyncJobStatus = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const job = asyncJobs.get(jobId);
+        
+        if (!job) {
+            return res.status(404).json({ error: 'Job not found or already consumed.' });
+        }
+        
+        if (job.status !== 'processing') {
+            asyncJobs.delete(jobId);
+        }
+        
+        res.json(job);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+};
 
 export const generateStrategy = async (req, res) => {
   try {

@@ -40,7 +40,7 @@ export const validatePost = async (req, res) => {
     const aiResponse = await axios.post(
       `${AI_SERVICE_URL}/validate-post`,
       form,
-      { headers: form.getHeaders(), timeout: 120000 } // 2 min timeout
+      { headers: form.getHeaders(), timeout: 900000 } // 2 min timeout
     );
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
@@ -83,7 +83,7 @@ export const schedulePost = async (req, res) => {
     const aiResponse = await axios.post(
       `${AI_SERVICE_URL}/schedule-post/${id}`,
       { platforms, scheduledAt },
-      { timeout: 120000 }
+      { timeout: 900000 }
     );
 
     const isSuccess = aiResponse.data.status === 'published';
@@ -144,7 +144,7 @@ export const directPublish = async (req, res) => {
     const aiResponse = await axios.post(
       `${AI_SERVICE_URL}/direct-publish`,
       form,
-      { headers: form.getHeaders(), timeout: 120000 }
+      { headers: form.getHeaders(), timeout: 900000 }
     );
 
     if (aiResponse.data.status === 'published') {
@@ -264,7 +264,7 @@ export const recommendSchedulePosts = async (req, res) => {
     };
 
     console.log(`📡 Requesting schedule recommendations for ${creatives.length} posts...`);
-    const agentRes = await axios.post(`${AI_SERVICE_URL}/smart-schedule`, payload, { timeout: 120000 });
+    const agentRes = await axios.post(`${AI_SERVICE_URL}/smart-schedule`, payload, { timeout: 900000 });
     const recommendedSchedules = agentRes.data.schedule || [];
 
     // Map creative thumbnails / fields so frontend has rich info
@@ -360,7 +360,7 @@ export const smartSchedulePosts = async (req, res) => {
       };
 
       console.log(`📡 Requesting schedule recommendations for ${creatives.length} posts...`);
-      const agentRes = await axios.post(`${AI_SERVICE_URL}/smart-schedule`, payload, { timeout: 120000 });
+      const agentRes = await axios.post(`${AI_SERVICE_URL}/smart-schedule`, payload, { timeout: 900000 });
       recommendedSchedules = agentRes.data.schedule || [];
     }
 
@@ -402,7 +402,7 @@ export const smartSchedulePosts = async (req, res) => {
         const aiResponse = await axios.post(
           `${AI_SERVICE_URL}/schedule-post/${postAnalysis._id}`,
           { platforms, scheduledAt: recommendation.scheduledAt },
-          { timeout: 120000 }
+          { timeout: 900000 }
         );
 
         if (aiResponse.data.status === 'failed') {

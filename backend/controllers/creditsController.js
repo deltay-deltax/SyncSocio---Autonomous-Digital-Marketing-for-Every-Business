@@ -5,7 +5,6 @@ import Coupon from '../models/Coupon.js';
 
 // Credit amounts per plan tier
 const PLAN_CREDITS = {
-  'Free Credit': 10,
   'Starter': 200,
   'Elite': 700,
   'SyncSocio Starter': 200,
@@ -15,13 +14,9 @@ const PLAN_CREDITS = {
 // ─── GET credits ─────────────────────────────────────────────────────
 export const getCredits = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('credits plan free_generations_remaining');
+    const user = await User.findById(req.user._id).select('credits plan');
     if (!user) return res.status(404).json({ message: 'User not found.' });
-    return res.json({ 
-      credits: user.credits ?? 0, 
-      plan: user.plan ?? '',
-      free_generations_remaining: user.free_generations_remaining ?? 0
-    });
+    return res.json({ credits: user.credits ?? 0, plan: user.plan ?? '' });
   } catch (err) {
     console.error('[Credits] getCredits error:', err);
     return res.status(500).json({ message: 'Server error.' });
@@ -59,7 +54,6 @@ export const assignCredits = async (req, res) => {
     let basePrice = 999;
     const pl = plan.toLowerCase();
     if (pl.includes('elite')) basePrice = 3199;
-    else if (pl.includes('free credit')) basePrice = 0;
     else basePrice = 999; // Starter plan
     
     let sum = basePrice + (isDmEnabled ? 399 : 0);
@@ -129,7 +123,7 @@ export const deductCredits = async (req, res) => {
     const cost = parseInt(amount, 10);
     if (!cost || cost <= 0) return res.status(400).json({ message: 'Invalid credit amount.' });
 
-    const user = await User.findById(req.user._id).select('credits plan totalCreditsConsumed');
+    const user = await User.findById(req.user._id).select('credits plan');
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
     if ((user.credits ?? 0) < cost) {
@@ -151,14 +145,11 @@ export const deductCredits = async (req, res) => {
     const isAllInOne = reason && reason.toLowerCase().includes('all-in-one');
     const agentName = isVideo ? 'Video Agent' : isAllInOne ? 'Drop Agent' : 'Creative Agent';
     const activityMsg = `Asset generation complete. Spent ${cost} credits on ${reason || 'AI generation'}.`;
-      
     await logActivity(req.user._id, agentName, activityMsg, 'done');
 
     return res.json({
       credits: updated.credits,
-      free_generations_remaining: 0,
       deducted: cost,
-      usedFreeGeneration: false,
       reason: reason || 'generation',
       message: `${cost} credits used for ${reason || 'generation'}.`,
     });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar, Clock, Send, FileText } from 'lucide-react';
+import { Heart, Trash2, Image as ImageIcon, Layers, Video, Sparkles, RefreshCw, Download, Eye, X, Copy, Check, Calendar, Clock, Send, FileText, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -127,6 +127,7 @@ const typeIcon: Record<string, any> = {
   image: ImageIcon,
   carousel: Layers,
   video: Video,
+  photoshoot: Camera,
   scheduled: Clock,
   draft: FileText,
 };
@@ -206,7 +207,7 @@ const AssetLibrary = () => {
     };
     loadCached();
   }, [cacheKey]);
-  const [filter, setFilter] = useState<'all' | 'image' | 'carousel' | 'video' | 'scheduled' | 'draft'>('all');
+  const [filter, setFilter] = useState<'all' | 'image' | 'carousel' | 'video' | 'photoshoot' | 'scheduled' | 'draft'>('all');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [previewAsset, setPreviewAsset] = useState<any | null>(null);
   const [previewSlide, setPreviewSlide] = useState<number>(0);
@@ -530,7 +531,7 @@ const AssetLibrary = () => {
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide w-full pb-2 scroll-smooth select-none shrink-0">
-        {(['all', 'image', 'carousel', 'video', 'draft', 'scheduled'] as const).map((f) => {
+        {(['all', 'image', 'carousel', 'video', 'photoshoot', 'draft', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
           const label = f === 'scheduled'
             ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}`

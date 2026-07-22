@@ -642,6 +642,7 @@ const languages = [
   { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
   { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
   { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
+  { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' },
 ];
 
 const sameDay = (a: Date, b: Date) =>

@@ -90,19 +90,33 @@ const Index = () => {
         </div>
       )}
       <Navbar />
-      <HeroSection onWaitlistClick={() => document.getElementById("free-creatives")?.scrollIntoView({ behavior: "smooth" })} />      <WhatWeAre />
-      <Features />
+
+      {/* 1. Hero — clear value prop + CTA */}
+      <HeroSection onWaitlistClick={() => document.getElementById("free-creatives")?.scrollIntoView({ behavior: "smooth" })} />
+
+      {/* 2. Trust / social proof numbers */}
+      <WhatWeAre />
+
+      {/* 3. Visual proof — show what the AI actually makes */}
       <CreativeShowcase />
 
+      {/* 4. Dome gallery — more visual proof */}
       <section className="relative w-full h-[600px] bg-background overflow-hidden border-y border-border/40">
         <DomeGallery grayscale={false} overlayBlurColor="transparent" images={domeImages} />
       </section>
+
+      {/* 5. Lead magnet CTA — strike while visual excitement is high */}
+      <FreeCreativesSection />
+
+      {/* 6. Feature detail */}
+      <Features />
       <HowItWorks />
       <DMAutomation />
       <CampaignChannels />
+
+      {/* 7. Pricing + FAQ */}
       <Pricing onWaitlistClick={() => navigate("/signup")} />
       <FAQ />
-      <FreeCreativesSection />
       <Footer />
     </div>
   );

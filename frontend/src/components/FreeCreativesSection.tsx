@@ -4,9 +4,10 @@ import { Sparkles, Check, ArrowRight, X } from "lucide-react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 
-import { Link } from "react-router-dom";
+type Intent = "creatives" | "demo";
 
 export default function FreeCreativesSection() {
+  const [intent, setIntent] = useState<Intent | null>(null);
 
   return (
     <section id="free-creatives" className="relative py-24 bg-background overflow-hidden border-t border-border/40">
@@ -34,16 +35,25 @@ export default function FreeCreativesSection() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/signup"
+            <button
+              onClick={() => setIntent("creatives")}
               className="group inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/25"
             >
               Claim 3 Free Creatives
+             
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
+            </button>
+            <button
+              onClick={() => setIntent("demo")}
+              className="inline-flex items-center gap-2 h-12 px-6 rounded-xl border border-border/60 bg-card/40 font-bold text-sm hover:bg-card/70 transition-all"
+            >
+              Book a demo call
+            </button>
           </div>
         </motion.div>
       </div>
+
+      {intent && <ClaimModal intent={intent} onClose={() => setIntent(null)} />}
     </section>
   );
 }

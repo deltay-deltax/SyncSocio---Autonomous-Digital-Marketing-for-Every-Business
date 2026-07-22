@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Checkout } from "@/components/Checkout";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const plans = [
   {
     name: "Starter",
-    basePrice: 999,
-    originalPrice: 999,
+    prices: {
+      INR: { basePrice: 999, originalPrice: 999, dmAddon: 399 },
+      USD: { basePrice: 15, originalPrice: 15, dmAddon: 5 }
+    },
     period: "/month",
     description: "For small businesses, local brands, SaaS startups, and service companies getting started with AI-powered content.",
     features: [
@@ -32,8 +35,10 @@ const plans = [
   },
   {
     name: "Elite",
-    basePrice: 3199,
-    originalPrice: 3199,
+    prices: {
+      INR: { basePrice: 3199, originalPrice: 3199, dmAddon: 399 },
+      USD: { basePrice: 49, originalPrice: 49, dmAddon: 5 }
+    },
     period: "/month",
     description: "For growing D2C and ecommerce brands ready to scale content, automate campaigns, and generate videos — all from one platform.",
     features: [
@@ -59,6 +64,7 @@ const DashboardBilling = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile } = useOutletContext<{ profile: any }>() || {};
+  const { currency, symbol, setCurrency } = useCurrency();
 
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
     "Starter": false,
@@ -73,8 +79,12 @@ const DashboardBilling = () => {
 
   const handleSelectPlan = (planName: string) => {
     const isDmEnabled = dmToggles[planName];
-    const basePrice = planName === 'Elite' ? 3199 : 999;
-    const amount = basePrice + (isDmEnabled ? 399 : 0);
+    const planObj = plans.find(p => p.name === planName);
+    if (!planObj) return;
+
+    const planPrices = planObj.prices[currency];
+    const basePrice = planPrices.basePrice;
+    const amount = basePrice + (isDmEnabled ? planPrices.dmAddon : 0);
     const creditsAdded = planName === 'Elite' ? 700 : 200;
     
     const currentPlan = (profile?.selectedPlan || '').toLowerCase();
@@ -116,15 +126,27 @@ const DashboardBilling = () => {
         <h2 className="text-3xl font-bold mb-3">
           Choose how active your agent is
         </h2>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-6">
           Upgrade or downgrade anytime
         </p>
+
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <span className={`text-sm font-semibold ${currency === 'INR' ? 'text-foreground' : 'text-muted-foreground'}`}>INR (₹)</span>
+          <button 
+            onClick={() => setCurrency(currency === 'INR' ? 'USD' : 'INR')}
+            className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary/20 transition-colors focus:outline-none"
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-primary transition-transform ${currency === 'USD' ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+          <span className={`text-sm font-semibold ${currency === 'USD' ? 'text-foreground' : 'text-muted-foreground'}`}>USD ($)</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {plans.map((plan, i) => {
           const isDmEnabled = dmToggles[plan.name];
-          const currentPrice = (plan.name === 'Elite' ? 1899 : 599) + (isDmEnabled ? 399 : 0);
+          const planPrices = plan.prices[currency];
+          const currentPrice = planPrices.basePrice + (isDmEnabled ? planPrices.dmAddon : 0);
           
           const currentPlan = (profile?.selectedPlan || '').toLowerCase();
           const isStarter = currentPlan.includes('starter');
@@ -170,19 +192,19 @@ const DashboardBilling = () => {
               </p>
               
               <div className="flex flex-col gap-1 mb-6">
-                {currentPrice < plan.originalPrice && (
+                {currentPrice < planPrices.originalPrice && (
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-lg line-through ${plan.popular ? "text-white/60" : "text-muted-foreground/60"}`}>
-                      ₹{plan.originalPrice}
+                      {symbol}{planPrices.originalPrice}
                     </span>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                      {Math.floor(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
+                      {Math.floor(((planPrices.originalPrice - currentPrice) / planPrices.originalPrice) * 100)}% OFF
                     </span>
                   </div>
                 )}
                 <div className="flex items-center w-full relative">
                   <div className="flex items-baseline gap-1 shrink-0">
-                    <span className="text-4xl font-bold">₹{currentPrice}</span>
+                    <span className="text-4xl font-bold">{symbol}{currentPrice}</span>
                     <span className={`text-sm ${plan.popular ? "text-white/70" : "text-muted-foreground"}`}>
                       {plan.period}
                     </span>

@@ -15,7 +15,7 @@ const strategyCreativeSchema = new mongoose.Schema({
   // What was generated
   type: {
     type: String,
-    enum: ['image', 'carousel', 'video'],
+    enum: ['image', 'carousel', 'video', 'photoshoot', 'whatsapp', 'email', 'ecomm', 'festival'],
     required: true,
   },
   // Image: base64 string; Carousel: first slide base64; Video: thumbnail

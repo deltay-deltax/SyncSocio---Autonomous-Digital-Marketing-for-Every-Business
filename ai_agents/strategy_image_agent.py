@@ -793,7 +793,9 @@ def build_ecomm_image_prompt(
         f"Any text overlays or words shown in the image must be in {language}."
     )
 
-    idea_line = f"\nCAMPAIGN IDEA / OPTIONAL INSTRUCTIONS: {idea}" if idea and idea.strip() else ""
+    idea_line = ""
+    if shot_index > 0 and idea and idea.strip():
+        idea_line = f"\nCAMPAIGN IDEA / OPTIONAL INSTRUCTIONS: {idea}"
     prompt = f"{brand_line}\n{product_line}\n{platform_line}\n{shot_line}{ref_line}{idea_line}\n{closing}"
 
     print("\n" + "=" * 80)

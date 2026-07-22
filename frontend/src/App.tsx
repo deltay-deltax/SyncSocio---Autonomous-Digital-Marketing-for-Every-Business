@@ -38,6 +38,7 @@ import CreditsExplainer from './pages/CreditsExplainer';
 import CreditTopup from './pages/dashboard/CreditTopup';
 import DashboardBilling from './pages/dashboard/DashboardBilling';
 import { Toaster } from './components/ui/toaster';
+import { CurrencyProvider } from './contexts/CurrencyContext';
 
 // Thin component to call useCanonical inside BrowserRouter context
 function CanonicalUpdater() {
@@ -80,54 +81,56 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <CanonicalUpdater />
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/set-password" element={<SetPassword />} />
-        <Route path="/setup" element={<Setup />} />
-        <Route path="/instagram-setup" element={<InstagramInstructions />} />
-        <Route path="/terms" element={<TermsOfUse />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/credits" element={<CreditsExplainer />} />
-        <Route path="/forgotpassword" element={<ForgotPassword />} />
-        <Route path="/resetpassword/:resetToken" element={<ResetPassword />} />
-        
-        {/* Dashboard Routes with Protection */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<DashboardHome />} />
-            <Route path="feed" element={<DashboardFeed />} />
-            <Route path="analytics" element={<DashboardAnalytics />} />
-            <Route path="ads" element={<DashboardAds />} />
-            <Route path="content" element={<ContentMix />} />
-            <Route path="content/plan" element={<ContentPlan />} />
-            <Route path="strategy" element={<ContentStrategy />} />
-            <Route path="post-optimizer" element={<PostOptimizer />} />
-            <Route path="dms" element={<DashboardDMs />} />
-            <Route path="settings" element={<DashboardSettings />} />
-            <Route path="history" element={<History />} />
-            <Route path="assets" element={<AssetLibrary />} />
-            <Route path="products" element={<Products />} />
-            <Route path="faq" element={<DashboardFAQ />} />
-            <Route path="credits" element={<CreditsExplainer />} />
-            <Route path="buy-credits" element={<CreditTopup />} />
-            <Route path="billing" element={<DashboardBilling />} />
-            <Route path="editor" element={<EditorPage />} />
-            <Route path="autopilot" element={<AutopilotPage />} />
+    <CurrencyProvider>
+      <BrowserRouter>
+        <CanonicalUpdater />
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/set-password" element={<SetPassword />} />
+          <Route path="/setup" element={<Setup />} />
+          <Route path="/instagram-setup" element={<InstagramInstructions />} />
+          <Route path="/terms" element={<TermsOfUse />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/credits" element={<CreditsExplainer />} />
+          <Route path="/forgotpassword" element={<ForgotPassword />} />
+          <Route path="/resetpassword/:resetToken" element={<ResetPassword />} />
+          
+          {/* Dashboard Routes with Protection */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<DashboardHome />} />
+              <Route path="feed" element={<DashboardFeed />} />
+              <Route path="analytics" element={<DashboardAnalytics />} />
+              <Route path="ads" element={<DashboardAds />} />
+              <Route path="content" element={<ContentMix />} />
+              <Route path="content/plan" element={<ContentPlan />} />
+              <Route path="strategy" element={<ContentStrategy />} />
+              <Route path="post-optimizer" element={<PostOptimizer />} />
+              <Route path="dms" element={<DashboardDMs />} />
+              <Route path="settings" element={<DashboardSettings />} />
+              <Route path="history" element={<History />} />
+              <Route path="assets" element={<AssetLibrary />} />
+              <Route path="products" element={<Products />} />
+              <Route path="faq" element={<DashboardFAQ />} />
+              <Route path="credits" element={<CreditsExplainer />} />
+              <Route path="buy-credits" element={<CreditTopup />} />
+              <Route path="billing" element={<DashboardBilling />} />
+              <Route path="editor" element={<EditorPage />} />
+              <Route path="autopilot" element={<AutopilotPage />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Public Asset Page - dynamic route (must be before catch-all) */}
-        <Route path="/:username/:slug" element={<AssetPage />} />
+          {/* Public Asset Page - dynamic route (must be before catch-all) */}
+          <Route path="/:username/:slug" element={<AssetPage />} />
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+      </BrowserRouter>
+    </CurrencyProvider>
   );
 }
 
