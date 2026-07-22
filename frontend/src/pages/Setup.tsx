@@ -32,21 +32,6 @@ interface Plan {
 // ─── Plan Data ───────────────────────────────────────────────────────
 const plans: Plan[] = [
   {
-    name: 'Free Credit',
-    price: '₹0',
-    period: '/month',
-    frequency: 'Try it out',
-    formats: '2 Image Generations',
-    postsPerMonth: '10 credits',
-    features: [
-      "10 free credits",
-      "2 image generations",
-      "Try SyncSocio freely",
-    ],
-    cta: 'Claim Free Credits',
-    ctaStyle: 'outline',
-  },
-  {
     name: 'Starter',
     price: '₹999',
     originalPrice: 999,
@@ -105,9 +90,8 @@ const TOPUPS = [
   { credits: 700, price: 1699, per_credit: 2.42 },
 ];
 
-// Credits awarded per plan (shown in UI — actual amount is random within range)
+// Credits awarded per plan (shown in UI)
 const PLAN_CREDITS_DISPLAY: Record<string, { label: string; color: string; glow: string }> = {
-  'Free Credit': { label: '10 Free Credits', color: 'from-gray-400 to-gray-600', glow: 'shadow-gray-500/30' },
   'Starter':  { label: '200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
   'Elite': { label: '700 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
 };
@@ -376,12 +360,6 @@ const Setup = () => {
       return;
     }
     // --- END BYPASS ---
-
-    if (planName === 'Free Credit') {
-      localStorage.setItem('syncsocio_dm_automation', 'false');
-      setScreen('activation');
-      return;
-    }
 
     const basePrice = planName === 'Elite' ? 3199 : 999;
     let currentPrice = basePrice;
@@ -734,9 +712,7 @@ const Setup = () => {
             const basePrice = parseInt(plan.price.replace('₹', ''));
             let currentPrice = 0;
             
-            if (plan.name === 'Free Credit') {
-              currentPrice = 0;
-            } else if (appliedCoupon) {
+            if (appliedCoupon) {
               if (appliedCoupon.code === 'LAUNCH') {
                 currentPrice = plan.name === 'Elite' ? 1899 : 599;
               } else {
