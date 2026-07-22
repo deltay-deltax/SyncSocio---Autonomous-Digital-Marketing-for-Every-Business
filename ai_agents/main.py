@@ -1821,6 +1821,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_kind=request.videoKind,
                 avatar_description=request.avatarDescription,
                 video_script=request.videoScript,
+                text_mode=request.textMode or "low",
             )
 
         # 3. Log the FAL API Cost to MongoDB (apilogs collection)

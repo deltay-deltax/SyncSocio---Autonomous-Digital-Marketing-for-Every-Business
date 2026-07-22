@@ -63,6 +63,7 @@ class StrategyImageRequest(BaseModel):
     videoKind: Optional[str] = "ai-ugc"
     avatarDescription: Optional[str] = ""
     videoScript: Optional[str] = ""
+    textMode: Optional[str] = "low"  # "low" = one clean headline, "heavy" = no TEXT DISCIPLINE constraint
 
 class EditMediaRequest(BaseModel):
     image: str

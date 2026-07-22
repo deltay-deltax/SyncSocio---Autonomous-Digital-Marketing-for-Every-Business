@@ -439,6 +439,7 @@ def build_image_prompt(
     campaign_mode: Optional[str] = None,
     language: str = "english",
     custom_directive: Optional[str] = None,
+    text_mode: str = "low",  # "low" = one clean headline | "heavy" = no TEXT DISCIPLINE line
 ) -> str:
     """Single static image prompt for gpt-image-2."""
     block = _brand_block(brand_doc)
@@ -473,12 +474,22 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
 
     # ── Inject ad composition template directive (or rotate if None) ───
     template_block = ""
+    template_is_active = False  # tracks whether a structured layout (text/graphic heavy) is in use
+
     if custom_directive:
+        # custom_directive comes from the mixed_directives pool in the orchestrator.
+        # It may be either a camera-angle string OR a full AD_TEMPLATE_DIRECTIVES directive string.
+        # Detect which by checking if the directive matches any known template.
+        template_is_active = any(
+            custom_directive == t["directive"]
+            for t in AD_TEMPLATE_DIRECTIVES.values()
+        )
         template_block = f"\nCOMPOSITION VARIATION: {custom_directive}\n"
-        print(f"[ImageAgent] 🤖 Mixed Directive: {custom_directive}")
+        print(f"[ImageAgent] 🤖 Mixed Directive ({'TEMPLATE' if template_is_active else 'ANGLE'}): {custom_directive}")
     elif ad_template and ad_template in AD_TEMPLATE_DIRECTIVES:
         t = AD_TEMPLATE_DIRECTIVES[ad_template]
         template_block = f"\n{t['directive']}\n"
+        template_is_active = True
         print(f"[ImageAgent] 🔲 Template #{ad_template}: {t['label']}")
     else:
         # Guarantee layout variety when no template is picked by injecting random dynamic framing directives
@@ -489,15 +500,42 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
         ]
         angle = random.choice(camera_angles)
         template_block = f"\nCOMPOSITION VARIATION: {angle}\n"
+        template_is_active = False
         print(f"[ImageAgent] 🤖 No template selected — free composition. Shuffler: {angle}")
+
+    # ── TEXT DISCIPLINE constraint (conditional on text_mode + layout type) ──
+    # template_is_active (soft)  → always used when a structural layout is active, regardless of pill.
+    # text_mode == "low"  (new)  → one clean headline, no badges/CTAs/price tags.
+    # text_mode == "heavy"       → no TEXT DISCIPLINE line at all (old original behaviour).
+    if template_is_active:
+        text_discipline = (
+            "TEXT DISCIPLINE: Follow the layout's text and badge instructions below precisely, "
+            "but do not add anything beyond what the layout specifies — "
+            "no extra badges, ratings, or CTAs not already called for."
+        )
+    elif text_mode == "heavy":
+        text_discipline = ""  # no constraint — model decides freely
+    else:  # text_mode == "low" (default)
+        text_discipline = (
+            "TEXT DISCIPLINE: Include exactly one short, bold headline (3-6 words max) "
+            "that is specific to this product's brand voice, USP, and campaign idea — "
+            "never reuse a generic or example phrase verbatim. "
+            "Integrate it cleanly into the composition — not a solid banner or bar, "
+            "just clean typography placed naturally in the frame. "
+            "Do NOT add price tags, discount badges, star ratings, certification icons, "
+            "CTA buttons, or bullet-point feature lists unless the layout below explicitly requires them."
+        )
 
     platform_instruction = "Make it feel native to Instagram feed."
 
-    print(f"\n[ImageAgent] 🎨 Building prompt | template={ad_template} | product={'YES' if product else 'NO'} | idea={bool(idea)} | campaign={campaign_mode}")
+    print(f"\n[ImageAgent] 🎨 Building prompt | template={ad_template} | template_active={template_is_active} | product={'YES' if product else 'NO'} | idea={bool(idea)} | campaign={campaign_mode}")
+
+    # Build the text discipline section — omit the block entirely for "heavy" mode
+    text_discipline_block = f"\n{text_discipline}\n" if text_discipline else ""
 
     return f"""{block}
 {product_block}
-{idea_str}{template_block}
+{idea_str}{template_block}{text_discipline_block}
 Create a high-converting product ad creative.
 {platform_instruction}
 {logo_inst}
@@ -898,6 +936,7 @@ def generate_strategy_images(
     video_kind: Optional[str] = "ai-ugc",
     avatar_description: Optional[str] = "",
     video_script: Optional[str] = "",
+    text_mode: str = "low",  # "low" = one headline | "heavy" = no TEXT DISCIPLINE
 ) -> List[Dict[str, Any]]:
     """
     Orchestrates generation for all layout types.
@@ -1068,9 +1107,10 @@ def generate_strategy_images(
                 t_id = None
 
             prompt = build_image_prompt(
-                brand_doc, idea, aspect_ratio, 
-                product=prod, ad_template=t_id, 
-                language=language, custom_directive=c_dir
+                brand_doc, idea, aspect_ratio,
+                product=prod, ad_template=t_id,
+                language=language, custom_directive=c_dir,
+                text_mode=text_mode,
             )
             tasks.append((prompt, task_refs, i, prod, t_id, c_dir))
 

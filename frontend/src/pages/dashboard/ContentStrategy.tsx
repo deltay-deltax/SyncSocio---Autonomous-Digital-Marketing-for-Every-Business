@@ -756,6 +756,8 @@ const DashboardStrategy = () => {
 
   // ── Image ad template (null = auto, 1–10 = specific template, -1 = all 8 variants)
   const [adTemplate, setAdTemplate] = useState<number | null>(null);
+  // ── Text density mode for image generation ("low" = one clean headline | "heavy" = model decides freely)
+  const [textMode, setTextMode] = useState<'low' | 'heavy'>('low');
   // ── SaaS Format Track (only active when isSaasMode && mode === 'image')
   const [saasFormatId, setSaasFormatId] = useState<number | null>(null);
   const [saasFormatTrack, setSaasFormatTrack] = useState<SaasTrack | null>(null);
@@ -1785,6 +1787,7 @@ const DashboardStrategy = () => {
           adTemplate: isSaasMode && currentMode === 'image'
             ? (saasFormatId ?? (saasFormatTrack === 'text_led' ? 100 : saasFormatTrack === 'image_led' ? 110 : null))
             : (currentCount === 8 ? -1 : adTemplate),
+          textMode,
         }),
         videoKind: currentMode === 'video' ? videoKind : undefined,
         avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
@@ -3369,6 +3372,49 @@ const DashboardStrategy = () => {
             </section>
           )}
 
+
+          {/* ─── Text Style pills (D2C image / festival only) ─── */}
+          {(mode === 'image' || mode === 'festival') && !isSaasMode && (
+            <section className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Text style</p>
+              <div className="flex gap-2">
+                {([
+                  {
+                    id: 'low' as const,
+                    label: 'Low Text',
+                    icon: '✦',
+                    desc: 'One bold, brand-specific headline — clean and minimal',
+                  },
+                  {
+                    id: 'heavy' as const,
+                    label: 'Heavy Text',
+                    icon: '▦',
+                    desc: 'AI decides — badges, CTAs, and copy as needed',
+                  },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setTextMode(opt.id)}
+                    className={cn(
+                      'flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all duration-200',
+                      textMode === opt.id
+                        ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/25'
+                        : 'bg-card border-border text-foreground hover:border-primary/40'
+                    )}
+                    title={opt.desc}
+                  >
+                    <span className="text-sm leading-none">{opt.icon}</span>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                {textMode === 'low'
+                  ? 'One clean, brand-specific headline placed naturally in frame. No price tags, badges, or CTAs.'
+                  : 'AI freely adds headlines, badges, and CTAs as it sees fit — original unconstrained behaviour.'}
+              </p>
+            </section>
+          )}
 
           {/* References — with "From Products" button kept */}
           <section className="mb-6">
