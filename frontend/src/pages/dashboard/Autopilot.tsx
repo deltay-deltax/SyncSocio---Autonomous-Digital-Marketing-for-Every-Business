@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import JSZip from 'jszip';
 import {
   Sparkles, Zap, CheckCircle2, Copy, Check, Download, Flame, Grid,
-  Heart, X, ArrowLeft, Loader2, AlertCircle, ShoppingBag, Package, RefreshCw
+  Heart, X, ArrowLeft, ArrowRight, Loader2, AlertCircle, ShoppingBag, Package, RefreshCw, Plus, Edit3, Globe, Calendar, Box
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -246,6 +246,8 @@ export default function AutopilotPage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [showProductModal, setShowProductModal] = useState(false);
+  type SetupStep = 'language' | 'week' | 'product';
+  const [currentStep, setCurrentStep] = useState<SetupStep>('language');
 
   // Flow & Layout States
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -581,42 +583,43 @@ export default function AutopilotPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-4 select-none">
+    <div className="max-w-6xl mx-auto flex flex-col gap-4 select-none pt-4">
           {/* Header Bar */}
           <div className="flex items-start justify-between shrink-0">
             <div className="flex items-start gap-3">
-              {stage === 'results' && (
-                <button onClick={handleBackToForm} className="p-2 rounded-xl hover:bg-muted transition mt-1">
-                  <ArrowLeft size={18} className="text-muted-foreground" />
-                </button>
-              )}
+              <button 
+                onClick={() => stage === 'results' ? handleBackToForm() : navigate('/dashboard/strategy')} 
+                className="p-2 rounded-xl hover:bg-muted transition mt-1 flex-shrink-0"
+              >
+                <ArrowLeft size={18} className="text-muted-foreground" />
+              </button>
               <div>
                 <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 mb-2">
                   <Sparkles size={11} className="text-primary" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                    {stage === 'results' ? 'Fresh drop' : 'Sprint'}
-                  </span>
-                </div>
-                {stage === 'results' ? (
-                  <>
-                    <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
-                      Your{' '}
-                      <span className="bg-gradient-to-r from-sky-400 via-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">
-                        autopilot
-                      </span>{' '}
-                      drop is ready
-                    </h1>
-                  </>
-                ) : (
-                  <>
-                    <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
-                      AI Sprint Campaign
-                    </h1>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                      Configure language, weeks, and catalog products to generate daily social campaigns in one click.
-                    </p>
-                  </>
-                )}
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                      {stage === 'results' ? 'Fresh drop' : 'Campaign Studio'}
+                    </span>
+                  </div>
+                  {stage === 'results' ? (
+                    <>
+                      <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
+                        Your{' '}
+                        <span className="bg-gradient-to-r from-sky-400 via-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">
+                          autopilot
+                        </span>{' '}
+                        drop is ready
+                      </h1>
+                    </>
+                  ) : (
+                    <>
+                      <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
+                        Generate a week of posts
+                      </h1>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                        Pick a language, a week, and a product. We'll create {selectedWeeks * 7} posts — swipe to keep or skip.
+                      </p>
+                    </>
+                  )}
               </div>
             </div>
 
@@ -671,108 +674,211 @@ export default function AutopilotPage() {
           </div>
 
           <div className="flex-1 min-h-0">
-            {/* STAGE 1: FORM */}
+            {/* STAGE 1: FORM WIZARD */}
             {stage === 'form' && (
-              <div className="max-w-2xl mx-auto w-full space-y-6 mt-2">
-                <div className="rounded-3xl border border-border bg-card p-5 md:p-6 shadow-sm space-y-6">
-                  {/* Target Language Dropdown */}
-                  <div>
-                    <label className="text-sm font-bold text-foreground block mb-2">Target Language</label>
-                    <div className="relative">
-                      <select
-                        value={selectedLanguage}
-                        onChange={(e) => setSelectedLanguage(e.target.value)}
-                        className="w-full h-12 px-4 appearance-none rounded-xl border border-border bg-card text-foreground text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition cursor-pointer"
-                      >
-                        {languages.map(lang => (
-                          <option key={lang.id} value={lang.id}>
-                            {lang.label} {lang.flag}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground text-xs">
-                        ▼
-                      </div>
-                    </div>
-                  </div>
+              <div className="max-w-4xl mx-auto w-full mt-2 flex flex-col gap-6">
+                
+                {/* Navigation Pills */}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <button
+                    onClick={() => setCurrentStep('language')}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
+                      currentStep === 'language'
+                        ? "bg-primary text-white shadow-md"
+                        : "bg-card text-muted-foreground border border-border hover:bg-muted"
+                    )}
+                  >
+                    <Globe size={16} />
+                    <span>Language <span className="opacity-70 font-normal">· {languages.find(l => l.id === selectedLanguage)?.label.split(' ')[0]}</span></span>
+                    {currentStep === 'language' && <ArrowRight size={14} className="ml-1 opacity-70" />}
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep('week')}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
+                      currentStep === 'week'
+                        ? "bg-primary text-white shadow-md"
+                        : "bg-card text-muted-foreground border border-border hover:bg-muted"
+                    )}
+                  >
+                    <Calendar size={16} />
+                    <span>Week <span className="opacity-70 font-normal">· Week {selectedWeeks}</span></span>
+                    {currentStep === 'week' && <ArrowRight size={14} className="ml-1 opacity-70" />}
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep('product')}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
+                      currentStep === 'product'
+                        ? "bg-primary text-white shadow-md"
+                        : "bg-card text-muted-foreground border border-border hover:bg-muted"
+                    )}
+                  >
+                    <Box size={16} />
+                    <span>Product <span className="opacity-70 font-normal">· {selectedProductIds.length > 0 ? `${selectedProductIds.length} Selected` : 'None'}</span></span>
+                  </button>
+                </div>
 
-                  {/* Campaign Duration */}
-                  <div>
-                    <label className="text-sm font-bold text-foreground block mb-2">Campaign Duration</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
-                      {[1, 2, 3, 4].map(w => (
-                        <button
-                          key={w}
-                          onClick={() => setSelectedWeeks(w)}
-                          className={cn(
-                            'py-3 rounded-xl border text-xs font-bold flex flex-col items-center justify-center transition gap-1',
-                            selectedWeeks === w
-                              ? 'bg-primary/5 text-primary border-primary shadow-sm'
-                              : 'bg-card text-muted-foreground border-border hover:bg-muted/40 hover:text-foreground'
-                          )}
-                        >
-                          <span className="text-sm">{w} Week{w > 1 ? 's' : ''}</span>
-                          <span className="text-[9px] uppercase tracking-wider opacity-80">{w * 7} Posts</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Product Selection Modal Trigger */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-bold text-foreground block">Target Products</label>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        Max {selectedWeeks * 7} items
-                      </span>
-                    </div>
-                    <div className="rounded-2xl border border-dashed border-border p-5 flex items-center justify-between bg-muted/10">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                          <ShoppingBag size={20} />
-                        </div>
+                {/* Content Area */}
+                <div className="rounded-3xl border border-border bg-card p-6 md:p-8 shadow-sm">
+                  
+                  {currentStep === 'language' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="flex items-center justify-between mb-6">
                         <div>
-                          <p className="text-sm font-bold text-foreground">
-                            {selectedProductIds.length > 0 ? `${selectedProductIds.length} Product${selectedProductIds.length > 1 ? 's' : ''} Selected` : 'No Products Selected'}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            These will be featured in your campaign.
-                          </p>
+                          <h3 className="text-lg font-bold text-foreground">Choose a language</h3>
+                          <p className="text-sm text-muted-foreground mt-1">Captions, hooks and CTAs will speak this language.</p>
                         </div>
                       </div>
-                      <Button
-                        onClick={() => setShowProductModal(true)}
-                        variant="outline"
-                        className="rounded-xl text-xs font-bold px-6 shadow-sm hover:shadow transition border-border shrink-0"
-                      >
-                        Select
-                      </Button>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        {(profile?.location?.country?.toLowerCase() === 'nepal'
+                          ? languages
+                          : languages.filter(l => l.id !== 'nepali')
+                        ).map((l) => {
+                          const isSelected = selectedLanguage === l.id;
+                          return (
+                            <button
+                              key={l.id}
+                              onClick={() => {
+                                setSelectedLanguage(l.id);
+                                setTimeout(() => setCurrentStep('week'), 200);
+                              }}
+                              className={cn(
+                                "relative p-4 rounded-2xl border text-left flex flex-col gap-2 transition-all group",
+                                isSelected
+                                  ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                                  : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
+                              )}
+                            >
+                              <span className="text-2xl leading-none">{l.flag}</span>
+                              <div>
+                                <p className="text-sm font-bold text-foreground">{l.label.split(' ')[0]}</p>
+                                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{l.id === 'english' ? 'EN' : l.id.slice(0, 2).toUpperCase()}</p>
+                              </div>
+                              {isSelected && (
+                                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
+                                  <Check size={12} strokeWidth={3} />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Cost and Launch */}
-                  <div className="pt-4 mt-4 border-t border-border/50">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="w-full sm:w-auto">
-                        <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">Total Cost</p>
-                        <div className="flex items-end gap-2">
-                          <span className="text-2xl font-black text-foreground leading-none">{cost}</span>
-                          <span className="text-xs font-bold text-muted-foreground mb-0.5">credits</span>
+                  {currentStep === 'week' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h3 className="text-lg font-bold text-foreground">Which week?</h3>
+                          <p className="text-sm text-muted-foreground mt-1">Each week gets 7 unique posts.</p>
                         </div>
-                        {!isSufficientCredits && (
-                          <p className="text-[10px] font-bold text-rose-500 mt-1">Insufficient balance ({currentCredits} available)</p>
-                        )}
+                        <button onClick={() => setCurrentStep('language')} className="text-sm font-bold text-muted-foreground hover:text-foreground">
+                          ← Back
+                        </button>
                       </div>
-                      <Button
-                        onClick={handleLaunchAutopilot}
-                        disabled={selectedProductIds.length === 0 || !isSufficientCredits}
-                        className="w-full sm:w-[220px] rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white font-bold h-12 shadow-lg hover:shadow active:scale-[0.98] transition border-0 text-sm"
-                      >
-                        <Zap size={16} className="mr-2 fill-current text-white" />
-                        Launch Sprint
-                      </Button>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4].map(w => {
+                          const isSelected = selectedWeeks === w;
+                          return (
+                            <button
+                              key={w}
+                              onClick={() => {
+                                setSelectedWeeks(w);
+                                setTimeout(() => setCurrentStep('product'), 200);
+                              }}
+                              className={cn(
+                                "relative p-6 rounded-2xl border text-left flex flex-col gap-1 transition-all",
+                                isSelected
+                                  ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                                  : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
+                              )}
+                            >
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Week</span>
+                              <span className="text-4xl font-black text-foreground mb-4">{w}</span>
+                              <span className="text-xs text-muted-foreground">{w * 7} posts - daily cadence</span>
+                              
+                              {isSelected && (
+                                <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
+                                  <Check size={12} strokeWidth={3} />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {currentStep === 'product' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h3 className="text-lg font-bold text-foreground">Pick a product</h3>
+                          <p className="text-sm text-muted-foreground mt-1">This anchors the visual style and copy.</p>
+                        </div>
+                        <button onClick={() => setCurrentStep('week')} className="text-sm font-bold text-muted-foreground hover:text-foreground">
+                          ← Back
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                        {products.length > 0 && products.filter(p => selectedProductIds.includes(p._id)).map((prod) => {
+                          return (
+                            <button
+                              key={prod._id}
+                              onClick={() => setSelectedProductIds(prev => prev.filter(id => id !== prod._id))}
+                              className="relative p-5 rounded-2xl border text-left flex flex-col gap-3 transition-all border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                            >
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-muted/30">
+                                <img src={imgSrc(prod.imageBase64)} alt={prod.name} className="w-full h-full object-cover" />
+                              </div>
+                              <span className="text-sm font-bold text-foreground line-clamp-1">{prod.name}</span>
+                              
+                              <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
+                                <Check size={12} strokeWidth={3} />
+                              </div>
+                            </button>
+                          );
+                        })}
+                        <button
+                          onClick={() => setShowProductModal(true)}
+                          className="relative p-5 rounded-2xl border-2 border-dashed border-border text-center flex flex-col items-center justify-center gap-2 hover:bg-muted/50 hover:border-primary/40 transition-colors text-muted-foreground min-h-[120px]"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                            <Plus size={16} />
+                          </div>
+                          <span className="text-xs font-bold text-foreground">Add New Product</span>
+                        </button>
+                      </div>
+
+                      {/* Launch Section */}
+                      <div className="pt-6 border-t border-border/50">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <div className="w-full sm:w-auto">
+                            <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">Total Cost</p>
+                            <div className="flex items-end gap-2">
+                              <span className="text-2xl font-black text-foreground leading-none">{cost}</span>
+                              <span className="text-xs font-bold text-muted-foreground mb-0.5">credits</span>
+                            </div>
+                            {!isSufficientCredits && (
+                              <p className="text-[10px] font-bold text-rose-500 mt-1">Insufficient balance ({currentCredits} available)</p>
+                            )}
+                          </div>
+                          <Button
+                            onClick={handleLaunchAutopilot}
+                            disabled={selectedProductIds.length === 0 || !isSufficientCredits}
+                            className="w-full sm:w-[220px] rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white font-bold h-12 shadow-lg hover:shadow active:scale-[0.98] transition border-0 text-sm"
+                          >
+                            <Zap size={16} className="mr-2 fill-current text-white" />
+                            Launch Sprint
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             )}

@@ -93,13 +93,23 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             images = [image] if isinstance(image, str) else image
             for img in images:
                 if not img: continue
-                if img.startswith("http://") or img.startswith("https://") or img.startswith("data:"):
+                if img.startswith("http://") or img.startswith("https://"):
                     data_urls.append(img)
                 else:
-                    clean = img.split("base64,")[1] if "base64," in img else img
-                    data_urls.append(f"data:image/jpeg;base64,{clean}")
-                if not img.startswith("http"):
-                    size_kb += len(img) * 3 // 4 // 1024
+                    if img.startswith("data:"):
+                        header, raw_b64 = img.split(",", 1)
+                        mime = header.split(":")[1].split(";")[0]
+                    else:
+                        raw_b64 = img.split("base64,")[1] if "base64," in img else img
+                        if raw_b64.startswith("iVBORw0KGgo"): mime = "image/png"
+                        elif raw_b64.startswith("UklGR"): mime = "image/webp"
+                        elif raw_b64.startswith("R0lGOD"): mime = "image/gif"
+                        else: mime = "image/jpeg"
+                    print(f"  Uploading base64 image ({mime}) to Fal CDN...")
+                    image_bytes = base64.b64decode(raw_b64)
+                    uploaded_url = fal_client.upload(image_bytes, mime)
+                    data_urls.append(uploaded_url)
+                    size_kb += len(raw_b64) * 3 // 4 // 1024
             if len(data_urls) > 0:
                 has_ref = True
 
@@ -113,7 +123,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                 "prompt": prompt,
                 "image_urls": data_urls,
                 "image_size": image_size,
-                "quality": "low",
+                "quality": "medium",
                 "enable_safety_checker": False,
             }
             try:
@@ -150,7 +160,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             arguments = {
                 "prompt": prompt,
                 "image_size": image_size,
-                "quality": "low",
+                "quality": "medium",
                 "enable_safety_checker": False,
             }
             result = fal_client.subscribe(
@@ -210,11 +220,22 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
             images = [image] if isinstance(image, str) else image
             for img in images:
                 if not img: continue
-                if img.startswith("http://") or img.startswith("https://") or img.startswith("data:"):
+                if img.startswith("http://") or img.startswith("https://"):
                     data_urls.append(img)
                 else:
-                    clean = img.split("base64,")[1] if "base64," in img else img
-                    data_urls.append(f"data:image/jpeg;base64,{clean}")
+                    if img.startswith("data:"):
+                        header, raw_b64 = img.split(",", 1)
+                        mime = header.split(":")[1].split(";")[0]
+                    else:
+                        raw_b64 = img.split("base64,")[1] if "base64," in img else img
+                        if raw_b64.startswith("iVBORw0KGgo"): mime = "image/png"
+                        elif raw_b64.startswith("UklGR"): mime = "image/webp"
+                        elif raw_b64.startswith("R0lGOD"): mime = "image/gif"
+                        else: mime = "image/jpeg"
+                    print(f"  Uploading base64 image ({mime}) to Fal CDN...")
+                    image_bytes = base64.b64decode(raw_b64)
+                    uploaded_url = fal_client.upload(image_bytes, mime)
+                    data_urls.append(uploaded_url)
         
         import requests
         from concurrent.futures import ThreadPoolExecutor
@@ -239,7 +260,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                     "prompt": slide_prompt,
                     "image_urls": data_urls,
                     "image_size": image_size,
-                    "quality": "low",
+                    "quality": "medium",
                 }
                 model_endpoint = "openai/gpt-image-2/edit"
             else:
@@ -247,7 +268,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                 arguments = {
                     "prompt": slide_prompt,
                     "image_size": image_size,
-                    "quality": "low",
+                    "quality": "medium",
                 }
                 model_endpoint = "fal-ai/gpt-image-2"
                 
@@ -270,7 +291,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                         arguments_t2i = {
                             "prompt": slide_prompt,
                             "image_size": "portrait_4_3",
-                            "quality": "low",
+                            "quality": "medium",
                         }
                         result = fal_client.subscribe(
                             "fal-ai/gpt-image-2",
