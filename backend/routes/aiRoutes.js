@@ -91,7 +91,7 @@ router.post('/captions', async (req, res) => {
 
 router.post('/edit-product-image', async (req, res) => {
     try {
-        const { ref_image, prod_image, prod_info, instruction, aspectRatio } = req.body;
+        const { ref_image, prod_image, prod_info, logo_image, instruction, aspectRatio } = req.body;
         
         // 1. Check if user has sufficient credits (5 credits required)
         const user = await User.findById(req.user._id);
@@ -123,7 +123,8 @@ router.post('/edit-product-image', async (req, res) => {
                 ref_image, 
                 prod_image, 
                 prod_info, 
-                brand_dna, 
+                brand_dna,
+                logo_image,
                 instruction,
                 aspectRatio: aspectRatio || "1:1"
             })

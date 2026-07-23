@@ -28,7 +28,7 @@ const breakpointColumnsObj = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Mode = 'sprint' | 'editor' | 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media' | 'photoshoot';
+type Mode = 'sprint' | 'editor' | 'clone' | 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media' | 'photoshoot';
 type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '2:3';
 
 // Keep the original GeneratedPost type for real API responses
@@ -319,6 +319,23 @@ type Studio = {
 };
 
 const STUDIOS: Studio[] = [
+  {
+    id: "clone",
+    title: "Clone Mode",
+    subtitle: "Clone a winning template",
+    icon: Copy,
+    iconTint: "text-purple-600",
+    iconBg: "bg-purple-100",
+    badge: { label: "New", tint: "bg-purple-600 text-white font-extrabold shadow-md" },
+    tags: [
+      { label: "AI", tint: "bg-slate-50 text-slate-600 ring-slate-200" }
+    ],
+    cta: { label: "Start Cloning", tint: "text-purple-600" },
+    to: "/dashboard/clone",
+    image: "/assets/Creatives_icon/clone-mode-card.png",
+    featured: true,
+    hoverBorder: "hover:border-purple-400 hover:ring-1 hover:ring-purple-400",
+  },
   {
     id: "sprint",
     title: "Sprint",
@@ -944,6 +961,10 @@ const DashboardStrategy = () => {
   }, [mode, isPlanExpired, isElite]);
 
   const handleModeClick = (mId: Mode) => {
+    if (mId === 'clone') {
+      navigate('/dashboard/clone');
+      return;
+    }
     if (mId === 'sprint') {
       navigate('/dashboard/autopilot');
       return;
@@ -1085,7 +1106,7 @@ const DashboardStrategy = () => {
       setSelectedAvatarUrl(newAvatar.imageUrl);
       setShowAvatarModal(false);
       setNewAvatarDesc('');
-      toast({ title: 'Avatar Generated!', description: 'Your custom virtual model is ready.', variant: 'success' });
+      toast({ title: 'Avatar Generated!', description: 'Your custom virtual model is ready.', variant: 'default' });
     } catch (error: any) {
       toast({ title: 'Failed to generate avatar', description: error.message, variant: 'destructive' });
     } finally {
@@ -1690,7 +1711,7 @@ const DashboardStrategy = () => {
 
       if (res.ok) {
         setSendStatus('sent');
-        
+
         // Automatically delete from drafts if sent successfully
         if (currentDraftId && mode === 'email') {
           try {
@@ -1947,24 +1968,24 @@ const DashboardStrategy = () => {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ endpoint: 'generate-strategy-images', payload }),
           });
-          
+
           if (!startRes.ok) throw new Error('Failed to start generation');
           const { jobId } = await startRes.json();
           let data = null;
-          
+
           while (true) {
-             await new Promise(r => setTimeout(r, 5000));
-             const pollRes = await fetch(`${NODE_BASE}/ai/job/${jobId}`, {
-               headers: { Authorization: `Bearer ${token}` }
-             });
-             const job = await pollRes.json();
-             
-             if (job.status === 'success') {
-                 data = job.data;
-                 break;
-             } else if (job.status === 'error') {
-                 throw new Error(job.error || 'Generation failed');
-             }
+            await new Promise(r => setTimeout(r, 5000));
+            const pollRes = await fetch(`${NODE_BASE}/ai/job/${jobId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const job = await pollRes.json();
+
+            if (job.status === 'success') {
+              data = job.data;
+              break;
+            } else if (job.status === 'error') {
+              throw new Error(job.error || 'Generation failed');
+            }
           }
 
           if (data && data.status === 'success' && data.posts && data.posts.length > 0) {
@@ -2456,7 +2477,7 @@ const DashboardStrategy = () => {
             >
               {currentTaskId && backgroundTasks?.find(t => t.id === currentTaskId)?.mode === 'edit_media'
                 ? 'Run in background'
-                : 'Generate more in background'}
+                : 'Run in background'}
             </Button>
           </div>
         )}
@@ -3500,7 +3521,7 @@ const DashboardStrategy = () => {
 
 
           {/* ─── Text Style pills (D2C image / festival only) ─── */}
-          {(mode === 'image' || mode === 'festival') && !isSaasMode && (
+          {(mode === 'image') && !isSaasMode && (
             <section className="mb-6">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Text style</p>
               <div className="flex gap-2">
@@ -3774,7 +3795,7 @@ const DashboardStrategy = () => {
                     )}
                   >
                     <img src={av.imageUrl} alt={av.name} className="w-full h-full object-cover" />
-                    
+
                     <button
                       type="button"
                       onClick={(e) => {
@@ -3802,100 +3823,100 @@ const DashboardStrategy = () => {
             )}
           </section>
 
-        <AnimatePresence>
-          {previewAvatarUrl && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
-              onClick={() => setPreviewAvatarUrl(null)}
-            >
-              <motion.img
-                initial={{ scale: 0.95 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.95 }}
-                src={previewAvatarUrl}
-                className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain cursor-default"
-                onClick={(e) => e.stopPropagation()}
-              />
-              <button 
+          <AnimatePresence>
+            {previewAvatarUrl && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
                 onClick={() => setPreviewAvatarUrl(null)}
-                className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-white hover:text-black transition-colors"
               >
-                <X size={24} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-<AnimatePresence>
-{showAvatarModal && (
-          <motion.div
-            key="avatar-modal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-            onClick={(e) => e.target === e.currentTarget && !isGeneratingAvatar && setShowAvatarModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className="w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl flex flex-col p-6 space-y-5"
-            >
-              <div>
-                <h3 className="text-base font-black text-foreground">Create Virtual Model ✨</h3>
-                <p className="text-xs text-muted-foreground mt-1 font-medium">Describe your ideal model (age, ethnicity, hairstyle, vibe). A realistic AI avatar will be generated for your e-comm listings.</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  {['female', 'male'].map(g => (
-                    <button
-                      key={g}
-                      onClick={() => setNewAvatarGender(g as any)}
-                      className={cn(
-                        "flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all border",
-                        newAvatarGender === g ? "bg-primary text-primary-foreground border-primary" : "bg-muted/30 border-transparent hover:bg-muted"
-                      )}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-                <Textarea
-                  value={newAvatarDesc}
-                  onChange={(e) => setNewAvatarDesc(e.target.value)}
-                  placeholder="e.g. 24-year-old Indian female, short wavy hair, sharp jawline, olive skin..."
-                  className="rounded-xl border-border/80 bg-muted/20 h-24 text-sm font-semibold resize-none"
-                  autoFocus
+                <motion.img
+                  initial={{ scale: 0.95 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0.95 }}
+                  src={previewAvatarUrl}
+                  className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain cursor-default"
+                  onClick={(e) => e.stopPropagation()}
                 />
-              </div>
+                <button
+                  onClick={() => setPreviewAvatarUrl(null)}
+                  className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-white hover:text-black transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-              <div className="flex gap-3 justify-end pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAvatarModal(false)}
-                  disabled={isGeneratingAvatar}
-                  className="rounded-xl px-5 h-10 text-xs font-bold border-border/70"
+          <AnimatePresence>
+            {showAvatarModal && (
+              <motion.div
+                key="avatar-modal"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+                onClick={(e) => e.target === e.currentTarget && !isGeneratingAvatar && setShowAvatarModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.95, y: 20 }}
+                  className="w-full max-w-md bg-card border border-border rounded-3xl shadow-2xl flex flex-col p-6 space-y-5"
                 >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleGenerateAvatar}
-                  disabled={!newAvatarDesc.trim() || isGeneratingAvatar}
-                  className="rounded-xl px-6 h-10 text-xs font-bold gap-2"
-                >
-                  {isGeneratingAvatar ? <RefreshCw size={14} className="animate-spin" /> : <Wand2 size={14} />}
-                  {isGeneratingAvatar ? 'Generating...' : 'Generate Avatar'}
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  <div>
+                    <h3 className="text-base font-black text-foreground">Create Virtual Model ✨</h3>
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">Describe your ideal model (age, ethnicity, hairstyle, vibe). A realistic AI avatar will be generated for your e-comm listings.</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      {['female', 'male'].map(g => (
+                        <button
+                          key={g}
+                          onClick={() => setNewAvatarGender(g as any)}
+                          className={cn(
+                            "flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all border",
+                            newAvatarGender === g ? "bg-primary text-primary-foreground border-primary" : "bg-muted/30 border-transparent hover:bg-muted"
+                          )}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                    <Textarea
+                      value={newAvatarDesc}
+                      onChange={(e) => setNewAvatarDesc(e.target.value)}
+                      placeholder="e.g. 24-year-old Indian female, short wavy hair, sharp jawline, olive skin..."
+                      className="rounded-xl border-border/80 bg-muted/20 h-24 text-sm font-semibold resize-none"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAvatarModal(false)}
+                      disabled={isGeneratingAvatar}
+                      className="rounded-xl px-5 h-10 text-xs font-bold border-border/70"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleGenerateAvatar}
+                      disabled={!newAvatarDesc.trim() || isGeneratingAvatar}
+                      className="rounded-xl px-6 h-10 text-xs font-bold gap-2"
+                    >
+                      {isGeneratingAvatar ? <RefreshCw size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                      {isGeneratingAvatar ? 'Generating...' : 'Generate Avatar'}
+                    </Button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <section className="mb-6">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
@@ -5670,7 +5691,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
           </motion.div>
         )}
 
-        </AnimatePresence>
+      </AnimatePresence>
     </div>
   );
 };
