@@ -10,12 +10,12 @@ export const IMAGE_CREDITS = [
 
 export const VIDEO_CREDITS = [
   {
-    feature: "Product Video (Image → 8 sec Video)",
+    feature: "Video Generation - 720p HD (8 sec)",
     credits: 80,
   },
   {
-    feature: "AI UGC Avatar Video (8 sec)",
-    credits: 80,
+    feature: "Video Generation - 1080p Full HD (8 sec)",
+    credits: 100,
   },
 ];
 
