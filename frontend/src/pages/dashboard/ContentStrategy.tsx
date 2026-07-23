@@ -752,6 +752,7 @@ const DashboardStrategy = () => {
   }, [profile?.location?.country, language]);
 
   const [videoKind, setVideoKind] = useState<string>('ai-ugc');
+  const [videoResolution, setVideoResolution] = useState<string>('1080p');
   const [selectedMotionPreset, setSelectedMotionPreset] = useState<string | null>(null);
   const [avatarDescription, setAvatarDescription] = useState<string>('');
   const [videoScript, setVideoScript] = useState<string>('');
@@ -1871,12 +1872,13 @@ const DashboardStrategy = () => {
         videoKind: currentMode === 'video' ? videoKind : undefined,
         avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
         videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
+        videoResolution: currentMode === 'video' ? videoResolution : undefined,
       };
 
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
       let creditCost = 0;
       if (currentMode === 'video') {
-        creditCost = currentCount * 80;
+        creditCost = currentCount * (videoResolution === '720p' ? 80 : 100);
       } else if (currentMode === 'carousel') {
         creditCost = currentCount * slideCount * 5;
       } else if (currentMode === 'ecomm') {
@@ -3115,6 +3117,71 @@ const DashboardStrategy = () => {
                     <p className="text-[11px] text-muted-foreground mt-0.5">{v.desc}</p>
                   </button>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {/* Video quality & resolution picker */}
+          {mode === 'video' && (
+            <section className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Video Resolution
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 720p Option */}
+                <button
+                  type="button"
+                  onClick={() => setVideoResolution('720p')}
+                  className={cn(
+                    'p-4 rounded-2xl border text-left transition-all duration-200 relative flex flex-col justify-between group',
+                    videoResolution === '720p'
+                      ? 'border-primary bg-primary/5 shadow-md shadow-primary/10 ring-1 ring-primary/30'
+                      : 'border-border/70 bg-card hover:border-primary/40 hover:bg-muted/30'
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-sm font-bold text-foreground tracking-tight">
+                      720p HD
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide border bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border-emerald-400/30 text-emerald-600 dark:text-emerald-400 shadow-sm">
+                      <Sparkles size={11} className="text-emerald-500" />
+                      <span>80 Credits</span>
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Standard HD quality. Faster generation time.
+                  </p>
+                </button>
+
+                {/* 1080p Option */}
+                <button
+                  type="button"
+                  onClick={() => setVideoResolution('1080p')}
+                  className={cn(
+                    'p-4 rounded-2xl border text-left transition-all duration-200 relative flex flex-col justify-between group',
+                    videoResolution === '1080p'
+                      ? 'border-primary bg-primary/5 shadow-md shadow-primary/10 ring-1 ring-primary/30'
+                      : 'border-border/70 bg-card hover:border-primary/40 hover:bg-muted/30'
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-foreground tracking-tight">
+                        1080p Full HD
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm">
+                        Recommended
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide border bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-blue-500/10 border-violet-400/30 text-violet-600 dark:text-violet-400 shadow-sm">
+                      <Sparkles size={11} className="text-violet-500" />
+                      <span>100 Credits</span>
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Crisp Full HD output. Best for professional social media posts & ads.
+                  </p>
+                </button>
               </div>
             </section>
           )}
