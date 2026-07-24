@@ -15,7 +15,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
     // Removed old states
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-36" style={{ background: "var(--gradient-hero)" }}>
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-36">
       <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl bg-primary" />
       <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-15 blur-3xl bg-primary" />
 

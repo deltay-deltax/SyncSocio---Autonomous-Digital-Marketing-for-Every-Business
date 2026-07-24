@@ -81,7 +81,7 @@ const Index = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative" style={{ background: "var(--gradient-hero)" }}>
       {isCheckingStatus && (
         <div className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-md flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -98,19 +98,21 @@ const Index = () => {
 
 
       {/* 3. Marquee gallery — more visual proof */}
-      <section className="relative w-full bg-background overflow-hidden border-y border-border/40 py-10">
+      <section className="relative w-full overflow-hidden border-y border-border/40 py-10">
         <MarqueeDemo images={domeImages} />
       </section>
 
-      {/* 4. Visual proof — show what the AI actually makes */}
+      {/* 4. Four steps friction */}
+      <HowItWorks />
+
+      {/* 5. Visual proof — show what the AI actually makes */}
       <CreativeShowcase />
 
-      {/* 5. Lead magnet CTA — strike while visual excitement is high */}
+      {/* 6. Lead magnet CTA — strike while visual excitement is high */}
       <FreeCreativesSection />
 
-      {/* 6. Feature detail */}
+      {/* 7. Feature detail */}
       <Features />
-      <HowItWorks />
       <DMAutomation />
       <CampaignChannels />
 

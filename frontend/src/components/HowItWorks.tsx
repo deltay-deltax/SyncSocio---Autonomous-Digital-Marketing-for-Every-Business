@@ -47,6 +47,12 @@ const TypingUrl = () => {
 
 const UrlBackground = () => (
   <div className="absolute top-10 right-10 w-[260px] p-4 rounded-xl border border-border/50 bg-background/50 shadow-sm transform-gpu transition-all duration-300 group-hover:scale-105 opacity-60 group-hover:opacity-100 pointer-events-none overflow-hidden">
+    <motion.div
+      initial={{ x: "-100%" }}
+      animate={{ x: "200%" }}
+      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+      className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-primary/20 to-transparent z-0"
+    />
     <div className="relative z-10 flex items-center gap-2 border rounded-md px-3 py-2 bg-muted/30 backdrop-blur-sm">
       <Link size={14} className="text-muted-foreground" />
       <TypingUrl />
@@ -189,7 +195,7 @@ const features = [
 
 const HowItWorks = () => {
   return (
-    <section id="how-it-works" className="py-24 sm:py-32 bg-card">
+    <section id="how-it-works" className="py-24 sm:py-32">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <span className="text-sm font-semibold text-accent uppercase tracking-widest mb-4 block">
