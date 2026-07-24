@@ -62,6 +62,9 @@ const Navbar = () => {
   };
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("/")) {
+      return;
+    }
     e.preventDefault();
     setMobileOpen(false);
     if (href === "#") {
