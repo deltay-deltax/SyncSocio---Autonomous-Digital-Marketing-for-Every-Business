@@ -516,6 +516,9 @@ def generate_saas_strategy_images(
     Args match generate_strategy_images() signature from strategy_image_agent.py
     so the caller in main.py can swap them transparently.
     """
+    user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
+    img_quality = "low" if "starter" in user_plan else "medium"
+
     # If Nepal target, force language to English or Nepali
     loc = brand_doc.get("location")
     country = "Unknown"
@@ -668,6 +671,7 @@ def generate_saas_strategy_images(
                     prompt=prompt,
                     image=effective_ref,
                     image_size=fal_size,
+                    quality=img_quality,
                 )
                 return {"image": result["image"], "caption": caption, "type": "image",
                         "template": template_label, "track": _track, "index": index}
@@ -751,6 +755,7 @@ def generate_saas_strategy_images(
                     count=slide_count,
                     slide_prompts=enriched_slide_prompts,
                     image_size=fal_size,
+                    quality=img_quality,
                 )
                 return {"slides": slides, "caption": caption, "type": "carousel", "index": index}
             except Exception as e:
@@ -845,7 +850,7 @@ Create a high-quality, photorealistic portrait image of this UGC creator/present
                     print(f"[SaaSAgent] UGC Stage 1: Generating starting image with GPT-Image-2...")
                     print(f"[SaaSAgent] 📝 UGC Stage 1 Prompt:\n{stage1_prompt}\n")
                     gpt_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "portrait_16_9")
-                    gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=None, image_size=gpt_size)
+                    gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=None, image_size=gpt_size, quality=img_quality)
                     generated_img = gpt_res.get("image")
                     if not generated_img:
                         raise Exception("UGC Stage 1 image generation failed")

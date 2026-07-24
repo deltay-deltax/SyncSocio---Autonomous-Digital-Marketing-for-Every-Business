@@ -74,7 +74,7 @@ def generate_fal_image_flux_legacy(prompt: str, image: str = None, aspect_ratio:
         raise e
 
 
-def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "portrait_4_3"):
+def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "portrait_4_3", quality: str = "medium"):
     """
     Static image generation using GPT-Image-2 via FAL.ai.
     When an image (or list of images) is provided, it uses the openai/gpt-image-2/edit endpoint
@@ -118,12 +118,13 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image with {len(data_urls)} refs...")
             print(f"  has_ref    : YES ({size_kb} KB)")
             print(f"  prompt     : {prompt[:120].strip()}...")
+            print(f"  quality    : {quality}")
 
             edit_arguments = {
                 "prompt": prompt,
                 "image_urls": data_urls,
                 "image_size": image_size,
-                "quality": "medium",
+                "quality": quality,
                 "enable_safety_checker": False,
             }
             try:
@@ -154,13 +155,14 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             # Standard Text-to-image flow
             print(f"\nFAL ENGINE (gpt-image-2): Generating static image...")
             print(f"  image_size : {image_size}")
+            print(f"  quality    : {quality}")
             print(f"  has_ref    : NO")
             print(f"  prompt     : {prompt[:120].strip()}...")
 
             arguments = {
                 "prompt": prompt,
                 "image_size": image_size,
-                "quality": "medium",
+                "quality": quality,
                 "enable_safety_checker": False,
             }
             result = fal_client.subscribe(
@@ -184,7 +186,7 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
         raise e
 
 
-def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = "3:4"):
+def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = "3:4", quality: str = "medium"):
     """
     Public entry point for static image generation.
     Delegates to generate_fal_image_gpt2() — signature unchanged so all
@@ -194,14 +196,15 @@ def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = 
         prompt:       Text prompt for generation.
         image:        Optional base64 product image for edit/reference mode.
         aspect_ratio: Kept for API compatibility; gpt-image-2 uses "1024x1536" internally.
+        quality:      "low" or "medium" or "hd"
 
     Returns:
         Dict with base64 encoded image: {"image": str, "status": "success"}
     """
-    return generate_fal_image_gpt2(prompt=prompt, image=image)
+    return generate_fal_image_gpt2(prompt=prompt, image=image, quality=quality)
 
 
-def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: int = 3, slide_prompts: List[str] = None, image_size: str = "portrait_4_3"):
+def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: int = 3, slide_prompts: List[str] = None, image_size: str = "portrait_4_3", quality: str = "medium"):
     """
     Generates carousel images using GPT-Image-2 (Text-to-Image / Edit) via FAL.ai.
     Uses openai/gpt-image-2/edit for image-to-image when a product reference image is present.
@@ -252,7 +255,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
             else:
                 slide_prompt = f"{base_prompt}, slide {i+1} of {actual_count}"
             
-            print(f"FAL ENGINE (gpt-image-2): Generating Carousel Slide {i+1}/{actual_count} (features_product: {features_product})...")
+            print(f"FAL ENGINE (gpt-image-2): Generating Carousel Slide {i+1}/{actual_count} (features_product: {features_product}, quality: {quality})...")
             
             if len(data_urls) > 0 and features_product:
                 # Use GPT-Image-2 edit (image-to-image)
@@ -260,7 +263,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                     "prompt": slide_prompt,
                     "image_urls": data_urls,
                     "image_size": image_size,
-                    "quality": "medium",
+                    "quality": quality,
                 }
                 model_endpoint = "openai/gpt-image-2/edit"
             else:
@@ -268,7 +271,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                 arguments = {
                     "prompt": slide_prompt,
                     "image_size": image_size,
-                    "quality": "medium",
+                    "quality": quality,
                 }
                 model_endpoint = "fal-ai/gpt-image-2"
                 
@@ -291,7 +294,7 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                         arguments_t2i = {
                             "prompt": slide_prompt,
                             "image_size": "portrait_4_3",
-                            "quality": "medium",
+                            "quality": quality,
                         }
                         result = fal_client.subscribe(
                             "fal-ai/gpt-image-2",

@@ -232,6 +232,9 @@ def generate_saas_festival_images(
     
     NOT: discount sales, product giveaways, consumer promotions
     """
+    user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
+    img_quality = "low" if "starter" in user_plan else "medium"
+
     fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
     profile = get_saas_profile((brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")))
 
@@ -278,6 +281,7 @@ def generate_saas_festival_images(
                 prompt=image_prompt,
                 image=None,
                 image_size=fal_size,
+                quality=img_quality,
             )
             return {
                 "image": result["image"],

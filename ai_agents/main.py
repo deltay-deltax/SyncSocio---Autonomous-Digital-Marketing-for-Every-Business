@@ -1480,6 +1480,7 @@ async def api_generate_visuals(request: VisualGenRequest):
         # Step 0: Fetch Brand DNA and Industry Category from Brand Profile
         brand_dna = "A premium growth-focused brand."
         industry_category = "Lifestyle/Luxury"  # Default fallback
+        img_quality = "medium"
         
         if request.userId:
             brand_doc = await db["brandprofiles"].find_one({
@@ -1488,6 +1489,12 @@ async def api_generate_visuals(request: VisualGenRequest):
                     {"user": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId}
                 ]
             })
+            
+            user_plan = "starter"
+            if brand_doc:
+                user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
+            img_quality = "low" if "starter" in user_plan else "medium"
+
             if brand_doc:
                 location = brand_doc.get('location')
                 country = 'Unknown'
@@ -1606,7 +1613,7 @@ Not a stock photo. Not AI-looking.
 """.strip()
 
             print(f"\n--- GPT-IMAGE-2 STATIC PROMPT ---\n{static_prompt}\n---------------------------------\n")
-            result = generate_fal_image_flux(static_prompt, image=request.image)
+            result = generate_fal_image_flux(static_prompt, image=request.image, quality=img_quality)
             type_str = "image"
         elif request.format == "Carousel":
             # Use FAL.ai Ideogram for carousel slides (image-to-image based on user product image)
@@ -1719,7 +1726,8 @@ Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
                 base_prompt=refined_prompt,
                 image=request.image,
                 count=count,
-                slide_prompts=slides_results
+                slide_prompts=slides_results,
+                quality=img_quality
             )
             type_str = "carousel"
         elif request.format == "Reel":
@@ -2080,6 +2088,7 @@ async def api_product_image_editor(request: ProductEditRequest):
         import json
         
         safe_brand_dna = ""
+        img_quality = "medium"
         if request.brand_dna:
             try:
                 dna_dict = json.loads(request.brand_dna)
@@ -2087,6 +2096,10 @@ async def api_product_image_editor(request: ProductEditRequest):
                 keys_to_keep = ['brandName', 'businessCategory', 'usp', 'targetAudiences', 'brandTone', 'visualVibe', 'brandKeywords']
                 pruned_dna = {k: dna_dict[k] for k in keys_to_keep if k in dna_dict}
                 safe_brand_dna = json.dumps(pruned_dna)
+                
+                user_plan = str(dna_dict.get("selectedPlan", "starter")).lower()
+                if "starter" in user_plan:
+                    img_quality = "low"
             except Exception:
                 # If not JSON or fails, just truncate it
                 safe_brand_dna = request.brand_dna[:1000]
@@ -2124,7 +2137,8 @@ async def api_product_image_editor(request: ProductEditRequest):
         res = generate_fal_image_gpt2(
             prompt=prompt,
             image=images,
-            image_size=image_size
+            image_size=image_size,
+            quality=img_quality,
         )
         
         return {
