@@ -1,4 +1,5 @@
 import { Dna, LayoutGrid, CalendarDays, CalendarClock, Send, BarChart3 } from "lucide-react";
+import { Marquee } from "@/registry/magicui/marquee";
 
 const features = [
   {
@@ -33,7 +34,7 @@ const features = [
   },
 ];
 
-const doubledFeatures = [...features, ...features];
+
 
 const Features = () => {
   return (
@@ -57,15 +58,15 @@ const Features = () => {
       </div>
 
       {/* Marquee container */}
-      <div className="relative">
+      <div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
 
-        <div className="flex animate-marquee w-max">
-          {doubledFeatures.map((feature, i) => (
+        <Marquee pauseOnHover className="[--duration:40s]">
+          {features.map((feature) => (
             <div
-              key={`${feature.title}-${i}`}
-              className="glass-card rounded-2xl p-8 mx-3 w-[340px] flex-shrink-0 group hover-lift relative overflow-hidden"
+              key={feature.title}
+              className="glass-card rounded-2xl p-8 w-[340px] flex-shrink-0 group hover-lift relative overflow-hidden"
             >
               {/* Card gradient accent */}
               <div className="absolute top-0 left-0 right-0 h-1 gradient-bg" />
@@ -78,7 +79,7 @@ const Features = () => {
               </p>
             </div>
           ))}
-        </div>
+        </Marquee>
       </div>
     </section>
   );

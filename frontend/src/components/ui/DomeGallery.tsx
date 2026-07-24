@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useGesture } from '@use-gesture/react';
 import './DomeGallery.css';
 
-const DEFAULT_IMAGES = [
+export const DEFAULT_IMAGES = [
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782640519/syncsocio/creatives/fnbmmniikbyhatoxlvqg.jpg", alt: "Creative" },
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782640524/syncsocio/creatives/a9xqz4jpobw5s4ohk7k1.jpg", alt: "Creative" },
   { src: "https://res.cloudinary.com/ddictem0d/image/upload/v1782640525/syncsocio/creatives/c4dfgcjaokp6uh9ia7dc.jpg", alt: "Creative" },

@@ -221,12 +221,19 @@
 
 @layer utilities {
   @keyframes marquee {
-    0% {
+    from {
       transform: translateX(0);
     }
-
-    100% {
-      transform: translateX(-50%);
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(calc(-100% - var(--gap)));
     }
   }
 

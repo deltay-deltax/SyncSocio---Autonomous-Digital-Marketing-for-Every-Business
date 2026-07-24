@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
-import WhatWeAre from "@/components/WhatWeAre";
+
 import Features from "@/components/Features";
 import CreativeShowcase from "@/components/CreativeShowcase";
 import HowItWorks from "@/components/HowItWorks";
@@ -11,7 +11,7 @@ import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 import FreeCreativesSection from "@/components/FreeCreativesSection";
-import DomeGallery from "@/components/ui/DomeGallery";
+import { MarqueeDemo } from "@/components/ReviewMarquee";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -94,16 +94,15 @@ const Index = () => {
       {/* 1. Hero — clear value prop + CTA */}
       <HeroSection onWaitlistClick={() => document.getElementById("free-creatives")?.scrollIntoView({ behavior: "smooth" })} />
 
-      {/* 2. Trust / social proof numbers */}
-      <WhatWeAre />
 
-      {/* 3. Visual proof — show what the AI actually makes */}
-      <CreativeShowcase />
 
-      {/* 4. Dome gallery — more visual proof */}
-      <section className="relative w-full h-[600px] bg-background overflow-hidden border-y border-border/40">
-        <DomeGallery grayscale={false} overlayBlurColor="transparent" images={domeImages} />
+      {/* 3. Marquee gallery — more visual proof */}
+      <section className="relative w-full bg-background overflow-hidden border-y border-border/40 py-10">
+        <MarqueeDemo images={domeImages} />
       </section>
+
+      {/* 4. Visual proof — show what the AI actually makes */}
+      <CreativeShowcase />
 
       {/* 5. Lead magnet CTA — strike while visual excitement is high */}
       <FreeCreativesSection />
