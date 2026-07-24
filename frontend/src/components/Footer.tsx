@@ -30,6 +30,7 @@ const Footer = () => {
           © 2026 SyncSocio. Built with ❤️ in India.
         </p>
         <div className="flex items-center gap-6">
+          <a href="/#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</a>
           <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
           <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
           <div className="flex items-center gap-4 border-l border-border pl-6 ml-2">

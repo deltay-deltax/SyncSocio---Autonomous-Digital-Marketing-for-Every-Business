@@ -86,6 +86,7 @@ class ProductEditRequest(BaseModel):
     prod_image: Optional[str] = ""
     prod_info: Optional[str] = ""
     brand_dna: Optional[str] = ""
+    logo_image: Optional[str] = ""
     instruction: str
     aspectRatio: Optional[str] = "1:1"
 

@@ -39,6 +39,28 @@ export function getFriendlyErrorMessage(error: any, defaultMsg = 'Oops! Somethin
     return 'This record already exists in our system.';
   }
   
+  // AI / Image generation errors
+  if (lowerMsg.includes('image could not be read') || lowerMsg.includes('not a supported image format') || lowerMsg.includes('corrupted') || lowerMsg.includes('input.image_urls')) {
+    return 'Image generation failed: one or more reference images could not be processed. Please try a different product image or template.';
+  }
+
+  if (lowerMsg.includes('content_policy') || lowerMsg.includes('content policy') || lowerMsg.includes('safety filter') || lowerMsg.includes('content checker')) {
+    return 'Your request was blocked by the AI safety filter. Please try rephrasing your instruction.';
+  }
+
+  if (lowerMsg.includes('out of credits') || lowerMsg.includes('insufficient credits') || lowerMsg.includes('credit')) {
+    return "You've run out of credits. Please top up to continue generating content.";
+  }
+
+  if (lowerMsg.includes('quota') || lowerMsg.includes('rate limit') || lowerMsg.includes('too many requests')) {
+    return 'Too many requests right now. Please wait a moment and try again.';
+  }
+
+  // Raw JSON / array error bleed-through from AI APIs — never show to users
+  if (lowerMsg.includes("'loc'") || lowerMsg.includes('"loc"') || lowerMsg.startsWith('[{') || lowerMsg.includes('value_error')) {
+    return 'Something went wrong while processing your request. Please try again.';
+  }
+
   // If no generic tech error pattern is matched, we assume the backend sent a human-readable message 
   // (like "Invalid email or password", "Email already in use", etc.) or we return the default.
   return msg || defaultMsg;

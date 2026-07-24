@@ -94,7 +94,50 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             for img in images:
                 if not img: continue
                 if img.startswith("http://") or img.startswith("https://"):
-                    data_urls.append(img)
+                    # Strip query params to check extension
+                    url_path = img.split("?")[0].lower()
+                    if url_path.endswith(".svg"):
+                        # Try to convert SVG to PNG before uploading
+                        try:
+                            import cairosvg, io  # pyrefly: ignore[missing-import]
+                            print(f"  [SVG] Converting SVG logo to PNG: {img[:80]}...")
+                            png_bytes = cairosvg.svg2png(url=img, output_width=512)
+                            uploaded_url = fal_client.upload(png_bytes, "image/png", file_name="logo.png")
+                            print(f"  -> SVG converted & uploaded: {uploaded_url}")
+                            data_urls.append(uploaded_url)
+                            size_kb += len(png_bytes) // 1024
+                        except Exception as svg_err:
+                            print(f"  [SVG Skip] Could not convert SVG ({svg_err}), skipping logo.")
+                        continue
+                    # Download and re-upload all remote URLs to FAL CDN for guaranteed compatibility
+                    try:
+                        import requests as _req
+                        import io
+                        from PIL import Image as _PilImage
+                        print(f"  Downloading remote image: {img[:80]}...")
+                        r = _req.get(img, timeout=15)
+                        r.raise_for_status()
+                        content_type = r.headers.get("Content-Type", "image/jpeg").split(";")[0].strip()
+                        img_bytes = r.content
+                        # Convert to PNG if not already PNG/JPEG
+                        if content_type not in ["image/png", "image/jpeg"]:
+                            print(f"  [Auto-Convert] Remote image is {content_type}, converting to PNG...")
+                            pil_img = _PilImage.open(io.BytesIO(img_bytes))
+                            out_io = io.BytesIO()
+                            if pil_img.mode in ("RGBA", "P", "LA"):
+                                pil_img.convert("RGBA").save(out_io, format="PNG")
+                                content_type = "image/png"
+                            else:
+                                pil_img.convert("RGB").save(out_io, format="JPEG")
+                                content_type = "image/jpeg"
+                            img_bytes = out_io.getvalue()
+                        ext = "png" if content_type == "image/png" else "jpeg"
+                        uploaded_url = fal_client.upload(img_bytes, content_type, file_name=f"image.{ext}")
+                        print(f"  -> Re-uploaded to FAL CDN: {uploaded_url}")
+                        data_urls.append(uploaded_url)
+                        size_kb += len(img_bytes) // 1024
+                    except Exception as e:
+                        print(f"  [Remote URL Error] Failed to download/reupload {img[:80]}: {e}")
                 else:
                     if img.startswith("data:"):
                         header, raw_b64 = img.split(",", 1)
@@ -105,9 +148,29 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                         elif raw_b64.startswith("UklGR"): mime = "image/webp"
                         elif raw_b64.startswith("R0lGOD"): mime = "image/gif"
                         else: mime = "image/jpeg"
-                    print(f"  Uploading base64 image ({mime}) to Fal CDN...")
                     image_bytes = base64.b64decode(raw_b64)
-                    uploaded_url = fal_client.upload(image_bytes, mime)
+                    if mime not in ["image/png", "image/jpeg"]:
+                        print(f"  [Auto-Convert] Detected unsupported format: {mime}. Converting...")
+                        try:
+                            import io
+                            from PIL import Image
+                            img_obj = Image.open(io.BytesIO(image_bytes))
+                            out_io = io.BytesIO()
+                            if img_obj.mode in ("RGBA", "P"):
+                                img_obj.convert("RGBA").save(out_io, format="PNG")
+                                mime = "image/png"
+                            else:
+                                img_obj.convert("RGB").save(out_io, format="JPEG")
+                                mime = "image/jpeg"
+                            image_bytes = out_io.getvalue()
+                            print(f"  [Auto-Convert] Successfully converted to {mime}.")
+                        except Exception as e:
+                            print(f"  [Auto-Convert Error] {e}")
+
+                    print(f"  Uploading image ({mime}) to Fal CDN...")
+                    file_ext = "png" if mime == "image/png" else "jpeg"
+                    uploaded_url = fal_client.upload(image_bytes, mime, file_name=f"image.{file_ext}")
+                    print(f"  -> Uploaded successfully: {uploaded_url}")
                     data_urls.append(uploaded_url)
                     size_kb += len(raw_b64) * 3 // 4 // 1024
             if len(data_urls) > 0:
@@ -119,6 +182,8 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             print(f"  has_ref    : YES ({size_kb} KB)")
             print(f"  prompt     : {prompt[:120].strip()}...")
             print(f"  quality    : {quality}")
+
+            print(f"  image_urls : {[u[:60]+'...' for u in data_urls]}")
 
             edit_arguments = {
                 "prompt": prompt,
@@ -134,23 +199,10 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                 )
             except Exception as edit_err:
                 print(f"[FAL] openai/gpt-image-2/edit failed: {edit_err}. Trying fal-ai/gpt-image-2/edit...")
-                try:
-                    result = fal_client.subscribe(
-                        "fal-ai/gpt-image-2/edit",
-                        arguments=edit_arguments,
-                    )
-                except Exception as edit_err2:
-                    print(f"[FAL] gpt-image-2/edit failed: {edit_err2}. Falling back to Flux Image-to-Image...")
-                    flux_args = {
-                        "prompt": prompt,
-                        "image_url": data_urls[0],
-                        "strength": 0.5,
-                        "image_size": image_size
-                    }
-                    result = fal_client.subscribe(
-                        "fal-ai/flux/dev/image-to-image",
-                        arguments=flux_args,
-                    )
+                result = fal_client.subscribe(
+                    "fal-ai/gpt-image-2/edit",
+                    arguments=edit_arguments,
+                )
         else:
             # Standard Text-to-image flow
             print(f"\nFAL ENGINE (gpt-image-2): Generating static image...")
@@ -182,8 +234,28 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
             raise Exception("No image data in FAL response")
 
     except Exception as e:
-        print(f"FAL GPT-IMAGE-2 ENGINE ERROR: {str(e)}")
-        raise e
+        # Parse FAL validation error lists into a clean, human-readable message
+        err_str = str(e)
+        friendly = err_str
+        try:
+            import ast, re as _re
+            # FAL errors are often a list of dicts like [{'loc':..., 'msg':...}]
+            if err_str.strip().startswith("["):
+                parsed = ast.literal_eval(err_str)
+                if isinstance(parsed, list) and parsed:
+                    msgs = [item.get('msg', '') for item in parsed if isinstance(item, dict) and item.get('msg')]
+                    if msgs:
+                        first_msg = msgs[0].lower()
+                        if 'image could not be read' in first_msg or 'not a supported image format' in first_msg:
+                            friendly = 'Image generation failed: one or more reference images could not be processed. Please try a different product image or template.'
+                        elif 'content_policy' in first_msg or 'safety' in first_msg:
+                            friendly = 'Your request was blocked by the AI safety filter. Please try rephrasing your instruction.'
+                        else:
+                            friendly = f'AI generation error: {msgs[0]}'
+        except Exception:
+            pass
+        print(f"FAL GPT-IMAGE-2 ENGINE ERROR: {err_str}")
+        raise Exception(friendly)
 
 
 def generate_fal_image_flux(prompt: str, image: str = None, aspect_ratio: str = "3:4", quality: str = "medium"):
@@ -237,7 +309,8 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
                         else: mime = "image/jpeg"
                     print(f"  Uploading base64 image ({mime}) to Fal CDN...")
                     image_bytes = base64.b64decode(raw_b64)
-                    uploaded_url = fal_client.upload(image_bytes, mime)
+                    file_ext = "png" if mime == "image/png" else "jpeg"
+                    uploaded_url = fal_client.upload(image_bytes, mime, file_name=f"image.{file_ext}")
                     data_urls.append(uploaded_url)
         
         import requests

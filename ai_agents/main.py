@@ -2093,7 +2093,7 @@ async def api_product_image_editor(request: ProductEditRequest):
             try:
                 dna_dict = json.loads(request.brand_dna)
                 # Keep only relevant fields for image generation
-                keys_to_keep = ['brandName', 'businessCategory', 'usp', 'targetAudiences', 'brandTone', 'visualVibe', 'brandKeywords']
+                keys_to_keep = ['brandName', 'businessCategory', 'usp', 'targetAudiences', 'brandTone', 'visualVibe', 'brandKeywords', 'primaryColor', 'secondaryColor']
                 pruned_dna = {k: dna_dict[k] for k in keys_to_keep if k in dna_dict}
                 safe_brand_dna = json.dumps(pruned_dna)
                 
@@ -2113,8 +2113,10 @@ async def api_product_image_editor(request: ProductEditRequest):
                 f"Product Details: {safe_prod_info}\n"
                 f"User Instruction: {request.instruction}"
             )
-            # generate_fal_image_gpt2 accepts a list of images (reference + product)
+            # generate_fal_image_gpt2 accepts a list of images (reference + product + logo)
             images = [request.ref_image, request.prod_image]
+            if request.logo_image:
+                images.append(request.logo_image)
         else:
             prompt = (
                 f"Edit the image according to the instruction.\n"
@@ -2123,6 +2125,8 @@ async def api_product_image_editor(request: ProductEditRequest):
                 f"User Instruction: {request.instruction}"
             )
             images = [request.ref_image]
+            if request.logo_image:
+                images.append(request.logo_image)
         
         # Map aspect ratio to FAL's image size
         size_map = {

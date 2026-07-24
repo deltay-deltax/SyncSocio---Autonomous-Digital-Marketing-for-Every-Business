@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
-import WhatWeAre from "@/components/WhatWeAre";
+
 import Features from "@/components/Features";
 import CreativeShowcase from "@/components/CreativeShowcase";
 import HowItWorks from "@/components/HowItWorks";
@@ -11,7 +11,8 @@ import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 import FreeCreativesSection from "@/components/FreeCreativesSection";
-import DomeGallery from "@/components/ui/DomeGallery";
+import { MarqueeDemo } from "@/components/ReviewMarquee";
+import TestimonialsSection from "@/components/TestimonialsSection";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -80,7 +81,7 @@ const Index = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative" style={{ background: "var(--gradient-hero)" }}>
       {isCheckingStatus && (
         <div className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-md flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -94,29 +95,34 @@ const Index = () => {
       {/* 1. Hero — clear value prop + CTA */}
       <HeroSection onWaitlistClick={() => document.getElementById("free-creatives")?.scrollIntoView({ behavior: "smooth" })} />
 
-      {/* 2. Trust / social proof numbers */}
-      <WhatWeAre />
 
-      {/* 3. Visual proof — show what the AI actually makes */}
-      <CreativeShowcase />
 
-      {/* 4. Dome gallery — more visual proof */}
-      <section className="relative w-full h-[600px] bg-background overflow-hidden border-y border-border/40">
-        <DomeGallery grayscale={false} overlayBlurColor="transparent" images={domeImages} />
+      {/* 3. Marquee gallery — more visual proof */}
+      <section className="relative w-full overflow-hidden border-y border-border/40 py-10">
+        <MarqueeDemo images={domeImages} />
       </section>
 
-      {/* 5. Lead magnet CTA — strike while visual excitement is high */}
-      <FreeCreativesSection />
-
-      {/* 6. Feature detail */}
-      <Features />
+      {/* 4. Four steps friction */}
       <HowItWorks />
+
+      {/* 5. Visual proof — show what the AI actually makes */}
+      <CreativeShowcase />
+
+      {/* 7. Feature detail */}
+      <Features />
       <DMAutomation />
       <CampaignChannels />
 
-      {/* 7. Pricing + FAQ */}
+      {/* 7. Testimonials */}
+      {/* <TestimonialsSection /> */}
+
+      {/* 8. Pricing + FAQ */}
       <Pricing onWaitlistClick={() => navigate("/signup")} />
       <FAQ />
+      
+      {/* 9. Lead magnet CTA at the end */}
+      <FreeCreativesSection />
+      
       <Footer />
     </div>
   );

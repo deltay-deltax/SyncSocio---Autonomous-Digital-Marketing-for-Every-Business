@@ -584,760 +584,760 @@ export default function AutopilotPage() {
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-4 select-none pt-4">
-          {/* Header Bar */}
-          <div className="flex items-start justify-between shrink-0">
-            <div className="flex items-start gap-3">
-              <button 
-                onClick={() => stage === 'results' ? handleBackToForm() : navigate('/dashboard/strategy')} 
-                className="p-2 rounded-xl hover:bg-muted transition mt-1 flex-shrink-0"
+      {/* Header Bar */}
+      <div className="flex items-start justify-between shrink-0">
+        <div className="flex items-start gap-3">
+          <button
+            onClick={() => stage === 'results' ? handleBackToForm() : navigate('/dashboard/strategy')}
+            className="p-2 rounded-xl hover:bg-muted transition mt-1 flex-shrink-0"
+          >
+            <ArrowLeft size={18} className="text-muted-foreground" />
+          </button>
+          <div>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 mb-2">
+              <Sparkles size={11} className="text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                {stage === 'results' ? 'Fresh drop' : 'Campaign Studio'}
+              </span>
+            </div>
+            {stage === 'results' ? (
+              <>
+                <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
+                  Your{' '}
+                  <span className="bg-gradient-to-r from-sky-400 via-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">
+                    autopilot
+                  </span>{' '}
+                  drop is ready
+                </h1>
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
+                  Generate a week of posts
+                </h1>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Pick a language, a week, and a product. We'll create {selectedWeeks * 7} posts — swipe to keep or skip.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Action Controls for Results Stage */}
+        {stage === 'results' && (
+          <div className="flex items-center gap-3">
+            {/* Layout Toggle */}
+            <div className="flex items-center bg-muted/60 p-1 rounded-2xl border border-border/60">
+              <button
+                onClick={() => setLayoutMode('swipe')}
+                className={cn(
+                  'px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 transition',
+                  layoutMode === 'swipe'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
               >
-                <ArrowLeft size={18} className="text-muted-foreground" />
+                <Flame size={12} /> Swipe
               </button>
-              <div>
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 mb-2">
-                  <Sparkles size={11} className="text-primary" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                      {stage === 'results' ? 'Fresh drop' : 'Campaign Studio'}
-                    </span>
-                  </div>
-                  {stage === 'results' ? (
-                    <>
-                      <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
-                        Your{' '}
-                        <span className="bg-gradient-to-r from-sky-400 via-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">
-                          autopilot
-                        </span>{' '}
-                        drop is ready
-                      </h1>
-                    </>
-                  ) : (
-                    <>
-                      <h1 className="text-2xl sm:text-4xl font-display font-bold text-foreground tracking-tight leading-tight">
-                        Generate a week of posts
-                      </h1>
-                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                        Pick a language, a week, and a product. We'll create {selectedWeeks * 7} posts — swipe to keep or skip.
-                      </p>
-                    </>
-                  )}
-              </div>
+              <button
+                onClick={() => setLayoutMode('grid')}
+                className={cn(
+                  'px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 transition',
+                  layoutMode === 'grid'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Grid size={12} /> Grid
+              </button>
             </div>
 
-            {/* Action Controls for Results Stage */}
-            {stage === 'results' && (
-              <div className="flex items-center gap-3">
-                {/* Layout Toggle */}
-                <div className="flex items-center bg-muted/60 p-1 rounded-2xl border border-border/60">
-                  <button
-                    onClick={() => setLayoutMode('swipe')}
-                    className={cn(
-                      'px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 transition',
-                      layoutMode === 'swipe'
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    <Flame size={12} /> Swipe
-                  </button>
-                  <button
-                    onClick={() => setLayoutMode('grid')}
-                    className={cn(
-                      'px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 transition',
-                      layoutMode === 'grid'
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    <Grid size={12} /> Grid
-                  </button>
-                </div>
-
-                {/* Quick Actions */}
-                <Button
-                  onClick={handleBackToForm}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl text-xs font-bold gap-1.5 h-10 border-border/70"
-                >
-                  <RefreshCw size={13} /> Regenerate
-                </Button>
-                <Button
-                  onClick={handleExportAll}
-                  variant="default"
-                  size="sm"
-                  className="rounded-xl text-xs font-bold gap-1.5 h-10 bg-primary text-white"
-                >
-                  <Download size={13} /> Export all
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 min-h-0">
-            {/* STAGE 1: FORM WIZARD */}
-            {stage === 'form' && (
-              <div className="max-w-4xl mx-auto w-full mt-2 flex flex-col gap-6">
-                
-                {/* Navigation Pills */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <button
-                    onClick={() => setCurrentStep('language')}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
-                      currentStep === 'language'
-                        ? "bg-primary text-white shadow-md"
-                        : "bg-card text-muted-foreground border border-border hover:bg-muted"
-                    )}
-                  >
-                    <Globe size={16} />
-                    <span>Language <span className="opacity-70 font-normal">· {languages.find(l => l.id === selectedLanguage)?.label.split(' ')[0]}</span></span>
-                    {currentStep === 'language' && <ArrowRight size={14} className="ml-1 opacity-70" />}
-                  </button>
-                  <button
-                    onClick={() => setCurrentStep('week')}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
-                      currentStep === 'week'
-                        ? "bg-primary text-white shadow-md"
-                        : "bg-card text-muted-foreground border border-border hover:bg-muted"
-                    )}
-                  >
-                    <Calendar size={16} />
-                    <span>Week <span className="opacity-70 font-normal">· Week {selectedWeeks}</span></span>
-                    {currentStep === 'week' && <ArrowRight size={14} className="ml-1 opacity-70" />}
-                  </button>
-                  <button
-                    onClick={() => setCurrentStep('product')}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
-                      currentStep === 'product'
-                        ? "bg-primary text-white shadow-md"
-                        : "bg-card text-muted-foreground border border-border hover:bg-muted"
-                    )}
-                  >
-                    <Box size={16} />
-                    <span>Product <span className="opacity-70 font-normal">· {selectedProductIds.length > 0 ? `${selectedProductIds.length} Selected` : 'None'}</span></span>
-                  </button>
-                </div>
-
-                {/* Content Area */}
-                <div className="rounded-3xl border border-border bg-card p-6 md:p-8 shadow-sm">
-                  
-                  {currentStep === 'language' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <div className="flex items-center justify-between mb-6">
-                        <div>
-                          <h3 className="text-lg font-bold text-foreground">Choose a language</h3>
-                          <p className="text-sm text-muted-foreground mt-1">Captions, hooks and CTAs will speak this language.</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                        {(profile?.location?.country?.toLowerCase() === 'nepal'
-                          ? languages
-                          : languages.filter(l => l.id !== 'nepali')
-                        ).map((l) => {
-                          const isSelected = selectedLanguage === l.id;
-                          return (
-                            <button
-                              key={l.id}
-                              onClick={() => {
-                                setSelectedLanguage(l.id);
-                                setTimeout(() => setCurrentStep('week'), 200);
-                              }}
-                              className={cn(
-                                "relative p-4 rounded-2xl border text-left flex flex-col gap-2 transition-all group",
-                                isSelected
-                                  ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
-                                  : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
-                              )}
-                            >
-                              <span className="text-2xl leading-none">{l.flag}</span>
-                              <div>
-                                <p className="text-sm font-bold text-foreground">{l.label.split(' ')[0]}</p>
-                                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{l.id === 'english' ? 'EN' : l.id.slice(0, 2).toUpperCase()}</p>
-                              </div>
-                              {isSelected && (
-                                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
-                                  <Check size={12} strokeWidth={3} />
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {currentStep === 'week' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <div className="flex items-center justify-between mb-6">
-                        <div>
-                          <h3 className="text-lg font-bold text-foreground">Which week?</h3>
-                          <p className="text-sm text-muted-foreground mt-1">Each week gets 7 unique posts.</p>
-                        </div>
-                        <button onClick={() => setCurrentStep('language')} className="text-sm font-bold text-muted-foreground hover:text-foreground">
-                          ← Back
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        {[1, 2, 3, 4].map(w => {
-                          const isSelected = selectedWeeks === w;
-                          return (
-                            <button
-                              key={w}
-                              onClick={() => {
-                                setSelectedWeeks(w);
-                                setTimeout(() => setCurrentStep('product'), 200);
-                              }}
-                              className={cn(
-                                "relative p-6 rounded-2xl border text-left flex flex-col gap-1 transition-all",
-                                isSelected
-                                  ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
-                                  : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
-                              )}
-                            >
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Week</span>
-                              <span className="text-4xl font-black text-foreground mb-4">{w}</span>
-                              <span className="text-xs text-muted-foreground">{w * 7} posts - daily cadence</span>
-                              
-                              {isSelected && (
-                                <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
-                                  <Check size={12} strokeWidth={3} />
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {currentStep === 'product' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <div className="flex items-center justify-between mb-6">
-                        <div>
-                          <h3 className="text-lg font-bold text-foreground">Pick a product</h3>
-                          <p className="text-sm text-muted-foreground mt-1">This anchors the visual style and copy.</p>
-                        </div>
-                        <button onClick={() => setCurrentStep('week')} className="text-sm font-bold text-muted-foreground hover:text-foreground">
-                          ← Back
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-                        {products.length > 0 && products.filter(p => selectedProductIds.includes(p._id)).map((prod) => {
-                          return (
-                            <button
-                              key={prod._id}
-                              onClick={() => setSelectedProductIds(prev => prev.filter(id => id !== prod._id))}
-                              className="relative p-5 rounded-2xl border text-left flex flex-col gap-3 transition-all border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
-                            >
-                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-muted/30">
-                                <img src={imgSrc(prod.imageBase64)} alt={prod.name} className="w-full h-full object-cover" />
-                              </div>
-                              <span className="text-sm font-bold text-foreground line-clamp-1">{prod.name}</span>
-                              
-                              <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
-                                <Check size={12} strokeWidth={3} />
-                              </div>
-                            </button>
-                          );
-                        })}
-                        <button
-                          onClick={() => setShowProductModal(true)}
-                          className="relative p-5 rounded-2xl border-2 border-dashed border-border text-center flex flex-col items-center justify-center gap-2 hover:bg-muted/50 hover:border-primary/40 transition-colors text-muted-foreground min-h-[120px]"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <Plus size={16} />
-                          </div>
-                          <span className="text-xs font-bold text-foreground">Add New Product</span>
-                        </button>
-                      </div>
-
-                      {/* Launch Section */}
-                      <div className="pt-6 border-t border-border/50">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                          <div className="w-full sm:w-auto">
-                            <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">Total Cost</p>
-                            <div className="flex items-end gap-2">
-                              <span className="text-2xl font-black text-foreground leading-none">{cost}</span>
-                              <span className="text-xs font-bold text-muted-foreground mb-0.5">credits</span>
-                            </div>
-                            {!isSufficientCredits && (
-                              <p className="text-[10px] font-bold text-rose-500 mt-1">Insufficient balance ({currentCredits} available)</p>
-                            )}
-                          </div>
-                          <Button
-                            onClick={handleLaunchAutopilot}
-                            disabled={selectedProductIds.length === 0 || !isSufficientCredits}
-                            className="w-full sm:w-[220px] rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white font-bold h-12 shadow-lg hover:shadow active:scale-[0.98] transition border-0 text-sm"
-                          >
-                            <Zap size={16} className="mr-2 fill-current text-white" />
-                            Launch Sprint
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              </div>
-            )}
-
-            {/* STAGE 2: PROGRESS LOADER */}
-            {stage === 'generating' && (
-              <div className="min-h-[50vh] flex flex-col items-center justify-center py-2">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                  className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary via-primary/70 to-primary/40 flex items-center justify-center shadow-2xl shadow-primary/30 mb-6"
-                >
-                  <Sparkles className="text-primary-foreground animate-pulse" size={32} />
-                </motion.div>
-                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2">
-                  Compiling Sprint Campaign 🚀
-                </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground max-w-sm text-center mb-6 leading-relaxed">
-                  SyncSocio AI is planning topics, mapping products, and generating {selectedWeeks * 7} visual posts in parallel.
-                </p>
-                <div className="flex gap-2">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      animate={{ y: [0, -8, 0] }}
-                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
-                      className="w-2.5 h-2.5 rounded-full bg-primary"
-                    />
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted-foreground/60 mt-12 bg-muted/40 px-3 py-1.5 rounded-full border border-border/40">
-                  Generating visuals in parallel takes about 10-15 seconds.
-                </p>
-                <div className="mt-12 flex flex-col items-center gap-4">
-                  <div className="flex flex-col items-center">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Don't want to wait?</p>
-                    <Button
-                      variant="outline"
-                      className="rounded-full shadow-sm hover:shadow px-6 text-xs font-black uppercase tracking-wider"
-                      onClick={() => {
-                        setStage('form');
-                        setCurrentTaskId(null);
-                      }}
-                    >
-                      Run in background
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STAGE 3: RESULTS STAGE */}
-            {stage === 'results' && (
-              <div>
-                {/* TINDER SWIPE VIEW */}
-                {layoutMode === 'swipe' && (
-                  <div className="flex flex-col items-center pt-2 pb-2">
-                    {/* Tinder Stats Bar */}
-                    {currentIndex < generatedPosts.length && (
-                      <div className="flex items-center justify-center gap-6 mb-4 text-xs font-bold text-muted-foreground select-none shrink-0">
-                        <span>{Math.min(currentIndex + skippedCount + 1, totalGeneratedCount)}/{totalGeneratedCount}</span>
-                        <span>skipped {skippedCount}</span>
-                        <span className="flex items-center gap-1 text-rose-500">
-                          <Heart size={12} className="fill-rose-500 text-rose-500" />
-                          {savedIndices.size}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="relative w-full max-w-[340px] h-[440px] mb-2 shrink-0">
-                      <AnimatePresence>
-                        {generatedPosts.slice(currentIndex, currentIndex + 3).reverse().map((post, index, array) => {
-                          const absoluteIdx = generatedPosts.indexOf(post);
-                          const isTop = absoluteIdx === currentIndex;
-                          const stackIndex = array.length - 1 - index;
-
-                          return (
-                            <TinderCard
-                              key={absoluteIdx}
-                              post={post}
-                              index={absoluteIdx}
-                              isTop={isTop}
-                              stackIndex={stackIndex}
-                              onSwipeRight={() => handleSwipeRight(absoluteIdx)}
-                              onSwipeLeft={() => handleSwipeLeft(absoluteIdx)}
-                              onImageClick={() => handleImageClick(post, absoluteIdx, post.image)}
-                              isHearted={savedIndices.has(absoluteIdx)}
-                              showHeartPop={showHeartPop[absoluteIdx]}
-                              brandName={brandName}
-                            />
-                          );
-                        })}
-                      </AnimatePresence>
-
-                      {/* Empty Deck finish State */}
-                      {currentIndex >= generatedPosts.length && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 border border-dashed border-border rounded-3xl bg-card shadow-sm">
-                          <CheckCircle2 className="h-12 w-12 text-emerald-500 mb-3" />
-                          <h3 className="text-base font-bold text-foreground mb-1">Deck Reviewed! 🎉</h3>
-                          <p className="text-xs text-muted-foreground mb-6 max-w-[200px]">
-                            You've finished swiping all generated creatives.
-                          </p>
-                          <div className="flex flex-col gap-2 w-full max-w-[180px]">
-                            <Button onClick={() => { setLayoutMode('grid'); setCurrentIndex(0); }} variant="default" size="sm" className="rounded-xl text-xs w-full bg-primary">
-                              View Grid Gallery
-                            </Button>
-                            <Button onClick={handleBackToForm} variant="outline" size="sm" className="rounded-xl text-xs w-full">
-                              Create New
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Swipe controls */}
-                    {currentIndex < generatedPosts.length && (
-                      <div className="flex items-center gap-6 mt-4 shrink-0">
-                        <button
-                          onClick={() => handleSwipeLeft(currentIndex)}
-                          className="w-12 h-12 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition active:scale-95 shrink-0"
-                          title="Reject Post (Swipe Left)"
-                        >
-                          <X size={20} />
-                        </button>
-
-                        <button
-                          onClick={() => handleDownloadImage(generatedPosts[currentIndex])}
-                          className="w-9 h-9 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition active:scale-95 shrink-0"
-                          title="Download Image"
-                        >
-                          <Download size={15} />
-                        </button>
-
-                        <button
-                          onClick={() => handleSwipeRight(currentIndex)}
-                          className="w-12 h-12 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition active:scale-95 shrink-0"
-                          title="Save Post (Swipe Right)"
-                        >
-                          <Heart
-                            size={20}
-                            className="text-rose-500 fill-rose-500 transition-colors"
-                          />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* GRID VIEW */}
-                {layoutMode === 'grid' && (
-                  <div className="space-y-8 pr-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {generatedPosts.map((post, absoluteIdx) => {
-                        const isHearted = savedIndices.has(absoluteIdx);
-                        return (
-                          <motion.div
-                            key={absoluteIdx}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: (absoluteIdx % 8) * 0.05 }}
-                            className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col group relative"
-                          >
-                            {/* Brand Gradient Header */}
-                            <div className="p-3 bg-muted/5 border-b border-border/40 flex items-center justify-between shrink-0">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full p-[2px] bg-gradient-to-tr from-sky-400 via-indigo-500 to-fuchsia-500">
-                                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-                                    <span className="text-[9px] font-black text-foreground">{brandName.slice(0, 2).toUpperCase() || 'SS'}</span>
-                                  </div>
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-bold text-foreground leading-tight">{brandName}</p>
-                                  <p className="text-[8px] text-muted-foreground uppercase font-black tracking-wider">Sprint Drop</p>
-                                </div>
-                              </div>
-                              {post.festival_name && (
-                                <span className="bg-pink-500/10 text-pink-500 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-pink-500/20">
-                                  🎉 {post.festival_name}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Image Container */}
-                            <div
-                              onClick={() => handleImageClick(post, absoluteIdx, post.image)}
-                              className="relative aspect-square w-full bg-muted/30 overflow-hidden shrink-0 border-b border-border/40 cursor-pointer"
-                            >
-                              {post.image ? (
-                                <img src={imgSrc(post.image)} alt={post.topic} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                                  <AlertCircle size={20} className="text-destructive/50" />
-                                  <span className="text-[10px] font-bold">Image generation failed</span>
-                                </div>
-                              )}
-
-                              {/* Hover Gradient Overlay */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                                <p className="text-[10px] text-white/90 line-clamp-3 leading-normal font-medium mb-1 drop-shadow-sm">
-                                  {post.caption}
-                                </p>
-                              </div>
-
-                              {/* Double-tap heart animation overlay */}
-                              <AnimatePresence>
-                                {showHeartPop[absoluteIdx] && (
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.3 }}
-                                    animate={{ opacity: 1, scale: 1.2 }}
-                                    exit={{ opacity: 0, scale: 1.5 }}
-                                    transition={{ duration: 0.4 }}
-                                    className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10"
-                                  >
-                                    <Heart className="w-16 h-16 text-rose-500 fill-rose-500 filter drop-shadow-md" />
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-
-                            {/* Card Details */}
-                            <div className="p-3 flex-1 flex flex-col justify-between gap-3 min-h-0">
-                              <div className="min-h-0">
-                                <h4 className="text-xs font-bold text-foreground leading-snug truncate">{post.topic}</h4>
-                              </div>
-
-                              {/* Controls */}
-                              <div className="flex gap-2 border-t border-border/30 pt-2 shrink-0">
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(post.caption);
-                                    toast({ title: 'Copied!', description: 'Post caption copied to clipboard.' });
-                                  }}
-                                  className="flex-1 h-7 rounded-lg border border-border bg-muted/40 hover:bg-muted/80 text-muted-foreground text-[9px] font-bold flex items-center justify-center gap-1 transition"
-                                >
-                                  <Copy size={9} /> Copy Caption
-                                </button>
-                                <button
-                                  onClick={() => handleHeartPost(post, absoluteIdx)}
-                                  className={cn(
-                                    'flex-1 h-7 rounded-lg text-[9px] font-bold flex items-center justify-center gap-1 transition border',
-                                    isHearted
-                                      ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                                      : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border-rose-500/20'
-                                  )}
-                                >
-                                  <Heart size={9} className={cn(isHearted && 'fill-rose-500 text-rose-500')} />
-                                  {isHearted ? 'Saved' : 'Heart'}
-                                </button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* LIGHTBOX / PREVIEW MODAL */}
-          <AnimatePresence>
-            {previewPost && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-zoom-out"
-                onClick={() => { setPreviewPost(null); setCopiedText(false); }}
-              >
-                <button
-                  onClick={() => { setPreviewPost(null); setCopiedText(false); }}
-                  className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-[110]"
-                >
-                  <X size={20} />
-                </button>
-                <motion.div
-                  initial={{ scale: 0.95, y: 10 }}
-                  animate={{ scale: 1, y: 0 }}
-                  exit={{ scale: 0.95, y: 10 }}
-                  className="w-full max-w-4xl max-h-[85vh] md:h-[70vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-card flex flex-col md:flex-row cursor-default animate-in fade-in zoom-in-95 duration-200"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Left Panel: visual */}
-                  <div className="flex-1 bg-black/95 flex items-center justify-center p-4 relative min-h-[40vh] md:min-h-0">
-                    <img
-                      src={imgSrc(previewPost.image)}
-                      alt="Preview"
-                      className="w-full h-auto max-h-[60vh] md:max-h-[65vh] object-contain max-w-full"
-                    />
-                  </div>
-
-                  {/* Right Panel: Caption and hashtags */}
-                  <div className="w-full md:w-[360px] shrink-0 border-t md:border-t-0 md:border-l border-border/60 flex flex-col bg-card overflow-hidden">
-                    <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
-                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Post Details</span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(previewPost.caption || '');
-                          setCopiedText(true);
-                          setTimeout(() => setCopiedText(false), 2000);
-                        }}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold border transition",
-                          copiedText
-                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                            : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
-                        )}
-                      >
-                        {copiedText ? (
-                          <>
-                            <Check size={11} />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={11} />
-                            Copy Text
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-5 select-text custom-scrollbar">
-                      <h4 className="text-sm font-bold text-foreground mb-2">{previewPost.topic}</h4>
-                      <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                        {previewPost.caption || "No caption generated."}
-                      </p>
-                    </div>
-
-                    {/* Footer buttons */}
-                    <div className="p-4 border-t border-border/50 bg-muted/10 flex gap-2">
-                      <Button
-                        onClick={() => handleDownloadImage(previewPost)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 rounded-xl text-xs"
-                      >
-                        <Download size={13} className="mr-1.5" /> Download
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (previewIndex !== null && !savedIndices.has(previewIndex)) {
-                            handleHeartPost(previewPost, previewIndex);
-                          }
-                        }}
-                        variant={previewIndex !== null && savedIndices.has(previewIndex) ? "secondary" : "default"}
-                        size="sm"
-                        className={cn(
-                          "flex-1 rounded-xl text-xs",
-                          previewIndex !== null && !savedIndices.has(previewIndex) && "bg-rose-500 hover:bg-rose-600 text-white"
-                        )}
-                      >
-                        <Heart size={13} className={cn("mr-1.5", previewIndex !== null && savedIndices.has(previewIndex) && "fill-rose-500 text-rose-500")} />
-                        {previewIndex !== null && savedIndices.has(previewIndex) ? 'Saved' : 'Save'}
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-        {/* ─── Product Selection Modal ─── */}
-        <AnimatePresence>
-          {showProductModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-              onClick={(e) => e.target === e.currentTarget && setShowProductModal(false)}
+            {/* Quick Actions */}
+            <Button
+              onClick={handleBackToForm}
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs font-bold gap-1.5 h-10 border-border/70"
             >
-              <motion.div
-                initial={{ scale: 0.95, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 20 }}
-                className="w-full max-w-2xl bg-card border border-border rounded-3xl shadow-2xl flex flex-col max-h-[85vh]"
-              >
-                <div className="flex items-center justify-between p-5 border-b border-border/50 shrink-0">
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                      <ShoppingBag size={18} className="text-primary" /> Select Products
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Pick up to {selectedWeeks * 7} products. SyncSocio will anchor generations to these.
-                    </p>
-                  </div>
-                  <button onClick={() => setShowProductModal(false)} className="p-2 rounded-xl hover:bg-muted transition">
-                    <X size={18} className="text-muted-foreground" />
-                  </button>
-                </div>
+              <RefreshCw size={13} /> Regenerate
+            </Button>
+            <Button
+              onClick={handleExportAll}
+              variant="default"
+              size="sm"
+              className="rounded-xl text-xs font-bold gap-1.5 h-10 bg-primary text-white"
+            >
+              <Download size={13} /> Export all
+            </Button>
+          </div>
+        )}
+      </div>
 
-                <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
-                  {productsLoading ? (
-                    <div className="h-40 flex items-center justify-center text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-                      <span className="text-xs">Loading products...</span>
+      <div className="flex-1 min-h-0">
+        {/* STAGE 1: FORM WIZARD */}
+        {stage === 'form' && (
+          <div className="max-w-4xl mx-auto w-full mt-2 flex flex-col gap-6">
+
+            {/* Navigation Pills */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => setCurrentStep('language')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
+                  currentStep === 'language'
+                    ? "bg-primary text-white shadow-md"
+                    : "bg-card text-muted-foreground border border-border hover:bg-muted"
+                )}
+              >
+                <Globe size={16} />
+                <span>Language <span className="opacity-70 font-normal">· {languages.find(l => l.id === selectedLanguage)?.label.split(' ')[0]}</span></span>
+                {currentStep === 'language' && <ArrowRight size={14} className="ml-1 opacity-70" />}
+              </button>
+              <button
+                onClick={() => setCurrentStep('week')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
+                  currentStep === 'week'
+                    ? "bg-primary text-white shadow-md"
+                    : "bg-card text-muted-foreground border border-border hover:bg-muted"
+                )}
+              >
+                <Calendar size={16} />
+                <span>Week <span className="opacity-70 font-normal">· Week {selectedWeeks}</span></span>
+                {currentStep === 'week' && <ArrowRight size={14} className="ml-1 opacity-70" />}
+              </button>
+              <button
+                onClick={() => setCurrentStep('product')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition",
+                  currentStep === 'product'
+                    ? "bg-primary text-white shadow-md"
+                    : "bg-card text-muted-foreground border border-border hover:bg-muted"
+                )}
+              >
+                <Box size={16} />
+                <span>Product <span className="opacity-70 font-normal">· {selectedProductIds.length > 0 ? `${selectedProductIds.length} Selected` : 'None'}</span></span>
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="rounded-3xl border border-border bg-card p-6 md:p-8 shadow-sm">
+
+              {currentStep === 'language' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">Choose a language</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Captions, hooks and CTAs will speak this language.</p>
                     </div>
-                  ) : products.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
-                      <ShoppingBag className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
-                      <p className="text-sm font-medium text-foreground">Your product catalog is empty.</p>
-                      <p className="text-xs mt-1">Please add products in the catalog to use Sprint.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {products.map((p) => {
-                        const selected = selectedProductIds.includes(p._id);
-                        const disabled = !selected && selectedProductIds.length >= selectedWeeks * 7;
-                        return (
-                          <button
-                            key={p._id}
-                            onClick={() => handleToggleProduct(p._id)}
-                            disabled={disabled}
-                            className={cn(
-                              'text-left relative p-3 rounded-2xl border transition overflow-hidden bg-card hover:bg-muted/30',
-                              selected ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
-                                : disabled ? 'border-border/40 opacity-50 cursor-not-allowed'
-                                  : 'border-border hover:border-primary/40'
-                            )}
-                          >
-                            <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative border border-border/50">
-                              {p.imageBase64 ? (
-                                <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-2" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center"><Package className="text-muted-foreground/30" /></div>
-                              )}
-                              {selected && (
-                                <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm">
-                                  <CheckCircle2 size={12} />
-                                </div>
-                              )}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {(profile?.location?.country?.toLowerCase() === 'nepal'
+                      ? languages
+                      : languages.filter(l => l.id !== 'nepali')
+                    ).map((l) => {
+                      const isSelected = selectedLanguage === l.id;
+                      return (
+                        <button
+                          key={l.id}
+                          onClick={() => {
+                            setSelectedLanguage(l.id);
+                            setTimeout(() => setCurrentStep('week'), 200);
+                          }}
+                          className={cn(
+                            "relative p-4 rounded-2xl border text-left flex flex-col gap-2 transition-all group",
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                              : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
+                          )}
+                        >
+                          <span className="text-2xl leading-none">{l.flag}</span>
+                          <div>
+                            <p className="text-sm font-bold text-foreground">{l.label.split(' ')[0]}</p>
+                            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{l.id === 'english' ? 'EN' : l.id.slice(0, 2).toUpperCase()}</p>
+                          </div>
+                          {isSelected && (
+                            <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
+                              <Check size={12} strokeWidth={3} />
                             </div>
-                            <p className="text-xs font-bold text-foreground leading-tight truncate">{p.name}</p>
-                            <p className="text-[9px] text-muted-foreground truncate mt-0.5">{p.description || 'No description'}</p>
-                          </button>
-                        );
-                      })}
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 'week' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">Which week?</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Each week gets 7 unique posts.</p>
+                    </div>
+                    <button onClick={() => setCurrentStep('language')} className="text-sm font-bold text-muted-foreground hover:text-foreground">
+                      ← Back
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(w => {
+                      const isSelected = selectedWeeks === w;
+                      return (
+                        <button
+                          key={w}
+                          onClick={() => {
+                            setSelectedWeeks(w);
+                            setTimeout(() => setCurrentStep('product'), 200);
+                          }}
+                          className={cn(
+                            "relative p-6 rounded-2xl border text-left flex flex-col gap-1 transition-all",
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                              : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
+                          )}
+                        >
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Week</span>
+                          <span className="text-4xl font-black text-foreground mb-4">{w}</span>
+                          <span className="text-xs text-muted-foreground">{w * 7} posts - daily cadence</span>
+
+                          {isSelected && (
+                            <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
+                              <Check size={12} strokeWidth={3} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 'product' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">Pick a product</h3>
+                      <p className="text-sm text-muted-foreground mt-1">This anchors the visual style and copy.</p>
+                    </div>
+                    <button onClick={() => setCurrentStep('week')} className="text-sm font-bold text-muted-foreground hover:text-foreground">
+                      ← Back
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                    {products.length > 0 && products.filter(p => selectedProductIds.includes(p._id)).map((prod) => {
+                      return (
+                        <button
+                          key={prod._id}
+                          onClick={() => setSelectedProductIds(prev => prev.filter(id => id !== prod._id))}
+                          className="relative p-5 rounded-2xl border text-left flex flex-col gap-3 transition-all border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                        >
+                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-muted/30">
+                            <img src={imgSrc(prod.imageBase64)} alt={prod.name} className="w-full h-full object-cover" />
+                          </div>
+                          <span className="text-sm font-bold text-foreground line-clamp-1">{prod.name}</span>
+
+                          <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white">
+                            <Check size={12} strokeWidth={3} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => setShowProductModal(true)}
+                      className="relative p-5 rounded-2xl border-2 border-dashed border-border text-center flex flex-col items-center justify-center gap-2 hover:bg-muted/50 hover:border-primary/40 transition-colors text-muted-foreground min-h-[120px]"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <Plus size={16} />
+                      </div>
+                      <span className="text-xs font-bold text-foreground">Add New Product</span>
+                    </button>
+                  </div>
+
+                  {/* Launch Section */}
+                  <div className="pt-6 border-t border-border/50">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="w-full sm:w-auto">
+                        <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">Total Cost</p>
+                        <div className="flex items-end gap-2">
+                          <span className="text-2xl font-black text-foreground leading-none">{cost}</span>
+                          <span className="text-xs font-bold text-muted-foreground mb-0.5">credits</span>
+                        </div>
+                        {!isSufficientCredits && (
+                          <p className="text-[10px] font-bold text-rose-500 mt-1">Insufficient balance ({currentCredits} available)</p>
+                        )}
+                      </div>
+                      <Button
+                        onClick={handleLaunchAutopilot}
+                        disabled={selectedProductIds.length === 0 || !isSufficientCredits}
+                        className="w-full sm:w-[220px] rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white font-bold h-12 shadow-lg hover:shadow active:scale-[0.98] transition border-0 text-sm"
+                      >
+                        <Zap size={16} className="mr-2 fill-current text-white" />
+                        Launch Sprint
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+
+        {/* STAGE 2: PROGRESS LOADER */}
+        {stage === 'generating' && (
+          <div className="min-h-[50vh] flex flex-col items-center justify-center py-2">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary via-primary/70 to-primary/40 flex items-center justify-center shadow-2xl shadow-primary/30 mb-6"
+            >
+              <Sparkles className="text-primary-foreground animate-pulse" size={32} />
+            </motion.div>
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2">
+              Compiling Sprint Campaign 🚀
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm text-center mb-6 leading-relaxed">
+              SyncSocio AI is planning topics, mapping products, and generating {selectedWeeks * 7} visual posts in parallel.
+            </p>
+            <div className="flex gap-2">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+                  className="w-2.5 h-2.5 rounded-full bg-primary"
+                />
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 mt-12 bg-muted/40 px-3 py-1.5 rounded-full border border-border/40">
+
+            </p>
+            <div className="mt-12 flex flex-col items-center gap-4">
+              <div className="flex flex-col items-center">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Don't want to wait?</p>
+                <Button
+                  variant="outline"
+                  className="rounded-full shadow-sm hover:shadow px-6 text-xs font-black uppercase tracking-wider"
+                  onClick={() => {
+                    setStage('form');
+                    setCurrentTaskId(null);
+                  }}
+                >
+                  Run in background
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STAGE 3: RESULTS STAGE */}
+        {stage === 'results' && (
+          <div>
+            {/* TINDER SWIPE VIEW */}
+            {layoutMode === 'swipe' && (
+              <div className="flex flex-col items-center pt-2 pb-2">
+                {/* Tinder Stats Bar */}
+                {currentIndex < generatedPosts.length && (
+                  <div className="flex items-center justify-center gap-6 mb-4 text-xs font-bold text-muted-foreground select-none shrink-0">
+                    <span>{Math.min(currentIndex + skippedCount + 1, totalGeneratedCount)}/{totalGeneratedCount}</span>
+                    <span>skipped {skippedCount}</span>
+                    <span className="flex items-center gap-1 text-rose-500">
+                      <Heart size={12} className="fill-rose-500 text-rose-500" />
+                      {savedIndices.size}
+                    </span>
+                  </div>
+                )}
+
+                <div className="relative w-full max-w-[340px] h-[440px] mb-2 shrink-0">
+                  <AnimatePresence>
+                    {generatedPosts.slice(currentIndex, currentIndex + 3).reverse().map((post, index, array) => {
+                      const absoluteIdx = generatedPosts.indexOf(post);
+                      const isTop = absoluteIdx === currentIndex;
+                      const stackIndex = array.length - 1 - index;
+
+                      return (
+                        <TinderCard
+                          key={absoluteIdx}
+                          post={post}
+                          index={absoluteIdx}
+                          isTop={isTop}
+                          stackIndex={stackIndex}
+                          onSwipeRight={() => handleSwipeRight(absoluteIdx)}
+                          onSwipeLeft={() => handleSwipeLeft(absoluteIdx)}
+                          onImageClick={() => handleImageClick(post, absoluteIdx, post.image)}
+                          isHearted={savedIndices.has(absoluteIdx)}
+                          showHeartPop={showHeartPop[absoluteIdx]}
+                          brandName={brandName}
+                        />
+                      );
+                    })}
+                  </AnimatePresence>
+
+                  {/* Empty Deck finish State */}
+                  {currentIndex >= generatedPosts.length && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 border border-dashed border-border rounded-3xl bg-card shadow-sm">
+                      <CheckCircle2 className="h-12 w-12 text-emerald-500 mb-3" />
+                      <h3 className="text-base font-bold text-foreground mb-1">Deck Reviewed! 🎉</h3>
+                      <p className="text-xs text-muted-foreground mb-6 max-w-[200px]">
+                        You've finished swiping all generated creatives.
+                      </p>
+                      <div className="flex flex-col gap-2 w-full max-w-[180px]">
+                        <Button onClick={() => { setLayoutMode('grid'); setCurrentIndex(0); }} variant="default" size="sm" className="rounded-xl text-xs w-full bg-primary">
+                          View Grid Gallery
+                        </Button>
+                        <Button onClick={handleBackToForm} variant="outline" size="sm" className="rounded-xl text-xs w-full">
+                          Create New
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                <div className="p-5 border-t border-border/50 shrink-0 flex items-center justify-between bg-card rounded-b-3xl">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    <span className={cn(selectedProductIds.length === selectedWeeks * 7 ? 'text-primary' : 'text-foreground')}>
-                      {selectedProductIds.length}
-                    </span> / {selectedWeeks * 7} selected
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedProductIds([])} className="text-xs">Clear</Button>
-                    <Button onClick={() => setShowProductModal(false)} className="rounded-xl px-6 h-9 text-xs">Done</Button>
+                {/* Swipe controls */}
+                {currentIndex < generatedPosts.length && (
+                  <div className="flex items-center gap-6 mt-4 shrink-0">
+                    <button
+                      onClick={() => handleSwipeLeft(currentIndex)}
+                      className="w-12 h-12 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition active:scale-95 shrink-0"
+                      title="Reject Post (Swipe Left)"
+                    >
+                      <X size={20} />
+                    </button>
+
+                    <button
+                      onClick={() => handleDownloadImage(generatedPosts[currentIndex])}
+                      className="w-9 h-9 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition active:scale-95 shrink-0"
+                      title="Download Image"
+                    >
+                      <Download size={15} />
+                    </button>
+
+                    <button
+                      onClick={() => handleSwipeRight(currentIndex)}
+                      className="w-12 h-12 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition active:scale-95 shrink-0"
+                      title="Save Post (Swipe Right)"
+                    >
+                      <Heart
+                        size={20}
+                        className="text-rose-500 fill-rose-500 transition-colors"
+                      />
+                    </button>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* GRID VIEW */}
+            {layoutMode === 'grid' && (
+              <div className="space-y-8 pr-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {generatedPosts.map((post, absoluteIdx) => {
+                    const isHearted = savedIndices.has(absoluteIdx);
+                    return (
+                      <motion.div
+                        key={absoluteIdx}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: (absoluteIdx % 8) * 0.05 }}
+                        className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col group relative"
+                      >
+                        {/* Brand Gradient Header */}
+                        <div className="p-3 bg-muted/5 border-b border-border/40 flex items-center justify-between shrink-0">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full p-[2px] bg-gradient-to-tr from-sky-400 via-indigo-500 to-fuchsia-500">
+                              <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                                <span className="text-[9px] font-black text-foreground">{brandName.slice(0, 2).toUpperCase() || 'SS'}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-foreground leading-tight">{brandName}</p>
+                              <p className="text-[8px] text-muted-foreground uppercase font-black tracking-wider">Sprint Drop</p>
+                            </div>
+                          </div>
+                          {post.festival_name && (
+                            <span className="bg-pink-500/10 text-pink-500 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-pink-500/20">
+                              🎉 {post.festival_name}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Image Container */}
+                        <div
+                          onClick={() => handleImageClick(post, absoluteIdx, post.image)}
+                          className="relative aspect-square w-full bg-muted/30 overflow-hidden shrink-0 border-b border-border/40 cursor-pointer"
+                        >
+                          {post.image ? (
+                            <img src={imgSrc(post.image)} alt={post.topic} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                              <AlertCircle size={20} className="text-destructive/50" />
+                              <span className="text-[10px] font-bold">Image generation failed</span>
+                            </div>
+                          )}
+
+                          {/* Hover Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                            <p className="text-[10px] text-white/90 line-clamp-3 leading-normal font-medium mb-1 drop-shadow-sm">
+                              {post.caption}
+                            </p>
+                          </div>
+
+                          {/* Double-tap heart animation overlay */}
+                          <AnimatePresence>
+                            {showHeartPop[absoluteIdx] && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.3 }}
+                                animate={{ opacity: 1, scale: 1.2 }}
+                                exit={{ opacity: 0, scale: 1.5 }}
+                                transition={{ duration: 0.4 }}
+                                className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10"
+                              >
+                                <Heart className="w-16 h-16 text-rose-500 fill-rose-500 filter drop-shadow-md" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Card Details */}
+                        <div className="p-3 flex-1 flex flex-col justify-between gap-3 min-h-0">
+                          <div className="min-h-0">
+                            <h4 className="text-xs font-bold text-foreground leading-snug truncate">{post.topic}</h4>
+                          </div>
+
+                          {/* Controls */}
+                          <div className="flex gap-2 border-t border-border/30 pt-2 shrink-0">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(post.caption);
+                                toast({ title: 'Copied!', description: 'Post caption copied to clipboard.' });
+                              }}
+                              className="flex-1 h-7 rounded-lg border border-border bg-muted/40 hover:bg-muted/80 text-muted-foreground text-[9px] font-bold flex items-center justify-center gap-1 transition"
+                            >
+                              <Copy size={9} /> Copy Caption
+                            </button>
+                            <button
+                              onClick={() => handleHeartPost(post, absoluteIdx)}
+                              className={cn(
+                                'flex-1 h-7 rounded-lg text-[9px] font-bold flex items-center justify-center gap-1 transition border',
+                                isHearted
+                                  ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                  : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border-rose-500/20'
+                              )}
+                            >
+                              <Heart size={9} className={cn(isHearted && 'fill-rose-500 text-rose-500')} />
+                              {isHearted ? 'Saved' : 'Heart'}
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* LIGHTBOX / PREVIEW MODAL */}
+      <AnimatePresence>
+        {previewPost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-zoom-out"
+            onClick={() => { setPreviewPost(null); setCopiedText(false); }}
+          >
+            <button
+              onClick={() => { setPreviewPost(null); setCopiedText(false); }}
+              className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-[110]"
+            >
+              <X size={20} />
+            </button>
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="w-full max-w-4xl max-h-[85vh] md:h-[70vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-card flex flex-col md:flex-row cursor-default animate-in fade-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Left Panel: visual */}
+              <div className="flex-1 bg-black/95 flex items-center justify-center p-4 relative min-h-[40vh] md:min-h-0">
+                <img
+                  src={imgSrc(previewPost.image)}
+                  alt="Preview"
+                  className="w-full h-auto max-h-[60vh] md:max-h-[65vh] object-contain max-w-full"
+                />
+              </div>
+
+              {/* Right Panel: Caption and hashtags */}
+              <div className="w-full md:w-[360px] shrink-0 border-t md:border-t-0 md:border-l border-border/60 flex flex-col bg-card overflow-hidden">
+                <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Post Details</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(previewPost.caption || '');
+                      setCopiedText(true);
+                      setTimeout(() => setCopiedText(false), 2000);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold border transition",
+                      copiedText
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
+                    )}
+                  >
+                    {copiedText ? (
+                      <>
+                        <Check size={11} />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={11} />
+                        Copy Text
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5 select-text custom-scrollbar">
+                  <h4 className="text-sm font-bold text-foreground mb-2">{previewPost.topic}</h4>
+                  <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                    {previewPost.caption || "No caption generated."}
+                  </p>
+                </div>
+
+                {/* Footer buttons */}
+                <div className="p-4 border-t border-border/50 bg-muted/10 flex gap-2">
+                  <Button
+                    onClick={() => handleDownloadImage(previewPost)}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 rounded-xl text-xs"
+                  >
+                    <Download size={13} className="mr-1.5" /> Download
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (previewIndex !== null && !savedIndices.has(previewIndex)) {
+                        handleHeartPost(previewPost, previewIndex);
+                      }
+                    }}
+                    variant={previewIndex !== null && savedIndices.has(previewIndex) ? "secondary" : "default"}
+                    size="sm"
+                    className={cn(
+                      "flex-1 rounded-xl text-xs",
+                      previewIndex !== null && !savedIndices.has(previewIndex) && "bg-rose-500 hover:bg-rose-600 text-white"
+                    )}
+                  >
+                    <Heart size={13} className={cn("mr-1.5", previewIndex !== null && savedIndices.has(previewIndex) && "fill-rose-500 text-rose-500")} />
+                    {previewIndex !== null && savedIndices.has(previewIndex) ? 'Saved' : 'Save'}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Product Selection Modal ─── */}
+      <AnimatePresence>
+        {showProductModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => e.target === e.currentTarget && setShowProductModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-2xl bg-card border border-border rounded-3xl shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-border/50 shrink-0">
+                <div>
+                  <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <ShoppingBag size={18} className="text-primary" /> Select Products
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Pick up to {selectedWeeks * 7} products. SyncSocio will anchor generations to these.
+                  </p>
+                </div>
+                <button onClick={() => setShowProductModal(false)} className="p-2 rounded-xl hover:bg-muted transition">
+                  <X size={18} className="text-muted-foreground" />
+                </button>
+              </div>
+
+              <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
+                {productsLoading ? (
+                  <div className="h-40 flex items-center justify-center text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                    <span className="text-xs">Loading products...</span>
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
+                    <ShoppingBag className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+                    <p className="text-sm font-medium text-foreground">Your product catalog is empty.</p>
+                    <p className="text-xs mt-1">Please add products in the catalog to use Sprint.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {products.map((p) => {
+                      const selected = selectedProductIds.includes(p._id);
+                      const disabled = !selected && selectedProductIds.length >= selectedWeeks * 7;
+                      return (
+                        <button
+                          key={p._id}
+                          onClick={() => handleToggleProduct(p._id)}
+                          disabled={disabled}
+                          className={cn(
+                            'text-left relative p-3 rounded-2xl border transition overflow-hidden bg-card hover:bg-muted/30',
+                            selected ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                              : disabled ? 'border-border/40 opacity-50 cursor-not-allowed'
+                                : 'border-border hover:border-primary/40'
+                          )}
+                        >
+                          <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative border border-border/50">
+                            {p.imageBase64 ? (
+                              <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-2" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center"><Package className="text-muted-foreground/30" /></div>
+                            )}
+                            {selected && (
+                              <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm">
+                                <CheckCircle2 size={12} />
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs font-bold text-foreground leading-tight truncate">{p.name}</p>
+                          <p className="text-[9px] text-muted-foreground truncate mt-0.5">{p.description || 'No description'}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5 border-t border-border/50 shrink-0 flex items-center justify-between bg-card rounded-b-3xl">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  <span className={cn(selectedProductIds.length === selectedWeeks * 7 ? 'text-primary' : 'text-foreground')}>
+                    {selectedProductIds.length}
+                  </span> / {selectedWeeks * 7} selected
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedProductIds([])} className="text-xs">Clear</Button>
+                  <Button onClick={() => setShowProductModal(false)} className="rounded-xl px-6 h-9 text-xs">Done</Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

@@ -26,6 +26,7 @@ import DashboardSettings from './pages/dashboard/DashboardSettings';
 import EditorPage from './pages/dashboard/Editor';
 import ContentStrategy from './pages/dashboard/ContentStrategy';
 import AutopilotPage from './pages/dashboard/Autopilot';
+import CloneMode from './pages/dashboard/CloneMode';
 import PostOptimizer from './pages/PostOptimizer';
 import DashboardDMs from './pages/dashboard/DashboardDMs';
 import ContentMix from './pages/dashboard/ContentMix';
@@ -94,6 +95,7 @@ function App() {
           <Route path="/instagram-setup" element={<InstagramInstructions />} />
           <Route path="/terms" element={<TermsOfUse />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/a/:id" element={<AssetPage />} />
           <Route path="/credits" element={<CreditsExplainer />} />
           <Route path="/forgotpassword" element={<ForgotPassword />} />
           <Route path="/resetpassword/:resetToken" element={<ResetPassword />} />
@@ -120,6 +122,7 @@ function App() {
               <Route path="billing" element={<DashboardBilling />} />
               <Route path="editor" element={<EditorPage />} />
               <Route path="autopilot" element={<AutopilotPage />} />
+              <Route path="clone" element={<CloneMode />} />
             </Route>
           </Route>
 

@@ -194,6 +194,10 @@ const DashboardLayoutContent = () => {
         if (location.pathname !== '/dashboard/autopilot') {
           navigate('/dashboard/autopilot');
         }
+      } else if (task.mode === 'clone') {
+        if (location.pathname !== '/dashboard/clone') {
+          navigate('/dashboard/clone');
+        }
       } else {
         if (location.pathname !== '/dashboard/strategy') {
           navigate('/dashboard/strategy');
@@ -417,6 +421,74 @@ const DashboardLayoutContent = () => {
         toast({
           variant: 'destructive',
           title: 'All-in-One generation failed ❌',
+          description: getFriendlyErrorMessage(err),
+        });
+      }
+    })();
+
+    return taskId;
+  };
+
+  const startBackgroundClone = async (payload: any) => {
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const title = 'Clone Mode Generation';
+
+    const newTask: BgTask = {
+      id: taskId,
+      title,
+      status: 'generating',
+      mode: 'clone',
+      posts: [],
+      error: null,
+      creditCost: 0, 
+      creditReason: '',
+      createdAt: Date.now(),
+    };
+
+    setBackgroundTasks(prev => [newTask, ...prev]);
+
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const response = await fetch(`${apiBase}/ai/edit-product-image`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to generate clone');
+        }
+        
+        const data = await response.json();
+        const imageSrc = data.image ? (data.image.startsWith('data:') || data.image.startsWith('http') ? data.image : `data:image/jpeg;base64,${data.image}`) : null;
+        
+        if (data.credits !== undefined) {
+          localStorage.setItem('syncsocio_credits', String(data.credits));
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'syncsocio_credits',
+            newValue: String(data.credits),
+          }));
+        }
+
+        const posts = [{ image: imageSrc, caption: '' }];
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'success', posts } : t));
+
+        toast({
+          title: 'Clone complete! 🎨',
+          description: `Successfully cloned the template.`,
+        });
+      } catch (err: any) {
+        console.error('[BgClone] failed:', err);
+        setBackgroundTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: getFriendlyErrorMessage(err) } : t));
+        toast({
+          variant: 'destructive',
+          title: 'Clone failed ❌',
           description: getFriendlyErrorMessage(err),
         });
       }
@@ -1232,6 +1304,7 @@ const DashboardLayoutContent = () => {
               viewingTask,
               startBackgroundGeneration,
               startBackgroundAllInOne,
+              startBackgroundClone,
               startBackgroundSchedule,
               startBackgroundEdit,
               startBackgroundAutopilot,
