@@ -7,8 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // Removed "Home" (logo handles that) — 6 links feel airy in the pill
 const NAV_LINKS = [
-  { label: "Features",    href: "#features" },
   { label: "Creatives",   href: "#creatives" },
+  { label: "Features",    href: "#features" },
   { label: "How it Works",href: "#how-it-works" },
   { label: "Auto DM",     href: "#auto-dm" },
   { label: "Channels",    href: "#channels" },
@@ -35,23 +35,34 @@ const Navbar = () => {
 
   /* ── Scroll-shrink + active section tracker ─────────────────── */
   useEffect(() => {
-    const onScroll = () => {
+    const handleScroll = () => {
       setScrolled(window.scrollY > 20);
-
-      // Determine which section is in view
-      const sectionIds = NAV_LINKS.map((l) => l.href.replace("#", ""));
-      for (let i = sectionIds.length - 1; i >= 0; i--) {
-        const el = document.getElementById(sectionIds[i]);
-        if (el && window.scrollY >= el.offsetTop - 120) {
-          setActiveSection(`#${sectionIds[i]}`);
-          return;
-        }
-      }
-      setActiveSection("");
     };
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(`#${entry.target.id}`);
+          }
+        });
+      },
+      {
+        rootMargin: "-20% 0px -70% 0px", // triggers when section is in top 20-30% of screen
+        threshold: 0,
+      }
+    );
+
+    NAV_LINKS.forEach((link) => {
+      const el = document.querySelector(link.href);
+      if (el) observer.observe(el);
+    });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      observer.disconnect();
+    };
   }, []);
 
   const handleLogout = () => {
@@ -67,6 +78,7 @@ const Navbar = () => {
     }
     e.preventDefault();
     setMobileOpen(false);
+    setActiveSection(href);
     if (href === "#") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
