@@ -49,8 +49,10 @@ app.use(cors({
     'http://localhost:3000',
     'https://www.syncsocio.com',
     'https://syncsocio.com',
-    'http://localhost:4173'
-  ],
+    'http://localhost:4173',
+    process.env.FRONTEND_URL,
+    process.env.FRONTEND_BASE_URL
+  ].filter(Boolean),
   credentials: true
 }));
 app.use(express.json({ limit: '200mb' }));
