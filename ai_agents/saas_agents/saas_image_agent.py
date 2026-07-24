@@ -507,6 +507,7 @@ def generate_saas_strategy_images(
     video_kind: Optional[str] = "img2video",
     avatar_description: Optional[str] = "",
     video_script: Optional[str] = "",
+    video_resolution: Optional[str] = "1080p",
 ) -> List[Dict[str, Any]]:
     """
     SaaS-aware orchestrator for image/carousel/video/festival generation.
@@ -859,13 +860,13 @@ Create a high-quality, photorealistic portrait image of this UGC creator/present
                     )
                     
                     # Stage 2: Take the generated hero image and animate it with Veo 3.1 Fast
-                    print(f"[SaaSAgent] UGC Stage 2: Animating starting image with Google Veo 3.1 Fast...")
-                    result = generate_veo_video(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=8)
+                    print(f"[SaaSAgent] UGC Stage 2: Animating starting image with Google Veo 3.1 Fast ({video_resolution or '1080p'})...")
+                    result = generate_veo_video(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=8, resolution=video_resolution or "1080p")
                 else:
                     # Standard img2video uses Google Veo 3.1 Fast
                     caption = pick_caption(index)
-                    print(f"[SaaSAgent] Animating starting image with Google Veo 3.1 Fast...")
-                    result = generate_veo_video(prompt=video_prompt, image=ref, aspect_ratio=aspect_ratio, duration=8)
+                    print(f"[SaaSAgent] Animating starting image with Google Veo 3.1 Fast ({video_resolution or '1080p'})...")
+                    result = generate_veo_video(prompt=video_prompt, image=ref, aspect_ratio=aspect_ratio, duration=8, resolution=video_resolution or "1080p")
 
                 return {"url": result.get("url"), "thumbnail": result.get("thumbnail"),
                         "caption": caption, "type": "video", "index": index}
