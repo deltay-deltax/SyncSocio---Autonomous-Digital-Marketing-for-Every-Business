@@ -94,6 +94,7 @@ function App() {
           <Route path="/instagram-setup" element={<InstagramInstructions />} />
           <Route path="/terms" element={<TermsOfUse />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/a/:id" element={<AssetPage />} />
           <Route path="/credits" element={<CreditsExplainer />} />
           <Route path="/forgotpassword" element={<ForgotPassword />} />
           <Route path="/resetpassword/:resetToken" element={<ResetPassword />} />
