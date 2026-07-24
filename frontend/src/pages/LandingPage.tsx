@@ -115,7 +115,7 @@ const Index = () => {
       <CampaignChannels />
 
       {/* 7. Testimonials */}
-      <TestimonialsSection />
+      {/* <TestimonialsSection /> */}
 
       {/* 8. Pricing + FAQ */}
       <Pricing onWaitlistClick={() => navigate("/signup")} />
