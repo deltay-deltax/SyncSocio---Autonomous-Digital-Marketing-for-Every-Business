@@ -12,6 +12,7 @@ import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 import FreeCreativesSection from "@/components/FreeCreativesSection";
 import DomeGallery from "@/components/ui/DomeGallery";
+import TestimonialsSection from "@/components/TestimonialsSection";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -114,7 +115,10 @@ const Index = () => {
       <DMAutomation />
       <CampaignChannels />
 
-      {/* 7. Pricing + FAQ */}
+      {/* 7. Testimonials */}
+      <TestimonialsSection />
+
+      {/* 8. Pricing + FAQ */}
       <Pricing onWaitlistClick={() => navigate("/signup")} />
       <FAQ />
       <Footer />
