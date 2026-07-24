@@ -89,6 +89,13 @@ const DashboardLayoutContent = () => {
   const [outOfCreditsCost, setOutOfCreditsCost] = useState(0);
   const [creditsAnim, setCreditsAnim] = useState(false);
   const [brands, setBrands] = useState<any[]>([]);
+  
+  // Downgrade choice state
+  const [showDowngradeModal, setShowDowngradeModal] = useState(false);
+  const [allowedMaxBrands, setAllowedMaxBrands] = useState(1);
+  const [downgradeSelectedBrands, setDowngradeSelectedBrands] = useState<string[]>([]);
+  const [isLocking, setIsLocking] = useState(false);
+  
   const { toast } = useToast();
 
   const [backgroundTasks, setBackgroundTasks] = useState<BgTask[]>(() => {
@@ -707,12 +714,33 @@ const DashboardLayoutContent = () => {
       try {
         const token = localStorage.getItem('token');
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        
+        let userPlan = 'starter';
+        const profileRes = await fetch(`${apiBase}/profile/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (profileRes.ok) {
+           const pData = await profileRes.json();
+           userPlan = (pData.userPlan || 'starter').toLowerCase();
+        }
+
         const res = await fetch(`${apiBase}/profile/list`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
           const data = await res.json();
-          setBrands(data.brands || []);
+          const fetchedBrands = data.brands || [];
+          setBrands(fetchedBrands);
+
+          const hasAgency = userPlan.includes('agency');
+          const hasElite = userPlan.includes('elite');
+          const maxBrands = hasAgency ? 8 : hasElite ? 2 : 1;
+          
+          const unlockedCount = fetchedBrands.filter((b: any) => !b.isLocked).length;
+          if (unlockedCount > maxBrands) {
+             setAllowedMaxBrands(maxBrands);
+             setShowDowngradeModal(true);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch brands list:', err);
@@ -723,6 +751,16 @@ const DashboardLayoutContent = () => {
 
   const handleSwitchBrand = async (brandId: string) => {
     try {
+      const brand = brands.find(b => b._id === brandId);
+      if (brand?.isLocked) {
+        toast({
+          variant: 'destructive',
+          title: 'Brand Locked 🔒',
+          description: 'This brand profile is locked on your current plan. Please upgrade to access it.'
+        });
+        return;
+      }
+      
       const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
       const res = await fetch(`${apiBase}/profile/switch`, {
@@ -738,9 +776,54 @@ const DashboardLayoutContent = () => {
         localStorage.setItem('syncsocio_profile', JSON.stringify(data.activeBrand));
         setProfile(data.activeBrand);
         window.location.reload();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        toast({
+          variant: 'destructive',
+          title: 'Failed to switch brand',
+          description: errData.message || 'Access denied.'
+        });
       }
     } catch (err) {
       console.error('Failed to switch brand:', err);
+    }
+  };
+
+  const handleDowngradeSelection = async () => {
+    if (downgradeSelectedBrands.length !== allowedMaxBrands) {
+      toast({
+        variant: 'destructive',
+        title: 'Selection Required',
+        description: `Please select exactly ${allowedMaxBrands} brand(s) to keep active.`
+      });
+      return;
+    }
+    setIsLocking(true);
+    try {
+      const token = localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const res = await fetch(`${apiBase}/profile/lock-excess`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ keepBrandIds: downgradeSelectedBrands })
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const err = await res.json();
+        toast({
+          variant: 'destructive',
+          title: 'Error locking brands',
+          description: err.message
+        });
+        setIsLocking(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsLocking(false);
     }
   };
 
@@ -1051,8 +1134,8 @@ const DashboardLayoutContent = () => {
                 className="hidden sm:inline-block h-8 rounded-full px-3 text-[10px] font-black uppercase tracking-widest border border-border bg-card hover:border-primary transition-all cursor-pointer outline-none mr-2 max-w-[150px] truncate"
               >
                 {brands.map((b) => (
-                  <option key={b._id} value={b._id}>
-                    {b.brandName || 'Untitled Brand'}
+                  <option key={b._id} value={b._id} disabled={b.isLocked}>
+                    {b.brandName || 'Untitled Brand'} {b.isLocked ? ' 🔒 (Locked)' : ''}
                   </option>
                 ))}
               </select>
@@ -1252,6 +1335,69 @@ const DashboardLayoutContent = () => {
       </AnimatePresence>
 
       <CreditsModal isOpen={isCreditsModalOpen} onClose={() => setIsCreditsModalOpen(false)} />
+
+      {showDowngradeModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-background rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-border relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
+            
+            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6">
+              <Lock size={32} className="text-amber-500" />
+            </div>
+            
+            <h2 className="text-2xl font-black tracking-tight mb-2">Downgrade Detected</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+              Your current plan only allows <span className="font-bold text-foreground">{allowedMaxBrands} active brand profile(s)</span>, but you currently have {brands.length}. 
+              <br/><br/>
+              Please select the <span className="font-bold text-primary">{allowedMaxBrands} brand(s)</span> you want to keep active. The rest will be securely locked until you upgrade again.
+            </p>
+
+            <div className="space-y-3 mb-8 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
+              {brands.map(b => (
+                <div 
+                  key={b._id}
+                  onClick={() => {
+                    if (downgradeSelectedBrands.includes(b._id)) {
+                      setDowngradeSelectedBrands(prev => prev.filter(id => id !== b._id));
+                    } else {
+                      if (downgradeSelectedBrands.length < allowedMaxBrands) {
+                        setDowngradeSelectedBrands(prev => [...prev, b._id]);
+                      } else {
+                        toast({ title: 'Limit Reached', description: `You can only select ${allowedMaxBrands} brand(s).` });
+                      }
+                    }
+                  }}
+                  className={cn(
+                    "p-4 rounded-2xl border-2 flex items-center gap-4 cursor-pointer transition-all",
+                    downgradeSelectedBrands.includes(b._id) 
+                      ? "border-primary bg-primary/5 shadow-sm" 
+                      : "border-border/50 hover:border-primary/30 bg-card"
+                  )}
+                >
+                  <div className={cn(
+                    "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                    downgradeSelectedBrands.includes(b._id) ? "border-primary bg-primary" : "border-muted-foreground/30"
+                  )}>
+                    {downgradeSelectedBrands.includes(b._id) && <CheckCircle2 size={14} className="text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-foreground truncate">{b.brandName || 'Untitled Brand'}</p>
+                    <p className="text-xs text-muted-foreground truncate">@{b.instagramUsername || b.socialHandle || 'no-handle'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Button 
+              className="w-full h-12 rounded-xl gradient-bg text-white font-bold tracking-wide" 
+              onClick={handleDowngradeSelection}
+              disabled={isLocking || downgradeSelectedBrands.length !== allowedMaxBrands}
+            >
+              {isLocking ? 'Locking Excess Brands...' : 'Confirm Selection'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {showOutOfCreditsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">

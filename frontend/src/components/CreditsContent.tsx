@@ -5,7 +5,7 @@ import {
   Image as ImageIcon, Video as VideoIcon, Layers, 
   CheckCircle2, ArrowRight, ShieldCheck 
 } from 'lucide-react';
-import { IMAGE_CREDITS, VIDEO_CREDITS, ALLINONE_CREDITS, FREE_FEATURES } from '@/lib/creditsConfig';
+import { IMAGE_CREDITS_STARTER, IMAGE_CREDITS_ELITE_AGENCY, VIDEO_CREDITS, ALLINONE_CREDITS_STARTER, ALLINONE_CREDITS_ELITE_AGENCY, FREE_FEATURES } from '@/lib/creditsConfig';
 import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
@@ -21,7 +21,13 @@ const iconMap: Record<string, React.ComponentType<any>> = {
 };
 
 export const CreditsContent = () => {
-  const [activeTab, setActiveTab] = useState<'brand' | 'growth'>('brand');
+  const [activeTab, setActiveTab] = useState<'brand' | 'growth' | 'agency'>('brand');
+
+  // Image & All-in-One credits differ by plan tier
+  const imageCredits = activeTab === 'brand' ? IMAGE_CREDITS_STARTER : IMAGE_CREDITS_ELITE_AGENCY;
+  const imgCreditPerGen = activeTab === 'brand' ? 5 : 10;
+  const allInOneCredits = activeTab === 'brand' ? ALLINONE_CREDITS_STARTER : ALLINONE_CREDITS_ELITE_AGENCY;
+  const dropCost = activeTab === 'brand' ? 140 : 240;
 
   return (
     <div className="space-y-12">
@@ -41,6 +47,59 @@ export const CreditsContent = () => {
         </div>
       </div>
 
+      {/* Plan Selector Tabs (shared across all sections below) */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">View credit costs by plan</p>
+        <div className="flex p-1 rounded-2xl bg-muted/50 border border-border/40 max-w-md">
+          <button
+            onClick={() => setActiveTab('brand')}
+            className={cn(
+              "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all",
+              activeTab === 'brand' 
+                ? "bg-card text-foreground shadow-sm border border-border/20" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Starter (200 Cr)
+          </button>
+          <button
+            onClick={() => setActiveTab('growth')}
+            className={cn(
+              "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all",
+              activeTab === 'growth' 
+                ? "bg-card text-foreground shadow-sm border border-border/20" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Elite (700 Cr)
+          </button>
+          <button
+            onClick={() => setActiveTab('agency')}
+            className={cn(
+              "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all",
+              activeTab === 'agency' 
+                ? "bg-card text-foreground shadow-sm border border-border/20" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Agency (1,750 Cr)
+          </button>
+        </div>
+
+        {/* Per-plan note */}
+        <div className={cn(
+          "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] font-semibold",
+          activeTab === 'brand'
+            ? "bg-primary/10 text-primary"
+            : "bg-amber-500/10 text-amber-600"
+        )}>
+          <span>{activeTab === 'brand' ? '⚡' : '🔥'}</span>
+          {activeTab === 'brand'
+            ? 'Starter: 5 credits per image / carousel slide generation'
+            : 'Elite & Agency: 10 credits per image / carousel slide generation'}
+        </div>
+      </div>
+
       {/* Section 1 - Image Generation */}
       <div className="space-y-4">
         <h4 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -48,7 +107,7 @@ export const CreditsContent = () => {
           Image Generation
         </h4>
         
-        {/* Table for larger screens / Cards for mobile */}
+        {/* Table for larger screens */}
         <div className="hidden sm:block overflow-hidden rounded-2xl border border-border/60 bg-card">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
@@ -58,7 +117,7 @@ export const CreditsContent = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {IMAGE_CREDITS.map((item) => (
+              {imageCredits.map((item) => (
                 <tr key={item.feature} className="hover:bg-muted/20 transition-colors">
                   <td className="p-4 font-medium text-foreground">{item.feature}</td>
                   <td className="p-4 text-right font-mono font-bold text-primary">{item.credits} Credits</td>
@@ -68,8 +127,9 @@ export const CreditsContent = () => {
           </table>
         </div>
 
+        {/* Cards for mobile */}
         <div className="grid grid-cols-1 gap-3 sm:hidden">
-          {IMAGE_CREDITS.map((item) => (
+          {imageCredits.map((item) => (
             <div key={item.feature} className="glass-card p-4 rounded-xl flex justify-between items-center text-xs">
               <span className="font-semibold text-foreground">{item.feature}</span>
               <span className="font-mono font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg">{item.credits} Cr</span>
@@ -113,11 +173,11 @@ export const CreditsContent = () => {
       <div className="space-y-4">
         <h4 className="text-base font-bold text-foreground flex items-center gap-2">
           <Layers size={18} className="text-amber-500" />
-          All-in-One Drop
+          All-in-One Drop (Drops Engine)
         </h4>
 
         <div className="grid grid-cols-1 gap-4">
-          {ALLINONE_CREDITS.map((item, idx) => (
+          {allInOneCredits.map((item) => (
             <div key={item.feature} className="rounded-2xl p-5 border border-border/60 bg-card hover:border-amber-500/30 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
                 <p className="text-xs font-bold text-foreground max-w-xl leading-relaxed">{item.feature}</p>
@@ -168,32 +228,6 @@ export const CreditsContent = () => {
           What Can I Create With My Credits?
         </h4>
 
-        {/* Custom Premium Tabs */}
-        <div className="flex p-1 rounded-2xl bg-muted/50 border border-border/40 max-w-sm">
-          <button
-            onClick={() => setActiveTab('brand')}
-            className={cn(
-              "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeTab === 'brand' 
-                ? "bg-card text-foreground shadow-sm border border-border/20" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Starter Plan (200 Cr)
-          </button>
-          <button
-            onClick={() => setActiveTab('growth')}
-            className={cn(
-              "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeTab === 'growth' 
-                ? "bg-card text-foreground shadow-sm border border-border/20" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Elite Plan (700 Cr)
-          </button>
-        </div>
-
         {/* Tab Contents */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {activeTab === 'brand' ? (
@@ -211,16 +245,16 @@ export const CreditsContent = () => {
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>50 Stories</span>
+                      <span>40 Stories</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>16 Carousels (3 slides each)</span>
+                      <span>13 Carousels (3 slides each)</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or Mix</li>
                     <li className="flex items-start gap-2 text-foreground font-medium bg-muted/30 p-2.5 rounded-xl border border-border/40">
-                      <span>20 Static Ads + 5 Carousels + 10 Stories</span>
+                      <span>20 Static Ads + 5 Carousels (3 slides) + 10 Stories</span>
                     </li>
                   </ul>
                 </div>
@@ -253,7 +287,7 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span className="font-bold text-foreground">1 Full Drop</span>
+                      <span className="font-bold text-foreground">1 Full Drop ({dropCost} cr)</span>
                     </li>
                     <li className="border-t border-border/40 pt-2.5 text-[11px] text-muted-foreground space-y-1">
                       <p className="font-semibold text-foreground">Includes:</p>
@@ -267,7 +301,7 @@ export const CreditsContent = () => {
                 </div>
               </div>
             </>
-          ) : (
+          ) : activeTab === 'growth' ? (
             <>
               {/* Growth - Option A */}
               <div className="rounded-2xl p-5 border border-border/60 bg-card/40 flex flex-col justify-between">
@@ -277,16 +311,16 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>140 Static Ads</span>
+                      <span>70 Static Ads</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>58 Full Carousels</span>
+                      <span>23 Full Carousels (3 slides)</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or Mix</li>
                     <li className="flex items-start gap-2 text-foreground font-medium bg-muted/30 p-2.5 rounded-xl border border-border/40">
-                      <span>60 Static Ads + 20 Carousels + 20 Stories</span>
+                      <span>30 Static Ads + 10 Carousels + 20 Stories</span>
                     </li>
                   </ul>
                 </div>
@@ -300,12 +334,12 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-violet-500 mt-0.5">•</span>
-                      <span>5 Product Videos (8 sec) + 60 Static Ads</span>
+                      <span>5 Product Videos (8 sec) + 30 Static Ads</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-violet-500 mt-0.5">•</span>
-                      <span>5 AI UGC Videos (8 sec) + 60 Static Ads</span>
+                      <span>5 AI UGC Videos (8 sec) + 30 Static Ads</span>
                     </li>
                   </ul>
                 </div>
@@ -319,7 +353,7 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span className="font-bold text-foreground">5 Full Drops</span>
+                      <span className="font-bold text-foreground">2 Full Drops ({dropCost * 2} cr)</span>
                     </li>
                     <li className="border-t border-border/40 pt-2.5 text-[11px] text-muted-foreground space-y-1">
                       <p className="font-semibold text-foreground">Includes:</p>
@@ -327,6 +361,72 @@ export const CreditsContent = () => {
                       <p>• 10 Carousels (3 slides each)</p>
                       <p>• 20 Ecomm Listings</p>
                       <p>• 5 AI UGC Videos</p>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Agency - Option A */}
+              <div className="rounded-2xl p-5 border border-border/60 bg-card/40 flex flex-col justify-between">
+                <div>
+                  <span className="text-[9px] font-bold text-primary uppercase tracking-widest block mb-3">Option A</span>
+                  <h5 className="text-sm font-bold text-foreground mb-4">High Volume Content</h5>
+                  <ul className="space-y-2.5 text-xs text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>175 HD Static Ads</span>
+                    </li>
+                    <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>58 HD Carousels (3 slides each)</span>
+                    </li>
+                    <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or Mix</li>
+                    <li className="flex items-start gap-2 text-foreground font-medium bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                      <span>70 Static Ads + 30 Carousels + 50 Stories</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Agency - Option B */}
+              <div className="rounded-2xl p-5 border border-border/60 bg-card/40 flex flex-col justify-between">
+                <div>
+                  <span className="text-[9px] font-bold text-violet-500 uppercase tracking-widest block mb-3">Option B</span>
+                  <h5 className="text-sm font-bold text-foreground mb-4">Video & Agency Scale</h5>
+                  <ul className="space-y-2.5 text-xs text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-violet-500 mt-0.5">•</span>
+                      <span>12 Product Videos (8 sec) + 55 Static Ads</span>
+                    </li>
+                    <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-violet-500 mt-0.5">•</span>
+                      <span>12 AI UGC Videos (8 sec) + 55 Static Ads</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Agency - Option C */}
+              <div className="rounded-2xl p-5 border border-border/60 bg-card/40 flex flex-col justify-between">
+                <div>
+                  <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest block mb-3">Option C</span>
+                  <h5 className="text-sm font-bold text-foreground mb-4">Multi-Brand Campaign</h5>
+                  <ul className="space-y-2.5 text-xs text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      <span className="font-bold text-foreground">7 Full Drops ({dropCost * 7} cr)</span>
+                    </li>
+                    <li className="border-t border-border/40 pt-2.5 text-[11px] text-muted-foreground space-y-1">
+                      <p className="font-semibold text-foreground">Includes (spread across up to 8 brands):</p>
+                      <p>• 24 Images</p>
+                      <p>• 24 Carousels (3 slides each)</p>
+                      <p>• 48 Ecomm Listings</p>
+                      <p>• 12 AI UGC Videos</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-1 italic">+ remaining 70 cr for extra ads</p>
                     </li>
                   </ul>
                 </div>
@@ -341,18 +441,26 @@ export const CreditsContent = () => {
         <h4 className="text-sm font-bold text-foreground">Monthly Plan Credits Summary</h4>
         
         <div className="overflow-hidden rounded-2xl border border-border/60 bg-card text-xs max-w-md">
-          <div className="grid grid-cols-2 bg-muted/40 border-b border-border/40 p-4 font-semibold text-muted-foreground">
+          <div className="grid grid-cols-3 bg-muted/40 border-b border-border/40 p-4 font-semibold text-muted-foreground">
             <div>Plan</div>
-            <div className="text-right">Monthly Credits</div>
+            <div className="text-center">Monthly Credits</div>
+            <div className="text-right">Per Image Gen</div>
           </div>
           <div className="divide-y divide-border/40">
-            <div className="grid grid-cols-2 p-4">
+            <div className="grid grid-cols-3 p-4">
               <div className="font-bold text-foreground">Starter</div>
-              <div className="text-right font-mono font-bold text-primary">200 Credits</div>
+              <div className="text-center font-mono font-bold text-primary">200 Credits</div>
+              <div className="text-right font-mono font-bold text-primary">5 cr</div>
             </div>
-            <div className="grid grid-cols-2 p-4">
+            <div className="grid grid-cols-3 p-4">
               <div className="font-bold text-foreground">Elite</div>
-              <div className="text-right font-mono font-bold text-primary">700 Credits</div>
+              <div className="text-center font-mono font-bold text-primary">700 Credits</div>
+              <div className="text-right font-mono font-bold text-primary">10 cr</div>
+            </div>
+            <div className="grid grid-cols-3 p-4">
+              <div className="font-bold text-foreground">Agency</div>
+              <div className="text-center font-mono font-bold text-primary">1,750 Credits</div>
+              <div className="text-right font-mono font-bold text-primary">10 cr</div>
             </div>
           </div>
         </div>

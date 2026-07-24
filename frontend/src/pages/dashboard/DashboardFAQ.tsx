@@ -81,7 +81,7 @@ const FAQS = [
   // ── Plans, Credits & Billing ──────────────────────────────────────────────
   {
     q: "How do credits work?",
-    a: "Credits are consumed each time you generate AI content — one image, one carousel, one video, or one caption batch each costs credits. The Starter plan comes with 200 credits/month and Elite comes with 700 credits/month. If you run out, you can buy top-up packs of 100, 300, or 700 credits at any time.",
+    a: "Credits are consumed each time you generate AI content — one image, one carousel, one video, or one caption batch each costs credits. The Starter plan comes with 200 credits/month, Elite comes with 700 credits/month, and Agency comes with 1,750 credits/month. If you run out, you can buy top-up packs of 100, 300, or 700 credits at any time.",
   },
   {
     q: "Do unused credits roll over to the next month?",
@@ -89,7 +89,7 @@ const FAQS = [
   },
   {
     q: "Can I run multiple brands from one account?",
-    a: "Yes. Starter plan supports 1 brand profile and Elite supports up to 2 brand profiles, each with its own Brand DNA, color palette, tone, and content schedule. Switch between them instantly from the dashboard sidebar.",
+    a: "Yes. Starter plan supports 1 brand profile, Elite supports up to 2 brand profiles, and Agency supports up to 10 brand profiles, each with its own Brand DNA, color palette, tone, and content schedule. Switch between them instantly from the dashboard sidebar.",
   },
   {
     q: "Is there a free trial available?",
