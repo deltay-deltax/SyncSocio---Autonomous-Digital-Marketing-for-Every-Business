@@ -19,9 +19,14 @@ export function getFriendlyErrorMessage(error: any, defaultMsg = 'Oops! Somethin
     return 'Your session might have expired. Please try logging in again.';
   }
   
+  // Account not found
+  if (lowerMsg.includes('user not found')) {
+    return 'We couldn\'t find an account with that email address.';
+  }
+  
   // Not found
   if (lowerMsg.includes('not found') || lowerMsg.includes('404')) {
-    return "We couldn't find what you were looking for. It might have been moved or deleted.";
+    return "We couldn't find the requested resource. It might have been moved or deleted.";
   }
   
   // Timeouts

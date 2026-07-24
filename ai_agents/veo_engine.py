@@ -108,6 +108,7 @@ def generate_veo_video(
     image: str = None,
     aspect_ratio: str = "9:16",
     duration: int = 8,
+    resolution: str = "1080p",
 ) -> dict:
     """
     Generate a video using Google Veo 3.1 Fast.
@@ -118,6 +119,7 @@ def generate_veo_video(
                       image-to-video generation.  If None → text-to-video.
         aspect_ratio: "9:16" (portrait/Reels), "16:9" (landscape), "1:1".
         duration:     Video length in seconds (default 8).
+        resolution:   Video output resolution ("1080p" default, "720p").
 
     Returns:
         dict matching the legacy FAL schema:
@@ -149,6 +151,7 @@ def generate_veo_video(
             "config": types.GenerateVideosConfig(
                 aspect_ratio=aspect_ratio,
                 duration_seconds=duration,
+                resolution=resolution,
                 generate_audio=True,
                 person_generation="ALLOW_ADULT",
             ),
@@ -223,7 +226,7 @@ def generate_veo_video(
             "status": "success",
             "url": video_url,
             "thumbnail": None,  # Veo does not provide a separate thumbnail
-            "message": f"Video generated with Veo 3.1 Fast ({duration}s, {aspect_ratio})",
+            "message": f"Video generated with Veo 3.1 Fast ({duration}s, {aspect_ratio}, {resolution})",
         }
 
     except Exception as e:

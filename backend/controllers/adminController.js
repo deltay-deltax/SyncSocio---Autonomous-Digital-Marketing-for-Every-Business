@@ -997,24 +997,57 @@ export const refundTransaction = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 export const getSystemHealth = async (req, res) => {
   try {
+    const { timeframe = 'today', startDate, endDate } = req.query;
+
     const now = new Date();
-    const todayStart = new Date(now.setHours(0, 0, 0, 0));
-    const weekStart = new Date(now.setDate(now.getDate() - 7));
+    let queryStart = null;
+    let queryEnd = null;
 
-    // Total API calls today
-    const logsToday = await ApiLog.find({ createdAt: { $gte: todayStart } });
-    const totalCallsToday = logsToday.length;
-    const errorsToday = logsToday.filter(l => l.isError).length;
+    if (timeframe === 'today') {
+      queryStart = new Date();
+      queryStart.setHours(0, 0, 0, 0);
+    } else if (timeframe === 'yesterday') {
+      queryStart = new Date();
+      queryStart.setDate(queryStart.getDate() - 1);
+      queryStart.setHours(0, 0, 0, 0);
+      queryEnd = new Date();
+      queryEnd.setDate(queryEnd.getDate() - 1);
+      queryEnd.setHours(23, 59, 59, 999);
+    } else if (timeframe === 'week') {
+      queryStart = new Date();
+      queryStart.setDate(queryStart.getDate() - 7);
+      queryStart.setHours(0, 0, 0, 0);
+    } else if (timeframe === 'month') {
+      queryStart = new Date();
+      queryStart.setDate(queryStart.getDate() - 30);
+      queryStart.setHours(0, 0, 0, 0);
+    } else if (timeframe === 'custom' && startDate) {
+      queryStart = new Date(startDate);
+      if (endDate) {
+        queryEnd = new Date(endDate);
+        queryEnd.setHours(23, 59, 59, 999);
+      }
+    }
+
+    const dateFilter = {};
+    if (queryStart || queryEnd) {
+      dateFilter.createdAt = {};
+      if (queryStart) dateFilter.createdAt.$gte = queryStart;
+      if (queryEnd) dateFilter.createdAt.$lte = queryEnd;
+    }
+
+    // Logs for the requested timeframe
+    const logsPeriod = await ApiLog.find(dateFilter);
+    const totalCallsToday = logsPeriod.length;
+    const errorsToday = logsPeriod.filter(l => l.isError).length;
     const errorRate = totalCallsToday > 0 ? ((errorsToday / totalCallsToday) * 100).toFixed(1) : '0.0';
-    const costToday = logsToday.reduce((acc, l) => acc + (l.costInCents || 0), 0) / 100;
+    const costToday = logsPeriod.reduce((acc, l) => acc + (l.costInCents || 0), 0) / 100;
 
-    // Provider breakdown
-    // Provider breakdown — only providers that exist in the ApiLog enum and are used in production
-    // FAL = image generation, OPENAI = GPT caption/strategy, OTHER = Gemini Flash (Google AI)
-    const providers = ['FAL', 'OPENAI', 'OTHER'];
+    // Provider breakdown for requested timeframe
+    const providers = ['FAL', 'OPENAI', 'GEMINI', 'OTHER'];
     const providerStats = {};
     for (const p of providers) {
-      const pLogs = logsToday.filter(l => l.provider === p);
+      const pLogs = logsPeriod.filter(l => l.provider === p);
       providerStats[p] = {
         calls: pLogs.length,
         errors: pLogs.filter(l => l.isError).length,
@@ -1022,13 +1055,28 @@ export const getSystemHealth = async (req, res) => {
       };
     }
 
-    // Recent errors (last 10)
-    const recentErrors = await ApiLog.find({ isError: true })
+    // Errors for requested timeframe (up to 20)
+    const errorFilter = { isError: true };
+    if (queryStart || queryEnd) {
+      errorFilter.createdAt = {};
+      if (queryStart) errorFilter.createdAt.$gte = queryStart;
+      if (queryEnd) errorFilter.createdAt.$lte = queryEnd;
+    }
+    const recentErrors = await ApiLog.find(errorFilter)
       .populate('user', 'email')
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(20);
 
-    // All-time totals
+    // All logs list for requested timeframe (up to 50 detailed logs)
+    const detailedLogs = await ApiLog.find(dateFilter)
+      .populate('user', 'email')
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    // All-time & weekly baseline metrics
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+    weekStart.setHours(0, 0, 0, 0);
     const allLogsWeek = await ApiLog.find({ createdAt: { $gte: weekStart } });
     const weekCost = allLogsWeek.reduce((acc, l) => acc + (l.costInCents || 0), 0) / 100;
     const allTimeCalls = await ApiLog.countDocuments();
@@ -1036,6 +1084,7 @@ export const getSystemHealth = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      timeframe,
       health: {
         totalCallsToday,
         errorsToday,
@@ -1045,7 +1094,8 @@ export const getSystemHealth = async (req, res) => {
         allTimeCalls,
         allTimeErrors,
         providerStats,
-        recentErrors
+        recentErrors,
+        detailedLogs
       }
     });
   } catch (error) {

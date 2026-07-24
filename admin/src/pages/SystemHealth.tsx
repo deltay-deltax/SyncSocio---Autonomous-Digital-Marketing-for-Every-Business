@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import {
   Activity, AlertTriangle, Zap, TrendingUp, RefreshCw,
-  CheckCircle, XCircle, Clock, X, DollarSign, BarChart2, ChevronRight,
+  CheckCircle, XCircle, Clock, X, DollarSign, BarChart2, ChevronRight, Calendar, List
 } from 'lucide-react';
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
@@ -14,6 +14,17 @@ interface ProviderStat {
   cost: string;
 }
 
+interface ApiLogItem {
+  _id: string;
+  provider: string;
+  endpoint: string;
+  costInCents?: number;
+  isError?: boolean;
+  errorMessage?: string;
+  createdAt: string;
+  user?: { email: string };
+}
+
 interface HealthData {
   totalCallsToday: number;
   errorsToday: number;
@@ -23,28 +34,25 @@ interface HealthData {
   allTimeCalls: number;
   allTimeErrors: number;
   providerStats: Record<string, ProviderStat>;
-  recentErrors: Array<{
-    _id: string;
-    provider: string;
-    endpoint: string;
-    errorMessage: string;
-    createdAt: string;
-    user?: { email: string };
-  }>;
+  recentErrors: ApiLogItem[];
+  detailedLogs?: ApiLogItem[];
 }
 
 type CardType = 'api-calls' | 'errors' | 'cost' | 'all-time' | null;
+type TimeframeType = 'today' | 'yesterday' | 'week' | 'month' | 'all' | 'custom';
 
 // Only providers actually used in production
 const PROVIDER_STYLES: Record<string, { bg: string; border: string; label: string }> = {
   FAL:    { bg: 'bg-violet-500/5',  border: 'border-violet-500/20',  label: 'FAL (Image Gen)' },
   OPENAI: { bg: 'bg-emerald-500/5', border: 'border-emerald-500/20', label: 'OpenAI (GPT)' },
-  OTHER:  { bg: 'bg-blue-500/5',    border: 'border-blue-500/20',    label: 'Gemini / Other' },
+  GEMINI: { bg: 'bg-blue-500/5',    border: 'border-blue-500/20',    label: 'Gemini (Google AI / Veo)' },
+  OTHER:  { bg: 'bg-slate-500/5',   border: 'border-slate-500/20',   label: 'Other APIs' },
 };
 
 const PROVIDER_ICONS: Record<string, string> = {
   FAL:    '🎨',
   OPENAI: '⚡',
+  GEMINI: '✨',
   OTHER:  '🔍',
 };
 
@@ -58,18 +66,19 @@ function formatTime(iso: string) {
 }
 
 // ─── Detail Panel ─────────────────────────────────────────────────────────────
-function DetailPanel({ card, health, onClose }: {
+function DetailPanel({ card, health, timeframeLabel, onClose }: {
   card: CardType;
   health: HealthData | null;
+  timeframeLabel: string;
   onClose: () => void;
 }) {
   if (!card || !health) return null;
 
   const titles: Record<NonNullable<CardType>, string> = {
-    'api-calls': "API Calls — Today's Breakdown",
-    'errors':    'Errors Today — Full Log',
-    'cost':      'Cost Breakdown',
-    'all-time':  'All-Time Statistics',
+    'api-calls': `API Calls — Breakdown (${timeframeLabel})`,
+    'errors':    `Errors — Log (${timeframeLabel})`,
+    'cost':      `Cost Breakdown (${timeframeLabel})`,
+    'all-time':  'All-Time System Statistics',
   };
 
   return (
@@ -93,8 +102,8 @@ function DetailPanel({ card, health, onClose }: {
           {/* ── API Calls ── */}
           {card === 'api-calls' && (
             <>
-              <div className="grid grid-cols-3 gap-3">
-                {(['FAL', 'OPENAI', 'OTHER'] as const).map((p) => {
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {(['FAL', 'OPENAI', 'GEMINI', 'OTHER'] as const).map((p) => {
                   const stat = health.providerStats?.[p] ?? { calls: 0, errors: 0, cost: '0.00' };
                   const s = PROVIDER_STYLES[p];
                   return (
@@ -104,14 +113,14 @@ function DetailPanel({ card, health, onClose }: {
                         <span className="text-xs font-bold text-foreground">{p}</span>
                       </div>
                       <p className="text-2xl font-extrabold text-foreground">{stat.calls}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">calls today</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">calls in period</p>
                     </div>
                   );
                 })}
               </div>
               <div className="glass-card border border-transparent rounded-2xl p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Total Calls Today</p>
+                  <p className="text-xs text-muted-foreground font-medium">Calls in Selected Period ({timeframeLabel})</p>
                   <p className="text-3xl font-extrabold text-foreground mt-1">{health.totalCallsToday}</p>
                 </div>
                 <div className="text-right">
@@ -129,7 +138,7 @@ function DetailPanel({ card, health, onClose }: {
                   : <AlertTriangle className="text-amber-500 shrink-0" size={20} />}
                 <div>
                   <p className="text-sm font-semibold text-foreground">Error rate: <span className="font-black">{health.errorRate}%</span></p>
-                  <p className="text-xs text-muted-foreground">{health.errorsToday} failed out of {health.totalCallsToday} calls today</p>
+                  <p className="text-xs text-muted-foreground">{health.errorsToday} failed out of {health.totalCallsToday} calls in selected period</p>
                 </div>
               </div>
             </>
@@ -140,15 +149,15 @@ function DetailPanel({ card, health, onClose }: {
             health.errorsToday === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <CheckCircle className="text-emerald-500 mb-4" size={48} />
-                <h3 className="text-lg font-bold text-foreground">Zero Errors Today</h3>
-                <p className="text-sm text-muted-foreground mt-1">All API calls are running cleanly.</p>
+                <h3 className="text-lg font-bold text-foreground">Zero Errors ({timeframeLabel})</h3>
+                <p className="text-sm text-muted-foreground mt-1">All API calls are running cleanly in this time window.</p>
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2">
                     <XCircle className="text-red-500" size={16} />
-                    <span className="text-sm font-bold text-red-400">{health.errorsToday} errors today</span>
+                    <span className="text-sm font-bold text-red-400">{health.errorsToday} errors ({timeframeLabel})</span>
                   </div>
                   <span className="text-xs text-muted-foreground">{health.errorRate}% error rate</span>
                 </div>
@@ -187,7 +196,6 @@ function DetailPanel({ card, health, onClose }: {
                     </tbody>
                   </table>
                 </div>
-                <p className="text-[10px] text-muted-foreground text-center">Showing last 10 errors across all time</p>
               </>
             )
           )}
@@ -199,24 +207,24 @@ function DetailPanel({ card, health, onClose }: {
                 <div className="glass-card border border-transparent rounded-2xl p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="p-2 bg-violet-500/10 rounded-lg"><Zap className="text-violet-500" size={16} /></div>
-                    <p className="text-xs text-muted-foreground font-medium">Today's Cost</p>
+                    <p className="text-xs text-muted-foreground font-medium">Period Cost</p>
                   </div>
                   <p className="text-3xl font-extrabold text-foreground">${health.costToday?.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Accumulated so far today</p>
+                  <p className="text-xs text-muted-foreground mt-1">Total spent in {timeframeLabel}</p>
                 </div>
                 <div className="glass-card border border-transparent rounded-2xl p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="p-2 bg-blue-500/10 rounded-lg"><BarChart2 className="text-blue-500" size={16} /></div>
-                    <p className="text-xs text-muted-foreground font-medium">This Week's Cost</p>
+                    <p className="text-xs text-muted-foreground font-medium">Last 7 Days Cost</p>
                   </div>
                   <p className="text-3xl font-extrabold text-foreground">${health.weekCost?.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
+                  <p className="text-xs text-muted-foreground mt-1">Trailing week baseline</p>
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground mb-3">Cost by Provider (Today)</h3>
+                <h3 className="text-sm font-bold text-foreground mb-3">Cost by Provider ({timeframeLabel})</h3>
                 <div className="space-y-2">
-                  {(['FAL', 'OPENAI', 'OTHER'] as const).map((p) => {
+                  {(['FAL', 'OPENAI', 'GEMINI', 'OTHER'] as const).map((p) => {
                     const stat = health.providerStats?.[p] ?? { calls: 0, errors: 0, cost: '0.00' };
                     const s = PROVIDER_STYLES[p];
                     const costNum = parseFloat(stat.cost);
@@ -234,15 +242,11 @@ function DetailPanel({ card, health, onClose }: {
                         <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                           <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${Math.max(pct, costNum > 0 ? 2 : 0)}%` }} />
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">{stat.calls} calls · {pct}% of today's cost</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{stat.calls} calls · {pct}% of cost in period</p>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-              <div className="rounded-xl bg-muted/30 border border-border p-4 text-xs text-muted-foreground">
-                <DollarSign size={12} className="inline mr-1 text-primary" />
-                Daily average this week: <strong className="text-foreground">${(health.weekCost / 7).toFixed(2)}</strong>
               </div>
             </>
           )}
@@ -270,9 +274,9 @@ function DetailPanel({ card, health, onClose }: {
                 ))}
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground mb-3">Today's Provider Snapshot</h3>
+                <h3 className="text-sm font-bold text-foreground mb-3">Provider Breakdown Snapshot ({timeframeLabel})</h3>
                 <div className="space-y-2">
-                  {(['FAL', 'OPENAI', 'OTHER'] as const).map((p) => {
+                  {(['FAL', 'OPENAI', 'GEMINI', 'OTHER'] as const).map((p) => {
                     const stat = health.providerStats?.[p] ?? { calls: 0, errors: 0, cost: '0.00' };
                     const s = PROVIDER_STYLES[p];
                     return (
@@ -286,7 +290,7 @@ function DetailPanel({ card, health, onClose }: {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-foreground">${stat.cost}</p>
-                          <p className="text-[10px] text-muted-foreground">cost today</p>
+                          <p className="text-[10px] text-muted-foreground">cost in period</p>
                         </div>
                       </div>
                     );
@@ -310,13 +314,24 @@ export default function SystemHealth() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardType>(null);
+
+  // Timeframe and Date Filtering states
+  const [timeframe, setTimeframe] = useState<TimeframeType>('today');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchHealth = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await axios.get(`${API}/system/health`, {
+      const params = new URLSearchParams({
+        timeframe,
+        ...(startDate && { startDate }),
+        ...(endDate && { endDate }),
+      });
+      const res = await axios.get(`${API}/system/health?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success) {
@@ -337,13 +352,28 @@ export default function SystemHealth() {
       setLoading(false);
       if (showRefreshing) setRefreshing(false);
     }
-  }, []);
+  }, [timeframe, startDate, endDate]);
 
   useEffect(() => {
     fetchHealth();
     intervalRef.current = setInterval(() => fetchHealth(), REFRESH_INTERVAL);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchHealth]);
+
+  const getTimeframeLabel = () => {
+    switch (timeframe) {
+      case 'today': return 'Today';
+      case 'yesterday': return 'Yesterday';
+      case 'week': return 'Last 7 Days';
+      case 'month': return 'Last 30 Days';
+      case 'all': return 'All Time';
+      case 'custom':
+        if (startDate && endDate) return `${startDate} to ${endDate}`;
+        if (startDate) return `From ${startDate}`;
+        return 'Custom Range';
+      default: return 'Today';
+    }
+  };
 
   const errorRate = parseFloat(health?.errorRate || '0');
   const statusColor = errorRate === 0 ? 'emerald' : errorRate < 5 ? 'amber' : 'red';
@@ -376,26 +406,26 @@ export default function SystemHealth() {
   }
 
   const kpiCards: Array<{ id: NonNullable<CardType>; label: string; value: string | number; icon: typeof Activity; color: string; sub: string }> = [
-    { id: 'api-calls', label: 'API Calls Today', value: health?.totalCallsToday ?? 0,                icon: Activity,      color: 'blue',    sub: `${health?.allTimeCalls?.toLocaleString() ?? 0} all-time` },
-    { id: 'errors',    label: 'Errors Today',     value: health?.errorsToday ?? 0,                    icon: AlertTriangle, color: 'red',     sub: `${health?.errorRate}% error rate` },
-    { id: 'cost',      label: 'Cost Today',        value: `$${(health?.costToday ?? 0).toFixed(2)}`,  icon: Zap,           color: 'violet',  sub: `$${(health?.weekCost ?? 0).toFixed(2)} this week` },
-    { id: 'all-time',  label: 'Total All-Time',    value: health?.allTimeCalls?.toLocaleString() ?? 0, icon: TrendingUp,   color: 'emerald', sub: `${health?.allTimeErrors ?? 0} total errors` },
+    { id: 'api-calls', label: `API Calls (${getTimeframeLabel()})`, value: health?.totalCallsToday ?? 0, icon: Activity, color: 'blue', sub: `${health?.allTimeCalls?.toLocaleString() ?? 0} all-time` },
+    { id: 'errors', label: `Errors (${getTimeframeLabel()})`, value: health?.errorsToday ?? 0, icon: AlertTriangle, color: 'red', sub: `${health?.errorRate}% error rate` },
+    { id: 'cost', label: `Cost (${getTimeframeLabel()})`, value: `$${(health?.costToday ?? 0).toFixed(2)}`, icon: Zap, color: 'violet', sub: `$${(health?.weekCost ?? 0).toFixed(2)} last 7 days` },
+    { id: 'all-time', label: 'Total All-Time', value: health?.allTimeCalls?.toLocaleString() ?? 0, icon: TrendingUp, color: 'emerald', sub: `${health?.allTimeErrors ?? 0} total errors` },
   ];
 
   return (
     <>
-      <DetailPanel card={selectedCard} health={health} onClose={() => setSelectedCard(null)} />
+      <DetailPanel card={selectedCard} health={health} timeframeLabel={getTimeframeLabel()} onClose={() => setSelectedCard(null)} />
 
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">
               System Health Monitor
             </h2>
             <p className="text-muted-foreground mt-1">API performance, costs, and error tracking.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 self-end md:self-auto">
             <p className="text-xs text-muted-foreground">Last refresh: {lastRefresh.toLocaleTimeString()}</p>
             <button
               onClick={() => fetchHealth(true)}
@@ -406,6 +436,70 @@ export default function SystemHealth() {
               Refresh
             </button>
           </div>
+        </div>
+
+        {/* ─── DATE / TIMEFRAME SELECTOR BAR ────────────────────────────────────── */}
+        <div className="glass-card border border-border/50 p-4 rounded-2xl space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <Calendar size={14} className="text-blue-500" />
+              <span>Select Time Period:</span>
+            </div>
+            
+            {/* Filter Pill Buttons */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: 'today', label: 'Today' },
+                { id: 'yesterday', label: 'Yesterday' },
+                { id: 'week', label: 'Last 7 Days' },
+                { id: 'month', label: 'Last 30 Days' },
+                { id: 'all', label: 'All Time' },
+                { id: 'custom', label: 'Custom Range' },
+              ].map((btn) => (
+                <button
+                  key={btn.id}
+                  onClick={() => setTimeframe(btn.id as TimeframeType)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    timeframe === btn.id
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Date Pickers — appears when Custom Range selected */}
+          {timeframe === 'custom' && (
+            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border/40 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-medium">Start Date:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-medium">End Date:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <button
+                onClick={() => fetchHealth(true)}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
+              >
+                Apply Range
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Status Banner */}
@@ -419,10 +513,10 @@ export default function SystemHealth() {
             : <AlertTriangle className={`flex-shrink-0 ${statusColor === 'amber' ? 'text-amber-500' : 'text-red-500'}`} size={24} />}
           <div>
             <p className={`font-semibold ${statusColor === 'emerald' ? 'text-emerald-400' : statusColor === 'amber' ? 'text-amber-400' : 'text-red-400'}`}>
-              {statusLabel}
+              {statusLabel} ({getTimeframeLabel()})
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Auto-refreshes every 30 seconds · Error rate today: <strong>{health?.errorRate}%</strong>
+              Auto-refreshes every 30 seconds · Error rate in period: <strong>{health?.errorRate}%</strong>
             </p>
           </div>
         </div>
@@ -454,10 +548,10 @@ export default function SystemHealth() {
 
         {/* Provider Breakdown — only actual providers */}
         <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-foreground mb-1">Provider Breakdown (Today)</h3>
-          <p className="text-xs text-muted-foreground mb-5">Only providers actively used in production are shown.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(['FAL', 'OPENAI', 'OTHER'] as const).map((provider) => {
+          <h3 className="text-lg font-bold text-foreground mb-1">Provider Breakdown ({getTimeframeLabel()})</h3>
+          <p className="text-xs text-muted-foreground mb-5">Showing calls, errors, and estimated cost for the selected time period.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {(['FAL', 'OPENAI', 'GEMINI', 'OTHER'] as const).map((provider) => {
               const stat = health?.providerStats?.[provider] ?? { calls: 0, errors: 0, cost: '0.00' };
               const s = PROVIDER_STYLES[provider];
               return (
@@ -488,23 +582,25 @@ export default function SystemHealth() {
             })}
           </div>
           <p className="text-[10px] text-muted-foreground mt-4">
-            ℹ️ Gemini Flash (Google AI) calls are logged under <strong>OTHER</strong>. CLAUDE is not used in production.
+            ℹ️ Gemini / Google AI calls are logged directly under <strong>GEMINI</strong>.
           </p>
         </div>
 
-        {/* Recent Errors Table */}
+        {/* ─── DETAILED API LOGS TABLE FOR SELECTED PERIOD ─────────────────────── */}
         <div className="glass-card border border-transparent rounded-2xl shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-border flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-foreground">Recent API Errors</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Last 10 failed API calls</p>
-            </div>
-            {health?.errorsToday === 0 && (
-              <div className="flex items-center gap-2 text-emerald-500 text-sm font-medium">
-                <CheckCircle size={16} /> No errors today
+            <div className="flex items-center gap-2">
+              <List size={18} className="text-blue-500" />
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Detailed API Logs ({getTimeframeLabel()})</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Individual API calls recorded during this time window</p>
               </div>
-            )}
+            </div>
+            <span className="text-xs font-semibold px-3 py-1 bg-muted/60 rounded-full text-muted-foreground">
+              {health?.detailedLogs?.length || 0} entries
+            </span>
           </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b border-border">
@@ -512,51 +608,63 @@ export default function SystemHealth() {
                   <th className="px-6 py-4 font-semibold whitespace-nowrap">Provider</th>
                   <th className="px-6 py-4 font-semibold whitespace-nowrap">Endpoint</th>
                   <th className="px-6 py-4 font-semibold whitespace-nowrap">User</th>
-                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Error</th>
-                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Time</th>
+                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Cost</th>
+                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Status</th>
+                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Timestamp</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {health?.recentErrors?.length === 0 && (
+                {(!health?.detailedLogs || health.detailedLogs.length === 0) ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center">
-                      <CheckCircle className="mx-auto mb-2 text-emerald-500" size={28} />
-                      <p className="text-muted-foreground">No recent errors — all clean!</p>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <Clock className="mx-auto mb-2 text-muted-foreground opacity-40" size={32} />
+                      <p className="text-muted-foreground text-sm font-medium">No API logs recorded for {getTimeframeLabel()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Try selecting a different time filter or range above.</p>
                     </td>
                   </tr>
-                )}
-                {health?.recentErrors?.map((err) => {
-                  const t = formatTime(err.createdAt);
-                  return (
-                    <tr key={err._id} className="hover:bg-red-500/5 transition-colors divide-x divide-border/50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="flex items-center gap-2">
-                          <XCircle size={14} className="text-red-500 flex-shrink-0" />
-                          <span className="font-mono text-xs font-semibold text-foreground">{err.provider}</span>
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs text-muted-foreground whitespace-nowrap">{err.endpoint}</td>
-                      <td className="px-6 py-4 text-xs text-muted-foreground whitespace-nowrap">{err.user?.email || 'Anonymous'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-xs text-red-400 font-medium line-clamp-1 max-w-xs">{err.errorMessage || 'Unknown error'}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-sm text-foreground">{t.date}</span>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock size={12} /> {t.time}
+                ) : (
+                  health.detailedLogs.map((log) => {
+                    const t = formatTime(log.createdAt);
+                    return (
+                      <tr key={log._id} className="hover:bg-muted/10 transition-colors divide-x divide-border/50">
+                        <td className="px-6 py-3.5 whitespace-nowrap">
+                          <span className="flex items-center gap-2">
+                            <span>{PROVIDER_ICONS[log.provider] || '🔍'}</span>
+                            <span className="font-mono text-xs font-semibold text-foreground">{log.provider}</span>
                           </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                        <td className="px-6 py-3.5 font-mono text-xs text-muted-foreground whitespace-nowrap">{log.endpoint}</td>
+                        <td className="px-6 py-3.5 text-xs text-muted-foreground whitespace-nowrap">{log.user?.email || 'System'}</td>
+                        <td className="px-6 py-3.5 text-xs font-semibold text-foreground whitespace-nowrap">
+                          ${((log.costInCents || 0) / 100).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-3.5 whitespace-nowrap">
+                          {log.isError ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-red-400 font-semibold px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20">
+                              <XCircle size={12} /> Failed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                              <CheckCircle size={12} /> Success
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-3.5 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-xs text-foreground">{t.date}</span>
+                            <span className="text-[10px] text-muted-foreground">{t.time}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </div>
+
       </div>
     </>
   );
 }
-
