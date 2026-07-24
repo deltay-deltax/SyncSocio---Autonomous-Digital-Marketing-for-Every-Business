@@ -576,7 +576,7 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
             "but do not add anything beyond what the layout specifies — "
             "no extra badges, ratings, or CTAs not already called for."
         )
-    elif text_mode == "heavy":
+    elif text_mode in ("heavy", "none"):
         text_discipline = ""
     else:  # text_mode == "low" (default)
         text_discipline = (

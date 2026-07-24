@@ -3102,7 +3102,7 @@ const DashboardStrategy = () => {
                 What do you want to generate today?
               </h1>
               <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-                Pick a format — Velocity opens a tailored brief for it.
+                Pick a format — SyncSocio opens a tailored brief for it.
               </p>
             </motion.div>
 
