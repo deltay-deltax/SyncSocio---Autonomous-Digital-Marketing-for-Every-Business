@@ -2048,13 +2048,28 @@ async def api_product_image_editor(request: ProductEditRequest):
     try:
         print(f"\n[ProductEditor] 📥 Request received")
 
-        # Construct prompt based on whether product exists
+        import re
+        import json
+        
+        safe_brand_dna = ""
+        if request.brand_dna:
+            try:
+                dna_dict = json.loads(request.brand_dna)
+                # Keep only relevant fields for image generation
+                keys_to_keep = ['brandName', 'businessCategory', 'usp', 'targetAudiences', 'brandTone', 'visualVibe', 'brandKeywords']
+                pruned_dna = {k: dna_dict[k] for k in keys_to_keep if k in dna_dict}
+                safe_brand_dna = json.dumps(pruned_dna)
+            except Exception:
+                # If not JSON or fails, just truncate it
+                safe_brand_dna = request.brand_dna[:1000]
+                
+        safe_prod_info = request.prod_info[:1000] if request.prod_info else ""
         if request.prod_image and request.prod_info:
             prompt = (
                 f"Apply the style, lighting, and composition of the reference image to the product image.\n"
                 f"Generate the output with the same orientation and aspect ratio as the reference image.\n"
-                f"Brand Guidelines: {request.brand_dna}\n"
-                f"Product Details: {request.prod_info}\n"
+                f"Brand Guidelines: {safe_brand_dna}\n"
+                f"Product Details: {safe_prod_info}\n"
                 f"User Instruction: {request.instruction}"
             )
             # generate_fal_image_gpt2 accepts a list of images (reference + product)
@@ -2063,7 +2078,7 @@ async def api_product_image_editor(request: ProductEditRequest):
             prompt = (
                 f"Edit the image according to the instruction.\n"
                 f"Generate the output with the same orientation and aspect ratio as the reference image.\n"
-                f"Brand Guidelines: {request.brand_dna}\n"
+                f"Brand Guidelines: {safe_brand_dna}\n"
                 f"User Instruction: {request.instruction}"
             )
             images = [request.ref_image]

@@ -35,9 +35,7 @@ const navGroups = [
     title: 'Studio',
     items: [
       { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
-      { label: 'Sprint', icon: Zap, path: '/dashboard/autopilot' },
       { label: 'Asset Library', icon: Library, path: '/dashboard/assets' },
-      { label: 'AI Editor', icon: Paintbrush, path: '/dashboard/editor' },
       { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
     ]
   },
@@ -967,9 +965,6 @@ const DashboardLayoutContent = () => {
                   )}
                   <item.icon size={18} className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
                   <span className="text-sm">{item.label}</span>
-                  {item.label === 'AI Editor' && unread && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-white shadow-sm" />
-                  )}
                   {isLocked && (
                     <Lock size={12} className="ml-auto text-muted-foreground/60 group-hover:text-muted-foreground" />
                   )}
