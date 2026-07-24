@@ -13,17 +13,15 @@ export function MarqueeDemo({ images }: { images?: { src: string, alt: string }[
     return (
       <figure
         className={cn(
-          "relative h-48 w-48 sm:h-64 sm:w-64 cursor-pointer overflow-hidden rounded-xl border p-2",
-          // light styles
-          "border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05]",
-          // dark styles
-          "dark:border-gray-50/[.1] dark:bg-gray-50/[.10] dark:hover:bg-gray-50/[.15]"
+          "relative h-48 w-48 sm:h-64 sm:w-64 cursor-pointer overflow-hidden rounded-xl",
+          "transition-opacity hover:opacity-90"
         )}
       >
         <img 
           src={src} 
           alt={alt} 
-          className="w-full h-full object-cover rounded-lg shadow-sm"
+          loading="lazy"
+          className="w-full h-full object-cover bg-gray-100 dark:bg-gray-800"
         />
       </figure>
     )
@@ -31,20 +29,20 @@ export function MarqueeDemo({ images }: { images?: { src: string, alt: string }[
 
   return (
     <div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
-      <Marquee pauseOnHover className="[--duration:30s]">
+      <Marquee pauseOnHover className="[--duration:60s]">
         {firstRow.map((img, idx) => (
           <ImageCard key={`row1-${idx}`} src={img.src} alt={img.alt} />
         ))}
       </Marquee>
       {secondRow.length > 0 && (
-        <Marquee reverse pauseOnHover className="[--duration:30s] mt-4">
+        <Marquee reverse pauseOnHover className="[--duration:60s] mt-4">
           {secondRow.map((img, idx) => (
             <ImageCard key={`row2-${idx}`} src={img.src} alt={img.alt} />
           ))}
         </Marquee>
       )}
       {thirdRow.length > 0 && (
-        <Marquee pauseOnHover className="[--duration:30s] mt-4">
+        <Marquee pauseOnHover className="[--duration:60s] mt-4">
           {thirdRow.map((img, idx) => (
             <ImageCard key={`row3-${idx}`} src={img.src} alt={img.alt} />
           ))}

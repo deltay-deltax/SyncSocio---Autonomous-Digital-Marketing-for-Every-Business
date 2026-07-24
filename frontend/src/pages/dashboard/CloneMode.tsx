@@ -253,12 +253,10 @@ export default function ClonePage() {
               className="my-masonry-grid"
               columnClassName="my-masonry-grid_column"
             >
-              {[...CLONE_TEMPLATES].sort((a, b) => {
-                const aIsSaas = a.category.toLowerCase().includes('saas');
-                const bIsSaas = b.category.toLowerCase().includes('saas');
-                if (aIsSaas && !bIsSaas) return 1;
-                if (!aIsSaas && bIsSaas) return -1;
-                return 0;
+              {CLONE_TEMPLATES.filter((t) => {
+                const isSaasMode = profile?.businessCategory?.toLowerCase().includes('saas') || profile?.businessCategory?.toLowerCase().includes('software');
+                const isSaasTemplate = t.category.toLowerCase().includes('saas') || t.category.toLowerCase().includes('sas');
+                return isSaasMode ? isSaasTemplate : !isSaasTemplate;
               }).map((t) => {
                 const selected = template?.id === t.id;
                 return (

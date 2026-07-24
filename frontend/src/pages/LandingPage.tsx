@@ -108,9 +108,6 @@ const Index = () => {
       {/* 5. Visual proof — show what the AI actually makes */}
       <CreativeShowcase />
 
-      {/* 6. Lead magnet CTA — strike while visual excitement is high */}
-      <FreeCreativesSection />
-
       {/* 7. Feature detail */}
       <Features />
       <DMAutomation />
@@ -122,6 +119,10 @@ const Index = () => {
       {/* 8. Pricing + FAQ */}
       <Pricing onWaitlistClick={() => navigate("/signup")} />
       <FAQ />
+      
+      {/* 9. Lead magnet CTA at the end */}
+      <FreeCreativesSection />
+      
       <Footer />
     </div>
   );
