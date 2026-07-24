@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ImagePlus, Send, Sparkles, X, Loader2, Download, Package, CheckCircle2, Upload, ShoppingBag, Heart } from 'lucide-react';
+import { ImagePlus, Send, Sparkles, X, Loader2, Download, Package, CheckCircle2, Upload, ShoppingBag, Heart, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +37,7 @@ function imgSrc(b64: string | undefined) {
 }
 
 export default function EditorPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const {
     refImage,
@@ -207,12 +209,20 @@ export default function EditorPage() {
   // handleGenerate is now handled in the EditorContext
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-6 h-[calc(100vh-8rem)]">
+    <div className="max-w-5xl mx-auto flex flex-col gap-6 h-[calc(100vh-8rem)] pt-4">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-2xl font-display font-bold tracking-tight text-foreground">AI Editor</h1>
-          <p className="text-sm text-muted-foreground mt-1">Upload a reference, select a product, and describe your edit.</p>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate('/dashboard/strategy')} 
+            className="p-2 rounded-xl hover:bg-muted transition flex-shrink-0"
+          >
+            <ArrowLeft size={18} className="text-muted-foreground" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-display font-bold tracking-tight text-foreground">AI Editor</h1>
+            <p className="text-sm text-muted-foreground mt-1">Upload a reference, select a product, and describe your edit.</p>
+          </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary px-3 py-1 text-[11px] font-black uppercase tracking-widest border border-primary/20">
           <Sparkles className="h-3 w-3" /> Beta

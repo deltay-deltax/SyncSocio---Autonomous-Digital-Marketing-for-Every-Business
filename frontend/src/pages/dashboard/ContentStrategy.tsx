@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye, Zap, Paintbrush,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,7 +28,7 @@ const breakpointColumnsObj = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Mode = 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media' | 'photoshoot';
+type Mode = 'sprint' | 'editor' | 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media' | 'photoshoot';
 type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '2:3';
 
 // Keep the original GeneratedPost type for real API responses
@@ -315,9 +315,27 @@ type Studio = {
   featured?: boolean;
   wide?: boolean;
   hoverBorder?: string;
+  badge?: { label: string; tint: string };
 };
 
 const STUDIOS: Studio[] = [
+  {
+    id: "sprint",
+    title: "Sprint",
+    subtitle: "A/B test winning creatives",
+    icon: Zap,
+    iconTint: "text-amber-600",
+    iconBg: "bg-amber-100",
+    badge: { label: "Best", tint: "bg-[#FFC107] text-[#5C4000] font-extrabold shadow-md" },
+    tags: [
+      { label: "Ads", tint: "bg-slate-50 text-slate-600 ring-slate-200" }
+    ],
+    cta: { label: "Run Sprint", tint: "text-amber-600" },
+    to: "/dashboard/autopilot",
+    image: "/assets/Creatives_icon/studio-sprint.png",
+    featured: true,
+    hoverBorder: "hover:border-amber-400 hover:ring-1 hover:ring-amber-400",
+  },
   {
     id: "all_in_one",
     title: "All In One",
@@ -467,6 +485,22 @@ const STUDIOS: Studio[] = [
     image: "/assets/Creatives_icon/studio-photoshoot.png",
     hoverBorder: "hover:border-fuchsia-400 hover:ring-1 hover:ring-fuchsia-400",
   },
+  {
+    id: "editor",
+    title: "AI Editor",
+    subtitle: "Magic tools & photo retouch",
+    icon: Paintbrush,
+    iconTint: "text-cyan-600",
+    iconBg: "bg-cyan-100",
+    tags: [
+      { label: "Magic", tint: "bg-cyan-50 text-cyan-700 ring-cyan-100" },
+      { label: "Retouch", tint: "bg-purple-50 text-purple-700 ring-purple-100" }
+    ],
+    cta: { label: "Open Editor", tint: "text-cyan-600" },
+    to: "/dashboard/editor",
+    image: "/assets/Creatives_icon/studio-editor.png",
+    hoverBorder: "hover:border-cyan-400 hover:ring-1 hover:ring-cyan-400",
+  }
 ];
 
 const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }> = ({ s, i, onPick }) => {
@@ -488,6 +522,11 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
           s.hoverBorder
         )}
       >
+        {s.badge && (
+          <div className={cn("absolute top-4 right-4 z-20 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm", s.badge.tint)}>
+            {s.badge.label}
+          </div>
+        )}
         {/* Right image — absolutely positioned so it never affects left column height */}
         <div className={cn(
           "absolute right-0 top-0 bottom-0 w-[120px] sm:w-[140px] xl:w-[170px] flex items-center justify-center pointer-events-none",
@@ -741,7 +780,7 @@ const DashboardStrategy = () => {
         setLanguage('english');
       }
     } else if (c === 'india') {
-      if (language !== 'english' && language !== 'hindi' && language !== 'hinglish') {
+      if (language === 'nepali') {
         setLanguage('english');
       }
     } else {
@@ -906,6 +945,14 @@ const DashboardStrategy = () => {
   }, [mode, isPlanExpired, isElite]);
 
   const handleModeClick = (mId: Mode) => {
+    if (mId === 'sprint') {
+      navigate('/dashboard/autopilot');
+      return;
+    }
+    if (mId === 'editor') {
+      navigate('/dashboard/editor');
+      return;
+    }
     const isPremium = ['all_in_one'].includes(mId);
 
     if (isPlanExpired) {
@@ -4793,7 +4840,7 @@ const LanguagePicker = ({
     if (country?.toLowerCase() === 'nepal') {
       availableLanguages = languages.filter(l => l.id === 'english' || l.id === 'nepali');
     } else if (country?.toLowerCase() === 'india') {
-      availableLanguages = languages.filter(l => l.id === 'english' || l.id === 'hindi' || l.id === 'hinglish');
+      availableLanguages = languages.filter(l => l.id !== 'nepali');
     } else {
       // For all other new countries, strictly lock to English
       availableLanguages = languages.filter(l => l.id === 'english');

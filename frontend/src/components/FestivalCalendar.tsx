@@ -1144,7 +1144,7 @@ Ensure a clean layout, ${brand.visualStyle || 'modern premium'} aesthetic, and b
                                 { id: 'english', label: 'English', flag: '🇬🇧' },
                                 { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' }
                               ]
-                            : languages;
+                            : languages.filter(l => l.id !== 'nepali');
                           return available.map((l) => (
                             <option key={l.id} value={l.id}>
                               {l.flag} {l.label}
