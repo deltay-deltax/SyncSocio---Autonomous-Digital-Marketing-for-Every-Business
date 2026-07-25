@@ -7,17 +7,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // Removed "Home" (logo handles that) — 6 links feel airy in the pill
 const NAV_LINKS = [
-<<<<<<< HEAD
-  { label: "Creatives",   href: "#creatives" },
-  { label: "Features",    href: "#features" },
-=======
->>>>>>> 10b55d665bad9fb6c548230295379b2699148543
-  { label: "How it Works",href: "#how-it-works" },
-  { label: "Creatives",   href: "#creatives" },
-  { label: "Features",    href: "#features" },
-  { label: "Auto DM",     href: "#auto-dm" },
-  { label: "Channels",    href: "#channels" },
-  { label: "Pricing",     href: "#pricing" },
+  { label: "Creatives", href: "#creatives" },
+  { label: "Features", href: "#features" },
+  { label: "How it Works", href: "#how-it-works" },
+  { label: "Creatives", href: "#creatives" },
+  { label: "Features", href: "#features" },
+  { label: "Auto DM", href: "#auto-dm" },
+  { label: "Channels", href: "#channels" },
+  { label: "Pricing", href: "#pricing" },
 ];
 
 const Navbar = () => {

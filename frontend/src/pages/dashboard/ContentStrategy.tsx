@@ -831,6 +831,7 @@ const DashboardStrategy = () => {
   }, [profile?.location?.country, language]);
 
   const [videoKind, setVideoKind] = useState<string>('ai-ugc');
+  const [videoDuration, setVideoDuration] = useState<number>(8);
   const [videoResolution, setVideoResolution] = useState<string>('1080p');
   const [selectedMotionPreset, setSelectedMotionPreset] = useState<string | null>(null);
   const [avatarDescription, setAvatarDescription] = useState<string>('');
@@ -1050,6 +1051,7 @@ const DashboardStrategy = () => {
         avatarDescription: avatarDescription.trim(),
         isSaas: isSaasMode,
         language: language,
+        videoDuration: videoDuration,
       };
       const res = await fetch(`${AI_BASE}/generate-ugc-script`, {
         method: 'POST',
@@ -1964,6 +1966,7 @@ const DashboardStrategy = () => {
         avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
         videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
         videoResolution: currentMode === 'video' ? videoResolution : undefined,
+        videoDuration: currentMode === 'video' ? videoDuration : undefined,
       };
 
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
@@ -3202,7 +3205,10 @@ const DashboardStrategy = () => {
                 {visibleVideoKinds.map((v) => (
                   <button
                     key={v.id}
-                    onClick={() => setVideoKind(v.id)}
+                    onClick={() => {
+                      setVideoKind(v.id);
+                      setVideoDuration(v.id === 'ai-ugc' ? 8 : 5);
+                    }}
                     className={cn(
                       'p-4 rounded-2xl border text-left transition',
                       videoKind === v.id
@@ -3212,6 +3218,32 @@ const DashboardStrategy = () => {
                   >
                     <p className="text-sm font-semibold text-foreground">{v.label}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">{v.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Video duration picker */}
+          {mode === 'video' && (
+            <section className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Video Duration
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {(videoKind === 'ai-ugc' ? [8, 12, 15] : [5, 8]).map((dur) => (
+                  <button
+                    key={dur}
+                    type="button"
+                    onClick={() => setVideoDuration(dur)}
+                    className={cn(
+                      'px-5 h-10 rounded-xl text-sm font-bold transition-all border flex items-center justify-center',
+                      videoDuration === dur
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-border/60 bg-card hover:border-primary/40 text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {dur} sec
                   </button>
                 ))}
               </div>
