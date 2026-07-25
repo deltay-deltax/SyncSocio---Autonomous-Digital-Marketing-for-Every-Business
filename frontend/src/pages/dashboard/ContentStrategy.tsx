@@ -755,7 +755,10 @@ const DashboardStrategy = () => {
         if (viewingTask.mode === 'email') setCampaignSubject(first.subject || '');
       }
 
-      if (clearViewingTask) clearViewingTask();
+      const timer = setTimeout(() => {
+        if (clearViewingTask) clearViewingTask();
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [viewingTask, clearViewingTask]);
 
@@ -961,7 +964,7 @@ const DashboardStrategy = () => {
 
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | null>(null);
+  const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | 'video' | null>(null);
 
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
   const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();

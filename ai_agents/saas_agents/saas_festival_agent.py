@@ -173,7 +173,7 @@ def _generate_festival_caption(
     """Generates a thought-leadership festival caption using Gemini."""
     try:
         llm = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest",
+            model="gemini-flash-lite-latest",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.75,
         )

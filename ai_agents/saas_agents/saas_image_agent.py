@@ -340,7 +340,7 @@ def build_saas_carousel_slide_prompts(
     product: Optional[Dict[str, Any]] = None,
     language: str = "english"
 ) -> List[str]:
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
     category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "Services"))
     block = _brand_block(brand_doc)
     prod_info = ""
@@ -443,7 +443,7 @@ def generate_saas_instagram_caption(
     """Generates a B2B Instagram caption with SaaS copy tone."""
     try:
         llm = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest",
+            model="gemini-flash-lite-latest",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.8,
         )
@@ -777,7 +777,7 @@ def generate_saas_strategy_images(
             if not avatar_description or not video_script:
                 try:
                     llm = ChatGoogleGenerativeAI(
-                        model="gemini-flash-latest",
+                        model="gemini-flash-lite-latest",
                         google_api_key=os.getenv("GOOGLE_API_KEY"),
                         temperature=0.7,
                     )

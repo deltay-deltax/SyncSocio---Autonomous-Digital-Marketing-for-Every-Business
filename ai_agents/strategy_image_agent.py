@@ -576,7 +576,7 @@ def generate_instagram_caption_and_hashtags(
 ) -> str:
     """Uses Gemini Flash to generate an engaging Instagram caption with relevant hashtags."""
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.8)
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.8)
         brand_name = brand_doc.get("brandName", "Brand")
         brand_block = _brand_block(brand_doc)
         
@@ -623,7 +623,7 @@ def generate_instagram_caption_and_hashtags(
 
 def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], layout: str, idea: Optional[str], language: str = "english") -> Dict[str, str]:
     """Uses Gemini Flash to write tailored email or whatsapp copy."""
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
     
     sys_msg, user_msg = get_campaign_copy_prompts(brand_doc, product, layout, idea, language)
     
@@ -655,7 +655,7 @@ def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str
 
 def refine_campaign_copy(brand_doc: Dict[str, Any], subject: str, body: str, instruction: str, layout: str, language: str = "english") -> Dict[str, str]:
     """Uses Gemini Flash to refine existing email or whatsapp copy based on an instruction."""
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
     
     brand_name = brand_doc.get("brandName", "the brand")
     tone = brand_doc.get("brandTone", "engaging")
@@ -696,20 +696,31 @@ def refine_campaign_copy(brand_doc: Dict[str, Any], subject: str, body: str, ins
         }
 
 
-def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], platform: str, count: int, is_fashion: bool, layout: str) -> List[str]:
+def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], platform: str, count: int, is_fashion: bool, layout: str, idea: str = "") -> List[str]:
     try:
         brand_name = brand_doc.get("brandName", "Brand")
         prod_name = product.get("name", "Flagship product") if product else "Flagship product"
         
+        if layout == "ecomm":
+            persona = "You are an expert E-Commerce Art Director planning a photoshoot. "
+            desc_rule = "Each string should contain a short angle name followed by a 2-3 line vivid description of a highly varied e-commerce image. Include lifestyle shots with models holding/using the product, extreme macro texture shots, and stunning contextual backgrounds with creative props. Do not just describe the product; describe the entire scene. "
+        elif layout == "photoshoot":
+            persona = "You are an expert Product Photographer planning a high-end commercial photoshoot. "
+            desc_rule = "Each string should contain a short angle name followed by a highly detailed 1-2 line description of the scene, including specific lighting, background, and visual props. "
+        else:
+            persona = "You are an expert Social Media Creative Director. You need to draft highly creative, trending ad concepts that are working and converting right now. "
+            desc_rule = "Each string should contain a short angle name followed by a 1-2 line description of the angle and layout (do NOT specify lighting, background, or visual props). "
+            
         system_prompt = (
-            "You are an expert E-Commerce Art Director planning a photoshoot. "
+            f"{persona}"
             f"You need to plan exactly {count} distinct shot types/angles for this product/brand. "
-            "Return ONLY a valid JSON array of strings representing the short labels/headings for each shot. "
-            "Do not return objects, just an array of strings like: [\"Shot 1 Name\", \"Shot 2 Name\"]. "
-            "Keep the labels under 8 words each."
+            f"Return ONLY a valid JSON array of strings. {desc_rule}"
+            "Do not return JSON objects, just an array of strings like: [\"Angle 1: Description of the angle...\", \"Angle 2: Description of the angle...\"]"
         )
         
         user_prompt = f"Brand: {brand_name}\nProduct: {prod_name}\nLayout Type: {layout}\nTarget Platform: {platform}\nIs Fashion/Apparel: {is_fashion}\n\n"
+        if idea:
+            user_prompt += f"Campaign Concept / User Instruction: {idea}\n\n"
         
         if layout == "ecomm":
             if platform == "Amazon":
@@ -733,9 +744,14 @@ def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]
             
         user_prompt += f"Output EXACTLY {count} labels in a JSON array."
         
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.4, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.4, google_api_key=os.getenv("GOOGLE_API_KEY"))
         response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
-        content = response.content.strip()
+        raw_content = response.content
+        if isinstance(raw_content, list):
+            content = raw_content[0].get("text", "")
+        else:
+            content = str(raw_content)
+        content = content.strip()
         
         if content.startswith("```json"): content = content.replace("```json", "", 1)
         if content.endswith("```"): content = content[:-3]
@@ -797,7 +813,7 @@ def build_ecomm_image_prompt(
             f"PRODUCT: {p_name}"
             + (f' | "{p_desc}"' if p_desc else "")
             + (f" | Benefit: {p_benefit}" if p_benefit else "")
-            + ". Keep product packaging exactly as in reference. Do not alter label, shape, or colors."
+            + ". Use the reference image to accurately stylize the product, but adapt it fully to the new composition and scene."
         )
         caption_product = p_name
     else:
@@ -848,7 +864,7 @@ def build_ecomm_image_prompt(
     caption    = f"{caption_product} · {shot_label} ({platform}) ✨"
 
     # ── 5. Ref-image instruction ────────────────────────────────────
-    ref_line = f"\nREFERENCE: Keep the exact shape, material, design, and color of the product attached." if ref_image else ""
+    ref_line = f"\nREFERENCE: Visually adapt the attached product into the scene perfectly." if ref_image else ""
     if avatar_url:
         ref_line += (
             "\n\nREF IMAGES PROVIDED: You have received a human model avatar reference image and a product reference image. "
@@ -880,17 +896,19 @@ def build_ecomm_image_prompt(
     if is_fashion and (platform != "Amazon" or shot_index > 0):
         # Amazon Main image (shot_index 0) requires pure white background isolation.
         # But for secondary shots and other platforms, apply the fashion lifestyle directive.
-        fashion_note = "\nFashion brand — show the product worn or styled in an aspirational lifestyle context, not isolated on a plain background."
+        fashion_note = (
+            "\nFASHION BRAND DIRECTIVE: This is a fashion/apparel product. The image MUST look like a high-end fashion editorial or premium e-commerce lookbook shot. "
+            "Show the product dynamically worn or styled by a model in an aspirational, highly aesthetic lifestyle context. "
+            "Include elements of premium branding where appropriate (e.g., luxury packaging, stylish hang tags, or high-end unboxing elements). "
+            "Focus on garment fit, texture, styling, and dynamic poses. Do NOT isolate the product on a boring plain background."
+        )
 
     idea_line = ""
     if shot_index > 0 and idea and idea.strip():
         idea_line = f"\nCAMPAIGN IDEA / OPTIONAL INSTRUCTIONS: {idea}"
     prompt = f"{brand_line}\n{product_line}\n{platform_line}\n{shot_line}{ref_line}{idea_line}\n{closing}{fashion_note}"
 
-    print("\n" + "=" * 80)
-    print(f"[EcommAgent] Shot {shot_index + 1}/{total_count} - {shot_label} | Platform: {platform}")
-    print(f"  prompt     : {prompt[:120].strip()}...")
-    print("=" * 80 + "\n")
+    print(f"[EcommAgent] 📸 Planning Shot {shot_index + 1}/{total_count} - {shot_label}")
 
     return prompt, caption
 
@@ -903,7 +921,7 @@ def build_carousel_slide_prompts(
     language: str = "english"
 ) -> List[str]:
     """Uses Gemini Flash to draft content for N slides."""
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
 
     block = _brand_block(brand_doc)
     prod_info = ""
@@ -1061,7 +1079,8 @@ Orchestrates generation for all layout types.
             platform=plat, 
             count=count, 
             is_fashion=is_fashion,
-            layout="ecomm"
+            layout="ecomm",
+            idea=idea
         )
 
         # For e-comm, if products provided use them; else use ref images as visual anchor
@@ -1116,8 +1135,8 @@ Orchestrates generation for all layout types.
                         img_types.append(f"[{idx}] URL: {img[:80]}")
                     elif isinstance(img, str):
                         img_types.append(f"[{idx}] base64 ({len(img)//1024}KB)")
-                print(f"\n[EcommAgent DEBUG] 🖼 Task {index+1}: Passing {img_count} image(s) to FAL:")
-                for t in img_types: print(f"  {t}")
+                # print(f"\\n[EcommAgent DEBUG] 🖼 Task {index+1}: Passing {img_count} image(s) to FAL:")
+                # for t in img_types: print(f"  {t}")
                 result = generate_fal_image_gpt2(
                     prompt=prompt,
                     image=task_ref,
@@ -1171,7 +1190,8 @@ Orchestrates generation for all layout types.
                 platform=platform or "Instagram",
                 count=num_angles if num_angles > 0 else 1,
                 is_fashion=is_fashion,
-                layout="image"
+                layout="image",
+                idea=idea
             )
             
             shuffled_templates = template_directives.copy()
@@ -1293,6 +1313,21 @@ Orchestrates generation for all layout types.
     elif layout == "photoshoot":
         fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
         tasks = []
+        
+        _raw_cat = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")).lower()
+        _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear", "shoe", "accessory", "accessories", "streetwear", "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+        is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
+        
+        planned_shots = plan_image_shots(
+            brand_doc=brand_doc,
+            product=products[0] if products else None,
+            platform=platform or "Instagram",
+            count=count,
+            is_fashion=is_fashion,
+            layout="photoshoot",
+            idea=idea
+        )
+
         for i in range(count):
             prod = assigned_products[i]
             
@@ -1307,12 +1342,14 @@ Orchestrates generation for all layout types.
                 if res_logo and res_logo not in task_refs:
                     task_refs.append(res_logo)
             
-            c_dir = "STRICTLY NO TEXT. THE IMAGE MUST BE PURE PHOTOGRAPHY WITH NO LETTERS, LOGOS, OR CHARACTERS. Place the product in a stunning, cinematic photoshoot setting."
+            shot_label = planned_shots[i] if i < len(planned_shots) else "Cinematic photoshoot setting"
+            c_dir = f"STRICTLY NO TEXT. THE IMAGE MUST BE PURE PHOTOGRAPHY WITH NO LETTERS, LOGOS, OR CHARACTERS. {shot_label}"
             
             prompt = build_image_prompt(
                 brand_doc, idea, aspect_ratio, 
                 product=prod, ad_template=None, 
-                language=language, custom_directive=c_dir
+                language=language, custom_directive=c_dir,
+                text_mode="none"
             )
             tasks.append((prompt, task_refs, i, prod))
 
@@ -1470,7 +1507,7 @@ Orchestrates generation for all layout types.
             # Generate script and avatar description if they are empty
             if not avatar_description or not video_script:
                 try:
-                    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+                    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
                     brand_name = brand_doc.get("brandName", "Brand")
                     prod_name = products[0].get("name", "") if products else brand_name
                     prod_desc = products[0].get("description", "") if products else ""

@@ -15,6 +15,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from langchain_core.globals import set_debug
+set_debug(True)
+
 from bson import ObjectId
 from agents import generate_strategy, analyze_brand_mix
 from dm_flow_agent import process_calendar_for_dm_flows
@@ -1978,7 +1981,7 @@ async def api_generate_ugc_script(request: UGCScriptRequest):
         from langchain_core.messages import SystemMessage, HumanMessage
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest",
+            model="gemini-flash-lite-latest",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.8,
         )

@@ -9,7 +9,7 @@ from .models import AuditorInput, AuditorResponse, PostMetric
 class MetaAuditor:
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest", 
+            model="gemini-flash-lite-latest", 
             google_api_key=os.getenv("GOOGLE_API_KEY")
         )
 
