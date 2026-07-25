@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import {
   Activity, AlertTriangle, Zap, TrendingUp, RefreshCw,
-  CheckCircle, XCircle, Clock, X, DollarSign, BarChart2, ChevronRight, Calendar, List
+  CheckCircle, XCircle, Clock, X, BarChart2, ChevronRight, Calendar, List
 } from 'lucide-react';
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;

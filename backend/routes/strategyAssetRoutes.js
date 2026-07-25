@@ -15,6 +15,16 @@ router.post('/', protect, async (req, res) => {
   try {
     const { type, thumbnailBase64, slides, videoUrl, caption, idea, aspectRatio } = req.body;
 
+    if (type === 'video') {
+      const userPlan = (req.user?.plan || '').toLowerCase();
+      const hasVideoAccess = userPlan.includes('elite') || userPlan.includes('agency');
+      if (!hasVideoAccess) {
+        return res.status(403).json({ 
+          error: 'Video generation (UGC Videos & Product Videos) is restricted to Elite and Agency plans. Please upgrade your plan.' 
+        });
+      }
+    }
+
     let thumbnailUrl = '';
     let savedSlides = slides || [];
     let savedVideoUrl = videoUrl || '';

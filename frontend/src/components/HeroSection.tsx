@@ -3,7 +3,6 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Terminal, AnimatedSpan, TypingAnimation } from "@/registry/magicui/terminal";
 
 
 
@@ -15,15 +14,15 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
     // Removed old states
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-36">
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
       <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl bg-primary" />
       <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-15 blur-3xl bg-primary" />
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+        <div className="flex flex-col items-center justify-center max-w-4xl mx-auto text-center">
           
-          {/* Left Text Column */}
-          <div className="text-left">
+          {/* Text Content */}
+          <div className="flex flex-col items-center text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -58,7 +57,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-4"
+              className="flex flex-col sm:flex-row gap-4 justify-center w-full"
             >
               <Button
                 size="lg"
@@ -70,53 +69,6 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               </Button>
             </motion.div>
           </div>
-
-          {/* Right Column (Mockup) */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="mt-10 lg:mt-0 relative flex justify-center w-full"
-          >
-            <Terminal className="w-full">
-              <TypingAnimation delay={500}>&gt; syncsocio init --agent=instagram</TypingAnimation>
-
-              <AnimatedSpan delay={2000} className="text-primary mt-2">
-                ✔ Ingesting brand context.
-              </AnimatedSpan>
-
-              <AnimatedSpan delay={2500} className="text-primary">
-                ✔ Analyzing recent trends.
-              </AnimatedSpan>
-
-              <AnimatedSpan delay={3000} className="text-primary">
-                ✔ Generating creative copy & imagery.
-              </AnimatedSpan>
-
-              <AnimatedSpan delay={3500} className="text-primary">
-                ✔ Scheduling post for optimal engagement.
-              </AnimatedSpan>
-
-              <AnimatedSpan delay={4000} className="text-primary">
-                ✔ Syncing with reach engine.
-              </AnimatedSpan>
-
-              <AnimatedSpan delay={4500} className="text-emerald-500 mt-2">
-                <span>ℹ Created 3 new creatives:</span>
-                <span className="block pl-4 mt-1">- post_vision_01.png</span>
-                <span className="block pl-4">- reel_script_02.mp4</span>
-                <span className="block pl-4">- story_poll_03.jpg</span>
-              </AnimatedSpan>
-
-              <TypingAnimation delay={5500} className="text-muted-foreground mt-4">
-                Success! Agent orchestration completed.
-              </TypingAnimation>
-
-              <TypingAnimation delay={6500} className="text-muted-foreground font-semibold">
-                Your brand is now posting itself.
-              </TypingAnimation>
-            </Terminal>
-          </motion.div>
         </div>
       </div>
     </section>

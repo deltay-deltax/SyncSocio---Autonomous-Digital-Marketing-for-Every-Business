@@ -33,7 +33,7 @@ interface Plan {
 const plans: Plan[] = [
   {
     name: 'Starter',
-    price: '₹999',
+    price: '₹799',
     originalPrice: 999,
     period: '/month',
     frequency: 'Queue up to 30 scheduled posts',
@@ -41,12 +41,11 @@ const plans: Plan[] = [
     postsPerMonth: '200 credits/month',
     features: [
       "200 credits/month",
+      "Soft copy images",
       "500 email campaigns/month",
       "1 active brand profile",
       "Import or Add Up to 50 Products",
       "All image generation types",
-      "UGC video generation",
-      "Product video generation",
       "E-commerce listing generator",
       "Festival calendar",
       "English + 13 languages",
@@ -58,30 +57,75 @@ const plans: Plan[] = [
   },
   {
     name: 'Elite',
-    price: '₹3199',
+    price: '₹2199',
     originalPrice: 3199,
     period: '/month',
     frequency: 'Best time to post analysis',
     formats: 'UGC & Product Video + All-in-One Drops',
-    postsPerMonth: '700 credits/month',
+    postsPerMonth: '700 credits/month (70 AI images)',
     features: [
-      "700 credits/month",
+      "700 credits/month (70 AI images)",
+      "HD quality images",
       "2,000 email campaigns/month",
       "2 brand profiles",
       "Import or Add Up to 100 Products",
       "Everything in Starter",
       "All-in-One Drop feature",
-      "UGC video generation",
-      "Product video generation",
+      "UGC & Product video generation",
       "Best time to post analysis",
       "Unlimited scheduled queue",
-      "Priority generation",
-      "WhatsApp support",
+      "Priority WhatsApp support",
     ],
     popular: true,
     cta: 'Get Started',
     ctaStyle: 'inverted',
   },
+  {
+    name: 'Agency',
+    price: '₹4999',
+    originalPrice: 6999,
+    period: '/month',
+    frequency: 'Highest Priority generation',
+    formats: 'HD Quality Images + Unlimited Drops',
+    postsPerMonth: '1,750 credits/month (175 AI images)',
+    features: [
+      "1,750 credits/month (175 AI images)",
+      "10 credits per generation",
+      "⚡ 45-55% Margin",
+      "HD quality images",
+      "10,000 email campaigns/month",
+      "8 active brand profiles",
+      "Import or Add Up to 500 Products",
+      "Everything in Elite",
+      "All-in-One Drop feature",
+      "UGC & Product video generation",
+      "Dedicated Account Manager",
+      "Unlimited scheduled queue",
+      "Highest Priority generation",
+      "24/7 Priority support",
+    ],
+    cta: 'Get Started',
+    ctaStyle: 'primary',
+  },
+  {
+    name: 'Custom',
+    price: 'Talk to Us',
+    period: '',
+    frequency: 'Enterprise Scale & Workflows',
+    formats: 'Custom AI Models & API Integration',
+    postsPerMonth: 'Custom Credit Package',
+    features: [
+      "Custom credit volume & limits",
+      "Book a custom plan tailored to you",
+      "Unlimited active brand profiles",
+      "Dedicated Account Manager & SLA",
+      "Custom AI model & prompt tuning",
+      "24/7 Priority phone & WhatsApp support",
+      "White-label options & custom invoicing",
+    ],
+    cta: 'Talk to Us',
+    ctaStyle: 'outline',
+  }
 ];
 
 const TOPUPS = [
@@ -94,6 +138,8 @@ const TOPUPS = [
 const PLAN_CREDITS_DISPLAY: Record<string, { label: string; color: string; glow: string }> = {
   'Starter':  { label: '200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
   'Elite': { label: '700 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
+  'Agency': { label: '1,750 Credits', color: 'from-emerald-500 to-teal-700', glow: 'shadow-emerald-500/40' },
+  'Custom': { label: 'Custom Credits', color: 'from-indigo-500 to-purple-800', glow: 'shadow-indigo-500/40' },
 };
 
 // ─── Checklist Steps ─────────────────────────────────────────────────
@@ -361,12 +407,12 @@ const Setup = () => {
     }
     // --- END BYPASS ---
 
-    const basePrice = planName === 'Elite' ? 3199 : 999;
+    const basePrice = planName === 'Agency' ? 4999 : planName === 'Elite' ? 2199 : 599;
     let currentPrice = basePrice;
     
     if (appliedCoupon) {
       if (appliedCoupon.code === 'LAUNCH') {
-        currentPrice = planName === 'Elite' ? 1899 : 599;
+        currentPrice = planName === 'Agency' ? 4999 : planName === 'Elite' ? 2199 : 599;
       } else {
         const discount = appliedCoupon.discountPercentage;
         currentPrice = Math.round(currentPrice * (1 - discount / 100));
@@ -407,6 +453,10 @@ const Setup = () => {
   }, []);
 
   const handleSelectPlan = (plan: Plan) => {
+    if (plan.name === 'Custom') {
+      window.location.href = "mailto:support@syncsocio.com?subject=Book%20a%20Custom%20Plan%20Inquiry";
+      return;
+    }
     proceedToCheckout(plan.name);
   };
 
@@ -706,27 +756,11 @@ const Setup = () => {
           <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
           {plans.map((plan, i) => {
-            const isDmEnabled = plan.name === 'Starter' ? dmToggles[plan.name] : false;
-            const basePrice = parseInt(plan.price.replace('₹', ''));
-            let currentPrice = 0;
-            
-            if (appliedCoupon) {
-              if (appliedCoupon.code === 'LAUNCH') {
-                currentPrice = plan.name === 'Elite' ? 1899 : 599;
-              } else {
-                const discount = appliedCoupon.discountPercentage;
-                currentPrice = Math.round(basePrice * (1 - discount / 100));
-              }
-            } else {
-              currentPrice = plan.name === 'Elite' ? 1899 : 599;
-            }
-            
-            if (isDmEnabled) {
-              currentPrice += 399;
-            }
-
+            let currentPrice = plan.name === 'Agency' ? 4999 : plan.name === 'Elite' ? 2199 : plan.name === 'Custom' ? 0 : 799;
+            const originalPrice = plan.originalPrice;
+            const discountPercent = originalPrice ? Math.floor(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
             const credInfo = PLAN_CREDITS_DISPLAY[plan.name];
 
             return (
@@ -736,113 +770,118 @@ const Setup = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.08 }}
                 className={cn(
-                  "relative rounded-2xl p-6 flex flex-col transition-all duration-300",
-                  plan.popular ? "bg-primary text-primary-foreground ring-2 ring-primary shadow-xl scale-[1.02]" : "glass-card hover:border-primary/30",
-                  recommendedPlan === plan.name && !plan.popular ? "ring-2 ring-emerald-500/50 scale-[1.01] shadow-lg shadow-emerald-500/5" : ""
-                )}
-              >
-                {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-card text-primary shadow-md">
-                    Most Popular
-                  </span>
-                )}
-                
-                {recommendedPlan === plan.name && (
-                  <div className={cn(
-                    'absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md border',
-                    plan.popular ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                  )}>
-                    <Sparkles size={10} /> Recommended for you
-                  </div>
-                )}
-
-                {/* ── Credits Badge ─────────────────────────────────── */}
-                {credInfo && (
-                  <div className={`mb-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r ${credInfo.color} shadow-lg ${credInfo.glow}`}>
-                    <Zap size={14} className="text-white fill-white shrink-0" />
-                    <span className="text-white text-xs font-black tracking-widest uppercase">{credInfo.label}</span>
-                    <span className="ml-auto text-white/70 text-[10px] font-bold">Included</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-sm font-bold mt-1">{plan.name}</h3>
-                </div>
-                
-                {plan.originalPrice && currentPrice < plan.originalPrice && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-sm line-through ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"}`}>
-                      ₹{plan.originalPrice}
-                    </span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                      {Math.floor(((plan.originalPrice - currentPrice) / plan.originalPrice) * 100)}% OFF
-                    </span>
-                  </div>
-                )}
-                
-                <div className="flex items-center w-full relative mb-1">
-                  <div className="flex items-baseline gap-0.5 shrink-0">
-                    <span className="text-3xl font-bold">₹{currentPrice}</span>
-                    <span className={`text-xs ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>
-                  </div>
-                  
-                  {/* Launch Offer Ribbon Badge */}
-                  <div className="ml-auto relative flex items-center shrink-0">
-                    <div className="absolute -left-2.5 z-10">
-                      <svg width="24" height="24" viewBox="0 0 120 120" className={`animate-spin-slow ${plan.popular ? 'text-white drop-shadow-md' : 'text-primary drop-shadow-sm'}`}>
-                        <path fill="currentColor" d="M60 5 L74 15 L91 10 L96 27 L113 32 L107 48 L120 60 L107 72 L113 88 L96 93 L91 110 L74 105 L60 115 L46 105 L29 110 L24 93 L7 88 L13 72 L0 60 L13 48 L7 32 L24 27 L29 10 L46 15 Z" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Gift size={11} className={plan.popular ? 'text-primary' : 'text-white'} />
-                      </div>
-                    </div>
-                    
-                    <div className={`relative pl-5 pr-2.5 py-1 rounded-r-lg border ${
-                      plan.popular 
-                        ? 'bg-white/20 border-white/40 text-white shadow-[inset_0_1px_4px_rgba(255,255,255,0.3)]' 
-                        : 'bg-primary/10 border-primary/20 text-primary shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)]'
-                    }`}>
-                      <div className="font-black text-[10px] uppercase tracking-wide leading-tight">40% Off On Launch</div>
-                      <div className={`text-[8px] leading-tight mt-0.5 ${plan.popular ? 'text-white/90' : 'text-primary/80'}`}>
-                        Use code <span className={`font-bold px-1 rounded ${plan.popular ? 'bg-white/30 text-white' : 'bg-primary/20 text-primary'}`}>LAUNCH</span> for benefit
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <p className={`text-[11px] mb-1 ${plan.popular ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                  {plan.frequency} · {plan.formats}
-                </p>
-                <p className={`text-xs font-semibold mb-4 ${plan.popular ? 'text-primary-foreground' : 'text-foreground'}`}>
-                  {plan.postsPerMonth}
-                </p>
-
-
-
-                <ul className="space-y-2 mb-6 flex-1 text-left">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-xs">
-                      <Check size={14} className={`shrink-0 mt-0.5 ${plan.popular ? 'text-primary-foreground' : 'text-primary'}`} />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-
-                </ul>
-
-              <Button
-                onClick={() => handleSelectPlan(plan)}
-                className={`w-full text-xs font-semibold mt-auto ${
+                  "relative rounded-3xl p-6 flex flex-col justify-between transition-all duration-300",
                   plan.popular
-                    ? 'bg-card text-primary hover:bg-card/90'
-                    : plan.ctaStyle === 'primary'
-                    ? 'gradient-bg text-primary-foreground border-0'
-                    : 'bg-transparent border border-border text-foreground hover:bg-muted'
-                }`}
+                    ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
+                    : plan.name === 'Custom'
+                    ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
+                    : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md",
+                  recommendedPlan === plan.name && !plan.popular ? "ring-2 ring-emerald-500/50 scale-[1.01]" : ""
+                )}
               >
-                {plan.cta}
-              </Button>
-            </motion.div>
-          );
-        })}
+                {/* Top Badge */}
+                {plan.popular ? (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-900 shadow-md z-20 whitespace-nowrap">
+                    Most Popular
+                  </div>
+                ) : plan.name === 'Custom' ? (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary text-primary-foreground shadow-md z-20 whitespace-nowrap">
+                    Enterprise
+                  </div>
+                ) : recommendedPlan === plan.name ? (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500 text-white shadow-md z-20 flex items-center gap-1 whitespace-nowrap">
+                    <Sparkles size={10} /> Recommended
+                  </div>
+                ) : null}
+
+                <div>
+                  {/* Header & Title */}
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xl font-extrabold tracking-tight">{plan.name}</h3>
+                    {credInfo && (
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                        plan.popular
+                          ? "bg-white/20 text-white backdrop-blur-sm"
+                          : "bg-primary/10 text-primary"
+                      }`}>
+                        {credInfo.label}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className={`text-xs min-h-[36px] leading-relaxed mb-4 ${
+                    plan.popular ? "text-primary-foreground/85" : "text-muted-foreground"
+                  }`}>
+                    {plan.frequency}
+                  </p>
+
+                  {/* Price Block */}
+                  <div className="mb-6 pt-3 border-t border-border/20">
+                    {plan.name !== 'Custom' ? (
+                      <div>
+                        {originalPrice && currentPrice < originalPrice && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-xs line-through font-semibold ${
+                              plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"
+                            }`}>
+                              ₹{originalPrice}
+                            </span>
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                              plan.popular ? "bg-white/20 text-white" : "bg-emerald-500/10 text-emerald-600"
+                            }`}>
+                              {discountPercent}% OFF
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl sm:text-4xl font-black tracking-tight">₹{currentPrice}</span>
+                          <span className={`text-xs font-semibold ${
+                            plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
+                          }`}>
+                            {plan.period}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-1">
+                        <span className="text-3xl font-black tracking-tight">Talk to Us</span>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Bespoke pricing & volume</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Feature List */}
+                  <ul className="space-y-2.5 mb-8 text-left">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
+                        <Check size={15} className={`shrink-0 mt-0.5 ${
+                          plan.popular ? 'text-white' : 'text-primary'
+                        }`} />
+                        <span className={plan.popular ? "text-primary-foreground/95" : "text-foreground/90"}>
+                          {f}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    onClick={() => handleSelectPlan(plan)}
+                    className={`w-full py-6 rounded-2xl font-bold text-xs tracking-wide shadow-md transition-all ${
+                      plan.popular
+                        ? 'bg-white text-primary hover:bg-white/90 hover:shadow-lg'
+                        : plan.ctaStyle === 'primary'
+                        ? 'gradient-bg text-primary-foreground border-0 hover:opacity-95'
+                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    }`}
+                  >
+                    {plan.cta}
+                  </Button>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
 

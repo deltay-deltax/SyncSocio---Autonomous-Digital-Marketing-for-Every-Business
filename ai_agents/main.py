@@ -23,6 +23,7 @@ from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_image_gpt2
 from veo_engine import generate_veo_video
+from meta_capi import send_meta_capi_event
 from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
 from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest, AutopilotRequest
 from post_validator import validate_post, optimize_post, publisher_node
@@ -319,9 +320,12 @@ def download_image_as_base64(url: str) -> str:
 class ScrapeRequest(BaseModel):
     url: str
     businessCategory: Optional[str] = None
+    metaEventId: Optional[str] = None
+    userEmail: Optional[str] = None
+    userPhone: Optional[str] = None
 
 @app.post("/scrape-brand-profile")
-async def api_scrape_brand_profile(payload: ScrapeRequest):
+async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
     url = payload.url
     openai_key = os.getenv("OPENAI_API_KEY")
     
@@ -330,6 +334,24 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
         
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
+        
+    if payload.metaEventId:
+        client_ip = request.client.host if request.client else None
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+            
+        send_meta_capi_event(
+            event_name="URLDropped",
+            event_id=payload.metaEventId,
+            user_data={
+                "email": payload.userEmail,
+                "phone": payload.userPhone,
+                "client_ip": client_ip,
+                "client_user_agent": request.headers.get("user-agent")
+            },
+            custom_data={"website_url": url}
+        )
     
     is_fallback = False
     try:
@@ -1480,6 +1502,7 @@ async def api_generate_visuals(request: VisualGenRequest):
         # Step 0: Fetch Brand DNA and Industry Category from Brand Profile
         brand_dna = "A premium growth-focused brand."
         industry_category = "Lifestyle/Luxury"  # Default fallback
+        img_quality = "medium"
         
         if request.userId:
             brand_doc = await db["brandprofiles"].find_one({
@@ -1488,6 +1511,12 @@ async def api_generate_visuals(request: VisualGenRequest):
                     {"user": ObjectId(request.userId) if ObjectId.is_valid(request.userId) else request.userId}
                 ]
             })
+            
+            user_plan = "starter"
+            if brand_doc:
+                user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
+            img_quality = "low" if "starter" in user_plan else "medium"
+
             if brand_doc:
                 location = brand_doc.get('location')
                 country = 'Unknown'
@@ -1606,7 +1635,7 @@ Not a stock photo. Not AI-looking.
 """.strip()
 
             print(f"\n--- GPT-IMAGE-2 STATIC PROMPT ---\n{static_prompt}\n---------------------------------\n")
-            result = generate_fal_image_flux(static_prompt, image=request.image)
+            result = generate_fal_image_flux(static_prompt, image=request.image, quality=img_quality)
             type_str = "image"
         elif request.format == "Carousel":
             # Use FAL.ai Ideogram for carousel slides (image-to-image based on user product image)
@@ -1719,7 +1748,8 @@ Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
                 base_prompt=refined_prompt,
                 image=request.image,
                 count=count,
-                slide_prompts=slides_results
+                slide_prompts=slides_results,
+                quality=img_quality
             )
             type_str = "carousel"
         elif request.format == "Reel":
@@ -2080,6 +2110,7 @@ async def api_product_image_editor(request: ProductEditRequest):
         import json
         
         safe_brand_dna = ""
+        img_quality = "medium"
         if request.brand_dna:
             try:
                 dna_dict = json.loads(request.brand_dna)
@@ -2087,6 +2118,10 @@ async def api_product_image_editor(request: ProductEditRequest):
                 keys_to_keep = ['brandName', 'businessCategory', 'usp', 'targetAudiences', 'brandTone', 'visualVibe', 'brandKeywords', 'primaryColor', 'secondaryColor']
                 pruned_dna = {k: dna_dict[k] for k in keys_to_keep if k in dna_dict}
                 safe_brand_dna = json.dumps(pruned_dna)
+                
+                user_plan = str(dna_dict.get("selectedPlan", "starter")).lower()
+                if "starter" in user_plan:
+                    img_quality = "low"
             except Exception:
                 # If not JSON or fails, just truncate it
                 safe_brand_dna = request.brand_dna[:1000]
@@ -2128,7 +2163,8 @@ async def api_product_image_editor(request: ProductEditRequest):
         res = generate_fal_image_gpt2(
             prompt=prompt,
             image=images,
-            image_size=image_size
+            image_size=image_size,
+            quality=img_quality,
         )
         
         return {
@@ -2243,5 +2279,6 @@ Photorealistic."""
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

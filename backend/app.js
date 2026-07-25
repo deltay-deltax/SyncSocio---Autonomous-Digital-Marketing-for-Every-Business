@@ -43,7 +43,20 @@ import { startInstagramScheduler } from './services/instagramScheduler.js';
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://www.syncsocio.com',
+    'https://syncsocio.com',
+    'http://localhost:4173',
+    'https://www.velocitydm.com',
+    'https://velocitydm.com',
+    process.env.FRONTEND_URL,
+    process.env.FRONTEND_BASE_URL
+  ].filter(Boolean),
+  credentials: true
+}));
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ limit: '200mb', extended: true, parameterLimit: 200000 }));
 

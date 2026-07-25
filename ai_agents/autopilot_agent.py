@@ -140,6 +140,9 @@ def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, 
     """
     Connects to fal_visual_engine to generate the actual post image.
     """
+    user_plan = str(brand_info.get("selectedPlan", "starter")).lower()
+    img_quality = "low" if "starter" in user_plan else "medium"
+
     prod_id = post.get("product_id")
     prod = products_map.get(prod_id)
     if prod is None:
@@ -194,7 +197,7 @@ def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, 
             
         print(f"  prompt     : {rich_prompt[:120].strip()}...")
             
-        result = generate_fal_image_gpt2(prompt=rich_prompt, image=task_refs, image_size="square_hd")
+        result = generate_fal_image_gpt2(prompt=rich_prompt, image=task_refs, image_size="square_hd", quality=img_quality)
         post["image"] = result.get("image", "")
         post["status"] = "success"
     except Exception as e:

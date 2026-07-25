@@ -10,53 +10,98 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 const plans = [
   {
     name: "Starter",
+    badge: null,
+    creditTag: "200 Credits",
     prices: {
-      INR: { basePrice: 999, originalPrice: 999, dmAddon: 399 },
-      USD: { basePrice: 15, originalPrice: 15, dmAddon: 5 }
+      INR: { basePrice: 799, originalPrice: 999, dmAddon: 399 },
+      USD: { basePrice: 11, originalPrice: 15, dmAddon: 5 }
     },
     period: "/month",
-    description: "For small businesses, local brands, SaaS startups, and service companies getting started with AI-powered content.",
+    description: "For small businesses & creators getting started with AI content.",
     features: [
-      "200 credits/month",
-      "500 email campaigns/month",
+      "200 credits / month",
+      "Soft copy image exports",
+      "500 email campaigns / month",
       "1 active brand profile",
-      "Import or Add Up to 50 Products",
-      "All image generation types",
-      "UGC video generation",
-      "Product video generation",
+      "Import up to 50 products",
       "E-commerce listing generator",
-      "Festival calendar",
-      "English + 13 languages",
+      "Festival calendar & planner",
       "Queue up to 30 scheduled posts",
-      "Email support",
+      "Standard email support",
     ],
     popular: false,
     cta: "Get Started",
   },
   {
     name: "Elite",
+    badge: "Most Popular",
+    creditTag: "700 Credits",
     prices: {
-      INR: { basePrice: 3199, originalPrice: 3199, dmAddon: 399 },
-      USD: { basePrice: 49, originalPrice: 49, dmAddon: 5 }
+      INR: { basePrice: 2199, originalPrice: 3199, dmAddon: 399 },
+      USD: { basePrice: 35, originalPrice: 49, dmAddon: 5 }
     },
     period: "/month",
-    description: "For growing D2C and ecommerce brands ready to scale content, automate campaigns, and generate videos — all from one platform.",
+    description: "For growing D2C brands ready to scale content & generate video.",
     features: [
-      "700 credits/month",
-      "2,000 email campaigns/month",
-      "2 brand profiles",
-      "Import or Add Up to 100 Products",
-      "Everything in Starter",
-      "All-in-One Drop feature",
-      "UGC video generation",
-      "Product video generation",
-      "Best time to post analysis",
-      "Unlimited scheduled queue",
-      "Priority generation",
-      "WhatsApp support",
+      "700 credits / month (70 AI images)",
+      "HD quality image exports",
+      "2,000 email campaigns / month",
+      "2 active brand profiles",
+      "Import up to 100 products",
+      "All-in-One Drop & AI Mode",
+      "UGC & Product Video generation",
+      "Best time to post analytics",
+      "Priority WhatsApp support",
     ],
     popular: true,
     cta: "Get Started",
+  },
+  {
+    name: "Agency",
+    badge: "High Capacity",
+    creditTag: "1,750 Credits",
+    prices: {
+      INR: { basePrice: 4999, originalPrice: 6999, dmAddon: 399 },
+      USD: { basePrice: 79, originalPrice: 109, dmAddon: 5 }
+    },
+    period: "/month",
+    description: "For agencies & brand managers requiring top-tier capacity.",
+    features: [
+      "1,750 credits / month (175 AI images)",
+      "HD quality image exports",
+      "10,000 email campaigns / month",
+      "8 active brand profiles",
+      "Import up to 500 products",
+      "Everything in Elite plan",
+      "UGC & Product Video generation",
+      "Dedicated Account Manager",
+      "24/7 Priority support",
+    ],
+    popular: false,
+    cta: "Get Started",
+  },
+  {
+    name: "Custom",
+    badge: "Enterprise",
+    creditTag: "Custom Limits",
+    isCustom: true,
+    prices: {
+      INR: { basePrice: 0, originalPrice: 0, dmAddon: 0 },
+      USD: { basePrice: 0, originalPrice: 0, dmAddon: 0 }
+    },
+    period: "",
+    description: "For multi-agency networks, enterprise scaling & white-labeling.",
+    features: [
+      "Custom credit volume & limits",
+      "Unlimited active brand profiles",
+      "Custom AI model & prompt tuning",
+      "Dedicated Account Manager & SLA",
+      "Enterprise API & custom workflows",
+      "White-label options & custom invoicing",
+      "24/7 Priority phone & WhatsApp support",
+    ],
+    popular: false,
+    cta: "Talk to Us",
   }
 ];
 
@@ -66,37 +111,28 @@ const DashboardBilling = () => {
   const { profile } = useOutletContext<{ profile: any }>() || {};
   const { currency, symbol, setCurrency } = useCurrency();
 
-  const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
-    "Starter": false,
-    "Elite": false,
-  });
-  
   const [checkoutData, setCheckoutData] = useState<any>(null);
 
-  const handleToggle = (planName: string) => {
-    setDmToggles(prev => ({ ...prev, [planName]: !prev[planName] }));
-  };
-
   const handleSelectPlan = (planName: string) => {
-    const isDmEnabled = dmToggles[planName];
+    if (planName === 'Custom') {
+      window.location.href = "mailto:support@syncsocio.com?subject=Book%20a%20Custom%20Plan%20Inquiry";
+      return;
+    }
+
     const planObj = plans.find(p => p.name === planName);
     if (!planObj) return;
 
     const planPrices = planObj.prices[currency];
-    const basePrice = planPrices.basePrice;
-    const amount = basePrice + (isDmEnabled ? planPrices.dmAddon : 0);
-    const creditsAdded = planName === 'Elite' ? 700 : 200;
+    const amount = planPrices.basePrice;
+    const creditsAdded = planName === 'Agency' ? 1750 : planName === 'Elite' ? 700 : 200;
     
     const currentPlan = (profile?.selectedPlan || '').toLowerCase();
     const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand');
-    const isUpgrading = isStarter && planName === 'Elite';
-    
-    // Store DM choice in local storage for onboarding scripts reference
-    localStorage.setItem('syncsocio_dm_automation', isDmEnabled ? 'true' : 'false');
+    const isUpgrading = isStarter && (planName === 'Elite' || planName === 'Agency');
     
     setCheckoutData({
       baseAmount: amount,
-      description: isUpgrading ? 'Upgrade to Elite Plan' : `Purchase ${planName} Plan`,
+      description: isUpgrading ? `Upgrade to ${planName} Plan` : `Purchase ${planName} Plan`,
       type: isUpgrading ? 'plan_upgrade' : 'plan_purchase',
       planName: planName,
       creditsAdded: creditsAdded
@@ -121,7 +157,7 @@ const DashboardBilling = () => {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-8 p-4">
+    <div className="w-full max-w-7xl mx-auto space-y-8 p-4">
       <div className="text-center mb-12 mt-8">
         <h2 className="text-3xl font-bold mb-3">
           Choose how active your agent is
@@ -142,129 +178,133 @@ const DashboardBilling = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
         {plans.map((plan, i) => {
-          const isDmEnabled = dmToggles[plan.name];
           const planPrices = plan.prices[currency];
-          const currentPrice = planPrices.basePrice + (isDmEnabled ? planPrices.dmAddon : 0);
+          const currentPrice = planPrices.basePrice;
+          const originalPrice = planPrices.originalPrice;
+          const discountPercent = originalPrice ? Math.floor(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
           
           const currentPlan = (profile?.selectedPlan || '').toLowerCase();
           const isStarter = currentPlan.includes('starter');
           const isElite = currentPlan.includes('elite');
-          const isCurrentPlan = (plan.name === 'Starter' && isStarter) || (plan.name === 'Elite' && isElite);
+          const isAgency = currentPlan.includes('agency');
+          const isCurrentPlan = (plan.name === 'Starter' && isStarter) || (plan.name === 'Elite' && isElite) || (plan.name === 'Agency' && isAgency);
 
           return (
             <motion.div
               key={plan.name}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className={`relative rounded-2xl p-8 hover-lift transition-all flex flex-col border ${
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className={`relative rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${
                 isCurrentPlan
-                  ? plan.popular
-                    ? "bg-gradient-to-br from-blue-700 to-indigo-900 text-white border-emerald-500 shadow-xl ring-2 ring-emerald-500 scale-[1.02]"
-                    : "bg-emerald-500/5 text-foreground border-emerald-500 shadow-lg shadow-emerald-500/10"
+                  ? "bg-emerald-500/5 text-foreground border-2 border-emerald-500 shadow-lg shadow-emerald-500/10"
                   : plan.popular
-                  ? "bg-blue-600 text-white border-transparent shadow-xl ring-2 ring-blue-600 scale-[1.02]"
-                  : "bg-card text-foreground border-border/50 shadow-sm"
+                  ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
+                  : plan.isCustom
+                  ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
+                  : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
               }`}
             >
+              {/* Top Badges */}
               {isCurrentPlan ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[10px] font-bold bg-emerald-500 text-white uppercase tracking-wider flex items-center gap-1 shadow-md">
+                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white shadow-md z-20">
                   ✓ Current Plan
                 </span>
-              ) : plan.popular ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[10px] font-bold bg-blue-500 text-white uppercase tracking-wider flex items-center gap-1 shadow-md">
-                  <SparklesIcon /> RECOMMENDED FOR YOU
+              ) : plan.badge ? (
+                <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md z-20 whitespace-nowrap ${
+                  plan.popular ? "bg-amber-400 text-slate-900" : "bg-primary text-primary-foreground"
+                }`}>
+                  {plan.badge}
                 </span>
               ) : null}
-              
-              <div className={`w-full py-2 px-4 rounded-xl flex justify-between items-center mb-6 font-bold text-sm ${plan.popular ? "bg-gradient-to-r from-blue-500 to-purple-600 shadow-inner text-white" : "bg-blue-500 text-white"}`}>
-                <div className="flex items-center gap-1.5">
-                  <ZapIcon /> {plan.name === 'Elite' ? 700 : 200} CREDITS
-                </div>
-                <span className="text-xs font-medium">Included</span>
-              </div>
 
-              <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
-              <p className={`text-xs mb-6 ${plan.popular ? "text-white/80" : "text-muted-foreground"}`}>
-                {plan.description}
-              </p>
-              
-              <div className="flex flex-col gap-1 mb-6">
-                {currentPrice < planPrices.originalPrice && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-lg line-through ${plan.popular ? "text-white/60" : "text-muted-foreground/60"}`}>
-                      {symbol}{planPrices.originalPrice}
-                    </span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.popular ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
-                      {Math.floor(((planPrices.originalPrice - currentPrice) / planPrices.originalPrice) * 100)}% OFF
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center w-full relative">
-                  <div className="flex items-baseline gap-1 shrink-0">
-                    <span className="text-4xl font-bold">{symbol}{currentPrice}</span>
-                    <span className={`text-sm ${plan.popular ? "text-white/70" : "text-muted-foreground"}`}>
-                      {plan.period}
-                    </span>
-                  </div>
-                  
-                  {/* Launch Offer Ribbon Badge */}
-                  <div className="ml-auto relative flex items-center shrink-0">
-                    <div className="absolute -left-3 z-10">
-                      <svg width="28" height="28" viewBox="0 0 120 120" className={`animate-spin-slow ${plan.popular ? 'text-white drop-shadow-md' : 'text-primary drop-shadow-sm'}`}>
-                        <path fill="currentColor" d="M60 5 L74 15 L91 10 L96 27 L113 32 L107 48 L120 60 L107 72 L113 88 L96 93 L91 110 L74 105 L60 115 L46 105 L29 110 L24 93 L7 88 L13 72 L0 60 L13 48 L7 32 L24 27 L29 10 L46 15 Z" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Gift size={13} className={plan.popular ? 'text-primary' : 'text-white'} />
+              <div>
+                {/* Title & Credit Tag */}
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xl font-extrabold tracking-tight">{plan.name}</h3>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                    plan.popular
+                      ? "bg-white/20 text-white backdrop-blur-sm"
+                      : "bg-primary/10 text-primary"
+                  }`}>
+                    {plan.creditTag}
+                  </span>
+                </div>
+
+                <p className={`text-xs min-h-[36px] leading-relaxed mb-4 ${
+                  plan.popular ? "text-primary-foreground/85" : "text-muted-foreground"
+                }`}>
+                  {plan.description}
+                </p>
+
+                {/* Price Block */}
+                <div className="mb-6 pt-3 border-t border-border/20">
+                  {!plan.isCustom ? (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs line-through font-semibold ${
+                          plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"
+                        }`}>
+                          {symbol}{originalPrice}
+                        </span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                          plan.popular ? "bg-white/20 text-white" : "bg-emerald-500/10 text-emerald-600"
+                        }`}>
+                          {discountPercent}% OFF
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl sm:text-4xl font-black tracking-tight">{symbol}{currentPrice}</span>
+                        <span className={`text-xs font-semibold ${
+                          plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
+                        }`}>
+                          {plan.period}
+                        </span>
                       </div>
                     </div>
-                    
-                    <div className={`relative pl-6 pr-3 py-1.5 rounded-r-lg border ${
-                      plan.popular 
-                        ? 'bg-white/20 border-white/40 text-white shadow-[inset_0_1px_4px_rgba(255,255,255,0.3)]' 
-                        : 'bg-primary/10 border-primary/20 text-primary shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)]'
-                    }`}>
-                      <div className="font-black text-xs uppercase tracking-wide leading-tight">40% Off On Launch</div>
-                      <div className={`text-[9px] leading-tight mt-0.5 ${plan.popular ? 'text-white/90' : 'text-primary/80'}`}>
-                        Use code <span className={`font-bold px-1 rounded ${plan.popular ? 'bg-white/30 text-white' : 'bg-primary/20 text-primary'}`}>LAUNCH</span> for benefit
-                      </div>
+                  ) : (
+                    <div className="py-1">
+                      <span className="text-3xl font-black tracking-tight">Talk to Us</span>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Bespoke pricing & volume</p>
                     </div>
-                  </div>
+                  )}
                 </div>
-              </div>
 
-
-              <ul className="space-y-3.5 mb-8 flex-1 mt-2">
-                {plan.features.map((feature) => {
-                  let text = feature;
-                  if (feature.includes('credits/month')) {
-                    text = plan.name === 'Elite' ? '700 credits/month' : '200 credits/month';
-                  }
-                  return (
-                    <li key={feature} className="flex items-start gap-3 text-[13px] font-medium">
-                      <Check size={16} className={`shrink-0 mt-0.5 ${plan.popular ? "text-white" : "text-blue-500"}`} />
-                      <span>{text}</span>
+                {/* Features */}
+                <ul className="space-y-2.5 mb-8">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
+                      <Check size={15} className={`shrink-0 mt-0.5 ${
+                        plan.popular ? "text-white" : "text-primary"
+                      }`} />
+                      <span className={plan.popular ? "text-primary-foreground/95" : "text-foreground/90"}>
+                        {feature}
+                      </span>
                     </li>
-                  );
-                })}
-
-              </ul>
+                  ))}
+                </ul>
+              </div>
               
-              <Button
-                disabled={isCurrentPlan}
-                onClick={() => handleSelectPlan(plan.name)}
-                className={`w-full mt-auto py-6 rounded-xl ${
-                  isCurrentPlan 
-                    ? "bg-muted text-muted-foreground cursor-not-allowed" 
-                    : plan.popular
-                    ? "bg-white text-blue-600 hover:bg-white/90 font-bold"
-                    : "bg-blue-600 text-white hover:bg-blue-700 font-bold"
-                }`}
-              >
-                {isCurrentPlan ? "Current Plan" : plan.cta}
-              </Button>
+              <div className="pt-2">
+                <Button
+                  disabled={isCurrentPlan}
+                  onClick={() => handleSelectPlan(plan.name)}
+                  className={`w-full py-6 rounded-2xl font-bold text-xs tracking-wide shadow-md transition-all ${
+                    isCurrentPlan
+                      ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
+                      : plan.popular
+                      ? "bg-white text-primary hover:bg-white/90 hover:shadow-lg"
+                      : plan.isCustom
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  }`}
+                  size="lg"
+                >
+                  {isCurrentPlan ? "Current Plan" : plan.cta}
+                </Button>
+              </div>
             </motion.div>
           );
         })}

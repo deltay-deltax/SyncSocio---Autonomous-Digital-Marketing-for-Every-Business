@@ -645,18 +645,16 @@ const DashboardSettings = () => {
                     className="h-10 rounded-xl px-4 text-xs font-semibold border border-border/60 bg-background hover:border-primary transition-all cursor-pointer outline-none min-w-[180px]"
                   >
                     {brands.map((b) => (
-                      <option key={b._id} value={b._id}>
-                        {b.brandName || 'Untitled Brand'} (@{b.instagramUsername || b.socialHandle || 'no-handle'})
+                      <option key={b._id} value={b._id} disabled={b.isLocked}>
+                        {b.brandName || 'Untitled Brand'} (@{b.instagramUsername || b.socialHandle || 'no-handle'}){b.isLocked ? ' 🔒 (Locked)' : ''}
                       </option>
                     ))}
                   </select>
 
                   {((() => {
-                    const hasStarter = brands.length > 0 && brands.every(b => {
-                      const plan = (b.selectedPlan || '').toLowerCase();
-                      return plan.includes('starter') || plan.includes('brand');
-                    });
-                    const maxBrands = hasStarter ? 1 : 2; // Elite allows 2 brands, Starter allows 1
+                    const hasAgency = brands.some(b => (b.selectedPlan || '').toLowerCase().includes('agency'));
+                    const hasElite = brands.some(b => (b.selectedPlan || '').toLowerCase().includes('elite'));
+                    const maxBrands = hasAgency ? 8 : hasElite ? 2 : 1;
                     return brands.length < maxBrands;
                   })()) && (
                       <button
@@ -1066,31 +1064,37 @@ const DashboardSettings = () => {
 
               {(() => {
                 const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
+                const isAgency = plan.includes('agency');
                 const isElite = plan.includes('elite');
                 
-                const planName = isElite ? 'Elite' : 'Starter';
-                const planPrice = isElite ? '₹3199/month' : '₹999/month';
-                const planCredits = isElite ? '700 credits/month' : '200 credits/month';
-                const planFeatures = !isElite 
+                const planName = isAgency ? 'Agency' : isElite ? 'Elite' : 'Starter';
+                const planPrice = isAgency ? '₹13333/month' : isElite ? '₹3199/month' : '₹999/month';
+                const planCredits = isAgency ? '2,000 credits/month' : isElite ? '700 credits/month' : '200 credits/month';
+                const planFeatures = isAgency
                   ? [
-                      '200 credits/month',
-                      '500 email campaigns/month',
-                      '1 active brand profile',
-                      'All image generation types',
-                      'Festival calendar',
-                      'Hinglish + 5 languages',
-                      'Caption & hashtag generation',
-                      'Schedule up to 30 posts/month',
+                      '2,000 credits/month',
+                      'HD quality images',
+                      '10,000 email campaigns/month',
+                      '8 active brand profiles',
+                      'Import or Add Up to 500 Products',
+                      'All-in-One Drop feature',
+                      'UGC & Product video generation',
+                      'Dedicated Account Manager',
+                      'Unlimited post scheduling',
                       'Analytics dashboard',
-                      'Email support'
+                      'Highest Priority generation',
+                      '24/7 Priority support'
                     ]
-                  : [
+                  : isElite
+                  ? [
                       '700 credits/month',
+                      'HD quality images',
                       '2,000 email campaigns/month',
-                      '1 active brand profile',
-                      'All image generation types',
+                      '2 active brand profiles',
+                      'Import or Add Up to 100 Products',
+                      'UGC & Product video generation',
+                      'All-in-One Drop feature',
                       'Festival calendar & suggestions',
-                      'Hinglish + 5 languages',
                       'Caption & hashtag generation',
                       'Unlimited post scheduling',
                       'Reels + Video + UGC support',
@@ -1098,6 +1102,20 @@ const DashboardSettings = () => {
                       'Best time to post analysis',
                       'Analytics dashboard',
                       'Priority 24/7 support'
+                    ]
+                  : [
+                      '200 credits/month',
+                      'Soft copy images',
+                      '500 email campaigns/month',
+                      '1 active brand profile',
+                      'Import or Add Up to 50 Products',
+                      'All image generation types',
+                      'Festival calendar',
+                      'Hinglish + 13 languages',
+                      'Caption & hashtag generation',
+                      'Schedule up to 30 posts/month',
+                      'Analytics dashboard',
+                      'Email support'
                     ];
 
                 return (
@@ -1165,7 +1183,7 @@ const DashboardSettings = () => {
                 const oneDay = 24 * 60 * 60 * 1000;
                 const canRenew = expiryTime === 0 || diff <= oneDay;
 
-                if (!isElite) {
+                if (!isElite && !isAgency) {
                   return (
                     <div className="space-y-4 pt-4 border-t border-border/40">
                       <div className="flex justify-between items-center ml-1">
@@ -1185,7 +1203,7 @@ const DashboardSettings = () => {
                           Renew Plan (₹999)
                         </Button>
                         <Button 
-                          onClick={() => handlePlanAction('upgrade', profile.userPlan || profile.selectedPlan || 'Starter')} 
+                          onClick={() => handlePlanAction('upgrade', 'Starter')} 
                           className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
                         >
                           Upgrade to Elite (₹3199)
@@ -1205,11 +1223,11 @@ const DashboardSettings = () => {
                         )}
                       </div>
                       <Button 
-                        onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || 'Elite')} 
+                        onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || (isAgency ? 'Agency' : 'Elite'))} 
                         disabled={!canRenew}
                         className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                       >
-                        Renew Elite Plan (₹3199)
+                        Renew {isAgency ? 'Agency' : 'Elite'} Plan ({isAgency ? '₹7999' : '₹3199'})
                       </Button>
                     </div>
                   );

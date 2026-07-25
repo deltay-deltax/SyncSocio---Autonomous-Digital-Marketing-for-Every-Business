@@ -59,6 +59,20 @@ export const createOrUpdateProfile = async (req, res) => {
         { returnDocument: 'after', runValidators: true }
       );
     } else {
+      // Backend enforcement: Check brand limits based on user's plan
+      const existingBrandsCount = await BrandProfile.countDocuments({ user: req.user._id });
+      const userDoc = await User.findById(req.user._id);
+      const planName = (userDoc?.plan || 'starter').toLowerCase();
+      const hasAgency = planName.includes('agency');
+      const hasElite = planName.includes('elite');
+      const maxBrands = hasAgency ? 8 : hasElite ? 2 : 1;
+
+      if (existingBrandsCount >= maxBrands) {
+        return res.status(403).json({ 
+          message: `Plan limit reached. Your current plan allows a maximum of ${maxBrands} brand profile(s). Please upgrade to add more.` 
+        });
+      }
+
       profile = await BrandProfile.create(profileData);
       // Automatically set this brand as active
       await User.findByIdAndUpdate(req.user._id, { activeBrandId: profile._id });
@@ -156,7 +170,7 @@ export const getProfile = async (req, res) => {
 
 export const listBrands = async (req, res) => {
   try {
-    const brands = await BrandProfile.find({ user: req.user._id }).select('brandName socialHandle instagramUsername selectedPlan logo _id');
+    const brands = await BrandProfile.find({ user: req.user._id }).select('brandName socialHandle instagramUsername selectedPlan logo isLocked _id');
     res.json({ brands });
   } catch (error) {
     res.status(500).json({ message: 'Server error listing brands' });
@@ -170,6 +184,7 @@ export const switchBrand = async (req, res) => {
 
     const brand = await BrandProfile.findOne({ user: req.user._id, _id: brandId });
     if (!brand) return res.status(404).json({ message: 'Brand profile not found' });
+    if (brand.isLocked) return res.status(403).json({ message: 'This brand profile is locked on your current plan. Please upgrade to access it.' });
 
     // Update active brand ID on user
     await User.findByIdAndUpdate(req.user._id, { activeBrandId: brandId });
@@ -298,5 +313,48 @@ export const updateProfile = async (req, res) => {
     res.status(200).json(profile);
   } catch (error) {
     res.status(500).json({ message: 'Server error updating profile' });
+  }
+};
+
+export const lockExcessBrands = async (req, res) => {
+  try {
+    const { keepBrandIds } = req.body;
+    if (!Array.isArray(keepBrandIds)) {
+      return res.status(400).json({ message: 'keepBrandIds must be an array' });
+    }
+
+    const userDoc = await User.findById(req.user._id);
+    const planName = (userDoc?.plan || 'starter').toLowerCase();
+    const hasAgency = planName.includes('agency');
+    const hasElite = planName.includes('elite');
+    const maxBrands = hasAgency ? 8 : hasElite ? 2 : 1;
+
+    if (keepBrandIds.length > maxBrands) {
+      return res.status(400).json({ 
+        message: `You can only keep ${maxBrands} brand(s) active on your current plan.` 
+      });
+    }
+
+    // Lock brands not in the keep array
+    await BrandProfile.updateMany(
+      { user: req.user._id, _id: { $nin: keepBrandIds } },
+      { $set: { isLocked: true } }
+    );
+
+    // Explicitly unlock the kept ones (in case they upgrade later and want to unlock previously locked ones, though this specific route is mainly for locking excess)
+    await BrandProfile.updateMany(
+      { user: req.user._id, _id: { $in: keepBrandIds } },
+      { $set: { isLocked: false } }
+    );
+
+    // If active brand is now locked, switch active brand to the first kept brand
+    if (userDoc.activeBrandId && !keepBrandIds.includes(userDoc.activeBrandId.toString()) && keepBrandIds.length > 0) {
+      await User.findByIdAndUpdate(req.user._id, { activeBrandId: keepBrandIds[0] });
+    }
+
+    res.status(200).json({ success: true, message: 'Excess brands locked successfully.' });
+  } catch (error) {
+    console.error('lockExcessBrands Error:', error);
+    res.status(500).json({ message: 'Server error locking brands' });
   }
 };

@@ -522,6 +522,13 @@ const STUDIOS: Studio[] = [
 
 const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }> = ({ s, i, onPick }) => {
   const Icon = s.icon;
+  const profile = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('syncsocio_profile') || '{}'); } catch { return {}; }
+  }, []);
+  const planName = (profile.userPlan || profile.selectedPlan || profile.plan || '').toLowerCase();
+  const isStarter = planName === 'starter' || (!planName.includes('elite') && !planName.includes('agency'));
+  const isLocked = isStarter && (s.id === 'video' || s.id === 'all_in_one');
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -539,11 +546,15 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
           s.hoverBorder
         )}
       >
-        {s.badge && (
+        {isLocked ? (
+          <div className="absolute top-4 right-4 z-20 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center gap-1">
+            <Lock size={10} /> Elite Feature
+          </div>
+        ) : s.badge ? (
           <div className={cn("absolute top-4 right-4 z-20 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm", s.badge.tint)}>
             {s.badge.label}
           </div>
-        )}
+        ) : null}
         {/* Right image — absolutely positioned so it never affects left column height */}
         <div className={cn(
           "absolute right-0 top-0 bottom-0 w-[120px] sm:w-[140px] xl:w-[170px] flex items-center justify-center pointer-events-none",
@@ -556,7 +567,8 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
             className={cn(
               "h-full w-full transition-transform duration-500",
               s.id === "photoshoot" ? "object-cover rounded-2xl shadow-sm" : "object-contain",
-              s.id === "video" && "rotate-3"
+              s.id === "video" && "rotate-3",
+              isLocked && "opacity-75 grayscale-[30%]"
             )}
           />
         </div>
@@ -565,11 +577,16 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
         <div className="flex flex-col flex-1 min-w-0 pr-[120px] sm:pr-[150px] xl:pr-[180px] relative z-10">
           <div
             className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-2xl shadow-inner shrink-0",
+              "flex h-11 w-11 items-center justify-center rounded-2xl shadow-inner shrink-0 relative",
               s.iconBg,
             )}
           >
             <Icon size={20} className={s.iconTint} />
+            {isLocked && (
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md">
+                <Lock size={10} />
+              </div>
+            )}
           </div>
           <h3 className="mt-3 font-display text-base font-black tracking-tight text-foreground leading-tight line-clamp-2">
             {s.title}
@@ -594,18 +611,24 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }>
           </div>
 
           <div className="mt-auto pt-4">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 text-[12px] font-bold",
-                s.cta.tint,
-              )}
-            >
-              {s.cta.label}
-              <ArrowRight
-                size={13}
-                className="transition-transform group-hover:translate-x-1"
-              />
-            </span>
+            {isLocked ? (
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-amber-600">
+                <Lock size={12} /> Unlock with Elite
+              </span>
+            ) : (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[12px] font-bold",
+                  s.cta.tint,
+                )}
+              >
+                {s.cta.label}
+                <ArrowRight
+                  size={13}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </span>
+            )}
           </div>
         </div>
       </button>
@@ -3058,17 +3081,23 @@ const DashboardStrategy = () => {
             </div>
 
             <h2 className="text-xl font-bold mb-2">
-              {upgradeModalReason === 'expired' ? 'Plan Expired' : 'Premium Feature Locked'}
+              {upgradeModalReason === 'expired' 
+                ? 'Plan Expired' 
+                : upgradeModalReason === 'video' 
+                ? 'Video Generation Locked 🔒' 
+                : 'Premium Feature Locked 🔒'}
             </h2>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               {upgradeModalReason === 'expired'
                 ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
+                : upgradeModalReason === 'video'
+                ? 'AI Video Generation (UGC & Product Videos) is exclusive to Elite and Agency plans. Please upgrade to the Elite Plan to unlock AI video generation.'
                 : 'This is an Elite feature. Upgrade to the Elite Plan to unlock the All-in-One Drops feature.'}
             </p>
 
             <Button
               onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}
-              className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold"
+              className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold shadow-lg"
             >
               {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
             </Button>

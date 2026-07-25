@@ -100,6 +100,10 @@ const brandProfileSchema = new mongoose.Schema({
     type: String,
     default: 'Free'
   },
+  isLocked: {
+    type: Boolean,
+    default: false
+  },
   isPaid: {
     type: Boolean,
     default: false

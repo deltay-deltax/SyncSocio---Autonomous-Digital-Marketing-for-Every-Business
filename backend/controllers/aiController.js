@@ -9,6 +9,26 @@ const asyncJobs = new Map();
 export const startAsyncGeneration = async (req, res) => {
     try {
         const { endpoint, payload } = req.body;
+
+        // Block Video Generation for Starter Plan Users
+        const isVideoRequest = (payload && (payload.format === 'Reel' || payload.type === 'video')) || 
+                               (endpoint && (endpoint.includes('video') || endpoint.includes('veo') || endpoint.includes('ugc')));
+
+        const userPlan = (req.user?.plan || '').toLowerCase();
+
+        if (isVideoRequest) {
+            const hasVideoAccess = userPlan.includes('elite') || userPlan.includes('agency');
+            if (!hasVideoAccess) {
+                return res.status(403).json({ 
+                    error: 'Video generation (UGC Videos & Product Videos) is restricted to Elite and Agency plans. Please upgrade your plan to unlock AI video generation.' 
+                });
+            }
+        }
+
+        if (payload && typeof payload === 'object') {
+            payload.userPlan = userPlan;
+        }
+
         const jobId = crypto.randomUUID();
         
         asyncJobs.set(jobId, { status: 'processing', data: null, error: null });
