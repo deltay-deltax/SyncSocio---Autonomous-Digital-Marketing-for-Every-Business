@@ -63,6 +63,7 @@ class StrategyImageRequest(BaseModel):
     videoKind: Optional[str] = "ai-ugc"
     avatarDescription: Optional[str] = ""
     videoScript: Optional[str] = ""
+    videoResolution: Optional[str] = "1080p"  # "720p" (80 credits) | "1080p" (100 credits)
     textMode: Optional[str] = "low"  # "low" = one clean headline, "heavy" = no TEXT DISCIPLINE constraint
     avatarUrl: Optional[str] = ""    # URL to the global avatar image for e-comm consistency
 
@@ -85,6 +86,7 @@ class ProductEditRequest(BaseModel):
     prod_image: Optional[str] = ""
     prod_info: Optional[str] = ""
     brand_dna: Optional[str] = ""
+    logo_image: Optional[str] = ""
     instruction: str
     aspectRatio: Optional[str] = "1:1"
 

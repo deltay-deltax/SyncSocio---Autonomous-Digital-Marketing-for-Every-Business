@@ -177,7 +177,8 @@ def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, 
             ad_template=None,
             campaign_mode=None,
             language="english",
-            custom_directive=custom_directive
+            custom_directive=custom_directive,
+            text_mode="none",
         )
         # Collect reference images (product + logo) and resolve them to JPEG base64
         task_refs = []

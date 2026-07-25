@@ -10,7 +10,7 @@ export default function FreeCreativesSection() {
   const [intent, setIntent] = useState<Intent | null>(null);
 
   return (
-    <section id="free-creatives" className="relative py-24 bg-background overflow-hidden border-t border-border/40">
+    <section id="free-creatives" className="relative py-24 overflow-hidden border-t border-border/40">
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-primary/20 blur-3xl opacity-60" />
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full bg-accent/20 blur-3xl opacity-40" />

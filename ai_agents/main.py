@@ -78,6 +78,23 @@ calendar_collection = db["content_calendars"]
 brand_collection = db["brandprofiles"]
 dm_flows_collection = db["dm_flows"]
 assets_collection = db["assets"]
+apilogs_collection = db["apilogs"]
+
+async def log_api_call(provider: str, endpoint: str, cost_in_cents: float = 0.5, is_error: bool = False, error_message: str = "", user_id: str = None):
+    try:
+        doc = {
+            "provider": provider if provider in ["FAL", "CLAUDE", "OPENAI", "GEMINI", "OTHER"] else "GEMINI",
+            "endpoint": endpoint,
+            "costInCents": cost_in_cents,
+            "isError": is_error,
+            "errorMessage": error_message,
+            "createdAt": datetime.now(timezone.utc)
+        }
+        if user_id and ObjectId.is_valid(str(user_id)):
+            doc["user"] = ObjectId(str(user_id))
+        await apilogs_collection.insert_one(doc)
+    except Exception as e:
+        print(f"[ApiLog] ⚠️ Failed to log API call: {e}")
 
 @app.get("/")
 def read_root():
@@ -923,6 +940,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
         
         await calendar_collection.insert_one(calendar_entry)
         
+        await log_api_call("GEMINI", "/generate-strategy", cost_in_cents=2.0, user_id=brand_info.userId)
         print(f"[DM-AGENT] 🎉 Strategy complete: {len(calendar)} posts, {len(dm_flows_created)} DM flows")
         
         return {
@@ -931,6 +949,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
             "dmFlows": dm_flows_created
         }
     except Exception as e:
+        await log_api_call("GEMINI", "/generate-strategy", cost_in_cents=0, is_error=True, error_message=str(e), user_id=brand_info.userId if 'brand_info' in locals() else None)
         print(f"Error in strategy generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -993,32 +1012,38 @@ async def api_regenerate_strategy(brand_info: BrandInfo):
 
 @app.post("/generate-plan")
 async def api_generate_plan(payload: Dict[str, Any]):
+    user_id = payload.get('userId')
     try:
         brand_data = payload.get('brand_info', payload)
         brand_name = brand_data.get('brandName', 'Unknown')
         print(f"DEBUG: Generating 7-day plan for {brand_name}")
         result = generate_weekly_plan(payload)
+        await log_api_call("GEMINI", "/generate-plan", cost_in_cents=1.0, user_id=user_id)
         return {
             "plan": result.get("plan", []),
             "prompts": result.get("prompts", []),
             "count": len(result.get("plan", []))
         }
     except Exception as e:
+        await log_api_call("GEMINI", "/generate-plan", cost_in_cents=0, is_error=True, error_message=str(e), user_id=user_id)
         print(f"Error in plan generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate-captions")
 async def api_generate_captions(payload: Dict[str, Any]):
+    user_id = payload.get('userId')
     try:
         brand_name = payload.get('brandName', 'Unknown')
         print(f"DEBUG: Generating captions for {brand_name}")
         result = generate_captions_and_hashtags(payload)
+        await log_api_call("GEMINI", "/generate-captions", cost_in_cents=1.0, user_id=user_id)
         return {
             "captions": result.get("captions", []),
             "prompts": result.get("prompts", []),
             "count": len(result.get("captions", []))
         }
     except Exception as e:
+        await log_api_call("GEMINI", "/generate-captions", cost_in_cents=0, is_error=True, error_message=str(e), user_id=user_id)
         print(f"Error in caption generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1800,6 +1825,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_kind=request.videoKind,
                 avatar_description=request.avatarDescription,
                 video_script=request.videoScript,
+                video_resolution=request.videoResolution or "1080p",
             )
         else:
             import asyncio
@@ -1821,6 +1847,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_kind=request.videoKind,
                 avatar_description=request.avatarDescription,
                 video_script=request.videoScript,
+                video_resolution=request.videoResolution or "1080p",
                 text_mode=request.textMode or "low",
                 avatar_url=request.avatarUrl,
             )
@@ -1828,7 +1855,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
         # 3. Log the FAL API Cost to MongoDB (apilogs collection)
         try:
             apilogs_collection = db["apilogs"]
-            cost_in_cents = 0
+            provider = "FAL"
             endpoint = "fal-ai/gpt-image-2"
             
             if request.layout == "image" or request.layout == "photoshoot":
@@ -1836,12 +1863,13 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             elif request.layout == "carousel":
                 cost_in_cents = len(posts) * request.slideCount * 1 # Approx 1 cent per slide
             elif request.layout == "video":
-                cost_in_cents = len(posts) * 15 # Approx 15 cents per video
-                endpoint = "fal-ai/minimax/video-01"
+                provider = "GEMINI"
+                cost_in_cents = len(posts) * 80 # Approx 80 cents per Veo 3.1 video
+                endpoint = "google/veo-3.1-fast"
 
             apilog_doc = {
                 "user": ObjectId(request.userId),
-                "provider": "FAL",
+                "provider": provider,
                 "endpoint": endpoint,
                 "costInCents": cost_in_cents,
                 "isError": False,
@@ -2056,7 +2084,7 @@ async def api_product_image_editor(request: ProductEditRequest):
             try:
                 dna_dict = json.loads(request.brand_dna)
                 # Keep only relevant fields for image generation
-                keys_to_keep = ['brandName', 'businessCategory', 'usp', 'targetAudiences', 'brandTone', 'visualVibe', 'brandKeywords']
+                keys_to_keep = ['brandName', 'businessCategory', 'usp', 'targetAudiences', 'brandTone', 'visualVibe', 'brandKeywords', 'primaryColor', 'secondaryColor']
                 pruned_dna = {k: dna_dict[k] for k in keys_to_keep if k in dna_dict}
                 safe_brand_dna = json.dumps(pruned_dna)
             except Exception:
@@ -2072,8 +2100,10 @@ async def api_product_image_editor(request: ProductEditRequest):
                 f"Product Details: {safe_prod_info}\n"
                 f"User Instruction: {request.instruction}"
             )
-            # generate_fal_image_gpt2 accepts a list of images (reference + product)
+            # generate_fal_image_gpt2 accepts a list of images (reference + product + logo)
             images = [request.ref_image, request.prod_image]
+            if request.logo_image:
+                images.append(request.logo_image)
         else:
             prompt = (
                 f"Edit the image according to the instruction.\n"
@@ -2082,6 +2112,8 @@ async def api_product_image_editor(request: ProductEditRequest):
                 f"User Instruction: {request.instruction}"
             )
             images = [request.ref_image]
+            if request.logo_image:
+                images.append(request.logo_image)
         
         # Map aspect ratio to FAL's image size
         size_map = {

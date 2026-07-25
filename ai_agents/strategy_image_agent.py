@@ -62,46 +62,66 @@ ASPECT_TO_FAL_SIZE: Dict[str, str] = {
 # ──────────────────────────────────────────────
 # E-comm: Shot-type rotation (8 unique shots)
 # ──────────────────────────────────────────────
+
+ECOMM_PRESERVATION_RULES = (
+    " The uploaded product image is the source of truth. Preserve the uploaded product exactly. "
+    "Do NOT redesign, recreate or reinterpret the product. "
+    "Preserve exactly: logo, mascot / character, typography, printed artwork, label graphics, packaging colors, "
+    "packaging proportions, package shape, cap / lid / seal, textures, shadows on the product, reflections on the product, "
+    "print alignment, and branding. "
+    "Do NOT: invent graphics, invent labels, invent packaging details, modernize branding, improve logos, "
+    "replace fonts, rewrite packaging text, change the mascot, change the package shape, move branding, "
+    "or remove product information. If any packaging detail is unclear, preserve it rather than hallucinating new details. "
+    "The product should remain visually identical to the uploaded image. Only modify what is required by the selected shot type. "
+    "Background, lighting, environment, camera angle, props and composition may change. "
+    "The product itself should remain unchanged unless the user explicitly requests a specific edit. "
+    "All packaging text should remain crisp and readable. All logos should remain sharp. All mascots should remain identical. "
+    "Generate a premium commercial marketplace product image suitable for Amazon, Flipkart, Shopify and Meesho. "
+    "The output should look like a professionally photographed studio image while preserving the uploaded product exactly. "
+    "Avoid blur. Avoid AI artifacts. Avoid warped geometry. Avoid distorted packaging. Avoid distorted text. "
+    "Avoid inconsistent branding. Produce an ultra-sharp, photorealistic, high-quality product image suitable for export at 1500x1500 pixels."
+)
+
 ECOMM_SHOT_TYPES: List[Dict[str, str]] = [
     {
         "id": "flat_lay",
         "label": "Hero Flat-Lay",
-        "directive": "Overhead 90° flat-lay. Pure white background. Product dead-center. No shadows. Clean isolated look.",
+        "directive": f"Overhead 90° flat-lay. Pure white background. Product dead-center. No shadows. Clean isolated look.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "lifestyle_hold",
         "label": "Lifestyle Hand-Hold",
-        "directive": "Model's hand holding the product. Glowing healthy skin in background. Soft warm sidelight at 45°. Real lifestyle feel.",
+        "directive": f"Model's hand holding the product. Glowing healthy skin in background. Soft warm sidelight at 45°. Real lifestyle feel.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "macro_detail",
         "label": "Macro Close-Up",
-        "directive": "Extreme close-up on product label, texture, and packaging detail. Shallow depth-of-field bokeh. Premium studio macro lighting.",
+        "directive": f"Extreme close-up on product label, texture, and packaging detail. Shallow depth-of-field bokeh. Premium studio macro lighting.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "styled_editorial",
         "label": "Styled Editorial",
-        "directive": "Styled scene with on-brand props and brand-color backdrop. Asymmetric editorial composition. Magazine-quality aesthetics.",
+        "directive": f"Styled scene with on-brand props and brand-color backdrop. Asymmetric editorial composition. Magazine-quality aesthetics.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "ritual_in_use",
         "label": "In-Use Ritual",
-        "directive": "Product mid-application or mid-use. Bathroom countertop or vanity surface. Mist / steam / glow effect. Routine/ritual mood.",
+        "directive": f"Product mid-application or mid-use. Bathroom countertop or vanity surface. Mist / steam / glow effect. Routine/ritual mood.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "gifting_unbox",
         "label": "Gifting & Unboxing",
-        "directive": "Product arranged in premium gifting context. Tissue paper, ribbon, gift box. Soft pastel or brand-color background. Gift-ready mood.",
+        "directive": f"Product arranged in premium gifting context. Tissue paper, ribbon, gift box. Soft pastel or brand-color background. Gift-ready mood.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "shadow_play",
         "label": "Dramatic Shadow Play",
-        "directive": "Single product on clean surface. Dramatic directional sidelight. Long bold cast shadow. Minimal negative space. High contrast.",
+        "directive": f"Single product on clean surface. Dramatic directional sidelight. Long bold cast shadow. Minimal negative space. High contrast.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "outdoor_lifestyle",
         "label": "Outdoor Lifestyle",
-        "directive": "Product in outdoor natural light. Lush foliage, garden, or natural texture surface. Candid, fresh, real-world setting.",
+        "directive": f"Product in outdoor natural light. Lush foliage, garden, or natural texture surface. Candid, fresh, real-world setting.{ECOMM_PRESERVATION_RULES}",
     },
 ]
 
@@ -115,32 +135,32 @@ FASHION_ECOMM_SHOT_TYPES: List[Dict[str, str]] = [
     {
         "id": "full_body_front",
         "label": "Full-Body Front View",
-        "directive": "Full-body shot. Model standing facing the camera, wearing the garment. Clean lifestyle or studio background.",
+        "directive": f"Full-body shot. Model standing facing the camera, wearing the garment. Clean lifestyle or studio background.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "side_profile",
         "label": "Side Profile & Drape",
-        "directive": "Model turned 45 degrees or walking side-profile to show the garment's drape and fit from the side.",
+        "directive": f"Model turned 45 degrees or walking side-profile to show the garment's drape and fit from the side.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "back_detail",
         "label": "Back Detail View",
-        "directive": "Model facing directly away from the camera, showing the back design and fit of the garment.",
+        "directive": f"Model facing directly away from the camera, showing the back design and fit of the garment.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "mid_torso",
         "label": "Mid-Shot Torso",
-        "directive": "Cropped mid-shot focusing on the chest, neckline, and upper torso details. Lifestyle context.",
+        "directive": f"Cropped mid-shot focusing on the chest, neckline, and upper torso details. Lifestyle context.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "fabric_macro",
         "label": "Fabric Close-Up",
-        "directive": "Extreme macro close-up on the garment's fabric texture, stitching, or print. No face visible. Premium lighting.",
+        "directive": f"Extreme macro close-up on the garment's fabric texture, stitching, or print. No face visible. Premium lighting.{ECOMM_PRESERVATION_RULES}",
     },
     {
         "id": "flat_lay",
         "label": "Apparel Flat-Lay",
-        "directive": "Overhead 90° flat-lay of the garment styled on a premium surface. Clean isolated look.",
+        "directive": f"Overhead 90° flat-lay of the garment styled on a premium surface. Clean isolated look.{ECOMM_PRESERVATION_RULES}",
     },
 ]
 
@@ -556,7 +576,7 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
             "but do not add anything beyond what the layout specifies — "
             "no extra badges, ratings, or CTAs not already called for."
         )
-    elif text_mode == "heavy":
+    elif text_mode in ("heavy", "none"):
         text_discipline = ""
     else:  # text_mode == "low" (default)
         text_discipline = (
@@ -1039,6 +1059,7 @@ def generate_strategy_images(
     video_kind: Optional[str] = "ai-ugc",
     avatar_description: Optional[str] = "",
     video_script: Optional[str] = "",
+    video_resolution: Optional[str] = "1080p",
     text_mode: str = "low",  # "low" = one headline | "heavy" = no TEXT DISCIPLINE
     avatar_url: Optional[str] = "",
 ) -> List[Dict[str, Any]]:
@@ -1567,13 +1588,13 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                         )
                     
                     # Stage 2: Take the generated hero image and animate it with Veo 3.1 Fast
-                    print(f"[StrategyAgent] UGC Stage 2: Animating starting image with Google Veo 3.1 Fast...")
-                    result = generate_veo_video(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=8)
+                    print(f"[StrategyAgent] UGC Stage 2: Animating starting image with Google Veo 3.1 Fast ({video_resolution or '1080p'})...")
+                    result = generate_veo_video(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=8, resolution=video_resolution or "1080p")
                 else:
                     # Standard img2video uses Google Veo 3.1 Fast
                     caption = pick_caption(index)
-                    print(f"[StrategyAgent] Animating starting image with Google Veo 3.1 Fast...")
-                    result = generate_veo_video(prompt=prompt, image=ref, aspect_ratio=aspect_ratio, duration=8)
+                    print(f"[StrategyAgent] Animating starting image with Google Veo 3.1 Fast ({video_resolution or '1080p'})...")
+                    result = generate_veo_video(prompt=prompt, image=ref, aspect_ratio=aspect_ratio, duration=8, resolution=video_resolution or "1080p")
 
                 return {
                     "url":       result.get("url"),

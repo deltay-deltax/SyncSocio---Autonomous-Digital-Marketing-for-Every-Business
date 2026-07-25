@@ -7,7 +7,7 @@ const apiLogSchema = new mongoose.Schema({
   },
   provider: {
     type: String,
-    enum: ['FAL', 'CLAUDE', 'OPENAI', 'OTHER'],
+    enum: ['FAL', 'CLAUDE', 'OPENAI', 'GEMINI', 'OTHER'],
     required: true,
   },
   endpoint: {
