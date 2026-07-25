@@ -82,89 +82,6 @@ ECOMM_PRESERVATION_RULES = (
     "Avoid inconsistent branding. Produce an ultra-sharp, photorealistic, high-quality product image suitable for export at 1500x1500 pixels."
 )
 
-ECOMM_SHOT_TYPES: List[Dict[str, str]] = [
-    {
-        "id": "flat_lay",
-        "label": "Hero Flat-Lay",
-        "directive": f"Overhead 90° flat-lay. Pure white background. Product dead-center. No shadows. Clean isolated look.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "lifestyle_hold",
-        "label": "Lifestyle Hand-Hold",
-        "directive": f"Model's hand holding the product. Glowing healthy skin in background. Soft warm sidelight at 45°. Real lifestyle feel.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "macro_detail",
-        "label": "Macro Close-Up",
-        "directive": f"Extreme close-up on product label, texture, and packaging detail. Shallow depth-of-field bokeh. Premium studio macro lighting.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "styled_editorial",
-        "label": "Styled Editorial",
-        "directive": f"Styled scene with on-brand props and brand-color backdrop. Asymmetric editorial composition. Magazine-quality aesthetics.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "ritual_in_use",
-        "label": "In-Use Ritual",
-        "directive": f"Product mid-application or mid-use. Bathroom countertop or vanity surface. Mist / steam / glow effect. Routine/ritual mood.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "gifting_unbox",
-        "label": "Gifting & Unboxing",
-        "directive": f"Product arranged in premium gifting context. Tissue paper, ribbon, gift box. Soft pastel or brand-color background. Gift-ready mood.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "shadow_play",
-        "label": "Dramatic Shadow Play",
-        "directive": f"Single product on clean surface. Dramatic directional sidelight. Long bold cast shadow. Minimal negative space. High contrast.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "outdoor_lifestyle",
-        "label": "Outdoor Lifestyle",
-        "directive": f"Product in outdoor natural light. Lush foliage, garden, or natural texture surface. Candid, fresh, real-world setting.{ECOMM_PRESERVATION_RULES}",
-    },
-]
-
-# For counts > 8: cycle back with a warm/cool tone variant suffix
-ECOMM_SHOT_VARIANTS = [" Warm golden tones variant.", " Cool blue-toned variant."]
-
-# ──────────────────────────────────────────────
-# Fashion E-comm: Shot-type rotation (Apparel specific)
-# ──────────────────────────────────────────────
-FASHION_ECOMM_SHOT_TYPES: List[Dict[str, str]] = [
-    {
-        "id": "full_body_front",
-        "label": "Full-Body Front View",
-        "directive": f"Full-body shot. Model standing facing the camera, wearing the garment. Clean lifestyle or studio background.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "side_profile",
-        "label": "Side Profile & Drape",
-        "directive": f"Model turned 45 degrees or walking side-profile to show the garment's drape and fit from the side.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "back_detail",
-        "label": "Back Detail View",
-        "directive": f"Model facing directly away from the camera, showing the back design and fit of the garment.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "mid_torso",
-        "label": "Mid-Shot Torso",
-        "directive": f"Cropped mid-shot focusing on the chest, neckline, and upper torso details. Lifestyle context.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "fabric_macro",
-        "label": "Fabric Close-Up",
-        "directive": f"Extreme macro close-up on the garment's fabric texture, stitching, or print. No face visible. Premium lighting.{ECOMM_PRESERVATION_RULES}",
-    },
-    {
-        "id": "flat_lay",
-        "label": "Apparel Flat-Lay",
-        "directive": f"Overhead 90° flat-lay of the garment styled on a premium surface. Clean isolated look.{ECOMM_PRESERVATION_RULES}",
-    },
-]
-
-
 # ──────────────────────────────────────────────
 # E-comm: Platform-specific visual rules
 # ──────────────────────────────────────────────
@@ -559,15 +476,10 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
         template_is_active = True
         print(f"[ImageAgent] 🔲 Template #{ad_template}: {t['label']}")
     else:
-        camera_angles = [
-            "Use a dramatic low-angle shot.", "Use an overhead flat-lay composition.",
-            "Use an extreme close-up macro shot.", "Use an asymmetrical framing.",
-            "Use a straight-on eye-level composition.", "Use dynamic tilted framing."
-        ]
-        angle = random.choice(camera_angles)
-        template_block = f"\nCOMPOSITION VARIATION: {angle}\n"
+        fallback_angle = "Use a dynamic and highly engaging composition."
+        template_block = f"\nCOMPOSITION VARIATION: {fallback_angle}\n"
         template_is_active = False
-        print(f"[ImageAgent] 🤖 No template selected — free composition. Shuffler: {angle}")
+        print("[ImageAgent] 🤖 No template or directive selected — using fallback.")
 
     # ── TEXT DISCIPLINE constraint ──
     if template_is_active:
@@ -784,10 +696,62 @@ def refine_campaign_copy(brand_doc: Dict[str, Any], subject: str, body: str, ins
         }
 
 
+def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], platform: str, count: int, is_fashion: bool, layout: str) -> List[str]:
+    try:
+        brand_name = brand_doc.get("brandName", "Brand")
+        prod_name = product.get("name", "Flagship product") if product else "Flagship product"
+        
+        system_prompt = (
+            "You are an expert E-Commerce Art Director planning a photoshoot. "
+            f"You need to plan exactly {count} distinct shot types/angles for this product/brand. "
+            "Return ONLY a valid JSON array of strings representing the short labels/headings for each shot. "
+            "Do not return objects, just an array of strings like: [\"Shot 1 Name\", \"Shot 2 Name\"]. "
+            "Keep the labels under 8 words each."
+        )
+        
+        user_prompt = f"Brand: {brand_name}\nProduct: {prod_name}\nLayout Type: {layout}\nTarget Platform: {platform}\nIs Fashion/Apparel: {is_fashion}\n\n"
+        
+        if layout == "ecomm":
+            if platform == "Amazon":
+                user_prompt += "CRITICAL RULE: Since the platform is Amazon, the FIRST shot in the array MUST ALWAYS be 'Classic White Background' (Amazon main image compliance). The remaining shots can be lifestyle, dynamic, macro, etc.\n\n"
+            else:
+                user_prompt += "Plan a highly engaging sequence of product shots optimized for an e-commerce storefront, designed to build trust and show detail.\n\n"
+        elif layout == "image":
+            user_prompt += "Plan a highly engaging sequence of creative ad angles designed to convert leads and sales (e.g., 'Cinematic low-angle product hero', 'Lifestyle in-use aesthetic').\n\n"
+        elif layout == "carousel":
+            user_prompt += "Plan a sequential storyline of highly engaging ad angles for a swipeable carousel. The sequence must build a narrative to convert leads, starting with a strong hook angle and ending with a compelling CTA scene.\n\n"
+        elif layout == "video":
+            user_prompt += "Plan a dynamic sequence of cinematic video shots (e.g., 'Slow pan across product texture', 'Fast-paced lifestyle action'). Focus on movement and pacing that converts leads and sales.\n\n"
+        elif layout == "festival":
+            user_prompt += "Plan a festive, culturally relevant sequence of ad angles tailored to holiday marketing. The visuals should evoke celebration and community while seamlessly integrating the brand/product to drive seasonal sales.\n\n"
+        elif layout == "sprint":
+            user_prompt += "Plan an aggressive, high-energy sequence of ad angles optimized for a short-term sprint campaign (e.g., flash sales, limited drops, urgent CTAs). Visuals should create immense FOMO and urgency.\n\n"
+        elif layout == "clone":
+            user_prompt += "Plan a sequence of highly authentic, UGC-style (User Generated Content) ad angles featuring a digital avatar/clone. The angles should feel candid, native to social media (e.g. TikTok/Reels POV), and designed to build raw trust.\n\n"
+        else:
+            user_prompt += "Plan a highly engaging sequence of shots suited for this brand's aesthetic.\n\n"
+            
+        user_prompt += f"Output EXACTLY {count} labels in a JSON array."
+        
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.4, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+        content = response.content.strip()
+        
+        if content.startswith("```json"): content = content.replace("```json", "", 1)
+        if content.endswith("```"): content = content[:-3]
+        
+        shots = json.loads(content.strip())
+        if isinstance(shots, list) and len(shots) == count: return shots
+    except Exception as e:
+        print(f"[ShotPlanner] ⚠️ LLM Planning failed: {e}. Falling back to default.")
+    
+    return ["Classic White Background"] + [f"Dynamic Angle {i}" for i in range(2, count + 1)]
+
 def build_ecomm_image_prompt(
     brand_doc: Dict[str, Any],
     product: Optional[Dict[str, Any]],
     platform: str,
+    shot_label: str,
     shot_index: int,
     total_count: int,
     ref_image: Optional[str] = None,
@@ -879,26 +843,9 @@ def build_ecomm_image_prompt(
                 "No generic watermarks or external logos."
             )
 
-    # ── 5. Shot-type directive (rotation) ──────────────────────────
-    
-    shot_types_to_use = FASHION_ECOMM_SHOT_TYPES if is_fashion else ECOMM_SHOT_TYPES
-    n_base = len(shot_types_to_use)
-    shot   = shot_types_to_use[shot_index % n_base]
-    
-    directive = shot["directive"]
-    if shot["id"] == "flat_lay" and (platform != "Amazon" or shot_index > 0):
-        directive = (
-            f"Overhead 90° flat-lay. Clean modern surface styled with subtle matching props. "
-            f"Background is a soft pastel surface/gradient matching the brand's aesthetic (primary: {primary_color}, secondary: {secondary_color}). "
-            f"Product dead-center with soft natural shadows."
-        )
-
-    variant_suffix = ""
-    if shot_index >= n_base:
-        variant_suffix = ECOMM_SHOT_VARIANTS[(shot_index // n_base - 1) % len(ECOMM_SHOT_VARIANTS)]
-
-    shot_line  = f"SHOT {shot_index + 1}/{total_count} — {shot['label']}: {directive}{variant_suffix}"
-    caption    = f"{caption_product} · {shot['label']} ({platform}) ✨"
+    # ── 5. Shot-type directive (agent planned) ──────────────────────────
+    shot_line  = f"SHOT {shot_index + 1}/{total_count} — {shot_label}: Compose the visual to perfectly capture this specific shot angle."
+    caption    = f"{caption_product} · {shot_label} ({platform}) ✨"
 
     # ── 5. Ref-image instruction ────────────────────────────────────
     ref_line = f"\nREFERENCE: Keep the exact shape, material, design, and color of the product attached." if ref_image else ""
@@ -1102,12 +1049,27 @@ Orchestrates generation for all layout types.
     if layout == "ecomm":
         fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
         plat = platform or "Shopify"
+        
+        # ── 1. Plan Shots (Agentic Orchestration) ──
+        _raw_cat = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")).lower()
+        _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear", "shoe", "accessory", "accessories", "streetwear", "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+        is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
+        
+        planned_shots = plan_image_shots(
+            brand_doc=brand_doc, 
+            product=products[0] if products else None, 
+            platform=plat, 
+            count=count, 
+            is_fashion=is_fashion,
+            layout="ecomm"
+        )
 
         # For e-comm, if products provided use them; else use ref images as visual anchor
         # We cycle products and ref images across the N images so they align dynamically
         tasks = []
         for i in range(count):
             prod_for_ecomm = assigned_products[i] if (assigned_products and i < len(assigned_products)) else None
+            shot_label = planned_shots[i] if i < len(planned_shots) else "Dynamic Product Shot"
             
             # Cost optimisation: pass only product image + logo (not all scraped ref_images)
             task_refs = []
@@ -1134,6 +1096,7 @@ Orchestrates generation for all layout types.
                 brand_doc=brand_doc,
                 product=prod_for_ecomm,
                 platform=plat,
+                shot_label=shot_label,
                 shot_index=i,
                 total_count=count,
                 ref_image=task_refs[0] if task_refs else None,
@@ -1190,31 +1153,32 @@ Orchestrates generation for all layout types.
     elif layout == "image":
         fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "portrait_2_3")
 
-        # Mix of 6 camera angles + 10 templates if ad_template is None
+        # Mix of agent-planned camera angles + 10 templates if ad_template is None
         mixed_directives = []
         if ad_template is None:
-            camera_angles = [
-                "Use a dramatic low-angle shot.",
-                "Use an overhead flat-lay composition.",
-                "Use an extreme close-up macro shot.",
-                "Use an asymmetrical framing.",
-                "Use a straight-on eye-level composition.",
-                "Use dynamic tilted framing."
-            ]
+            _raw_cat = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")).lower()
+            _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear", "shoe", "accessory", "accessories", "streetwear", "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+            is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
+            
             template_directives = [t["directive"] for t in AD_TEMPLATE_DIRECTIVES.values()]
             
             num_angles = math.ceil(count * 5 / 8)
             num_templates = count - num_angles
             
-            shuffled_angles = camera_angles.copy()
-            random.shuffle(shuffled_angles)
-            angles_sampled = [shuffled_angles[i % len(camera_angles)] for i in range(num_angles)]
+            planned_angles = plan_image_shots(
+                brand_doc=brand_doc,
+                product=products[0] if products else None,
+                platform=platform or "Instagram",
+                count=num_angles if num_angles > 0 else 1,
+                is_fashion=is_fashion,
+                layout="image"
+            )
             
             shuffled_templates = template_directives.copy()
             random.shuffle(shuffled_templates)
             templates_sampled = [shuffled_templates[i % len(template_directives)] for i in range(num_templates)]
             
-            mixed_directives = angles_sampled + templates_sampled
+            mixed_directives = planned_angles[:num_angles] + templates_sampled
             random.shuffle(mixed_directives)
 
         # Determine template per image:
