@@ -7,8 +7,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // Removed "Home" (logo handles that) — 6 links feel airy in the pill
 const NAV_LINKS = [
-  { label: "Creatives", href: "#creatives" },
-  { label: "Features", href: "#features" },
   { label: "How it Works", href: "#how-it-works" },
   { label: "Creatives", href: "#creatives" },
   { label: "Features", href: "#features" },
