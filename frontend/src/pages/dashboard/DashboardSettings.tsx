@@ -1169,6 +1169,7 @@ const DashboardSettings = () => {
               {(() => {
                 const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
                 const isElite = plan.includes('elite');
+                const isAgency = plan.includes('agency');
 
                 let expiryTime = 0;
                 if (profile.userPlanExpiresAt) {

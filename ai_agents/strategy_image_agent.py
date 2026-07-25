@@ -1025,6 +1025,7 @@ def generate_strategy_images(
     avatar_description: Optional[str] = "",
     video_script: Optional[str] = "",
     video_resolution: Optional[str] = "1080p",
+    video_duration: Optional[int] = None,
     text_mode: str = "low",  # "low" = one headline | "heavy" = no TEXT DISCIPLINE
     avatar_url: Optional[str] = "",
 ) -> List[Dict[str, Any]]:
@@ -1598,12 +1599,12 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                     
                     # Stage 2: Take the generated hero image and animate it with Veo 3.1 Fast
                     print(f"[StrategyAgent] UGC Stage 2: Animating starting image with Google Veo 3.1 Fast ({video_resolution or '1080p'})...")
-                    result = generate_veo_video(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=8, resolution=video_resolution or "1080p")
+                    result = generate_veo_video(prompt=prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=video_duration or 8, resolution=video_resolution or "1080p")
                 else:
                     # Standard img2video uses Google Veo 3.1 Fast
                     caption = pick_caption(index)
                     print(f"[StrategyAgent] Animating starting image with Google Veo 3.1 Fast ({video_resolution or '1080p'})...")
-                    result = generate_veo_video(prompt=prompt, image=ref, aspect_ratio=aspect_ratio, duration=8, resolution=video_resolution or "1080p")
+                    result = generate_veo_video(prompt=prompt, image=ref, aspect_ratio=aspect_ratio, duration=video_duration or 8, resolution=video_resolution or "1080p")
 
                 return {
                     "url":       result.get("url"),

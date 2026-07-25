@@ -1859,6 +1859,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 avatar_description=request.avatarDescription,
                 video_script=request.videoScript,
                 video_resolution=request.videoResolution or "1080p",
+                video_duration=request.videoDuration,
             )
         else:
             import asyncio
@@ -1881,6 +1882,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 avatar_description=request.avatarDescription,
                 video_script=request.videoScript,
                 video_resolution=request.videoResolution or "1080p",
+                video_duration=request.videoDuration,
                 text_mode=request.textMode or "low",
                 avatar_url=request.avatarUrl,
             )
@@ -1969,6 +1971,7 @@ class UGCScriptRequest(BaseModel):
     avatarDescription: str = ""
     isSaas: bool = False
     language: str = "english"
+    videoDuration: int = 8
 
 @app.post("/generate-ugc-script")
 async def api_generate_ugc_script(request: UGCScriptRequest):
@@ -2010,15 +2013,15 @@ async def api_generate_ugc_script(request: UGCScriptRequest):
         sys_msg = (
             f"You are an expert short-form video scriptwriter. {style_guide} "
             f"The script MUST be written entirely in {request.language.upper()}. "
-            "The script MUST be deliverable in exactly 8 seconds when spoken naturally "
-            "(roughly 20-30 words maximum). Output ONLY the script text — no labels, "
+            f"The script MUST be deliverable in exactly {request.videoDuration} seconds when spoken naturally "
+            "(roughly 2.5 words per second). Output ONLY the script text — no labels, "
             "no stage directions, no quotation marks, no markdown."
         )
 
         user_msg = (
             f"Brand: {request.brandName}\n"
             f"{tone_line}\n{usp_line}\n{prod_line}\n{desc_line}\n{benefit_line}\n{avatar_line}\n\n"
-            "Write the 8-second UGC script now."
+            f"Write the {request.videoDuration}-second UGC script now."
         ).strip()
 
         response = llm.invoke([SystemMessage(content=sys_msg), HumanMessage(content=user_msg)])

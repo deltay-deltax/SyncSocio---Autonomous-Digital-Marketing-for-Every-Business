@@ -1345,7 +1345,7 @@ Ensure a clean layout, ${brand.visualStyle || 'modern premium'} aesthetic, and b
                           </div>
                           <p className="text-xs font-bold text-foreground leading-tight truncate">{p.name}</p>
                           <p className="text-[10px] text-muted-foreground/80 mt-0.5 uppercase tracking-wider font-semibold">
-                            {p.price ? `$${p.price}` : 'Catalog'}
+                            {p.price ? `₹${p.price}` : 'Catalog'}
                           </p>
                         </button>
                       );
