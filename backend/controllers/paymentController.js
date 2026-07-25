@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import BrandProfile from '../models/BrandProfile.js';
 import Coupon from '../models/Coupon.js';
 import { sendInvoiceEmail, generatePDFBuffer, genInvoiceNo, fmtDate, resolvePack, sendPaymentFailedEmail } from '../utils/sendInvoiceEmail.js';
+import { sendMetaCapiEvent } from '../services/metaConversionsAPI.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -161,6 +162,18 @@ export const verifyPayment = async (req, res) => {
           console.error('[Invoice Email] Failed to send invoice:', err.message)
         );
         // ── End invoice email ──────────────────────────────────────────
+
+        // Meta Conversions API (Purchase)
+        if (req.body.metaEventId) {
+          sendMetaCapiEvent('Purchase', req.body.metaEventId, {
+            email: invoiceEmail,
+            clientIp: req.ip || req.headers['x-forwarded-for'],
+            clientUserAgent: req.headers['user-agent']
+          }, {
+            value: transaction.amount,
+            currency: 'INR'
+          });
+        }
 
         return res.status(200).json({
           success: true,

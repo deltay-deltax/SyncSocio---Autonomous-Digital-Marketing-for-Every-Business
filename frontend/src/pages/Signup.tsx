@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 
-import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import { trackMetaEvent } from '@/utils/metaPixel';
 
 const PLAN_STORAGE_KEY = "syncsocio_selected_plan";
 
@@ -178,12 +179,15 @@ const Signup = () => {
 
     try {
       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const metaEventId = trackMetaEvent('CompleteRegistration', {}, false);
+      
       const res = await fetch(`${BASE_URL}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: verificationEmail,
           otp: otp.trim(),
+          metaEventId,
         })
       });
 
@@ -465,13 +469,15 @@ const Signup = () => {
                     <GoogleLogin
                       onSuccess={async (credentialResponse) => {
                         try {
+                          const metaEventId = trackMetaEvent('CompleteRegistration', {}, false);
                           const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
                           const res = await fetch(`${BASE_URL}/auth/google`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                               idToken: credentialResponse.credential,
-                              isSignup: true
+                              isSignup: true,
+                              metaEventId
                             })
                           });
                           const data = await res.json();

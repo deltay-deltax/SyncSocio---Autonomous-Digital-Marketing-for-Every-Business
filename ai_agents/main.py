@@ -23,6 +23,7 @@ from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_image_gpt2
 from veo_engine import generate_veo_video
+from meta_capi import send_meta_capi_event
 from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
 from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest, AutopilotRequest
 from post_validator import validate_post, optimize_post, publisher_node
@@ -319,9 +320,12 @@ def download_image_as_base64(url: str) -> str:
 class ScrapeRequest(BaseModel):
     url: str
     businessCategory: Optional[str] = None
+    metaEventId: Optional[str] = None
+    userEmail: Optional[str] = None
+    userPhone: Optional[str] = None
 
 @app.post("/scrape-brand-profile")
-async def api_scrape_brand_profile(payload: ScrapeRequest):
+async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
     url = payload.url
     openai_key = os.getenv("OPENAI_API_KEY")
     
@@ -330,6 +334,24 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
         
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
+        
+    if payload.metaEventId:
+        client_ip = request.client.host if request.client else None
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+            
+        send_meta_capi_event(
+            event_name="URLDropped",
+            event_id=payload.metaEventId,
+            user_data={
+                "email": payload.userEmail,
+                "phone": payload.userPhone,
+                "client_ip": client_ip,
+                "client_user_agent": request.headers.get("user-agent")
+            },
+            custom_data={"website_url": url}
+        )
     
     is_fallback = False
     try:

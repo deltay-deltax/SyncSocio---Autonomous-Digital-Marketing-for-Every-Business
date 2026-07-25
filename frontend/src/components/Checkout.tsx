@@ -6,6 +6,7 @@ import { ArrowLeft, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { trackMetaEvent } from '@/utils/metaPixel';
 
 interface CheckoutProps {
   baseAmount: number;
@@ -146,17 +147,22 @@ export const Checkout: React.FC<CheckoutProps> = ({
         order_id: orderData.order.id,
         handler: async (response: any) => {
           try {
+            const metaEventId = crypto.randomUUID();
             const verifyRes = await fetch(`${API_BASE}/payment/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({
                 ...response,
-                billingAddress: billing
+                billingAddress: billing,
+                metaEventId
               })
             });
 
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok || !verifyData.success) throw new Error(verifyData.message || 'Payment verification failed');
+
+            // Fire client-side Meta Pixel Purchase event with the exact same ID
+            trackMetaEvent('Purchase', { value: orderData.order.amount / 100, currency: orderData.order.currency }, false, metaEventId);
 
             toast({ title: 'Payment Successful', description: 'Your order has been processed.' });
             onSuccess(verifyData);
