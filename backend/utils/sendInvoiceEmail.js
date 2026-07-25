@@ -41,11 +41,12 @@ const PLAN_META = {
   },
   Elite: {
     label: 'Elite Plan',
-    subtitle: '700 Credits / month · 3 Brand Profiles',
+    subtitle: '700 Credits / month · 2 Brand Profiles',
     icon: '👑',
     features: [
-      '700 AI credits / month',
-      '3 brand profiles',
+      '700 AI credits / month (70 images @ 10 cr/gen)',
+      '50%+ Margin',
+      '2 brand profiles',
       'All-in-One Drop feature',
       'AI Mode (Auto Generate)',
       'E-commerce listing generator',
@@ -55,6 +56,21 @@ const PLAN_META = {
       'Best time to post analysis',
       'Priority generation',
       'WhatsApp support',
+    ],
+  },
+  Agency: {
+    label: 'Agency Plan',
+    subtitle: '1,750 Credits / month · 8 Brand Profiles',
+    icon: '🚀',
+    features: [
+      '1,750 AI credits / month (175 images @ 10 cr/gen)',
+      '45-55% Margin',
+      '8 active brand profiles',
+      'All-in-One Drop feature',
+      'UGC & Product video generation',
+      'Dedicated Account Manager',
+      'Highest Priority generation',
+      '24/7 Priority support',
     ],
   },
 };

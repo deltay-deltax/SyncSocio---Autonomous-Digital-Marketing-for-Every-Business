@@ -457,7 +457,8 @@ const ProductForm: React.FC<{
 const Products = () => {
   const { userId, cacheKey, isSaas, productLimit } = React.useMemo(() => {
     const p = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
-    const planName = (p.userPlan || p.selectedPlan || '').toLowerCase();
+    const planName = (p.userPlan || p.selectedPlan || p.plan || '').toLowerCase();
+    const isAgency = planName.includes('agency');
     const isElite = planName.includes('elite');
     const SAAS_CATS = [
       'Mobile Apps',
@@ -479,7 +480,7 @@ const Products = () => {
       userId:   uid,
       cacheKey: `${CACHE_KEY}_${uid}`,
       isSaas:   SAAS_CATS.includes(p.businessCategory || ''),
-      productLimit: isElite ? 100 : 50,
+      productLimit: isAgency ? 500 : isElite ? 100 : 50,
     };
   }, []);
 

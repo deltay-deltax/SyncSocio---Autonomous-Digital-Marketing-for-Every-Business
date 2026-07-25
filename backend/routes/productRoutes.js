@@ -35,6 +35,19 @@ router.post('/', protect, async (req, res) => {
     const { imageBase64, name, description, price, offerPrice, keyBenefit, serviceProvider } = req.body;
     if (!name) return res.status(400).json({ error: 'Product name is required' });
 
+    // Strict product limit enforcement per plan: Starter=50, Elite=100, Agency=500
+    const userPlan = (req.user.plan || '').toLowerCase();
+    const isAgency = userPlan.includes('agency');
+    const isElite = userPlan.includes('elite');
+    const productLimit = isAgency ? 500 : isElite ? 100 : 50;
+
+    const currentCount = await Product.countDocuments({ user: req.user._id });
+    if (currentCount >= productLimit) {
+      return res.status(400).json({ 
+        error: `Product limit reached for your ${req.user.plan || 'current'} plan (maximum ${productLimit} products allowed). Upgrade your plan to add more products.` 
+      });
+    }
+
     let imageUrl = '';
     if (imageBase64 && !imageBase64.startsWith('http')) {
       try {

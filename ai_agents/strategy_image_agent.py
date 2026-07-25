@@ -1064,11 +1064,15 @@ def generate_strategy_images(
     avatar_url: Optional[str] = "",
 ) -> List[Dict[str, Any]]:
     """
-    Orchestrates generation for all layout types.
+Orchestrates generation for all layout types.
 
     Returns:
         list of {image?: str (base64), url?: str, caption: str, type: str}
     """
+    user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
+    img_quality = "low" if "starter" in user_plan else "medium"
+    
+    brand_name = brand_doc.get("brandName", "the brand")
     # If Nepal target, force language to English or Nepali
     loc = brand_doc.get("location")
     country = "Unknown"
@@ -1155,6 +1159,7 @@ def generate_strategy_images(
                     prompt=prompt,
                     image=task_ref,
                     image_size=fal_size,
+                    quality=img_quality,
                 )
                 return {
                     "image":   result["image"],
@@ -1292,6 +1297,7 @@ def generate_strategy_images(
                     prompt=prompt,
                     image=refs,
                     image_size=fal_size,
+                    quality=img_quality,
                 )
                 return {
                     "image":    result["image"],
@@ -1355,6 +1361,7 @@ def generate_strategy_images(
                     prompt=prompt,
                     image=refs,
                     image_size=fal_size,
+                    quality=img_quality,
                 )
                 return {
                     "image":    result["image"],
@@ -1466,6 +1473,7 @@ def generate_strategy_images(
                     count=slide_count,
                     slide_prompts=enriched_slide_prompts,
                     image_size=fal_size,
+                    quality=img_quality,
                 )
                 return {
                     "slides":  slides,          # list of {image: base64}
@@ -1568,7 +1576,7 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                     
                     print(f"[StrategyAgent] UGC Stage 1: Generating starting image with GPT-Image-2...")
                     gpt_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "portrait_16_9")
-                    gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=ref, image_size=gpt_size)
+                    gpt_res = generate_fal_image_gpt2(prompt=stage1_prompt, image=ref, image_size=gpt_size, quality=img_quality)
                     generated_img = gpt_res.get("image")
                     if not generated_img:
                         raise Exception("UGC Stage 1 image generation failed")

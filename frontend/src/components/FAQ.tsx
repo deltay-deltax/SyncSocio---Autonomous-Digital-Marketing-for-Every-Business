@@ -18,7 +18,7 @@ const LANDING_FAQS = [
   },
   {
     q: "Can I manage multiple brand profiles?",
-    a: "Yes. Our Starter plan supports 1 active brand profile, while the Elite plan supports up to 2 brand profiles. Each brand has its own isolated Brand DNA, image upload library, and analytics dashboards.",
+    a: "Yes. Our Starter plan supports 1 active brand profile, Elite plan supports up to 2 brand profiles, and Agency plan supports up to 10 brand profiles. Each brand has its own isolated Brand DNA, image upload library, and analytics dashboards.",
   },
   {
     q: "Do you offer a free trial?",
@@ -101,7 +101,7 @@ const FAQ = () => {
                         <p className="text-sm font-medium leading-relaxed text-muted-foreground">
                           {i === 3 ? (
                             <>
-                              Yes. Our Starter plan supports 1 active brand profile, while the Elite plan supports up to 2 brand profiles. Each brand has its own{" "}
+                              Yes. Our Starter plan supports 1 active brand profile, Elite plan supports up to 2 brand profiles, and Agency plan supports up to 10 brand profiles. Each brand has its own{" "}
                               <Link to="/signup" className="text-muted-foreground hover:text-muted-foreground cursor-default">
                                 isolated
                               </Link>{" "}
