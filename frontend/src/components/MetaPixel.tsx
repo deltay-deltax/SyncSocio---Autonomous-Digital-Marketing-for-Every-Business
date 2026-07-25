@@ -16,7 +16,7 @@ export const MetaPixel = () => {
     // Initialize Meta Pixel
     const initPixel = () => {
       // @ts-ignore
-      !function(f,b,e,v,n,t,s)
+      !function(f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any)
       {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
       // @ts-ignore
       n.callMethod.apply(n,arguments):n.queue.push(arguments)};
