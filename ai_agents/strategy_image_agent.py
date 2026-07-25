@@ -733,7 +733,7 @@ def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]
             
         user_prompt += f"Output EXACTLY {count} labels in a JSON array."
         
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.4, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.4, google_api_key=os.getenv("GOOGLE_API_KEY"))
         response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
         content = response.content.strip()
         
@@ -888,7 +888,7 @@ def build_ecomm_image_prompt(
     prompt = f"{brand_line}\n{product_line}\n{platform_line}\n{shot_line}{ref_line}{idea_line}\n{closing}{fashion_note}"
 
     print("\n" + "=" * 80)
-    print(f"[EcommAgent] Shot {shot_index + 1}/{total_count} - {shot['label']} | Platform: {platform}")
+    print(f"[EcommAgent] Shot {shot_index + 1}/{total_count} - {shot_label} | Platform: {platform}")
     print(f"  prompt     : {prompt[:120].strip()}...")
     print("=" * 80 + "\n")
 

@@ -29,7 +29,7 @@ const CampaignChannels = () => {
   }, []);
 
   return (
-    <section id="channels" className="relative py-24 sm:py-32 overflow-hidden">
+    <section id="channels" className="relative py-16 md:py-24 lg:py-32 overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-10 right-10 w-[400px] h-[400px] rounded-full opacity-[0.08] blur-[120px] bg-emerald-500" />
         <div className="absolute bottom-10 left-10 w-[400px] h-[400px] rounded-full opacity-[0.08] blur-[120px] bg-primary" />
@@ -49,7 +49,7 @@ const CampaignChannels = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight"
+            className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight"
           >
             Talk to every customer.{" "}
             <span className="gradient-text">At the same time.</span>

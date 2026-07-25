@@ -38,7 +38,7 @@ const features = [
 
 const Features = () => {
   return (
-    <section id="features" className="py-24 sm:py-32 overflow-hidden relative">
+    <section id="features" className="py-16 md:py-24 lg:py-32 overflow-hidden relative">
       {/* Background gradient splash */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full opacity-[0.07] blur-[100px] bg-primary" />
@@ -50,7 +50,7 @@ const Features = () => {
           <span className="text-sm font-semibold text-primary uppercase tracking-widest mb-4 block">
             What We Offer
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
             The protocol.{" "}
             <span className="gradient-text">Your unfair advantage.</span>
           </h2>

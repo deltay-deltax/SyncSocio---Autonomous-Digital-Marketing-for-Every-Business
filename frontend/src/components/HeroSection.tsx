@@ -36,7 +36,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tight mb-6"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight mb-4 md:mb-6"
             >
               Your brand,{" "}
               <span className="liquid-underline">posting itself.</span>
@@ -48,7 +48,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lg sm:text-xl text-muted-foreground mb-10 leading-relaxed max-w-xl"
+              className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 md:mb-10 leading-relaxed max-w-xl px-4"
             >
               Drop your URL. Watch your brand come to life in minutes.
             </motion.p>
@@ -61,7 +61,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
             >
               <Button
                 size="lg"
-                className="gradient-bg text-primary-foreground border-0 text-base px-8 py-6 hover-lift w-fit"
+                className="gradient-bg text-primary-foreground border-0 text-sm md:text-base px-6 py-5 md:px-8 md:py-6 hover-lift w-fit"
                 onClick={onWaitlistClick}
               >
                 Claim 3 Free Creatives

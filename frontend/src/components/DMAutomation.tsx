@@ -56,7 +56,7 @@ const DMAutomation = () => {
   }, []);
 
   return (
-    <section id="auto-dm" className="relative py-24 overflow-hidden">
+    <section id="auto-dm" className="relative py-16 md:py-24 overflow-hidden">
       <div className="absolute top-1/2 left-0 w-72 h-72 rounded-full opacity-10 blur-3xl bg-primary -translate-y-1/2" />
       <div className="absolute top-1/4 right-0 w-96 h-96 rounded-full opacity-10 blur-3xl bg-primary" />
 
@@ -77,7 +77,7 @@ const DMAutomation = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-4xl sm:text-5xl font-bold tracking-tight mb-4"
+            className="text-3xl md:text-4xl sm:text-5xl font-bold tracking-tight mb-4"
           >
             Your DMs, on <span className="gradient-text">autopilot</span>
           </motion.h2>
