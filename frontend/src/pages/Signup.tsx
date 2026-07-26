@@ -180,6 +180,7 @@ const Signup = () => {
     try {
       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
       const metaEventId = trackMetaEvent('CompleteRegistration', {}, false);
+      console.log("🔥 [TESTING] Firing Meta Pixel Event: CompleteRegistration (Frontend via OTP)");
       
       const res = await fetch(`${BASE_URL}/auth/verify-otp`, {
         method: "POST",
@@ -470,6 +471,7 @@ const Signup = () => {
                       onSuccess={async (credentialResponse) => {
                         try {
                           const metaEventId = trackMetaEvent('CompleteRegistration', {}, false);
+                          console.log("🔥 [TESTING] Firing Meta Pixel Event: CompleteRegistration (Frontend via Google)");
                           const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
                           const res = await fetch(`${BASE_URL}/auth/google`, {
                             method: "POST",
