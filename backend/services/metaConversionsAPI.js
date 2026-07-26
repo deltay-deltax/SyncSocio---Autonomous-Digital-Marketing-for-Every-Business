@@ -50,12 +50,6 @@ export const sendMetaCapiEvent = async (eventName, eventId, userData = {}, custo
     ]
   };
 
-  // Append test_event_code if we have one (useful for real-time testing in Meta Events Manager)
-  const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || 'TEST28885';
-  if (TEST_EVENT_CODE) {
-    payload.test_event_code = TEST_EVENT_CODE;
-  }
-
   try {
     const response = await axios.post(
       `https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
