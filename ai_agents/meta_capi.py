@@ -59,6 +59,11 @@ def send_meta_capi_event(
         ]
     }
     
+    # Append test_event_code if we have one (useful for real-time testing in Meta Events Manager)
+    test_event_code = os.getenv("META_TEST_EVENT_CODE", "TEST28885")
+    if test_event_code:
+        payload["test_event_code"] = test_event_code
+    
     url = f"https://graph.facebook.com/v19.0/{pixel_id}/events?access_token={access_token}"
     
     try:

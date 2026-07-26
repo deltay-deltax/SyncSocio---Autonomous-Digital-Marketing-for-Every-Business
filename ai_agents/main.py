@@ -344,6 +344,7 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         if forwarded_for:
             client_ip = forwarded_for.split(",")[0].strip()
             
+        print("🔥 [TESTING] Firing Meta CAPI Event: URLDropped (Python Backend)")
         send_meta_capi_event(
             event_name="URLDropped",
             event_id=payload.metaEventId,
