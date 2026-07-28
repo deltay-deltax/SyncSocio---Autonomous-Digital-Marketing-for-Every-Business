@@ -203,7 +203,7 @@ router.post('/callback', protect, async (req, res) => {
     // Auto-create general template upon connect
     if (profile.whatsappWABAId) {
       try {
-        console.log(`[WhatsApp Template] Auto-creating 'velocity_campaign_generic' template for WABA: ${profile.whatsappWABAId}...`);
+        console.log(`[WhatsApp Template] Auto-creating 'custom_campaign_image' template for WABA: ${profile.whatsappWABAId}...`);
         
         const btnText = (profile.brandName ? `${profile.brandName} now` : 'Visit Website')
           .replace(/[^\w\s]/gi, '')
@@ -277,7 +277,7 @@ router.post('/callback', protect, async (req, res) => {
         }
 
         const templatePayload = {
-          name: "velocity_campaign_generic",
+          name: "custom_campaign_image",
           language: "en",
           category: "MARKETING",
           components: templateComponents
@@ -292,15 +292,15 @@ router.post('/callback', protect, async (req, res) => {
       } catch (tmplErr) {
         const errorDetail = tmplErr?.response?.data?.error;
         if (errorDetail && errorDetail.code === 100 && errorDetail.error_subcode === 2388040) {
-          console.log(`[WhatsApp Template] Template 'velocity_campaign_generic' already exists.`);
+          console.log(`[WhatsApp Template] Template 'custom_campaign_image' already exists.`);
         } else {
           console.error('[WhatsApp Template] Failed to auto-create primary template:', tmplErr?.response?.data || tmplErr.message);
           
           // Fallback: Create text-only template if image header template failed
           try {
-            console.log(`[WhatsApp Template] Creating fallback text template 'velocity_campaign_text'...`);
+            console.log(`[WhatsApp Template] Creating fallback text template 'custom_campaign_text'...`);
             const fallbackPayload = {
-              name: "velocity_campaign_text",
+              name: "custom_campaign_text",
               language: "en",
               category: "MARKETING",
               components: [
@@ -317,7 +317,7 @@ router.post('/callback', protect, async (req, res) => {
               fallbackPayload,
               { headers: { Authorization: `Bearer ${accessToken}` } }
             );
-            console.log(`[WhatsApp Template] Successfully created fallback template 'velocity_campaign_text'.`);
+            console.log(`[WhatsApp Template] Successfully created fallback template 'custom_campaign_text'.`);
           } catch (fbErr) {
             console.error('[WhatsApp Template] Fallback template creation error:', fbErr?.response?.data || fbErr.message);
           }

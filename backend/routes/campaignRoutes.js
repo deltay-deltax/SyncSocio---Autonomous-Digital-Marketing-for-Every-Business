@@ -368,7 +368,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
         // Use the generic template created during connect
         payload.type = 'template';
         payload.template = {
-          name: 'velocity_campaign_generic',
+          name: 'custom_campaign_image',
           language: { code: 'en' },
           components: [
             {
@@ -407,7 +407,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
         } catch (err) {
           const errCode = err?.response?.data?.error?.code;
           if (errCode === 132001) {
-            console.log(`[WhatsApp] Primary template not found, attempting fallback template 'velocity_campaign_text'...`);
+            console.log(`[WhatsApp] Primary template not found, attempting fallback template 'custom_campaign_text'...`);
             try {
               const fallbackPayload = {
                 messaging_product: 'whatsapp',
@@ -415,7 +415,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
                 to: recipient,
                 type: 'template',
                 template: {
-                  name: 'velocity_campaign_text',
+                  name: 'custom_campaign_text',
                   language: { code: 'en' },
                   components: [
                     { type: 'body', parameters: [ { type: 'text', text: messageText } ] }
