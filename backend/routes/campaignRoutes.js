@@ -405,6 +405,36 @@ router.post('/send-whatsapp', protect, async (req, res) => {
           console.log(`[WhatsApp] Sent successfully to ${recipient}`);
           successCount++;
         } catch (err) {
+          const errCode = err?.response?.data?.error?.code;
+          if (errCode === 132001) {
+            console.log(`[WhatsApp] Primary template not found, attempting fallback template 'velocity_campaign_text'...`);
+            try {
+              const fallbackPayload = {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: recipient,
+                type: 'template',
+                template: {
+                  name: 'velocity_campaign_text',
+                  language: { code: 'en' },
+                  components: [
+                    { type: 'body', parameters: [ { type: 'text', text: messageText } ] }
+                  ]
+                }
+              };
+              await axios.post(
+                `https://graph.facebook.com/v25.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+                fallbackPayload,
+                { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}` } }
+              );
+              console.log(`[WhatsApp] Fallback template sent successfully to ${recipient}`);
+              successCount++;
+              continue;
+            } catch (fbErr) {
+              console.error(`[WhatsApp] Fallback template also failed for ${recipient}:`, fbErr?.response?.data || fbErr.message);
+            }
+          }
+
           console.error(`[WhatsApp] Failed sending to ${recipient}:`, err?.response?.data || err.message);
           failCount++;
           lastError = err?.response?.data?.error?.message || err.message;
