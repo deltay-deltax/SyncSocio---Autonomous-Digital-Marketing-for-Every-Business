@@ -215,7 +215,7 @@ router.post('/callback', protect, async (req, res) => {
           category: "MARKETING",
           components: [
             { type: "HEADER", format: "IMAGE" },
-            { type: "BODY", text: "{{1}}" },
+            { type: "BODY", text: "{{1}}\n\nPowered by SyncSocio" },
             { type: "FOOTER", text: "T&C apply. Reply STOP to unsubscribe." },
             { type: "BUTTONS", buttons: [{ type: "URL", text: btnText, url: btnUrl }] }
           ]
