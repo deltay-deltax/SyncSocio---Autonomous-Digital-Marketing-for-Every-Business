@@ -245,7 +245,7 @@ const matchesFollowUpConfirmation = (flow, pending, incomingText) => {
   const normalizedIncoming = normalizeKeywordInput(incomingText);
   if (!normalizedIncoming) return false;
 
-  const promptMessage = flow.messages?.[pending.followUpMessageIndex - 1];
+  const promptMessage = flow.messages?.[pending.followUpMessageIndex];
   if (!promptMessage?.buttons?.length) return false;
 
   return promptMessage.buttons.some(
@@ -755,6 +755,7 @@ const buildMessagePayloadForNextMessage = (flow, messageObj, profile, options = 
       }
       if (btn.type === 'url') {
         url = buildTrackedButtonUrl({ flowId: flow._id, buttonId: btn.id, targetUrl: url });
+        console.log(`[WEBHOOK] Built tracked URL for button: ${url}`);
       }
       return {
         type: 'web_url',

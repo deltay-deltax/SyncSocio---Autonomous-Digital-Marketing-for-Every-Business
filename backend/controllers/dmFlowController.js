@@ -242,11 +242,15 @@ export const trackDMFlowClick = async (req, res) => {
     const flowId = toTrimmedString(req.query.flowId);
     const targetUrl = toTrimmedString(req.query.url);
 
+    console.log(`[TRACK_CLICK] Hit! flowId=${flowId}, url=${targetUrl}`);
+
     if (!flowId || typeof flowId !== 'string') {
+      console.warn(`[TRACK_CLICK] Missing flowId`);
       return res.status(400).send('Missing flowId');
     }
 
     if (!targetUrl || typeof targetUrl !== 'string') {
+      console.warn(`[TRACK_CLICK] Missing url`);
       return res.status(400).send('Missing url');
     }
 
