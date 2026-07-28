@@ -333,6 +333,21 @@ const DashboardHome = () => {
                   </div>
 
 
+                  {/* WhatsApp Icon */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate('/dashboard/settings?tab=Connected%20Accounts');
+                    }}
+                    title="Configure WhatsApp Business"
+                    className={cn(
+                      "w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-[1.15] active:scale-95 cursor-pointer",
+                      profile?.whatsappIsConnected
+                        ? "bg-[#25D366] text-white shadow-sm shadow-green-500/25"
+                        : "bg-slate-200 text-slate-400 grayscale opacity-60"
+                    )}>
+                    <WhatsAppIcon size={13} />
+                  </div>
 
                   {/* Google Icon */}
                   <div
