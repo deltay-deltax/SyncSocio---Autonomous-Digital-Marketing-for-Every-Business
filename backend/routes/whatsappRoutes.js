@@ -214,44 +214,73 @@ router.post('/callback', protect, async (req, res) => {
           ? profile.website
           : 'https://www.syncsocio.com';
 
+        // Obtain a real sample media handle from Meta's Resumable Upload API
+        const appId = process.env.INSTAGRAM_CLIENT_ID || process.env.FB_APP_ID || '1491990322515220';
+        let sampleHandle = null;
+
+        try {
+          const samplePng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+          const sessionRes = await axios.post(
+            `https://graph.facebook.com/v21.0/${appId}/uploads`,
+            null,
+            { params: { file_length: samplePng.length, file_type: 'image/png', access_token: accessToken } }
+          );
+          const sessionId = sessionRes.data?.id;
+          if (sessionId) {
+            const uploadRes = await axios.post(
+              `https://graph.facebook.com/v21.0/${sessionId}`,
+              samplePng,
+              { headers: { 'Authorization': `OAuth ${accessToken}`, 'file_offset': 0, 'Content-Type': 'image/png' } }
+            );
+            sampleHandle = uploadRes.data?.h || null;
+            console.log(`[WhatsApp Upload] Generated sample media handle: ${sampleHandle}`);
+          }
+        } catch (uploadErr) {
+          console.warn('[WhatsApp Upload] Resumable upload failed, using fallback handle handling:', uploadErr?.response?.data || uploadErr.message);
+        }
+
+        const templateComponents = [
+          {
+            type: "BODY",
+            text: "Hey! Check this out 👇\n\n{{1}}\n\nPowered by SyncSocio",
+            example: {
+              body_text: [
+                ["Check out our exclusive Diwali offer on MuscleBlaze supplements! Get 20% OFF today."]
+              ]
+            }
+          },
+          {
+            type: "FOOTER",
+            text: "T&C apply. Reply STOP to unsubscribe."
+          },
+          {
+            type: "BUTTONS",
+            buttons: [
+              {
+                type: "URL",
+                text: btnText,
+                url: btnUrl
+              }
+            ]
+          }
+        ];
+
+        // Add IMAGE Header if sampleHandle was successfully generated
+        if (sampleHandle) {
+          templateComponents.unshift({
+            type: "HEADER",
+            format: "IMAGE",
+            example: {
+              header_handle: [sampleHandle]
+            }
+          });
+        }
+
         const templatePayload = {
           name: "velocity_campaign_generic",
           language: "en",
           category: "MARKETING",
-          components: [
-            {
-              type: "HEADER",
-              format: "IMAGE",
-              example: {
-                header_handle: [
-                  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e"
-                ]
-              }
-            },
-            {
-              type: "BODY",
-              text: "Hey! Check this out 👇\n\n{{1}}\n\nPowered by SyncSocio",
-              example: {
-                body_text: [
-                  ["Check out our exclusive Diwali offer on MuscleBlaze supplements! Get 20% OFF today."]
-                ]
-              }
-            },
-            {
-              type: "FOOTER",
-              text: "T&C apply. Reply STOP to unsubscribe."
-            },
-            {
-              type: "BUTTONS",
-              buttons: [
-                {
-                  type: "URL",
-                  text: btnText,
-                  url: btnUrl
-                }
-              ]
-            }
-          ]
+          components: templateComponents
         };
 
         await axios.post(
@@ -265,7 +294,33 @@ router.post('/callback', protect, async (req, res) => {
         if (errorDetail && errorDetail.code === 100 && errorDetail.error_subcode === 2388040) {
           console.log(`[WhatsApp Template] Template 'velocity_campaign_generic' already exists.`);
         } else {
-          console.error('[WhatsApp Template] Failed to auto-create template:', tmplErr?.response?.data || tmplErr.message);
+          console.error('[WhatsApp Template] Failed to auto-create primary template:', tmplErr?.response?.data || tmplErr.message);
+          
+          // Fallback: Create text-only template if image header template failed
+          try {
+            console.log(`[WhatsApp Template] Creating fallback text template 'velocity_campaign_text'...`);
+            const fallbackPayload = {
+              name: "velocity_campaign_text",
+              language: "en",
+              category: "MARKETING",
+              components: [
+                {
+                  type: "BODY",
+                  text: "Hey! Check this out 👇\n\n{{1}}\n\nPowered by SyncSocio",
+                  example: { body_text: [["Check out our exclusive Diwali offer on MuscleBlaze supplements!"]] }
+                },
+                { type: "FOOTER", text: "T&C apply. Reply STOP to unsubscribe." }
+              ]
+            };
+            await axios.post(
+              `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates`,
+              fallbackPayload,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            console.log(`[WhatsApp Template] Successfully created fallback template 'velocity_campaign_text'.`);
+          } catch (fbErr) {
+            console.error('[WhatsApp Template] Fallback template creation error:', fbErr?.response?.data || fbErr.message);
+          }
         }
       }
     }
