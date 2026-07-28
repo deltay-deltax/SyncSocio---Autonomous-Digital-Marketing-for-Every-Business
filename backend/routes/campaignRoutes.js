@@ -351,6 +351,10 @@ router.post('/send-whatsapp', protect, async (req, res) => {
     // Combine subject and body for the message
     const messageText = subject ? `*${subject}*\n\n${body}` : body;
 
+    let successCount = 0;
+    let failCount = 0;
+    let lastError = null;
+
     const sendWithThrottle = async () => {
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i].replace('+', ''); // WhatsApp API expects number without '+'
@@ -361,24 +365,31 @@ router.post('/send-whatsapp', protect, async (req, res) => {
           to: recipient,
         };
 
+        // Use the generic template created during connect
+        payload.type = 'template';
+        payload.template = {
+          name: 'velocity_campaign_generic',
+          language: { code: 'en' },
+          components: [
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: messageText }
+              ]
+            }
+          ]
+        };
+
         if (mediaId) {
-          payload.type = 'image';
-          payload.image = {
-            id: mediaId,
-            caption: messageText
-          };
+          payload.template.components.unshift({
+            type: 'header',
+            parameters: [ { type: 'image', image: { id: mediaId } } ]
+          });
         } else if (image && typeof image === 'string' && image.startsWith('http')) {
-          payload.type = 'image';
-          payload.image = {
-            link: image,
-            caption: messageText
-          };
-        } else {
-          payload.type = 'text';
-          payload.text = {
-            preview_url: false,
-            body: messageText
-          };
+          payload.template.components.unshift({
+            type: 'header',
+            parameters: [ { type: 'image', image: { link: image } } ]
+          });
         }
 
         try {
@@ -393,8 +404,11 @@ router.post('/send-whatsapp', protect, async (req, res) => {
             }
           );
           console.log(`[WhatsApp] Sent successfully to ${recipient}`);
+          successCount++;
         } catch (err) {
           console.error(`[WhatsApp] Failed sending to ${recipient}:`, err?.response?.data || err.message);
+          failCount++;
+          lastError = err?.response?.data?.error?.message || err.message;
         }
 
         // Add slight delay to avoid rate limits
@@ -406,13 +420,22 @@ router.post('/send-whatsapp', protect, async (req, res) => {
 
     // Trigger async throttled sending sequence
     sendWithThrottle().then(async () => {
-      console.log(`WhatsApp Campaign completed sending to ${recipients.length} recipients.`);
-      await createNotification(
-        req.user._id,
-        'success',
-        'WhatsApp Campaign Sent',
-        `Successfully triggered WhatsApp blast to ${recipients.length} recipients.`
-      );
+      console.log(`WhatsApp Campaign completed. Success: ${successCount}, Failed: ${failCount}`);
+      if (successCount > 0) {
+        await createNotification(
+          req.user._id,
+          'success',
+          'WhatsApp Campaign Sent',
+          `Successfully triggered WhatsApp blast to ${successCount} recipients. ${failCount > 0 ? `(${failCount} failed)` : ''}`
+        );
+      } else {
+        await createNotification(
+          req.user._id,
+          'error',
+          'WhatsApp Campaign Failed',
+          `Blast failed to send to all ${failCount} recipients. Error: ${lastError}`
+        );
+      }
     });
 
     res.status(200).json({ success: true, message: 'WhatsApp campaign blast triggered successfully' });
