@@ -380,17 +380,16 @@ router.post('/send-whatsapp', protect, async (req, res) => {
           ]
         };
 
-        if (mediaId) {
-          payload.template.components.unshift({
-            type: 'header',
-            parameters: [ { type: 'image', image: { id: mediaId } } ]
-          });
-        } else if (image && typeof image === 'string' && image.startsWith('http')) {
-          payload.template.components.unshift({
-            type: 'header',
-            parameters: [ { type: 'image', image: { link: image } } ]
-          });
-        }
+        const headerImageParam = mediaId
+          ? { type: 'image', image: { id: mediaId } }
+          : (image && typeof image === 'string' && image.startsWith('http'))
+          ? { type: 'image', image: { link: image } }
+          : { type: 'image', image: { link: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e' } };
+
+        payload.template.components.unshift({
+          type: 'header',
+          parameters: [ headerImageParam ]
+        });
 
         try {
           await axios.post(
