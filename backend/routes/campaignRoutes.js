@@ -369,7 +369,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
         payload.type = 'template';
         payload.template = {
           name: 'custom_campaign_image',
-          language: { code: 'en' },
+          language: { code: 'en_US' },
           components: [
             {
               type: 'body',
@@ -407,7 +407,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
         } catch (err) {
           const errCode = err?.response?.data?.error?.code;
           if (errCode === 132001) {
-            console.log(`[WhatsApp] Primary template not found, attempting fallback template 'custom_campaign_text'...`);
+            console.log(`[WhatsApp] Primary template not found in en_US, attempting fallback template 'custom_campaign_text'...`);
             try {
               const fallbackPayload = {
                 messaging_product: 'whatsapp',
@@ -416,7 +416,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
                 type: 'template',
                 template: {
                   name: 'custom_campaign_text',
-                  language: { code: 'en' },
+                  language: { code: 'en_US' },
                   components: [
                     { type: 'body', parameters: [ { type: 'text', text: messageText } ] }
                   ]
