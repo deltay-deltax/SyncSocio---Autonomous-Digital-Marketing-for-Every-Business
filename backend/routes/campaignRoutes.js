@@ -357,7 +357,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
 
     const sendWithThrottle = async () => {
       for (let i = 0; i < recipients.length; i++) {
-        const recipient = recipients[i].replace('+', ''); // WhatsApp API expects number without '+'
+        const recipient = String(recipients[i] || '').replace(/\D/g, ''); // WhatsApp API requires digits only (no '+', '-', or spaces)
         
         const payload = {
           messaging_product: 'whatsapp',
