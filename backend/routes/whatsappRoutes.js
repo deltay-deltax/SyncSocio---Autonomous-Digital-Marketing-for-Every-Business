@@ -278,7 +278,7 @@ router.post('/callback', protect, async (req, res) => {
 
         const templatePayload = {
           name: "custom_campaign_image",
-          language: "en",
+          language: "en_US",
           category: "MARKETING",
           components: templateComponents
         };
@@ -291,7 +291,13 @@ router.post('/callback', protect, async (req, res) => {
         console.log(`[WhatsApp Template] Successfully created template for WABA: ${profile.whatsappWABAId}`);
       } catch (tmplErr) {
         const errorDetail = tmplErr?.response?.data?.error;
-        if (errorDetail && errorDetail.code === 100 && errorDetail.error_subcode === 2388040) {
+        const isAlreadyExists = errorDetail && (
+          errorDetail.error_subcode === 2388040 || 
+          errorDetail.error_subcode === 2388024 ||
+          (errorDetail.message && errorDetail.message.includes('already exists')) ||
+          (errorDetail.error_user_title && errorDetail.error_user_title.includes('Already Exists'))
+        );
+        if (isAlreadyExists) {
           console.log(`[WhatsApp Template] Template 'custom_campaign_image' already exists.`);
         } else {
           console.error('[WhatsApp Template] Failed to auto-create primary template:', tmplErr?.response?.data || tmplErr.message);
@@ -301,7 +307,7 @@ router.post('/callback', protect, async (req, res) => {
             console.log(`[WhatsApp Template] Creating fallback text template 'custom_campaign_text'...`);
             const fallbackPayload = {
               name: "custom_campaign_text",
-              language: "en",
+              language: "en_US",
               category: "MARKETING",
               components: [
                 {
