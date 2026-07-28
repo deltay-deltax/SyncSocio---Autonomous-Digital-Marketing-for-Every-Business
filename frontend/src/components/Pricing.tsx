@@ -11,8 +11,8 @@ const plans = [
     badge: null,
     creditTag: "200 Credits",
     prices: {
-      INR: { basePrice: 799, originalPrice: 999, dmAddon: 399 },
-      USD: { basePrice: 11, originalPrice: 15, dmAddon: 5 }
+      INR: { basePrice: 799, originalPrice: 999, dmAddon: 299 },
+      USD: { basePrice: 11, originalPrice: 15, dmAddon: 4 }
     },
     period: "/month",
     description: "For small businesses & creators getting started with AI content.",
@@ -35,8 +35,8 @@ const plans = [
     badge: "Most Popular",
     creditTag: "700 Credits",
     prices: {
-      INR: { basePrice: 2199, originalPrice: 3199, dmAddon: 399 },
-      USD: { basePrice: 35, originalPrice: 49, dmAddon: 5 }
+      INR: { basePrice: 2199, originalPrice: 3199, dmAddon: 0 },
+      USD: { basePrice: 35, originalPrice: 49, dmAddon: 0 }
     },
     period: "/month",
     description: "For growing D2C brands ready to scale content & generate video.",
@@ -46,6 +46,7 @@ const plans = [
       "2,000 email campaigns / month",
       "2 active brand profiles",
       "Import up to 100 products",
+      "DM Automation (Included free)",
       "All-in-One Drop & AI Mode",
       "UGC & Product Video generation",
       "Best time to post analytics",
@@ -59,8 +60,8 @@ const plans = [
     badge: "High Capacity",
     creditTag: "1,750 Credits",
     prices: {
-      INR: { basePrice: 4999, originalPrice: 6999, dmAddon: 399 },
-      USD: { basePrice: 79, originalPrice: 109, dmAddon: 5 }
+      INR: { basePrice: 4999, originalPrice: 6999, dmAddon: 0 },
+      USD: { basePrice: 79, originalPrice: 109, dmAddon: 0 }
     },
     period: "/month",
     description: "For agencies & brand managers requiring top-tier capacity.",
@@ -71,6 +72,7 @@ const plans = [
       "8 active brand profiles",
       "Import up to 500 products",
       "Everything in Elite plan",
+      "DM Automation (Included free)",
       "UGC & Product Video generation",
       "Dedicated Account Manager",
       "24/7 Priority support",
@@ -288,6 +290,15 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                   >
                     {plan.cta}
                   </Button>
+                  
+                  {/* DM Automation Add-on Indicator */}
+                  {!plan.isCustom && planPrices.dmAddon > 0 && (
+                    <div className="mt-3 text-center">
+                      <p className={`text-[10px] font-medium ${plan.popular ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                        + Optional DM Automation Add-on: {symbol}{planPrices.dmAddon}/mo
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );

@@ -199,12 +199,13 @@ const DashboardDMs = () => {
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
   const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
   const isElite = planName.includes('elite');
+  const isAgency = planName.includes('agency');
   const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-  const hasDMAutomationAccess = isElite || profile?.dmAddonActive || isMetaReviewer;
+  const hasDMAutomationAccess = isElite || isAgency || profile?.dmAddonActive || isMetaReviewer;
 
   const handleBuyAddon = () => {
     setCheckoutData({
-      baseAmount: 399,
+      baseAmount: 299,
       description: "DM Automation Add-on (Starter Plan)",
       type: "dm_addon_purchase",
       planName: "Starter",
@@ -244,7 +245,7 @@ const DashboardDMs = () => {
         <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
           {isPlanExpired 
             ? "Your subscription plan has expired. Please renew your plan to reactivate DM Automation."
-            : "DM Automation is a premium service. It is included by default in the Elite Plan, or can be added to the Starter Plan as an add-on for ₹399/mo."
+            : "DM Automation is a premium service. It is included by default in the Elite Plan, or can be added to the Starter Plan as an add-on for ₹299/mo."
           }
         </p>
         <div className="flex flex-col gap-3">
@@ -261,14 +262,14 @@ const DashboardDMs = () => {
                 onClick={handleBuyAddon} 
                 className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90"
               >
-                Buy DM Automation Add-on (₹399/mo)
+                Buy DM Automation Add-on (₹299/mo)
               </Button>
               <Button 
                 onClick={() => navigate('/dashboard/buy-credits')} 
                 variant="outline"
                 className="w-full h-11 rounded-xl border-border/70 text-foreground font-semibold"
               >
-                Upgrade to Elite Plan (₹3199/mo)
+                Upgrade to Elite Plan (₹2199/mo)
               </Button>
             </>
           )}
