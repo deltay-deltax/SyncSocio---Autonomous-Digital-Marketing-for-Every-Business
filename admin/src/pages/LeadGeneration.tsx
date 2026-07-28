@@ -26,7 +26,7 @@ export default function LeadGeneration() {
   };
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (status === 'running') {
       interval = setInterval(fetchStatus, 3000);
     }
