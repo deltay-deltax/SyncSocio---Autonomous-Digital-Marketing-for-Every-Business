@@ -447,25 +447,26 @@ router.post('/send-whatsapp', protect, async (req, res) => {
       }
     };
 
-    // Trigger async throttled sending sequence
-    sendWithThrottle().then(async () => {
-      console.log(`WhatsApp Campaign completed. Success: ${successCount}, Failed: ${failCount}`);
-      if (successCount > 0) {
-        await createNotification(
-          req.user._id,
-          'success',
-          'WhatsApp Campaign Sent',
-          `Successfully triggered WhatsApp blast to ${successCount} recipients. ${failCount > 0 ? `(${failCount} failed)` : ''}`
-        );
-      } else {
-        await createNotification(
-          req.user._id,
-          'alert',
-          'WhatsApp Campaign Failed',
-          `Blast failed to send to all ${failCount} recipients. Error: ${lastError}`
-        );
-      }
-    });
+    // Wait for the throttled sending sequence to finish before responding
+    // This is required for Serverless deployments (like Vercel/AWS Lambda) which freeze the process after res.json()
+    await sendWithThrottle();
+    
+    console.log(`WhatsApp Campaign completed. Success: ${successCount}, Failed: ${failCount}`);
+    if (successCount > 0) {
+      await createNotification(
+        req.user._id,
+        'success',
+        'WhatsApp Campaign Sent',
+        `Successfully triggered WhatsApp blast to ${successCount} recipients. ${failCount > 0 ? `(${failCount} failed)` : ''}`
+      );
+    } else {
+      await createNotification(
+        req.user._id,
+        'alert',
+        'WhatsApp Campaign Failed',
+        `Blast failed to send to all ${failCount} recipients. Error: ${lastError}`
+      );
+    }
 
     res.status(200).json({ success: true, message: 'WhatsApp campaign blast triggered successfully' });
   } catch (error) {
