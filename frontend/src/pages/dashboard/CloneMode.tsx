@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link, useOutletContext, useNavigate } from "react-router-dom";
 import { Check, Sparkles, ArrowLeft, Wand2, Loader2, Heart, Download } from "lucide-react";
 import { CLONE_TEMPLATES, type CloneTemplate, type Product } from "@/lib/clone-templates";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,7 @@ const getImageDimensions = (base64: string): Promise<{ width: number, height: nu
 export default function ClonePage() {
   const { profile, startBackgroundClone, backgroundTasks, viewingTask, clearViewingTask } = useOutletContext<any>();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("template");
@@ -370,7 +371,10 @@ export default function ClonePage() {
                         Cloning in background...
                       </span>
                       <button
-                        onClick={() => setCurrentTaskId(null)}
+                        onClick={() => {
+                          setCurrentTaskId(null);
+                          navigate('/dashboard', { replace: true });
+                        }}
                         className="inline-flex items-center gap-2 rounded-xl bg-primary/10 text-primary px-5 py-2.5 text-sm font-semibold shadow-sm hover:bg-primary/20"
                       >
                         Run in background

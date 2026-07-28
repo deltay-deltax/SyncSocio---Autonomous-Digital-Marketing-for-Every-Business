@@ -29,9 +29,11 @@ import siteRoutes from './routes/siteRoutes.js';
 import whatsappRoutes from './routes/whatsappRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import avatarRoutes from './routes/avatarRoutes.js';
+import leadScraperRoutes from './routes/lead_scraper.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
+  seedWebhookCache,
 } from './controllers/instagramWebhookController.js';
 import { startPolling } from './services/commentPoller.js';
 
@@ -100,6 +102,7 @@ app.use('/api/site', siteRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/avatars', avatarRoutes);
+app.use('/api/admin/scraper', leadScraperRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
@@ -123,6 +126,8 @@ if (process.env.MONGO_URI) {
 
       app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
+        // Seed in-memory webhook dedup caches from DB (prevents double-sends after restarts)
+        seedWebhookCache();
         // Start polling for Instagram comments (bypasses webhook delivery issues)
         startPolling();
         // Start autonomous strategic audit agent

@@ -290,8 +290,55 @@ const extractCommentEvents = (entry = {}) => {
   return events;
 };
 
-const processedMessageIds = new Set();
-const processedMentionMediaIds = new Set();
+/**
+ * BoundedFifoCache — a Set with a capped size and true FIFO eviction.
+ * Replaces bare Sets to fix:
+ *  1. Unbounded memory growth
+ *  2. Non-deterministic eviction (.keys().next() is not guaranteed FIFO on all engines)
+ */
+class BoundedFifoCache {
+  constructor(maxSize = 10000) {
+    this._max = maxSize;
+    this._map = new Map(); // Map preserves insertion order, giving us FIFO for free
+  }
+
+  has(key) { return this._map.has(key); }
+
+  add(key) {
+    if (this._map.has(key)) return;
+    this._map.set(key, true);
+    if (this._map.size > this._max) {
+      // Delete the oldest (first inserted) key — guaranteed FIFO
+      this._map.delete(this._map.keys().next().value);
+    }
+  }
+
+  get size() { return this._map.size; }
+}
+
+const processedMessageIds = new BoundedFifoCache(10000);
+const processedMentionMediaIds = new BoundedFifoCache(10000);
+
+/**
+ * Seed in-memory dedup caches from DB on startup.
+ * Call this once from app.js after DB connects to prevent re-processing
+ * webhook events that Meta retries after a server restart.
+ */
+export const seedWebhookCache = async () => {
+  try {
+    const recentFollowUps = await DMFlowFollowUp.find({ commentId: { $exists: true, $ne: '' } })
+      .select('commentId')
+      .sort({ createdAt: -1 })
+      .limit(5000)
+      .lean();
+    for (const doc of recentFollowUps) {
+      if (doc.commentId) processedMentionMediaIds.add(doc.commentId);
+    }
+    console.log(`[WEBHOOK CACHE] Seeded ${recentFollowUps.length} comment IDs from DB into mention/comment dedup cache.`);
+  } catch (e) {
+    console.error('[WEBHOOK CACHE] Seed failed (non-fatal):', e.message);
+  }
+};
 
 const resolvePageToken = async (profile) => {
   if (profile.instagramPageAccessToken) return profile.instagramPageAccessToken;
@@ -368,8 +415,7 @@ const extractMentionEvents = (entry = {}) => {
     if (!mediaId) continue;
 
     if (processedMentionMediaIds.has(mediaId)) continue;
-    processedMentionMediaIds.add(mediaId);
-    if (processedMentionMediaIds.size > 10000) processedMentionMediaIds.delete(processedMentionMediaIds.keys().next().value);
+    processedMentionMediaIds.add(mediaId); // BoundedFifoCache auto-evicts oldest when full
 
     events.push({ mediaId, senderId });
   }
@@ -405,8 +451,7 @@ const extractMentionEvents = (entry = {}) => {
     if (!mediaId) continue;
     if (processedMentionMediaIds.has(mediaId)) continue;
 
-    processedMentionMediaIds.add(mediaId);
-    if (processedMentionMediaIds.size > 10000) processedMentionMediaIds.delete(processedMentionMediaIds.keys().next().value);
+    processedMentionMediaIds.add(mediaId); // BoundedFifoCache auto-evicts oldest when full
 
     events.push({ mediaId, senderId });
   }
@@ -424,8 +469,7 @@ const extractMessageEvents = (entry = {}) => {
     const mid = msg.message?.mid;
     if (mid) {
       if (processedMessageIds.has(mid)) continue;
-      processedMessageIds.add(mid);
-      if (processedMessageIds.size > 10000) processedMessageIds.delete(processedMessageIds.keys().next().value);
+      processedMessageIds.add(mid); // BoundedFifoCache auto-evicts oldest when full
     }
 
     let text = null;
@@ -470,6 +514,7 @@ const sendPrivateReply = async ({ pageToken, commentId, messagePayload, pageId }
     {
       recipient: { comment_id: commentId },
       message: messagePayload,
+      messaging_type: 'RESPONSE', // Required by Meta Messaging API for comment-triggered DMs
     },
     {
       params: { access_token: pageToken },
@@ -582,6 +627,10 @@ const processCommentEventForProfile = async (profile, event) => {
       });
     }
 
+    // Humanized delay (1.5–3s) before DM — prevents Meta bot-detection flags
+    const humanDelay = 1500 + Math.floor(Math.random() * 1500);
+    await sleep(humanDelay);
+
     const result = await sendPrivateReply({
       pageToken,
       commentId: event.commentId,
@@ -636,10 +685,17 @@ const processCommentEventForProfile = async (profile, event) => {
   }
 };
 
-const findNextMessageForText = async (incomingText) => {
+const findNextMessageForText = async (incomingText, profile) => {
   const normIncoming = normalizeKeywordInput(incomingText);
   if (!normIncoming) return null;
-  const flows = await DMFlow.find({ active: true }).sort({ updatedAt: -1 }).lean();
+
+  // Scope to this user's brand only — prevents cross-user privacy bug
+  const userQuery = {
+    active: true,
+    user: profile.user,
+    $or: [{ brandId: profile._id }, { brandId: { $exists: false } }]
+  };
+  const flows = await DMFlow.find(userQuery).sort({ updatedAt: -1 }).lean();
 
   for (const flow of flows) {
     if (!Array.isArray(flow.messages)) continue;
@@ -846,7 +902,7 @@ const processMessageEventForProfile = async (profile, event) => {
     }
   }
   
-  const match = await findNextMessageForText(event.text);
+  const match = await findNextMessageForText(event.text, profile);
   if (match && match.nextMessages.length > 0) {
     const { flow, nextMessages, matchingMsgIndex } = match;
     let targetMessage = nextMessages[0];

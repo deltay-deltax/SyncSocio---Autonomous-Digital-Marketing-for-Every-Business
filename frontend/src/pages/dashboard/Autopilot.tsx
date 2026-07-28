@@ -924,6 +924,7 @@ export default function AutopilotPage() {
                   onClick={() => {
                     setStage('form');
                     setCurrentTaskId(null);
+                    navigate('/dashboard', { replace: true });
                   }}
                 >
                   Run in background

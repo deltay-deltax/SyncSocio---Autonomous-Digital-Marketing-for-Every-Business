@@ -1,0 +1,8 @@
+=== SyncSocio Lead Generation Summary ===
+Total agencies: 60
+Unique agencies: 57
+Cities covered: 3
+Emails found: 46
+Phones found: 26
+Instagram found: 38
+Average score: 56.93
