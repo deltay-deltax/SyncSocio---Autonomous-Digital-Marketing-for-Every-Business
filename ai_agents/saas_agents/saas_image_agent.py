@@ -340,7 +340,7 @@ def build_saas_carousel_slide_prompts(
     product: Optional[Dict[str, Any]] = None,
     language: str = "english"
 ) -> List[str]:
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
     category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "Services"))
     block = _brand_block(brand_doc)
     prod_info = ""
@@ -443,7 +443,7 @@ def generate_saas_instagram_caption(
     """Generates a B2B Instagram caption with SaaS copy tone."""
     try:
         llm = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest",
+            model="gemini-flash-lite-latest",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.8,
         )
@@ -508,6 +508,7 @@ def generate_saas_strategy_images(
     avatar_description: Optional[str] = "",
     video_script: Optional[str] = "",
     video_resolution: Optional[str] = "1080p",
+    video_duration: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """
     SaaS-aware orchestrator for image/carousel/video/festival generation.
@@ -777,7 +778,7 @@ def generate_saas_strategy_images(
             if not avatar_description or not video_script:
                 try:
                     llm = ChatGoogleGenerativeAI(
-                        model="gemini-flash-latest",
+                        model="gemini-flash-lite-latest",
                         google_api_key=os.getenv("GOOGLE_API_KEY"),
                         temperature=0.7,
                     )
@@ -866,12 +867,12 @@ Create a high-quality, photorealistic portrait image of this UGC creator/present
                     
                     # Stage 2: Take the generated hero image and animate it with Veo 3.1 Fast
                     print(f"[SaaSAgent] UGC Stage 2: Animating starting image with Google Veo 3.1 Fast ({video_resolution or '1080p'})...")
-                    result = generate_veo_video(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=8, resolution=video_resolution or "1080p")
+                    result = generate_veo_video(prompt=video_prompt, image=generated_img, aspect_ratio=aspect_ratio, duration=video_duration or 8, resolution=video_resolution or "1080p")
                 else:
                     # Standard img2video uses Google Veo 3.1 Fast
                     caption = pick_caption(index)
                     print(f"[SaaSAgent] Animating starting image with Google Veo 3.1 Fast ({video_resolution or '1080p'})...")
-                    result = generate_veo_video(prompt=video_prompt, image=ref, aspect_ratio=aspect_ratio, duration=8, resolution=video_resolution or "1080p")
+                    result = generate_veo_video(prompt=video_prompt, image=ref, aspect_ratio=aspect_ratio, duration=video_duration or 8, resolution=video_resolution or "1080p")
 
                 return {"url": result.get("url"), "thumbnail": result.get("thumbnail"),
                         "caption": caption, "type": "video", "index": index}

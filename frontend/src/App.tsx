@@ -15,6 +15,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import NotFound from './pages/NotFound';
 import AssetPage from './pages/AssetPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import { MetaPixel } from './components/MetaPixel';
 
 // Dashboard imports
 import DashboardLayout from './pages/dashboard/DashboardLayout';
@@ -85,6 +86,7 @@ function App() {
     <CurrencyProvider>
       <BrowserRouter>
         <CanonicalUpdater />
+        <MetaPixel />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/onboarding" element={<Onboarding />} />

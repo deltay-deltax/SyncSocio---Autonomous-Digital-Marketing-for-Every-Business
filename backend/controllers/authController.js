@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import appleSigninAuth from 'apple-signin-auth';
 import { sendLoginNotificationEmail, sendSignupNotificationEmail } from '../utils/sendWelcomeEmail.js';
+import { sendMetaCapiEvent } from '../services/metaConversionsAPI.js';
 import { createNotification } from '../utils/notificationHelper.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -266,6 +267,16 @@ export const googleLogin = async (req, res) => {
         await user.save();
       }
     }
+    
+    // Meta Conversions API (CompleteRegistration)
+    if (req.body.metaEventId && (isNewUser || isSignup)) {
+      console.log("🔥 [TESTING] Firing Meta CAPI Event: CompleteRegistration (Backend via Google/OAuth)");
+      sendMetaCapiEvent('CompleteRegistration', req.body.metaEventId, {
+        email: user.email,
+        clientIp: req.ip || req.headers['x-forwarded-for'],
+        clientUserAgent: req.headers['user-agent']
+      });
+    }
 
     if (isNewUser) {
       // Email will be sent when user selects plan on Setup page
@@ -358,6 +369,16 @@ export const appleLogin = async (req, res) => {
       if (shouldSave) {
         await user.save();
       }
+    }
+
+    // Meta Conversions API (CompleteRegistration)
+    if (req.body.metaEventId && (isNewUser || isSignup)) {
+      console.log("🔥 [TESTING] Firing Meta CAPI Event: CompleteRegistration (Backend via GitHub/OAuth)");
+      sendMetaCapiEvent('CompleteRegistration', req.body.metaEventId, {
+        email: user.email,
+        clientIp: req.ip || req.headers['x-forwarded-for'],
+        clientUserAgent: req.headers['user-agent']
+      });
     }
 
     if (isNewUser) {
@@ -453,6 +474,16 @@ export const verifyOtp = async (req, res) => {
     }).catch(mailError => {
       console.error('Signup notification email failed:', mailError.message);
     });
+
+    // Meta Conversions API (CompleteRegistration)
+    if (req.body.metaEventId) {
+      console.log("🔥 [TESTING] Firing Meta CAPI Event: CompleteRegistration (Backend via Email OTP Verify)");
+      sendMetaCapiEvent('CompleteRegistration', req.body.metaEventId, {
+        email: user.email,
+        clientIp: req.ip || req.headers['x-forwarded-for'],
+        clientUserAgent: req.headers['user-agent']
+      });
+    }
 
     res.status(200).json({
       message: 'Email verified successfully',

@@ -10,7 +10,7 @@ export default function FreeCreativesSection() {
   const [intent, setIntent] = useState<Intent | null>(null);
 
   return (
-    <section id="free-creatives" className="relative py-24 overflow-hidden border-t border-border/40">
+    <section id="free-creatives" className="relative py-16 md:py-24 overflow-hidden border-t border-border/40">
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-primary/20 blur-3xl opacity-60" />
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full bg-accent/20 blur-3xl opacity-40" />
@@ -26,7 +26,7 @@ export default function FreeCreativesSection() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-black uppercase tracking-widest">
             <Sparkles className="w-3 h-3" /> Limited offer
           </div>
-          <h2 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+          <h2 className="mt-5 text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
             Get <span className="text-primary">3 free creatives</span><br /> crafted for your brand.
           </h2>
           <p className="mt-5 text-lg text-muted-foreground">

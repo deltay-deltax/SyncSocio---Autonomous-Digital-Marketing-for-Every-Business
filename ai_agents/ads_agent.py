@@ -69,7 +69,7 @@ EXAMPLE:
         print(prompt)
         
         try:
-            llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+            llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
             res = llm.invoke([
                 SystemMessage(content=get_universal_system_prompt("Ad Strategist & Media Buyer")),
                 HumanMessage(content=prompt)

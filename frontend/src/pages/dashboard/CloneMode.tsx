@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link, useOutletContext, useNavigate } from "react-router-dom";
 import { Check, Sparkles, ArrowLeft, Wand2, Loader2, Heart, Download } from "lucide-react";
 import { CLONE_TEMPLATES, type CloneTemplate, type Product } from "@/lib/clone-templates";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,7 @@ const getImageDimensions = (base64: string): Promise<{ width: number, height: nu
 export default function ClonePage() {
   const { profile, startBackgroundClone, backgroundTasks, viewingTask, clearViewingTask } = useOutletContext<any>();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("template");
@@ -99,7 +100,10 @@ export default function ClonePage() {
         setStep("result");
         setIsHearted(false);
       }
-      if (clearViewingTask) clearViewingTask();
+      const timer = setTimeout(() => {
+        if (clearViewingTask) clearViewingTask();
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [viewingTask, clearViewingTask]);
 
@@ -367,7 +371,10 @@ export default function ClonePage() {
                         Cloning in background...
                       </span>
                       <button
-                        onClick={() => setCurrentTaskId(null)}
+                        onClick={() => {
+                          setCurrentTaskId(null);
+                          navigate('/dashboard', { replace: true });
+                        }}
                         className="inline-flex items-center gap-2 rounded-xl bg-primary/10 text-primary px-5 py-2.5 text-sm font-semibold shadow-sm hover:bg-primary/20"
                       >
                         Run in background
@@ -388,28 +395,48 @@ export default function ClonePage() {
           </section>
         )}
 
-        {step === "result" && template && product && result && (
+        {step === "result" && result && (
           <section className="rounded-3xl border border-border bg-card shadow-sm p-6">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="font-display text-lg font-semibold">Your clone</h2>
                 <p className="text-sm text-muted-foreground">
-                  Cloned <span className="font-semibold text-foreground">{template.name}</span> for <span className="font-semibold text-foreground">{product.name}</span>
+                  {template && product ? (
+                    <>
+                      Cloned <span className="font-semibold text-foreground">{template.name}</span> for <span className="font-semibold text-foreground">{product.name}</span>
+                    </>
+                  ) : (
+                    "Generated from background task"
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setStep("configure")}
-                  className="rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:bg-muted"
-                >
-                  Tweak inputs
-                </button>
-                <button
-                  onClick={generate}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary/90"
-                >
-                  <Wand2 className="h-4 w-4" /> Regenerate
-                </button>
+                {template && product ? (
+                  <>
+                    <button
+                      onClick={() => setStep("configure")}
+                      className="rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:bg-muted"
+                    >
+                      Tweak inputs
+                    </button>
+                    <button
+                      onClick={generate}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary/90"
+                    >
+                      <Wand2 className="h-4 w-4" /> Regenerate
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setResult(null);
+                      setStep("template");
+                    }}
+                    className="rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:bg-muted"
+                  >
+                    Create Another
+                  </button>
+                )}
               </div>
             </div>
 

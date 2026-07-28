@@ -24,7 +24,7 @@ def _uid() -> str:
 
 def _llm():
     return ChatGoogleGenerativeAI(
-        model="gemini-flash-latest",
+        model="gemini-flash-lite-latest",
         google_api_key=os.getenv("GOOGLE_API_KEY"),
     )
 

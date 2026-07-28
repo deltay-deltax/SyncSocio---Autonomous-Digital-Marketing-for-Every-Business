@@ -205,7 +205,11 @@ const sendPrivateReply = async ({ pageToken, commentId, messagePayload, pageId }
     console.log(`[POLLER] 📡 POSTING to: ${FB_API_BASE}/${pageId}/messages`);
     const response = await axios.post(
       `${FB_API_BASE}/${pageId}/messages`,
-      { recipient: { comment_id: commentId }, message: messagePayload },
+      {
+        recipient: { comment_id: commentId },
+        message: messagePayload,
+        messaging_type: 'RESPONSE', // Required by Meta Messaging API
+      },
       {
         params: { access_token: pageToken },
       headers: { 'Content-Type': 'application/json' },
@@ -303,6 +307,11 @@ const pollProfileComments = async (profile) => {
 
         // Mark as processed IMMEDIATELY to prevent double-processing
         processedCommentIds.add(comment.id);
+        // Keep in-memory set bounded to avoid memory leak
+        if (processedCommentIds.size > 20000) {
+          const firstVal = processedCommentIds.values().next().value;
+          processedCommentIds.delete(firstVal);
+        }
 
         // 3. Skip old comments (older than 10 minutes) to avoid replying to historical data
         if (commentAgeMs > 10 * 60 * 1000) {
@@ -434,9 +443,8 @@ const pollProfileComments = async (profile) => {
       return; // Skip this profile, poller will try others
     }
     if (metaErr?.code === 80002 || metaErr?.code === 4 || metaErr?.code === 17 || metaErr?.code === 32) {
-      console.error('[POLLER] Rate limit hit. Sleeping for 15 minutes to recover.');
-      await sleep(15 * 60 * 1000); // Recursive setTimeout will wait for this to finish
-      return;
+      console.error('[POLLER] Rate limit hit for this profile. Skipping this profile to allow others to continue.');
+      return; // Don't sleep — let other profiles continue processing
     }
     console.error('[POLLER] Error during polling cycle:', metaErr);
   }

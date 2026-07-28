@@ -167,10 +167,10 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                         except Exception as e:
                             print(f"  [Auto-Convert Error] {e}")
 
-                    print(f"  Uploading image ({mime}) to Fal CDN...")
+                    # print(f"  Uploading image ({mime}) to Fal CDN...")
                     file_ext = "png" if mime == "image/png" else "jpeg"
                     uploaded_url = fal_client.upload(image_bytes, mime, file_name=f"image.{file_ext}")
-                    print(f"  -> Uploaded successfully: {uploaded_url}")
+                    # print(f"  -> Uploaded successfully: {uploaded_url}")
                     data_urls.append(uploaded_url)
                     size_kb += len(raw_b64) * 3 // 4 // 1024
             if len(data_urls) > 0:
@@ -178,12 +178,11 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
 
         if has_ref:
             # Image-to-image flow using GPT-Image-2 Edit endpoint
-            print(f"\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image with {len(data_urls)} refs...")
-            print(f"  has_ref    : YES ({size_kb} KB)")
-            print(f"  prompt     : {prompt[:120].strip()}...")
-            print(f"  quality    : {quality}")
-
-            print(f"  image_urls : {[u[:60]+'...' for u in data_urls]}")
+            # print(f"\\nFAL ENGINE (gpt-image-2/edit): Performing image-to-image with {len(data_urls)} refs...")
+            # print(f"  has_ref    : YES ({size_kb} KB)")
+            # print(f"  prompt     : {prompt[:120].strip()}...")
+            # print(f"  quality    : {quality}")
+            # print(f"  image_urls : {[u[:60]+'...' for u in data_urls]}")
 
             edit_arguments = {
                 "prompt": prompt,
@@ -205,11 +204,11 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
                 )
         else:
             # Standard Text-to-image flow
-            print(f"\nFAL ENGINE (gpt-image-2): Generating static image...")
-            print(f"  image_size : {image_size}")
-            print(f"  quality    : {quality}")
-            print(f"  has_ref    : NO")
-            print(f"  prompt     : {prompt[:120].strip()}...")
+            # print(f"\\nFAL ENGINE (gpt-image-2): Generating static image...")
+            # print(f"  image_size : {image_size}")
+            # print(f"  quality    : {quality}")
+            # print(f"  has_ref    : NO")
+            # print(f"  prompt     : {prompt[:120].strip()}...")
 
             arguments = {
                 "prompt": prompt,

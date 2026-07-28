@@ -79,7 +79,7 @@ def analyze_brand_mix(brand_info: Dict[str, Any]):
     }}
     """
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
         res = llm.invoke([
             SystemMessage(content=f"You are a JSON-only response strategist. Total posts must equal {post_count}."),
             HumanMessage(content=prompt)
@@ -296,7 +296,7 @@ def planner_node(state: GraphState):
                     "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
                 })
 
-        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
         response = llm.invoke([
             SystemMessage(content=f"You are a JSON-only response strategist. Output exactly {post_count} content items."),
             HumanMessage(content=human_content)
@@ -363,7 +363,7 @@ def generate_brand_visual_dna(brand_info: Dict[str, Any]):
     OUTPUT: RETURN ONLY THE 200 CHAR IDENTITY STRING. NO INTRO.
     """
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
         res = llm.invoke(prompt)
         content = res.content
         if isinstance(content, list):
@@ -376,7 +376,7 @@ def visual_illustrator_node(state: GraphState):
     calendar = state['content_calendar']
     brand = state['brand_info']
     brief = state['product_brief']
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
     
     # Layer 1: Foundation (Dynamic based on Category)
     category_raw = (brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", "other")).lower()
@@ -631,7 +631,7 @@ def strategy_critic_node(state: GraphState):
     """
     
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
         response = llm.invoke([
             SystemMessage(content="You are a JSON-only response critic."),
             HumanMessage(content=prompt)

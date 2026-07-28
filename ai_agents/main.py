@@ -15,6 +15,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from langchain_core.globals import set_debug
+set_debug(True)
+
 from bson import ObjectId
 from agents import generate_strategy, analyze_brand_mix
 from dm_flow_agent import process_calendar_for_dm_flows
@@ -23,6 +26,7 @@ from ads_agent import get_ads_recommendations
 from visual_engine import generate_carousel_images, mock_video_gen, generate_google_image
 from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ideogram, generate_fal_image_gpt2
 from veo_engine import generate_veo_video
+from meta_capi import send_meta_capi_event
 from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
 from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest, AutopilotRequest
 from post_validator import validate_post, optimize_post, publisher_node
@@ -319,9 +323,12 @@ def download_image_as_base64(url: str) -> str:
 class ScrapeRequest(BaseModel):
     url: str
     businessCategory: Optional[str] = None
+    metaEventId: Optional[str] = None
+    userEmail: Optional[str] = None
+    userPhone: Optional[str] = None
 
 @app.post("/scrape-brand-profile")
-async def api_scrape_brand_profile(payload: ScrapeRequest):
+async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
     url = payload.url
     openai_key = os.getenv("OPENAI_API_KEY")
     
@@ -330,6 +337,25 @@ async def api_scrape_brand_profile(payload: ScrapeRequest):
         
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
+        
+    if payload.metaEventId:
+        client_ip = request.client.host if request.client else None
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+            
+        print("🔥 [TESTING] Firing Meta CAPI Event: URLDropped (Python Backend)")
+        send_meta_capi_event(
+            event_name="URLDropped",
+            event_id=payload.metaEventId,
+            user_data={
+                "email": payload.userEmail,
+                "phone": payload.userPhone,
+                "client_ip": client_ip,
+                "client_user_agent": request.headers.get("user-agent")
+            },
+            custom_data={"website_url": url}
+        )
     
     is_fallback = False
     try:
@@ -1834,6 +1860,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 avatar_description=request.avatarDescription,
                 video_script=request.videoScript,
                 video_resolution=request.videoResolution or "1080p",
+                video_duration=request.videoDuration,
             )
         else:
             import asyncio
@@ -1856,6 +1883,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 avatar_description=request.avatarDescription,
                 video_script=request.videoScript,
                 video_resolution=request.videoResolution or "1080p",
+                video_duration=request.videoDuration,
                 text_mode=request.textMode or "low",
                 avatar_url=request.avatarUrl,
             )
@@ -1944,6 +1972,7 @@ class UGCScriptRequest(BaseModel):
     avatarDescription: str = ""
     isSaas: bool = False
     language: str = "english"
+    videoDuration: int = 8
 
 @app.post("/generate-ugc-script")
 async def api_generate_ugc_script(request: UGCScriptRequest):
@@ -1956,7 +1985,7 @@ async def api_generate_ugc_script(request: UGCScriptRequest):
         from langchain_core.messages import SystemMessage, HumanMessage
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest",
+            model="gemini-flash-lite-latest",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.8,
         )
@@ -1985,15 +2014,15 @@ async def api_generate_ugc_script(request: UGCScriptRequest):
         sys_msg = (
             f"You are an expert short-form video scriptwriter. {style_guide} "
             f"The script MUST be written entirely in {request.language.upper()}. "
-            "The script MUST be deliverable in exactly 8 seconds when spoken naturally "
-            "(roughly 20-30 words maximum). Output ONLY the script text — no labels, "
+            f"The script MUST be deliverable in exactly {request.videoDuration} seconds when spoken naturally "
+            "(roughly 2.5 words per second). Output ONLY the script text — no labels, "
             "no stage directions, no quotation marks, no markdown."
         )
 
         user_msg = (
             f"Brand: {request.brandName}\n"
             f"{tone_line}\n{usp_line}\n{prod_line}\n{desc_line}\n{benefit_line}\n{avatar_line}\n\n"
-            "Write the 8-second UGC script now."
+            f"Write the {request.videoDuration}-second UGC script now."
         ).strip()
 
         response = llm.invoke([SystemMessage(content=sys_msg), HumanMessage(content=user_msg)])
@@ -2257,5 +2286,6 @@ Photorealistic."""
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

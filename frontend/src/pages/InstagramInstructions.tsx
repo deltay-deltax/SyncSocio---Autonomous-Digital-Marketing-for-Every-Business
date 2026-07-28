@@ -85,14 +85,6 @@ Method 2: From Facebook
 7. Allow all requested permissions.`
     },
     {
-      title: "Accept the Instagram Tester Invitation",
-      description:
-        "SyncSocio is currently undergoing Meta App Review, so your Instagram account must be added as a tester before it can connect.",
-      icon: <UserCheck className="text-purple-500" size={24} />,
-      details:
-        "Our team will add your Instagram account as a tester. Once we notify you:\n\n1. Open Instagram in a web browser (instagram.com).\n2. Click More → Settings.\n3. Open Apps and Websites.\n4. Go to the Tester Invitations tab.\n5. Accept the invitation sent by our app.\n6. After accepting, return to SyncSocio and continue with Facebook Login."
-    },
-    {
       title: "Continue with Facebook Login",
       description:
         "Return to SyncSocio and sign in with Facebook to finish connecting your account.",
@@ -125,7 +117,7 @@ Method 2: From Facebook
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Instagram Success Guide</h1>
           <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            Meta's "Business" security is strict. Complete these 4 steps to ensure a flawless connection on the first try.
+            Meta's "Business" security is strict. Complete these 3 steps to ensure a flawless connection on the first try.
           </p>
         </header>
 

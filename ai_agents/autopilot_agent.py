@@ -35,14 +35,12 @@ def run_autopilot_planner(
     # 2. Format products list
     products_dossier = []
     for idx, p in enumerate(products):
-        p_id = str(p.get("_id", ""))
         p_name = p.get("name", "Product")
         p_desc = p.get("description", "")
         p_benefit = p.get("keyBenefit", "")
         p_price = p.get("price", "")
         products_dossier.append(
             f"Product {idx+1}:\n"
-            f"  ID: {p_id}\n"
             f"  Name: {p_name}\n"
             f"  Description: {p_desc}\n"
             f"  Key Benefit: {p_benefit}\n"
@@ -62,7 +60,7 @@ def run_autopilot_planner(
     
     # Build the exact set of valid product IDs to include in the prompt
     valid_product_ids = [str(p.get("_id", "")) for p in products]
-    valid_ids_json = json.dumps(valid_product_ids)
+    max_product_index = len(products)
     
     prompt = f"""
     You are the Chief Autopilot Planner Agent for SyncSocio AI.
@@ -83,17 +81,14 @@ def run_autopilot_planner(
     ═══════════ PRODUCTS CATALOG ═══════════
     {products_section}
     
-    ═══════════ VALID PRODUCT IDs (MUST use ONLY these) ═══════════
-    {valid_ids_json}
-    
     ═══════════ UPCOMING FESTIVALS IN TIMELINE ═══════════
     {festivals_section}
     
     ═══════════ MANDATORY PLANNING CONSTRAINTS ═══════════
     1. TIMELINE LENGTH: You MUST generate EXACTLY {post_count} posts — no more, no fewer. Count carefully before outputting.
-    2. PRODUCT IDs: In the "product_id" field, you MUST use ONLY IDs from the VALID PRODUCT IDs list above. NEVER invent or modify a product ID. Any post with an invalid product ID will be discarded.
+    2. PRODUCT INDEX: In the "product_index" field, you MUST use ONLY an integer from 1 to {max_product_index}. NEVER invent or modify a product index. Any post with an invalid product index will be discarded.
     3. PRODUCT COVERAGE: Every product in the catalog MUST appear in at least one post.
-    4. PRODUCT MAPPING: For each post, choose contextually the most appropriate product. Assign its exact MongoDB ID in the "product_id" field.
+    4. PRODUCT MAPPING: For each post, choose contextually the most appropriate product. Assign its exact integer index (1, 2, 3...) in the "product_index" field.
     5. FESTIVAL MATCHING: If there are upcoming festivals, at least one post in that week should celebrate that festival. Include the festival name in the "festival_name" field for that post.
     6. LANGUAGE: All output "caption" fields must be fully written in: {language}.
     
@@ -101,16 +96,16 @@ def run_autopilot_planner(
     Return a list of JSON objects, each with:
     - week: (integer) The week index (1 to {weeks})
     - day: (string) The day of the week (e.g., "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-    - product_id: (string) MUST be one of: {valid_ids_json}
+    - product_index: (integer) MUST be a number from 1 to {max_product_index}.
     - topic: (string) A catchy one-line viral topic/title for this post
-    - image_prompt: (string) A simple 2-3 line ad creative prompt/concept. DO NOT include color descriptions, lighting instructions, complex visual details, layout specifications, or mention days/dates. Just describe a simple, high-impact creative concept featuring the product.
+    - image_prompt: (string) A highly detailed 2-3 line ad creative prompt/concept. Describe a high-converting, visually stunning product ad. Be specific about the visual layout, lighting, aesthetics, and any text overlays. Let your creative imagination run wild to make a perfect Instagram ad.
     - caption: (string) A complete copywriting social media caption (with hook, body, CTA, and 3-5 hashtags) written entirely in {language}.
     - festival_name: (string or null) The name of the festival if this post is a festival post, otherwise null.
 
     Output format: Return ONLY a valid JSON list of EXACTLY {post_count} objects. No extra text, headers, or markdown blocks.
     """
     
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", google_api_key=os.getenv("GOOGLE_API_KEY"))
     response = llm.invoke([
         SystemMessage(content=f"You are a structured planning agent. Output exactly a JSON list of {post_count} campaign posts. Output no other text than the JSON list."),
         HumanMessage(content=prompt)
@@ -127,8 +122,13 @@ def run_autopilot_planner(
         calendar = json.loads(content)
         
     # VALIDATION LOGIC
-    # 1. Filter out posts with invalid product IDs
-    valid_calendar = [post for post in calendar if post.get("product_id") in valid_product_ids]
+    # 1. Re-map integer product_index back to MongoDB Object IDs
+    valid_calendar = []
+    for post in calendar:
+        p_idx = post.get("product_index")
+        if isinstance(p_idx, int) and 1 <= p_idx <= len(valid_product_ids):
+            post["product_id"] = valid_product_ids[p_idx - 1]
+            valid_calendar.append(post)
     
     # 2. Ensure total count is correct by truncating or padding (if necessary)
     if len(valid_calendar) > post_count:

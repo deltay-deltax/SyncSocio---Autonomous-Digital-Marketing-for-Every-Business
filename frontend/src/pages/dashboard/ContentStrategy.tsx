@@ -66,7 +66,7 @@ const modes: { id: Mode; label: string; icon: any; desc: string; accent: string 
   { id: 'video', label: 'Video', icon: Video, desc: 'Reel / motion post', accent: 'from-amber-500/20 to-orange-500/10' },
   { id: 'ecomm', label: 'E-Comm Listing', icon: ShoppingBag, desc: 'Marketplace-ready creative', accent: 'from-emerald-500/20 to-teal-500/10' },
   { id: 'festival', label: 'Festival', icon: PartyPopper, desc: 'Calendar-led campaigns', accent: 'from-violet-500/20 to-indigo-500/10' },
-  // { id: 'whatsapp', label: 'WhatsApp Campaign', icon: MessageSquare, desc: 'Broadcast to your list', accent: 'from-green-500/20 to-emerald-500/10' },
+  { id: 'whatsapp', label: 'WhatsApp Campaign', icon: MessageSquare, desc: 'Broadcast to your list', accent: 'from-green-500/20 to-emerald-500/10' },
   { id: 'email', label: 'Email Campaign', icon: Mail, desc: 'Newsletter & promo blast', accent: 'from-blue-500/20 to-indigo-500/10' },
   { id: 'photoshoot', label: 'Photoshoot', icon: Camera, desc: 'Pure product photoshoot', accent: 'from-fuchsia-500/20 to-purple-500/10' },
 ];
@@ -755,7 +755,10 @@ const DashboardStrategy = () => {
         if (viewingTask.mode === 'email') setCampaignSubject(first.subject || '');
       }
 
-      if (clearViewingTask) clearViewingTask();
+      const timer = setTimeout(() => {
+        if (clearViewingTask) clearViewingTask();
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [viewingTask, clearViewingTask]);
 
@@ -831,6 +834,7 @@ const DashboardStrategy = () => {
   }, [profile?.location?.country, language]);
 
   const [videoKind, setVideoKind] = useState<string>('ai-ugc');
+  const [videoDuration, setVideoDuration] = useState<number>(8);
   const [videoResolution, setVideoResolution] = useState<string>('1080p');
   const [selectedMotionPreset, setSelectedMotionPreset] = useState<string | null>(null);
   const [avatarDescription, setAvatarDescription] = useState<string>('');
@@ -961,7 +965,7 @@ const DashboardStrategy = () => {
 
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | null>(null);
+  const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | 'video' | null>(null);
 
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
   const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
@@ -1050,6 +1054,7 @@ const DashboardStrategy = () => {
         avatarDescription: avatarDescription.trim(),
         isSaas: isSaasMode,
         language: language,
+        videoDuration: videoDuration,
       };
       const res = await fetch(`${AI_BASE}/generate-ugc-script`, {
         method: 'POST',
@@ -1964,6 +1969,7 @@ const DashboardStrategy = () => {
         avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
         videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
         videoResolution: currentMode === 'video' ? videoResolution : undefined,
+        videoDuration: currentMode === 'video' ? videoDuration : undefined,
       };
 
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
@@ -2487,7 +2493,9 @@ const DashboardStrategy = () => {
               variant="outline"
               className="rounded-full shadow-sm hover:shadow"
               onClick={() => {
-                setStage('builder');
+                setStage('pick');
+                setMode(null);
+                navigate(window.location.pathname, { replace: true });
                 setCurrentTaskId(null);
                 // Reset all fields so the user has a fresh slate
                 setIdea('');
@@ -3202,7 +3210,10 @@ const DashboardStrategy = () => {
                 {visibleVideoKinds.map((v) => (
                   <button
                     key={v.id}
-                    onClick={() => setVideoKind(v.id)}
+                    onClick={() => {
+                      setVideoKind(v.id);
+                      setVideoDuration(v.id === 'ai-ugc' ? 8 : 5);
+                    }}
                     className={cn(
                       'p-4 rounded-2xl border text-left transition',
                       videoKind === v.id
@@ -3212,6 +3223,32 @@ const DashboardStrategy = () => {
                   >
                     <p className="text-sm font-semibold text-foreground">{v.label}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">{v.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Video duration picker */}
+          {mode === 'video' && (
+            <section className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Video Duration
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {(videoKind === 'ai-ugc' ? [8, 12, 15] : [5, 8]).map((dur) => (
+                  <button
+                    key={dur}
+                    type="button"
+                    onClick={() => setVideoDuration(dur)}
+                    className={cn(
+                      'px-5 h-10 rounded-xl text-sm font-bold transition-all border flex items-center justify-center',
+                      videoDuration === dur
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-border/60 bg-card hover:border-primary/40 text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {dur} sec
                   </button>
                 ))}
               </div>

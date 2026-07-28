@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+import { trackMetaEvent } from '@/utils/metaPixel';
 
 // ── Professional Color Picker — centered modal, portal-rendered, never clipped ──
 const getContrastColor = (hex: string) => {
@@ -274,13 +275,27 @@ const Onboarding = () => {
     }, 2000);
 
     try {
+      // Get user profile from localStorage if available (since they sign up before dropping URL)
+      const userProfile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
+      const userEmail = userProfile?.email || undefined;
+      const userPhone = userProfile?.phone || undefined;
+
+      // Track Custom Event and get eventID
+      const metaEventId = trackMetaEvent('URLDropped', { website_url: scanUrl }, true);
+      console.log("🔥 [TESTING] Firing Meta Pixel Event: URLDropped (Frontend)");
+
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
       const response = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: scanUrl })
+        body: JSON.stringify({ 
+          url: scanUrl, 
+          metaEventId,
+          userEmail,
+          userPhone
+        })
       });
 
       clearInterval(statusInterval);

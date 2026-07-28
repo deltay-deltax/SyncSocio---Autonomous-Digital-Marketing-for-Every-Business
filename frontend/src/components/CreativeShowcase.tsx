@@ -182,7 +182,7 @@ const CreativeShowcase = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05]"
+              className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05]"
             >
               Every format your brand needs.
               <br />

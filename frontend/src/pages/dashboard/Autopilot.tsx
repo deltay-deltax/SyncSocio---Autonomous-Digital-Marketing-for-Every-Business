@@ -327,7 +327,10 @@ export default function AutopilotPage() {
       setSkippedCount(0);
       setTotalGeneratedCount(posts.length);
       setStage('results');
-      if (clearViewingTask) clearViewingTask();
+      const timer = setTimeout(() => {
+        if (clearViewingTask) clearViewingTask();
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [viewingTask, clearViewingTask]);
 
@@ -921,6 +924,7 @@ export default function AutopilotPage() {
                   onClick={() => {
                     setStage('form');
                     setCurrentTaskId(null);
+                    navigate('/dashboard', { replace: true });
                   }}
                 >
                   Run in background

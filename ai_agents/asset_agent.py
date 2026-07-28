@@ -27,7 +27,7 @@ def generate_asset_content(brand_profile: dict, post_topic: str, flow_context: d
         print(f"[AssetAgent] 🔗 Flow Context: {json.dumps(flow_context, indent=2)}")
     
     llm = ChatGoogleGenerativeAI(
-        model="gemini-flash-latest",
+        model="gemini-flash-lite-latest",
         google_api_key=GEMINI_API_KEY,
         temperature=0.8,
     )
