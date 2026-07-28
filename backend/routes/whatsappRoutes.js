@@ -205,19 +205,52 @@ router.post('/callback', protect, async (req, res) => {
       try {
         console.log(`[WhatsApp Template] Auto-creating 'velocity_campaign_generic' template for WABA: ${profile.whatsappWABAId}...`);
         
-        const btnText = `${profile.brandName || 'Visit'} now`.substring(0, 25);
-        let btnUrl = profile.website || 'https://www.google.com';
-        if (!btnUrl.startsWith('http')) btnUrl = 'https://' + btnUrl;
+        const btnText = (profile.brandName ? `${profile.brandName} now` : 'Visit Website')
+          .replace(/[^\w\s]/gi, '')
+          .trim()
+          .substring(0, 25) || 'Visit Website';
+
+        let btnUrl = profile.website && profile.website.startsWith('http')
+          ? profile.website
+          : 'https://www.syncsocio.com';
 
         const templatePayload = {
           name: "velocity_campaign_generic",
           language: "en",
           category: "MARKETING",
           components: [
-            { type: "HEADER", format: "IMAGE" },
-            { type: "BODY", text: "Hey! Check this out 👇\n\n{{1}}\n\nPowered by SyncSocio" },
-            { type: "FOOTER", text: "T&C apply. Reply STOP to unsubscribe." },
-            { type: "BUTTONS", buttons: [{ type: "URL", text: btnText, url: btnUrl }] }
+            {
+              type: "HEADER",
+              format: "IMAGE",
+              example: {
+                header_handle: [
+                  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e"
+                ]
+              }
+            },
+            {
+              type: "BODY",
+              text: "Hey! Check this out 👇\n\n{{1}}\n\nPowered by SyncSocio",
+              example: {
+                body_text: [
+                  ["Check out our exclusive Diwali offer on MuscleBlaze supplements! Get 20% OFF today."]
+                ]
+              }
+            },
+            {
+              type: "FOOTER",
+              text: "T&C apply. Reply STOP to unsubscribe."
+            },
+            {
+              type: "BUTTONS",
+              buttons: [
+                {
+                  type: "URL",
+                  text: btnText,
+                  url: btnUrl
+                }
+              ]
+            }
           ]
         };
 
