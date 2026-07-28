@@ -35,6 +35,7 @@ const setClickTrackingBaseUrlFromRequest = (req) => {
 
 const buildTrackedButtonUrl = ({ flowId, buttonId, targetUrl }) => {
   const base = normalizeBaseUrl(clickTrackingBaseUrl);
+  console.log(`[WEBHOOK] buildTrackedButtonUrl: clickTrackingBaseUrl='${clickTrackingBaseUrl}', base='${base}'`);
   if (!base || !safeTrim(targetUrl)) {
     return targetUrl;
   }
@@ -359,16 +360,16 @@ const resolvePageToken = async (profile) => {
   return null;
 };
 
-// Cache follow-status lookups for 30 seconds to avoid hammering the API rate limit
+// Cache follow-status lookups for 5 seconds (just to debounce rapid double-clicks)
 const followStatusCache = new Map();
 
 const checkUserFollows = async (profile, senderId) => {
   if (!senderId) return false;
 
-  // Check in-memory cache first (30s TTL)
+  // Check in-memory cache first (5s TTL)
   const cacheKey = `${profile._id}:${senderId}`;
   const cached = followStatusCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < 30_000) {
+  if (cached && Date.now() - cached.ts < 5_000) {
     console.log(`[WEBHOOK] Follow check cache hit: ${senderId} → ${cached.value}`);
     return cached.value;
   }
