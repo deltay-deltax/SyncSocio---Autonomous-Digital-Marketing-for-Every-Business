@@ -431,7 +431,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
       } else {
         await createNotification(
           req.user._id,
-          'error',
+          'alert',
           'WhatsApp Campaign Failed',
           `Blast failed to send to all ${failCount} recipients. Error: ${lastError}`
         );
