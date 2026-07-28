@@ -359,40 +359,61 @@ const resolvePageToken = async (profile) => {
   return null;
 };
 
+// Cache follow-status lookups for 30 seconds to avoid hammering the API rate limit
+const followStatusCache = new Map();
+
 const checkUserFollows = async (profile, senderId) => {
   if (!senderId) return false;
+
+  // Check in-memory cache first (30s TTL)
+  const cacheKey = `${profile._id}:${senderId}`;
+  const cached = followStatusCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 30_000) {
+    console.log(`[WEBHOOK] Follow check cache hit: ${senderId} → ${cached.value}`);
+    return cached.value;
+  }
+
   try {
-    if (profile.instagramBusinessAccountId) {
-      try {
-          const url = `${FB_API_BASE}/${profile.instagramBusinessAccountId}/followers`;
-          const res = await axios.get(url, {
-            params: { user_id: senderId, access_token: profile.instagramAccessToken },
-            timeout: 10000,
-          });
-          if (res.data?.data && res.data.data.length > 0) return true;
-      } catch (igErr) {
-          // Meta API restricts /followers edge often. If it throws #100, we trust the user.
-          console.warn('[WEBHOOK] IG Follow check failed (expected privacy block), trusting user');
-          return true; 
-      }
+    // ── Official Meta method: GET /{igsid}?fields=is_user_follow_business ──
+    // This is the correct, officially-documented endpoint used by ManyChat and others.
+    // The sender.id in message webhooks IS the IGSID, which is what this endpoint requires.
+    // Requires a Page Access Token (not the IG user token).
+    const pageToken = await resolvePageToken(profile);
+    if (!pageToken) {
+      console.warn('[WEBHOOK] Follow check: could not resolve page token, defaulting to false');
+      return false;
     }
-    if (profile.instagramPageId) {
-      try {
-          const pageToken = await resolvePageToken(profile);
-          if (!pageToken) return false;
-          const url = `${FB_API_BASE}/${profile.instagramPageId}/likes`;
-          const res = await axios.get(url, {
-            params: { user_id: senderId, access_token: pageToken },
-            timeout: 10000,
-          });
-          if (res.data?.data && res.data.data.length > 0) return true;
-      } catch (fbErr) {
-          console.warn('[WEBHOOK] FB Like check failed');
-      }
+
+    const res = await axios.get(`${FB_API_BASE}/${senderId}`, {
+      params: {
+        fields: 'is_user_follow_business',
+        access_token: pageToken,
+      },
+      timeout: 10_000,
+    });
+
+    const isFollowing = res.data?.is_user_follow_business === true;
+    console.log(`[WEBHOOK] Follow check for ${senderId}: is_user_follow_business=${isFollowing}`);
+
+    // Cache the result
+    followStatusCache.set(cacheKey, { value: isFollowing, ts: Date.now() });
+    // Keep cache bounded
+    if (followStatusCache.size > 5000) {
+      const firstKey = followStatusCache.keys().next().value;
+      followStatusCache.delete(firstKey);
     }
-    return false;
+
+    return isFollowing;
   } catch (err) {
-    console.error('Error checking follows:', err?.response?.data || err.message);
+    const metaErr = err?.response?.data?.error;
+    // Error code 100 / subcode 2534013 = permission not granted (user hasn't messaged yet — treat as not following)
+    // Error code 803 = unknown IGSID — treat as not following
+    if (metaErr?.code === 100 || metaErr?.code === 803 || metaErr?.code === 10) {
+      console.warn(`[WEBHOOK] Follow check failed (API restriction code=${metaErr?.code}), defaulting to NOT following`);
+      return false;
+    }
+    console.error('[WEBHOOK] Follow check unexpected error:', metaErr || err.message);
+    // On unexpected errors (network timeouts etc.), default to false so we don't skip the gate
     return false;
   }
 };

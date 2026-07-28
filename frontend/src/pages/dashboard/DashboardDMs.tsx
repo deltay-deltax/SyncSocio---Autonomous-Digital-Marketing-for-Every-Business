@@ -812,12 +812,20 @@ const DashboardDMs = () => {
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-1">What to reply to comment msg</label>
                       <p className="text-[11px] text-muted-foreground mb-3">This public reply is sent on the comment before the DM. Use <span className="font-mono">{'{{username}}'}</span> to mention the commenter.</p>
-                      <Textarea
-                        placeholder="{{username}} Check your DM"
-                        value={newFlow.commentReplyMessage}
-                        onChange={e => setNewFlow({ ...newFlow, commentReplyMessage: e.target.value })}
-                        className="min-h-[96px] rounded-xl bg-background/60 text-sm font-medium resize-none"
-                      />
+                      <div className="flex flex-col bg-background/60 rounded-xl border border-input focus-within:ring-2 focus-within:ring-ring overflow-hidden">
+                        <div className="px-3 py-2 bg-primary/10 border-b border-primary/10 flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Mention:</span>
+                          <span className="px-2 py-0.5 rounded-md bg-primary/20 text-primary font-mono text-xs font-semibold select-none cursor-default">
+                            {'{'}{'{'}username{'}'}{'}'}
+                          </span>
+                        </div>
+                        <Textarea
+                          placeholder="Check your DM"
+                          value={newFlow.commentReplyMessage?.replace(/^\{\{username\}\}\s*/, '') || ''}
+                          onChange={e => setNewFlow({ ...newFlow, commentReplyMessage: '{{username}} ' + e.target.value })}
+                          className="min-h-[72px] bg-transparent border-0 focus-visible:ring-0 resize-none shadow-none text-sm font-medium p-3 rounded-none"
+                        />
+                      </div>
                     </div>
                     <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
                       <p className="text-xs text-primary font-medium flex items-center gap-2">
