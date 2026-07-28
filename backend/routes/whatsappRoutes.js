@@ -200,6 +200,43 @@ router.post('/callback', protect, async (req, res) => {
       profile.whatsappNumber = resolvedPhoneNumber;
     }
 
+    // Auto-create general template upon connect
+    if (profile.whatsappWABAId) {
+      try {
+        console.log(`[WhatsApp Template] Auto-creating 'velocity_campaign_generic' template for WABA: ${profile.whatsappWABAId}...`);
+        
+        const btnText = `${profile.brandName || 'Visit'} now`.substring(0, 25);
+        let btnUrl = profile.website || 'https://www.google.com';
+        if (!btnUrl.startsWith('http')) btnUrl = 'https://' + btnUrl;
+
+        const templatePayload = {
+          name: "velocity_campaign_generic",
+          language: "en",
+          category: "MARKETING",
+          components: [
+            { type: "HEADER", format: "IMAGE" },
+            { type: "BODY", text: "{{1}}" },
+            { type: "FOOTER", text: "T&C apply. Reply STOP to unsubscribe." },
+            { type: "BUTTONS", buttons: [{ type: "URL", text: btnText, url: btnUrl }] }
+          ]
+        };
+
+        await axios.post(
+          `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates`,
+          templatePayload,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        console.log(`[WhatsApp Template] Successfully created template for WABA: ${profile.whatsappWABAId}`);
+      } catch (tmplErr) {
+        const errorDetail = tmplErr?.response?.data?.error;
+        if (errorDetail && errorDetail.code === 100 && errorDetail.error_subcode === 2388040) {
+          console.log(`[WhatsApp Template] Template 'velocity_campaign_generic' already exists.`);
+        } else {
+          console.error('[WhatsApp Template] Failed to auto-create template:', tmplErr?.response?.data || tmplErr.message);
+        }
+      }
+    }
+
     await profile.save();
 
     console.log(`[WhatsApp OAuth] Successfully connected WhatsApp. WABA: ${profile.whatsappWABAId}, Phone: ${profile.whatsappPhoneId}`);

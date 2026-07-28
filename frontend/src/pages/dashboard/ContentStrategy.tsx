@@ -450,7 +450,6 @@ const STUDIOS: Studio[] = [
     image: "/assets/Creatives_icon/studio-festival.jpg",
     hoverBorder: "hover:border-pink-400 hover:ring-1 hover:ring-pink-400",
   },
-  /*
   {
     id: "whatsapp",
     title: "WhatsApp Campaign",
@@ -468,7 +467,6 @@ const STUDIOS: Studio[] = [
     image: "/assets/Creatives_icon/studio-whatsapp.png",
     hoverBorder: "hover:border-emerald-400 hover:ring-1 hover:ring-emerald-400",
   },
-  */
 
   {
     id: "email",
@@ -1708,6 +1706,16 @@ const DashboardStrategy = () => {
       toast({
         title: '⚠️ Email setup required',
         description: 'Verify your email domain in Settings → Email Setup before sending campaigns.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Client-side guard: check WhatsApp connection before sending
+    if (mode === 'whatsapp' && !profile?.whatsappIsConnected) {
+      toast({
+        title: '⚠️ WhatsApp not connected',
+        description: 'Connect your WhatsApp Business account in Settings → Connected Accounts before sending.',
         variant: 'destructive'
       });
       return;
