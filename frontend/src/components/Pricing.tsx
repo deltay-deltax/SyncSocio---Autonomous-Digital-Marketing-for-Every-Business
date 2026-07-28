@@ -17,7 +17,7 @@ const plans = [
     period: "/month",
     description: "For small businesses & creators getting started with AI content.",
     features: [
-      "200 credits / month",
+      "200 credits / month (40 AI images)",
       "Soft copy image exports",
       "500 email campaigns / month",
       "1 active brand profile",
@@ -106,22 +106,22 @@ const plans = [
 ];
 
 const topups = [
-  { 
-    credits: 100, 
+  {
+    credits: 100,
     prices: {
       INR: { price: 299, per_credit: 2.99 },
       USD: { price: 5, per_credit: 0.05 }
     }
   },
-  { 
-    credits: 300, 
+  {
+    credits: 300,
     prices: {
       INR: { price: 799, per_credit: 2.66 },
       USD: { price: 12, per_credit: 0.04 }
     }
   },
-  { 
-    credits: 700, 
+  {
+    credits: 700,
     prices: {
       INR: { price: 1699, per_credit: 2.42 },
       USD: { price: 24, per_credit: 0.03 }
@@ -165,7 +165,7 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
 
           <div className="flex justify-center items-center gap-2 mt-6">
             <span className={`text-sm font-semibold ${currency === 'INR' ? 'text-foreground' : 'text-muted-foreground'}`}>INR (₹)</span>
-            <button 
+            <button
               onClick={() => setCurrency(currency === 'INR' ? 'USD' : 'INR')}
               className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary/20 transition-colors focus:outline-none"
             >
@@ -188,21 +188,19 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                 initial={{ opacity: 0, y: 40 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: i * 0.08 }}
-                className={`relative rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${
-                  plan.popular
+                className={`relative rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${plan.popular
                     ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
                     : plan.isCustom
-                    ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
-                    : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
-                }`}
+                      ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
+                      : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
+                  }`}
               >
                 {/* Top Badge */}
                 {plan.badge && (
-                  <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md z-20 whitespace-nowrap ${
-                    plan.popular
+                  <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md z-20 whitespace-nowrap ${plan.popular
                       ? "bg-amber-400 text-slate-900"
                       : "bg-primary text-primary-foreground"
-                  }`}>
+                    }`}>
                     {plan.badge}
                   </div>
                 )}
@@ -211,19 +209,17 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                   {/* Header & Title */}
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-extrabold tracking-tight">{plan.name}</h3>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                      plan.popular
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${plan.popular
                         ? "bg-white/20 text-white backdrop-blur-sm"
                         : "bg-primary/10 text-primary"
-                    }`}>
+                      }`}>
                       {plan.creditTag}
                     </span>
                   </div>
 
                   {/* Subtitle / Description */}
-                  <p className={`text-xs min-h-[36px] leading-relaxed mb-4 ${
-                    plan.popular ? "text-primary-foreground/85" : "text-muted-foreground"
-                  }`}>
+                  <p className={`text-xs min-h-[36px] leading-relaxed mb-4 ${plan.popular ? "text-primary-foreground/85" : "text-muted-foreground"
+                    }`}>
                     {plan.description}
                   </p>
 
@@ -232,22 +228,19 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                     {!plan.isCustom ? (
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs line-through font-semibold ${
-                            plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"
-                          }`}>
+                          <span className={`text-xs line-through font-semibold ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"
+                            }`}>
                             {symbol}{originalPrice}
                           </span>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                            plan.popular ? "bg-white/20 text-white" : "bg-emerald-500/10 text-emerald-600"
-                          }`}>
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${plan.popular ? "bg-white/20 text-white" : "bg-emerald-500/10 text-emerald-600"
+                            }`}>
                             {discountPercent}% OFF
                           </span>
                         </div>
                         <div className="flex items-baseline gap-1">
                           <span className="text-3xl sm:text-4xl font-black tracking-tight">{symbol}{currentPrice}</span>
-                          <span className={`text-xs font-semibold ${
-                            plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
-                          }`}>
+                          <span className={`text-xs font-semibold ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
+                            }`}>
                             {plan.period}
                           </span>
                         </div>
@@ -264,9 +257,8 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                   <ul className="space-y-2.5 mb-8">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
-                        <Check size={15} className={`shrink-0 mt-0.5 ${
-                          plan.popular ? "text-white" : "text-primary"
-                        }`} />
+                        <Check size={15} className={`shrink-0 mt-0.5 ${plan.popular ? "text-white" : "text-primary"
+                          }`} />
                         <span className={plan.popular ? "text-primary-foreground/95" : "text-foreground/90"}>
                           {feature}
                         </span>
@@ -279,13 +271,12 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                 <div className="pt-2">
                   <Button
                     onClick={() => handleSelectPlan(plan.name)}
-                    className={`w-full py-6 rounded-2xl font-bold text-xs tracking-wide shadow-md transition-all ${
-                      plan.popular
+                    className={`w-full py-6 rounded-2xl font-bold text-xs tracking-wide shadow-md transition-all ${plan.popular
                         ? "bg-white text-primary hover:bg-white/90 hover:shadow-lg"
                         : plan.isCustom
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "gradient-bg text-primary-foreground border-0 hover:opacity-95"
-                    }`}
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "gradient-bg text-primary-foreground border-0 hover:opacity-95"
+                      }`}
                     size="lg"
                   >
                     {plan.cta}
