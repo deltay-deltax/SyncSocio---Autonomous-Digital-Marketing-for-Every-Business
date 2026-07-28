@@ -300,22 +300,13 @@ export const googleLogin = async (req, res) => {
       await user.save();
     }
 
-    if (isNewUser && !user.password) {
-      // New user via Google - require password setup
-      res.status(200).json({ 
-        user, 
-        requiresPasswordSetup: true,
-        tempToken: generateToken(user._id)
-      });
-    } else {
-      await createNotification(
-        user._id,
-        'success',
-        'Google Login',
-        `Authenticated successfully via Google.`
-      );
-      res.status(200).json({ user, token: generateToken(user._id) });
-    }
+    await createNotification(
+      user._id,
+      'success',
+      'Google Login',
+      `Authenticated successfully via Google.`
+    );
+    res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
     console.error('Google Auth Error:', error);
     res.status(500).json({ message: 'Google Auth failed' });

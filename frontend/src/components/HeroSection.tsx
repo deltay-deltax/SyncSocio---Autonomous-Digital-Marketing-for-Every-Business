@@ -57,7 +57,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center w-full"
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full"
             >
               <Button
                 size="lg"
@@ -67,6 +67,11 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
                 Claim 3 Free Creatives
                 <ArrowRight size={18} className="ml-2" />
               </Button>
+              <Link to="/signup" className="sm:hidden flex justify-center">
+                <Button variant="outline" size="lg" className="text-sm px-6 py-5 hover-lift bg-background/50 backdrop-blur-sm">
+                  Sign up
+                </Button>
+              </Link>
             </motion.div>
           </div>
         </div>
