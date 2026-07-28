@@ -576,7 +576,7 @@ def generate_instagram_caption_and_hashtags(
 ) -> str:
     """Uses Gemini Flash to generate an engaging Instagram caption with relevant hashtags."""
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.8)
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.8)
         brand_name = brand_doc.get("brandName", "Brand")
         brand_block = _brand_block(brand_doc)
         
@@ -623,7 +623,7 @@ def generate_instagram_caption_and_hashtags(
 
 def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], layout: str, idea: Optional[str], language: str = "english") -> Dict[str, str]:
     """Uses Gemini Flash to write tailored email or whatsapp copy."""
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
     
     sys_msg, user_msg = get_campaign_copy_prompts(brand_doc, product, layout, idea, language)
     
@@ -655,7 +655,7 @@ def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str
 
 def refine_campaign_copy(brand_doc: Dict[str, Any], subject: str, body: str, instruction: str, layout: str, language: str = "english") -> Dict[str, str]:
     """Uses Gemini Flash to refine existing email or whatsapp copy based on an instruction."""
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
     
     brand_name = brand_doc.get("brandName", "the brand")
     tone = brand_doc.get("brandTone", "engaging")
@@ -744,7 +744,7 @@ def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]
             
         user_prompt += f"Output EXACTLY {count} labels in a JSON array."
         
-        llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.4, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.4, google_api_key=os.getenv("GOOGLE_API_KEY"))
         response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
         raw_content = response.content
         if isinstance(raw_content, list):
@@ -921,7 +921,7 @@ def build_carousel_slide_prompts(
     language: str = "english"
 ) -> List[str]:
     """Uses Gemini Flash to draft content for N slides."""
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
 
     block = _brand_block(brand_doc)
     prod_info = ""
@@ -1508,7 +1508,7 @@ Orchestrates generation for all layout types.
             # Generate script and avatar description if they are empty
             if not avatar_description or not video_script:
                 try:
-                    llm = ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0.7)
+                    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
                     brand_name = brand_doc.get("brandName", "Brand")
                     prod_name = products[0].get("name", "") if products else brand_name
                     prod_desc = products[0].get("description", "") if products else ""
