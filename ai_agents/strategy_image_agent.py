@@ -378,7 +378,7 @@ def _brand_block(bd: Dict[str, Any]) -> str:
     target_audience = ", ".join(bd.get("targetAudiences", [])) or "General audience"
     product_name   = (bd.get("productBrief") or {}).get("name", "") or brand_name
     usp            = bd.get("usp", "")
-    headline       = bd.get("mainGoal", "")
+    headline       = ""
     website        = bd.get("website", "")
     logo           = bd.get("logo", "")
 
@@ -800,7 +800,6 @@ def build_ecomm_image_prompt(
         f"Colors: {primary_color} / {secondary_color}. "
         f"Visual style: {visual_vibe}. "
         f"Target: {target_audience}."
-        + (f" Brand goal: {main_goal}." if main_goal else "")
         + (f" USP: {usp}." if usp else "")
     )
 

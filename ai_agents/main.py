@@ -1532,7 +1532,6 @@ async def api_generate_visuals(request: VisualGenRequest):
                 brand_dna = f"""
                 Brand: {brand_doc.get('brandName')}
                 Country: {country}
-                Goal: {brand_doc.get('mainGoal')}
                 Category: {(brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "General"))}
                 Tone: {brand_doc.get('brandTone')}
                 Vibe: {brand_doc.get('visualVibe')}
@@ -1693,7 +1692,6 @@ Not a stock photo. Not AI-looking.
 
                 brand_dna_total = f"""Brand DNA:
 - Brand Name: {brand_name}
-- Goal/Mission: {main_goal}
 - Business Category: {business_category}
 - Brand Tone: {brand_tone}
 - Visual Vibe: {visual_vibe}

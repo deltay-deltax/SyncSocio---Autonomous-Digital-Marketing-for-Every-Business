@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Sparkles, Check, ArrowRight, X } from "lucide-react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+import { trackMetaEvent } from "@/utils/metaPixel";
 
 type Intent = "creatives" | "demo";
 
@@ -131,6 +132,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
               onSubmit={async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
+                const eventId = crypto.randomUUID();
                 const data = {
                   name: formData.get("name") as string,
                   email: formData.get("email") as string,
@@ -139,6 +141,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   website: formData.get("website") as string,
                   businessCategory: formData.get("businessCategory") as string,
                   intent: intent,
+                  eventId: eventId,
                   _gotcha: formData.get("_gotcha") as string,
                 };
 
@@ -201,6 +204,9 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   });
                   if (res.ok) {
                     setSubmitted(true);
+                    trackMetaEvent('Lead', {
+                      content_name: isDemo ? 'Demo Call' : 'Free Creatives'
+                    }, false, eventId);
                   } else {
                     const result = await res.json();
                     setFormError(result.message || "Failed to submit. Please try again.");
