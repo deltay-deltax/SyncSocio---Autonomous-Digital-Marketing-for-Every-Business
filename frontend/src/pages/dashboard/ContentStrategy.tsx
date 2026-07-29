@@ -973,13 +973,17 @@ const DashboardStrategy = () => {
 
   React.useEffect(() => {
     if (mode) {
-      const isPremium = ['all_in_one'].includes(mode);
       if (isPlanExpired) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason('expired');
         setShowUpgradeModal(true);
-      } else if (isPremium && !isElite) {
+      } else if (mode === 'video' && !isElite) {
+        setStage('pick');
+        setMode(null);
+        setUpgradeModalReason('video');
+        setShowUpgradeModal(true);
+      } else if (['all_in_one'].includes(mode) && !isElite) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason('premium');
@@ -1001,7 +1005,6 @@ const DashboardStrategy = () => {
       navigate('/dashboard/editor');
       return;
     }
-    const isPremium = ['all_in_one'].includes(mId);
 
     if (isPlanExpired) {
       setUpgradeModalReason('expired');
@@ -1009,7 +1012,13 @@ const DashboardStrategy = () => {
       return;
     }
 
-    if (isPremium && !isElite) {
+    if (mId === 'video' && !isElite) {
+      setUpgradeModalReason('video');
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    if (['all_in_one'].includes(mId) && !isElite) {
       setUpgradeModalReason('premium');
       setShowUpgradeModal(true);
       return;
