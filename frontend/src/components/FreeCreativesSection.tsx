@@ -37,7 +37,10 @@ export default function FreeCreativesSection() {
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button
-              onClick={() => setIntent("creatives")}
+              onClick={() => {
+                trackMetaEvent('Lead', { content_name: 'Free Creatives Click' });
+                setIntent("creatives");
+              }}
               className="group inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/25"
             >
               Claim 3 Free Creatives
@@ -45,7 +48,10 @@ export default function FreeCreativesSection() {
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
             <button
-              onClick={() => setIntent("demo")}
+              onClick={() => {
+                trackMetaEvent('Lead', { content_name: 'Demo Call Click' });
+                setIntent("demo");
+              }}
               className="inline-flex items-center gap-2 h-12 px-6 rounded-xl border border-border/60 bg-card/40 font-bold text-sm hover:bg-card/70 transition-all"
             >
               Book a demo call
@@ -204,9 +210,6 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   });
                   if (res.ok) {
                     setSubmitted(true);
-                    trackMetaEvent('Lead', {
-                      content_name: isDemo ? 'Demo Call' : 'Free Creatives'
-                    }, false, eventId);
                   } else {
                     const result = await res.json();
                     setFormError(result.message || "Failed to submit. Please try again.");
