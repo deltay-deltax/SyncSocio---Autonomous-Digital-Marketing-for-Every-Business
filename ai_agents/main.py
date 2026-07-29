@@ -10,8 +10,17 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timezone
+import sys
+import asyncio
 import re
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 from dotenv import load_dotenv
+import httpx
+from playwright.sync_api import sync_playwright
+# pyrefly: ignore [missing-import]
+from playwright_stealth import Stealth
 
 load_dotenv()
 
@@ -278,7 +287,7 @@ def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = ""):
         ],
         "temperature": 0.2
     }
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=180)
     response.raise_for_status()
     result = response.json()
     return result["choices"][0]["message"]["content"]
@@ -320,6 +329,81 @@ def download_image_as_base64(url: str) -> str:
         print(f"[WEBSITE SCANNER] [DOWNLOAD] ⚠️ Failed to download image {url}: {e}")
     return ""
 
+async def fetch_html_layered(url: str, is_saas: bool) -> str:
+    """
+    Fetches HTML using a 4-layer approach.
+    Throws an HTTPException if all 4 layers fail, which triggers the frontend dialog box.
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
+    
+    def is_valid_html(html: str) -> bool:
+        parser = HTMLMetadataExtractor(base_url=url, is_saas=is_saas)
+        parser.feed(html)
+        ext = parser.get_content()
+        body = ext["body_text"].strip()
+        title = ext.get("title", "").lower()
+        if len(body) < 50:
+            return False
+        if "just a moment" in title or "attention required" in title or "cloudflare" in title:
+            return False
+        return True
+
+    # Layer 1: Fast plain HTTP fetch
+    print(f"[SCRAPER] Layer 1: HTTPX Fetch for {url}")
+    try:
+        async with httpx.AsyncClient(verify=False, timeout=12.0) as client:
+            res = await client.get(url, headers=headers)
+            res.raise_for_status()
+            if is_valid_html(res.text):
+                print(f"[SCRAPER] Layer 1 Success")
+                return res.text
+    except Exception as e:
+        print(f"[SCRAPER] Layer 1 Failed: {e}")
+
+    def _run_playwright(use_stealth: bool) -> str:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(user_agent=headers["User-Agent"])
+            page = context.new_page()
+            if use_stealth:
+                stealth_manager = Stealth()
+                stealth_manager.apply_stealth_sync(page)
+            page.goto(url, wait_until="domcontentloaded", timeout=15000)
+            html = page.content()
+            browser.close()
+            return html
+
+    # Layer 2: Headless Browser (Playwright)
+    print(f"[SCRAPER] Layer 2: Playwright for {url}")
+    try:
+        html = await asyncio.to_thread(_run_playwright, False)
+        if is_valid_html(html):
+            print(f"[SCRAPER] Layer 2 Success")
+            return html
+        else:
+            print(f"[SCRAPER] Layer 2 Failed: Blocked by bot-protection (Cloudflare/CAPTCHA)")
+    except Exception as e:
+        print(f"[SCRAPER] Layer 2 Failed: {e}")
+
+    # Layer 3: Stealth Headless Browser
+    print(f"[SCRAPER] Layer 3: Playwright Stealth for {url}")
+    try:
+        html = await asyncio.to_thread(_run_playwright, True)
+        if is_valid_html(html):
+            print(f"[SCRAPER] Layer 3 Success")
+            return html
+        else:
+            print(f"[SCRAPER] Layer 3 Failed: Blocked by bot-protection (Cloudflare/CAPTCHA)")
+    except Exception as e:
+        print(f"[SCRAPER] Layer 3 Failed: {e}")
+
+    print(f"[SCRAPER] All 3 layers failed for {url}")
+    raise HTTPException(status_code=422, detail="SCRAPE_FAILED_ALL_LAYERS")
+
 class ScrapeRequest(BaseModel):
     url: str
     businessCategory: Optional[str] = None
@@ -357,33 +441,15 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
             custom_data={"website_url": url}
         )
     
-    is_fallback = False
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-        }
-        try:
-            response = requests.get(url, headers=headers, timeout=12, verify=False)
-        except Exception as e:
-            if url.startswith("https://"):
-                url_http = url.replace("https://", "http://")
-                response = requests.get(url_http, headers=headers, timeout=12, verify=False)
-            else:
-                raise e
-                
-        if response.status_code != 200:
-            raise Exception(f"HTTP status {response.status_code}")
-            
-        html_content = response.text
+        html_content = await fetch_html_layered(url, is_saas=False)
         
         parser = HTMLMetadataExtractor(base_url=url)
         parser.feed(html_content)
         extracted = parser.get_content()
         
         if not extracted["body_text"].strip():
-            raise Exception("No readable text content found on the webpage.")
+            raise HTTPException(status_code=422, detail="SCRAPE_FAILED_ALL_LAYERS")
             
         # Extract typography candidates using regex
         import re
@@ -429,21 +495,11 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         print(f"[WEBSITE SCANNER] [TEXT] Raw text character length: {len(extracted['body_text'])}")
         print("="*80 + "\n")
             
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as scrape_err:
-        print(f"[WEBSITE SCANNER] [WARNING] Scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis...")
-        is_fallback = True
-        
-        # Build inferred title from domain
-        domain_part = url.split("//")[-1].replace("www.", "").split("/")[0].split(".")[0].capitalize()
-        extracted = {
-            "title": domain_part,
-            "meta_description": f"Official website of {domain_part}",
-            "body_text": f"Scraping was blocked by firewall. Inferring brand details based on brand name: {domain_part}.",
-            "images": [],
-            "logo_candidates": []
-        }
-        typography_candidates = []
-        top_colors = []
+        print(f"[WEBSITE SCANNER] [WARNING] Extraction failed: {scrape_err}")
+        raise HTTPException(status_code=422, detail="SCRAPE_FAILED_ALL_LAYERS")
         
     if not openai_key:
         raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
@@ -498,14 +554,11 @@ JSON Structure:
   ]
 }
 """
-        if is_fallback:
-            user_prompt = f"Scrape URL: {url} (SCRAPER BLOCKED/FAILED - PLEASE USE OFFLINE TRAINING KNOWLEDGE TO INFER DETAILS)\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\nNone (scraper failed)\n\nDetected typography candidates:\nNone (scraper failed)\n\nDetected colors:\nNone (scraper failed)\n\nList of page images:\nNone (scraper failed)\n\nWebpage visible text:\n{extracted['body_text']}"
-        else:
-            logo_info_str = "\n".join([f"- URL: {l['src']} | Source: {l['source']}" for l in extracted["logo_candidates"]])
-            typo_info_str = ", ".join(typography_candidates) if typography_candidates else "None detected"
-            color_info_str = ", ".join(top_colors) if top_colors else "None detected"
-            images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
-            user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\n{logo_info_str}\n\nDetected typography candidates:\n{typo_info_str}\n\nDetected colors:\n{color_info_str}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
+        logo_info_str = "\n".join([f"- URL: {l['src']} | Source: {l['source']}" for l in extracted.get("logo_candidates", [])])
+        typo_info_str = ", ".join(typography_candidates) if typography_candidates else "None detected"
+        color_info_str = ", ".join(top_colors) if top_colors else "None detected"
+        images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted.get("images", [])])
+        user_prompt = f"Scrape URL: {url}\nTitle: {extracted.get('title', '')}\nMeta Description: {extracted.get('meta_description', '')}\n\nList of logo candidates:\n{logo_info_str}\n\nDetected typography candidates:\n{typo_info_str}\n\nDetected colors:\n{color_info_str}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted.get('body_text', '')}"
         
         print("\n" + "="*80)
         print("[WEBSITE SCANNER] [PROMPT] PROMPT BEING SENT TO GPT:")
@@ -599,14 +652,7 @@ async def api_scrape_single_product(payload: ScrapeRequest):
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
         
-    is_fallback = False
-    extracted = None
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        
-        # Force offline fallback for console / login / auth / dashboard pages
         from urllib.parse import urlparse
         parsed_url = urlparse(url)
         netloc_lower = parsed_url.netloc.lower()
@@ -624,19 +670,9 @@ async def api_scrape_single_product(payload: ScrapeRequest):
             "accounts.google" in netloc_lower
         )
         if is_console_or_auth:
-            raise Exception("Console or auth-walled URL detected. Forcing offline LLM synthesis fallback.")
+            raise HTTPException(status_code=422, detail="SCRAPE_FAILED_ALL_LAYERS")
 
-        try:
-            response = requests.get(url, headers=headers, timeout=12, verify=False)
-        except Exception as e:
-            if url.startswith("https://"):
-                url_http = url.replace("https://", "http://")
-                response = requests.get(url_http, headers=headers, timeout=12, verify=False)
-            else:
-                raise e
-                
-        response.raise_for_status()
-        html_content = response.text
+        html_content = await fetch_html_layered(url, is_saas=_is_saas)
         
         parser = HTMLMetadataExtractor(base_url=url, is_saas=_is_saas)
         parser.feed(html_content)
@@ -695,73 +731,13 @@ async def api_scrape_single_product(payload: ScrapeRequest):
             print(f"[SCRAPER] Injected fallback logo candidate: {injected_logo} for URL {url}")
         
         if not extracted["body_text"].strip():
-            raise Exception("No readable text content found on the webpage.")
+            raise HTTPException(status_code=422, detail="SCRAPE_FAILED_ALL_LAYERS")
             
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as scrape_err:
-        print(f"[SCRAPER] Single product scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis fallback...")
-        is_fallback = True
-        
-        # Parse host/path to infer service details
-        from urllib.parse import urlparse
-        parsed_url = urlparse(url)
-        path_parts = [p for p in parsed_url.path.split('/') if p]
-        domain_parts = parsed_url.netloc.split('.')
-        
-        # If AWS console url e.g. console.aws.amazon.com/ec2/home
-        inferred_name = ""
-        netloc_lower = parsed_url.netloc.lower()
-        if "aws" in netloc_lower or "amazon" in netloc_lower:
-            # Check path or subdomain
-            aws_service = ""
-            for part in path_parts + domain_parts:
-                if part.lower() in ["ec2", "s3", "rds", "lambda", "dynamodb", "ecs", "eks", "sqs", "sns", "iam", "route53", "cloudfront", "vpc"]:
-                    aws_service = part.upper()
-                    break
-            if aws_service:
-                inferred_name = f"Amazon {aws_service}"
-            else:
-                inferred_name = "Amazon Web Services"
-        elif "stripe" in netloc_lower:
-            inferred_name = "Stripe Payments"
-        elif "salesforce" in netloc_lower:
-            inferred_name = "Salesforce CRM"
-        elif "mongodb" in netloc_lower:
-            inferred_name = "MongoDB Atlas"
-        elif "google" in netloc_lower or "gcp" in netloc_lower:
-            inferred_name = "Google Cloud Platform"
-        else:
-            # General fallback: get last non-empty path part or domain name
-            if path_parts:
-                inferred_name = path_parts[-1].replace('-', ' ').replace('_', ' ').capitalize()
-            else:
-                inferred_name = domain_parts[-2].capitalize() if len(domain_parts) >= 2 else domain_parts[0].capitalize()
-                
-        # Fallback logos for common services (ordered by specificity)
-        fallback_logos_ordered = [
-            ("amazon s3", "https://upload.wikimedia.org/wikipedia/commons/b/bc/Amazon-S3-Logo.svg"),
-            ("amazon ec2", "https://upload.wikimedia.org/wikipedia/commons/9/99/AWS_Simple_Icons_Compute_Amazon_EC2.svg"),
-            ("amazon web services", "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"),
-            ("google cloud", "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg"),
-            ("salesforce", "https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg"),
-            ("mongodb", "https://upload.wikimedia.org/wikipedia/commons/3/32/MongoDb-Logo.svg"),
-            ("stripe", "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg"),
-            ("amazon", "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"),
-            ("aws", "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"),
-            ("gcp", "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg"),
-        ]
-        logo_url = ""
-        lower_inferred = inferred_name.lower()
-        for key, val in fallback_logos_ordered:
-            if key in lower_inferred:
-                logo_url = val
-                break
-                
-        extracted = {
-            "title": inferred_name,
-            "meta_description": f"Service details for {inferred_name}",
-            "body_text": f"Scraping was blocked by firewall or required login. Synthesizing details for service/product: {inferred_name}.",
-            "images": [{"src": logo_url, "alt": inferred_name}] if logo_url else []
-        }
+        print(f"[SCRAPER] Single product scraper extraction failed for {url} ({scrape_err})")
+        raise HTTPException(status_code=422, detail="SCRAPE_FAILED_ALL_LAYERS")
         
     if not openai_key:
         raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
