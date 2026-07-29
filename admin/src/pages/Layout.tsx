@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { to: '/waitlist', icon: ClipboardList, label: 'Waitlist' },
   { to: '/testers', icon: ShieldCheck, label: 'Tester' },
   { to: '/landing-gallery', icon: LayoutDashboard, label: 'Landing Gallery' },
+  { to: '/lead-generation', icon: ClipboardList, label: 'Lead Generation' },
 ];
 
 export default function Layout() {

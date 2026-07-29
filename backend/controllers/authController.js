@@ -270,6 +270,7 @@ export const googleLogin = async (req, res) => {
     
     // Meta Conversions API (CompleteRegistration)
     if (req.body.metaEventId && (isNewUser || isSignup)) {
+      console.log("🔥 [TESTING] Firing Meta CAPI Event: CompleteRegistration (Backend via Google/OAuth)");
       sendMetaCapiEvent('CompleteRegistration', req.body.metaEventId, {
         email: user.email,
         clientIp: req.ip || req.headers['x-forwarded-for'],
@@ -299,22 +300,13 @@ export const googleLogin = async (req, res) => {
       await user.save();
     }
 
-    if (isNewUser && !user.password) {
-      // New user via Google - require password setup
-      res.status(200).json({ 
-        user, 
-        requiresPasswordSetup: true,
-        tempToken: generateToken(user._id)
-      });
-    } else {
-      await createNotification(
-        user._id,
-        'success',
-        'Google Login',
-        `Authenticated successfully via Google.`
-      );
-      res.status(200).json({ user, token: generateToken(user._id) });
-    }
+    await createNotification(
+      user._id,
+      'success',
+      'Google Login',
+      `Authenticated successfully via Google.`
+    );
+    res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
     console.error('Google Auth Error:', error);
     res.status(500).json({ message: 'Google Auth failed' });
@@ -372,6 +364,7 @@ export const appleLogin = async (req, res) => {
 
     // Meta Conversions API (CompleteRegistration)
     if (req.body.metaEventId && (isNewUser || isSignup)) {
+      console.log("🔥 [TESTING] Firing Meta CAPI Event: CompleteRegistration (Backend via GitHub/OAuth)");
       sendMetaCapiEvent('CompleteRegistration', req.body.metaEventId, {
         email: user.email,
         clientIp: req.ip || req.headers['x-forwarded-for'],
@@ -475,6 +468,7 @@ export const verifyOtp = async (req, res) => {
 
     // Meta Conversions API (CompleteRegistration)
     if (req.body.metaEventId) {
+      console.log("🔥 [TESTING] Firing Meta CAPI Event: CompleteRegistration (Backend via Email OTP Verify)");
       sendMetaCapiEvent('CompleteRegistration', req.body.metaEventId, {
         email: user.email,
         clientIp: req.ip || req.headers['x-forwarded-for'],

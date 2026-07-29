@@ -163,6 +163,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
             // Fire client-side Meta Pixel Purchase event with the exact same ID
             trackMetaEvent('Purchase', { value: orderData.order.amount / 100, currency: orderData.order.currency }, false, metaEventId);
+            console.log("🔥 [TESTING] Firing Meta Pixel Event: Purchase (Frontend)");
 
             toast({ title: 'Payment Successful', description: 'Your order has been processed.' });
             onSuccess(verifyData);

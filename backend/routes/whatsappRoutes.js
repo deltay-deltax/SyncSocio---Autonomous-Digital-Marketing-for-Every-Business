@@ -200,6 +200,137 @@ router.post('/callback', protect, async (req, res) => {
       profile.whatsappNumber = resolvedPhoneNumber;
     }
 
+    // Auto-create general template upon connect
+    if (profile.whatsappWABAId) {
+      try {
+        console.log(`[WhatsApp Template] Auto-creating 'custom_campaign_image' template for WABA: ${profile.whatsappWABAId}...`);
+        
+        const btnText = (profile.brandName ? `${profile.brandName} now` : 'Visit Website')
+          .replace(/[^\w\s]/gi, '')
+          .trim()
+          .substring(0, 25) || 'Visit Website';
+
+        let btnUrl = profile.website && profile.website.startsWith('http')
+          ? profile.website
+          : 'https://www.syncsocio.com';
+
+        // Obtain a real sample media handle from Meta's Resumable Upload API
+        const appId = process.env.INSTAGRAM_CLIENT_ID || process.env.FB_APP_ID || '1491990322515220';
+        let sampleHandle = null;
+
+        try {
+          const samplePng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+          const sessionRes = await axios.post(
+            `https://graph.facebook.com/v21.0/${appId}/uploads`,
+            null,
+            { params: { file_length: samplePng.length, file_type: 'image/png', access_token: accessToken } }
+          );
+          const sessionId = sessionRes.data?.id;
+          if (sessionId) {
+            const uploadRes = await axios.post(
+              `https://graph.facebook.com/v21.0/${sessionId}`,
+              samplePng,
+              { headers: { 'Authorization': `OAuth ${accessToken}`, 'file_offset': 0, 'Content-Type': 'image/png' } }
+            );
+            sampleHandle = uploadRes.data?.h || null;
+            console.log(`[WhatsApp Upload] Generated sample media handle: ${sampleHandle}`);
+          }
+        } catch (uploadErr) {
+          console.warn('[WhatsApp Upload] Resumable upload failed, using fallback handle handling:', uploadErr?.response?.data || uploadErr.message);
+        }
+
+        const templateComponents = [
+          {
+            type: "BODY",
+            text: "Hey! Check this out 👇\n\n{{1}}\n\nPowered by SyncSocio",
+            example: {
+              body_text: [
+                ["Check out our exclusive Diwali offer on MuscleBlaze supplements! Get 20% OFF today."]
+              ]
+            }
+          },
+          {
+            type: "FOOTER",
+            text: "T&C apply. Reply STOP to unsubscribe."
+          },
+          {
+            type: "BUTTONS",
+            buttons: [
+              {
+                type: "URL",
+                text: btnText,
+                url: btnUrl
+              }
+            ]
+          }
+        ];
+
+        // Add IMAGE Header if sampleHandle was successfully generated
+        if (sampleHandle) {
+          templateComponents.unshift({
+            type: "HEADER",
+            format: "IMAGE",
+            example: {
+              header_handle: [sampleHandle]
+            }
+          });
+        }
+
+        const templatePayload = {
+          name: "custom_campaign_image",
+          language: "en_US",
+          category: "MARKETING",
+          components: templateComponents
+        };
+
+        await axios.post(
+          `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates`,
+          templatePayload,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        console.log(`[WhatsApp Template] Successfully created template for WABA: ${profile.whatsappWABAId}`);
+      } catch (tmplErr) {
+        const errorDetail = tmplErr?.response?.data?.error;
+        const isAlreadyExists = errorDetail && (
+          errorDetail.error_subcode === 2388040 || 
+          errorDetail.error_subcode === 2388024 ||
+          (errorDetail.message && errorDetail.message.includes('already exists')) ||
+          (errorDetail.error_user_title && errorDetail.error_user_title.includes('Already Exists'))
+        );
+        if (isAlreadyExists) {
+          console.log(`[WhatsApp Template] Template 'custom_campaign_image' already exists.`);
+        } else {
+          console.error('[WhatsApp Template] Failed to auto-create primary template:', tmplErr?.response?.data || tmplErr.message);
+          
+          // Fallback: Create text-only template if image header template failed
+          try {
+            console.log(`[WhatsApp Template] Creating fallback text template 'custom_campaign_text'...`);
+            const fallbackPayload = {
+              name: "custom_campaign_text",
+              language: "en_US",
+              category: "MARKETING",
+              components: [
+                {
+                  type: "BODY",
+                  text: "Hey! Check this out 👇\n\n{{1}}\n\nPowered by SyncSocio",
+                  example: { body_text: [["Check out our exclusive Diwali offer on MuscleBlaze supplements!"]] }
+                },
+                { type: "FOOTER", text: "T&C apply. Reply STOP to unsubscribe." }
+              ]
+            };
+            await axios.post(
+              `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates`,
+              fallbackPayload,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            console.log(`[WhatsApp Template] Successfully created fallback template 'custom_campaign_text'.`);
+          } catch (fbErr) {
+            console.error('[WhatsApp Template] Fallback template creation error:', fbErr?.response?.data || fbErr.message);
+          }
+        }
+      }
+    }
+
     await profile.save();
 
     console.log(`[WhatsApp OAuth] Successfully connected WhatsApp. WABA: ${profile.whatsappWABAId}, Phone: ${profile.whatsappPhoneId}`);

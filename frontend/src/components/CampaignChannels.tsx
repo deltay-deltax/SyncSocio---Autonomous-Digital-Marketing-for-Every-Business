@@ -17,8 +17,7 @@ const emailPreview = {
 };
 
 const CampaignChannels = () => {
-  // const [channel, setChannel] = useState<Channel>("whatsapp");
-  const [channel, setChannel] = useState<Channel>("email");
+  const [channel, setChannel] = useState<Channel>("whatsapp");
   const [sentCount, setSentCount] = useState(0);
 
   useEffect(() => {
@@ -62,7 +61,7 @@ const CampaignChannels = () => {
         {/* Channel toggle */}
         <div className="flex items-center justify-center gap-2 mb-10">
           <div className="inline-flex p-1 rounded-full border border-border/50 bg-card/40 backdrop-blur-sm">
-            {(["email"] as Channel[]).map((c) => {
+            {(["whatsapp", "email"] as Channel[]).map((c) => {
               const isActive = c === channel;
               const Icon = c === "whatsapp" ? MessageSquare : Mail;
               return (

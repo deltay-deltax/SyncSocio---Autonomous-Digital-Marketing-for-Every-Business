@@ -351,6 +351,7 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         if forwarded_for:
             client_ip = forwarded_for.split(",")[0].strip()
             
+        print("🔥 [TESTING] Firing Meta CAPI Event: URLDropped (Python Backend)")
         send_meta_capi_event(
             event_name="URLDropped",
             event_id=payload.metaEventId,
@@ -1908,6 +1909,13 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 provider = "GEMINI"
                 cost_in_cents = len(posts) * 80 # Approx 80 cents per Veo 3.1 video
                 endpoint = "google/veo-3.1-fast"
+            elif request.layout in ["whatsapp", "email"]:
+                provider = "GEMINI"
+                cost_in_cents = len(posts) * 1  # ~1 cent per campaign (LLM copy only, no image gen)
+                endpoint = "google/gemini-campaign-copy"
+            else:
+                # ecomm, festival, all_in_one, or any future layout
+                cost_in_cents = len(posts) * 2
 
             apilog_doc = {
                 "user": ObjectId(request.userId),

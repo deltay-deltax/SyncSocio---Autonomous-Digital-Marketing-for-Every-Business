@@ -165,6 +165,7 @@ export const verifyPayment = async (req, res) => {
 
         // Meta Conversions API (Purchase)
         if (req.body.metaEventId) {
+          console.log("🔥 [TESTING] Firing Meta CAPI Event: Purchase (Backend)");
           sendMetaCapiEvent('Purchase', req.body.metaEventId, {
             email: invoiceEmail,
             clientIp: req.ip || req.headers['x-forwarded-for'],

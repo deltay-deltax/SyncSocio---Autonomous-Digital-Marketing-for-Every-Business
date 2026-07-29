@@ -90,11 +90,11 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative w-full max-w-lg rounded-3xl border border-border/60 bg-card p-8 shadow-2xl"
+        className="relative w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl sm:rounded-3xl border border-border/60 bg-card p-5 sm:p-8 shadow-2xl"
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full border border-border/60 flex items-center justify-center hover:bg-muted transition-colors"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 w-8 h-8 rounded-full border border-border/60 flex items-center justify-center hover:bg-muted transition-colors bg-background"
         >
           <X className="w-4 h-4" />
         </button>

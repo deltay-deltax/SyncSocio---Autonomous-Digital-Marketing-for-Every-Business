@@ -282,6 +282,7 @@ const Onboarding = () => {
 
       // Track Custom Event and get eventID
       const metaEventId = trackMetaEvent('URLDropped', { website_url: scanUrl }, true);
+      console.log("🔥 [TESTING] Firing Meta Pixel Event: URLDropped (Frontend)");
 
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
       const response = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {

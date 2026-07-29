@@ -67,6 +67,11 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
                 Claim 3 Free Creatives
                 <ArrowRight size={18} className="ml-2" />
               </Button>
+              <Link to="/signup" className="sm:hidden flex justify-center">
+                <Button variant="outline" size="lg" className="text-sm px-6 py-5 hover-lift bg-background/50 backdrop-blur-sm">
+                  Sign up
+                </Button>
+              </Link>
             </motion.div>
           </div>
         </div>

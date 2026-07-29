@@ -252,12 +252,6 @@ const Setup = () => {
   const [couponLoading, setCouponLoading] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercentage: number } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
-
-  // Meta Tester State
-  const [metaTesterIgHandle, setMetaTesterIgHandle] = useState('');
-  const [metaTesterLoading, setMetaTesterLoading] = useState(false);
-  const [metaTesterSuccess, setMetaTesterSuccess] = useState(false);
-
   // Validate Coupon handler
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,43 +285,6 @@ const Setup = () => {
       setCouponError(getFriendlyErrorMessage(err));
     } finally {
       setCouponLoading(false);
-    }
-  };
-
-  const handleMetaTesterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!metaTesterIgHandle.trim()) {
-      toast({ title: 'Username required', description: 'Please enter your Instagram username.', variant: 'destructive' });
-      return;
-    }
-    setMetaTesterLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${API_BASE}/profile/request-meta-tester`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ igHandle: metaTesterIgHandle.trim() })
-      });
-      if (!res.ok) throw new Error('Failed to request tester access');
-      
-      // Persist state in localStorage so it survives reloads
-      const stored = localStorage.getItem('syncsocio_profile');
-      let profile = stored ? JSON.parse(stored) : {};
-      profile.metaTesterStatus = 'pending';
-      localStorage.setItem('syncsocio_profile', JSON.stringify(profile));
-      setOnboardingData(profile);
-      
-      setMetaTesterSuccess(true);
-      toast({ title: 'Request Sent', description: 'We will approve your Meta tester request shortly.' });
-    } catch (err: any) {
-      console.error(err);
-      toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
-    } finally {
-      setMetaTesterLoading(false);
     }
   };
 
@@ -653,74 +610,36 @@ const Setup = () => {
             ))}
           </div>
 
-          {/* Warning */}
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-5 text-left mb-8 relative overflow-hidden group hover:border-amber-500/40 transition-all cursor-pointer" onClick={() => navigate('/instagram-setup')}>
-            <div className="absolute top-0 right-0 p-2 opacity-20">
-              <AlertTriangle size={48} className="text-amber-500" />
+          {/* Setup Guide */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 text-left mb-8 relative overflow-hidden group hover:border-primary/40 transition-all cursor-pointer" onClick={() => navigate('/instagram-setup')}>
+            <div className="absolute top-0 right-0 p-2 opacity-10">
+              <BookOpen size={48} className="text-primary" />
             </div>
             <div className="flex items-start gap-3 relative z-10">
-              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                <AlertCircle size={18} className="text-amber-500" />
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={18} className="text-primary" />
               </div>
               <div>
-                <p className="text-sm font-bold text-foreground mb-1 group-hover:text-amber-500 transition-colors">Important: Setup Checklist</p>
+                <p className="text-sm font-bold text-foreground mb-1 group-hover:text-primary transition-colors">Setup Guide & Requirements</p>
                 <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                  Meta's "Business" API requires strict account settings. Avoid connection errors by following the checklist.
+                  Check the requirements for connecting your Instagram Business or Creator account to SyncSocio.
                 </p>
                 <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-                  View Setup Requirements <ChevronRight size={12} />
+                  View Guide <ChevronRight size={12} />
                 </span>
               </div>
             </div>
           </div>
 
           {/* CTA */}
-          {(onboardingData?.isTesterEnabled || onboardingData?.userEmail === 'supportvelocitydm@gmail.com' || localStorage.getItem('isMetaReviewer') === 'true') ? (
-            <Button
-              onClick={handleInstagramConnect}
-              className="w-full h-12 text-sm font-semibold"
-              style={{ background: '#1877F2' }}
-            >
-              <svg className="w-5 h-5 fill-white mr-2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-              Continue with Facebook
-            </Button>
-          ) : (
-            <div className="bg-muted/30 border border-border rounded-2xl p-5 text-left mb-6 relative">
-              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
-                <ShieldCheck size={16} className="text-primary" /> Meta App in Review
-              </h3>
-              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-                SyncSocio is currently waiting on Meta approval. To connect right now, request tester access below.
-              </p>
-
-              {(metaTesterSuccess || onboardingData?.metaTesterStatus === 'pending') ? (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-semibold">
-                  <CheckCircle2 size={14} /> Request Pending Approval
-                </div>
-              ) : (
-                <form onSubmit={handleMetaTesterSubmit} className="space-y-3">
-                  <Input 
-                    placeholder="Instagram Username (e.g. @mybrand)" 
-                    value={metaTesterIgHandle}
-                    onChange={e => setMetaTesterIgHandle(e.target.value)}
-                    className="text-xs h-10"
-                  />
-                  <Button type="submit" disabled={metaTesterLoading} className="w-full h-10 text-xs font-semibold gradient-bg text-white">
-                    {metaTesterLoading ? 'Submitting...' : 'Request Tester Access'}
-                  </Button>
-                </form>
-              )}
-
-              <Button
-                disabled
-                className="w-full h-12 text-sm font-semibold opacity-50 cursor-not-allowed mt-4"
-                style={{ background: '#1877F2' }}
-              >
-                <svg className="w-5 h-5 fill-white mr-2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                Continue with Facebook (Locked)
-              </Button>
-            </div>
-          )}
+          <Button
+            onClick={handleInstagramConnect}
+            className="w-full h-12 text-sm font-semibold"
+            style={{ background: '#1877F2' }}
+          >
+            <svg className="w-5 h-5 fill-white mr-2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            Continue with Facebook
+          </Button>
 
 
           <Button

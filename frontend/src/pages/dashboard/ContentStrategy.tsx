@@ -66,7 +66,7 @@ const modes: { id: Mode; label: string; icon: any; desc: string; accent: string 
   { id: 'video', label: 'Video', icon: Video, desc: 'Reel / motion post', accent: 'from-amber-500/20 to-orange-500/10' },
   { id: 'ecomm', label: 'E-Comm Listing', icon: ShoppingBag, desc: 'Marketplace-ready creative', accent: 'from-emerald-500/20 to-teal-500/10' },
   { id: 'festival', label: 'Festival', icon: PartyPopper, desc: 'Calendar-led campaigns', accent: 'from-violet-500/20 to-indigo-500/10' },
-  // { id: 'whatsapp', label: 'WhatsApp Campaign', icon: MessageSquare, desc: 'Broadcast to your list', accent: 'from-green-500/20 to-emerald-500/10' },
+  { id: 'whatsapp', label: 'WhatsApp Campaign', icon: MessageSquare, desc: 'Broadcast to your list', accent: 'from-green-500/20 to-emerald-500/10' },
   { id: 'email', label: 'Email Campaign', icon: Mail, desc: 'Newsletter & promo blast', accent: 'from-blue-500/20 to-indigo-500/10' },
   { id: 'photoshoot', label: 'Photoshoot', icon: Camera, desc: 'Pure product photoshoot', accent: 'from-fuchsia-500/20 to-purple-500/10' },
 ];
@@ -450,7 +450,6 @@ const STUDIOS: Studio[] = [
     image: "/assets/Creatives_icon/studio-festival.jpg",
     hoverBorder: "hover:border-pink-400 hover:ring-1 hover:ring-pink-400",
   },
-  /*
   {
     id: "whatsapp",
     title: "WhatsApp Campaign",
@@ -468,7 +467,6 @@ const STUDIOS: Studio[] = [
     image: "/assets/Creatives_icon/studio-whatsapp.png",
     hoverBorder: "hover:border-emerald-400 hover:ring-1 hover:ring-emerald-400",
   },
-  */
 
   {
     id: "email",
@@ -1722,6 +1720,16 @@ const DashboardStrategy = () => {
       return;
     }
 
+    // Client-side guard: check WhatsApp connection before sending
+    if (mode === 'whatsapp' && !profile?.whatsappIsConnected) {
+      toast({
+        title: '⚠️ WhatsApp not connected',
+        description: 'Connect your WhatsApp Business account in Settings → Connected Accounts before sending.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setSendStatus('sending');
 
     try {
@@ -2502,7 +2510,9 @@ const DashboardStrategy = () => {
               variant="outline"
               className="rounded-full shadow-sm hover:shadow"
               onClick={() => {
-                setStage('builder');
+                setStage('pick');
+                setMode(null);
+                navigate(window.location.pathname, { replace: true });
                 setCurrentTaskId(null);
                 // Reset all fields so the user has a fresh slate
                 setIdea('');

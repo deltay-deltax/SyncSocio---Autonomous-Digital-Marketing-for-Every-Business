@@ -69,13 +69,13 @@ const FAQS = [
   },
 
   // ── DM Automation & Campaigns ─────────────────────────────────────────────
-  // {
-  //   q: "What is DM Automation and how does it help me?",
-  //   a: "DM Automation lets you build keyword-triggered reply flows on Instagram. When someone comments a word like 'price' on your post, or replies to your story, the bot instantly sends them a custom message — with a product link, offer, or lead form. It captures leads 24/7 without you being online.",
-  // },
   {
-    q: "Can I run Email campaigns from SyncSocio?",
-    a: "Yes! The Email Campaign Generator lets you create full email campaigns with AI-generated copy and creatives. You can upload contact lists, pick products, and send directly from the dashboard. WhatsApp campaigns are currently in the Meta approval process and will be available soon — stay tuned!",
+    q: "What is DM Automation and how does it help me?",
+    a: "DM Automation lets you build keyword-triggered reply flows on Instagram. When someone comments a word like 'price' on your post, or replies to your story, the bot instantly sends them a custom message — with a product link, offer, or lead form. It captures leads 24/7 without you being online.",
+  },
+  {
+    q: "Can I use this for email and WhatsApp campaigns?",
+    a: "Yes! The Campaign Generator lets you create full email and WhatsApp campaigns with AI-generated copy and creatives. You can upload contact lists, pick products, and send directly from the dashboard.",
   },
 
   // ── Plans, Credits & Billing ──────────────────────────────────────────────

@@ -42,6 +42,7 @@ export const MetaPixel = () => {
       // Small delay to ensure the pixel base code is initialized
       setTimeout(() => {
         trackMetaEvent('PageView');
+        console.log("🔥 [TESTING] Firing Meta Pixel Event: PageView (Frontend)");
       }, 100);
     }
   }, [location.pathname]);

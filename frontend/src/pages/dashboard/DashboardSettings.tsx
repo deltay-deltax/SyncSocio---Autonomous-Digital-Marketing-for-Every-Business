@@ -983,8 +983,8 @@ const DashboardSettings = () => {
                   )}
 
 
-                  {/* WhatsApp Connection - Hidden pending Meta App Review */}
-                  {/* <WhatsAppConnectionCard profile={profile} setProfile={setProfile} /> */}
+                  {/* WhatsApp Business Connection */}
+                  <WhatsAppConnectionCard profile={profile} setProfile={setProfile} />
               </div>
             </CardContent>
             </Card>

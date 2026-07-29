@@ -35,6 +35,7 @@ const setClickTrackingBaseUrlFromRequest = (req) => {
 
 const buildTrackedButtonUrl = ({ flowId, buttonId, targetUrl }) => {
   const base = normalizeBaseUrl(clickTrackingBaseUrl);
+  console.log(`[WEBHOOK] buildTrackedButtonUrl: clickTrackingBaseUrl='${clickTrackingBaseUrl}', base='${base}'`);
   if (!base || !safeTrim(targetUrl)) {
     return targetUrl;
   }
@@ -245,7 +246,7 @@ const matchesFollowUpConfirmation = (flow, pending, incomingText) => {
   const normalizedIncoming = normalizeKeywordInput(incomingText);
   if (!normalizedIncoming) return false;
 
-  const promptMessage = flow.messages?.[pending.followUpMessageIndex - 1];
+  const promptMessage = flow.messages?.[pending.followUpMessageIndex];
   if (!promptMessage?.buttons?.length) return false;
 
   return promptMessage.buttons.some(
@@ -290,8 +291,55 @@ const extractCommentEvents = (entry = {}) => {
   return events;
 };
 
-const processedMessageIds = new Set();
-const processedMentionMediaIds = new Set();
+/**
+ * BoundedFifoCache — a Set with a capped size and true FIFO eviction.
+ * Replaces bare Sets to fix:
+ *  1. Unbounded memory growth
+ *  2. Non-deterministic eviction (.keys().next() is not guaranteed FIFO on all engines)
+ */
+class BoundedFifoCache {
+  constructor(maxSize = 10000) {
+    this._max = maxSize;
+    this._map = new Map(); // Map preserves insertion order, giving us FIFO for free
+  }
+
+  has(key) { return this._map.has(key); }
+
+  add(key) {
+    if (this._map.has(key)) return;
+    this._map.set(key, true);
+    if (this._map.size > this._max) {
+      // Delete the oldest (first inserted) key — guaranteed FIFO
+      this._map.delete(this._map.keys().next().value);
+    }
+  }
+
+  get size() { return this._map.size; }
+}
+
+const processedMessageIds = new BoundedFifoCache(10000);
+const processedMentionMediaIds = new BoundedFifoCache(10000);
+
+/**
+ * Seed in-memory dedup caches from DB on startup.
+ * Call this once from app.js after DB connects to prevent re-processing
+ * webhook events that Meta retries after a server restart.
+ */
+export const seedWebhookCache = async () => {
+  try {
+    const recentFollowUps = await DMFlowFollowUp.find({ commentId: { $exists: true, $ne: '' } })
+      .select('commentId')
+      .sort({ createdAt: -1 })
+      .limit(5000)
+      .lean();
+    for (const doc of recentFollowUps) {
+      if (doc.commentId) processedMentionMediaIds.add(doc.commentId);
+    }
+    console.log(`[WEBHOOK CACHE] Seeded ${recentFollowUps.length} comment IDs from DB into mention/comment dedup cache.`);
+  } catch (e) {
+    console.error('[WEBHOOK CACHE] Seed failed (non-fatal):', e.message);
+  }
+};
 
 const resolvePageToken = async (profile) => {
   if (profile.instagramPageAccessToken) return profile.instagramPageAccessToken;
@@ -312,40 +360,61 @@ const resolvePageToken = async (profile) => {
   return null;
 };
 
+// Cache follow-status lookups for 5 seconds (just to debounce rapid double-clicks)
+const followStatusCache = new Map();
+
 const checkUserFollows = async (profile, senderId) => {
   if (!senderId) return false;
+
+  // Check in-memory cache first (5s TTL)
+  const cacheKey = `${profile._id}:${senderId}`;
+  const cached = followStatusCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 5_000) {
+    console.log(`[WEBHOOK] Follow check cache hit: ${senderId} → ${cached.value}`);
+    return cached.value;
+  }
+
   try {
-    if (profile.instagramBusinessAccountId) {
-      try {
-          const url = `${FB_API_BASE}/${profile.instagramBusinessAccountId}/followers`;
-          const res = await axios.get(url, {
-            params: { user_id: senderId, access_token: profile.instagramAccessToken },
-            timeout: 10000,
-          });
-          if (res.data?.data && res.data.data.length > 0) return true;
-      } catch (igErr) {
-          // Meta API restricts /followers edge often. If it throws #100, we trust the user.
-          console.warn('[WEBHOOK] IG Follow check failed (expected privacy block), trusting user');
-          return true; 
-      }
+    // ── Official Meta method: GET /{igsid}?fields=is_user_follow_business ──
+    // This is the correct, officially-documented endpoint used by ManyChat and others.
+    // The sender.id in message webhooks IS the IGSID, which is what this endpoint requires.
+    // Requires a Page Access Token (not the IG user token).
+    const pageToken = await resolvePageToken(profile);
+    if (!pageToken) {
+      console.warn('[WEBHOOK] Follow check: could not resolve page token, defaulting to false');
+      return false;
     }
-    if (profile.instagramPageId) {
-      try {
-          const pageToken = await resolvePageToken(profile);
-          if (!pageToken) return false;
-          const url = `${FB_API_BASE}/${profile.instagramPageId}/likes`;
-          const res = await axios.get(url, {
-            params: { user_id: senderId, access_token: pageToken },
-            timeout: 10000,
-          });
-          if (res.data?.data && res.data.data.length > 0) return true;
-      } catch (fbErr) {
-          console.warn('[WEBHOOK] FB Like check failed');
-      }
+
+    const res = await axios.get(`${FB_API_BASE}/${senderId}`, {
+      params: {
+        fields: 'is_user_follow_business',
+        access_token: pageToken,
+      },
+      timeout: 10_000,
+    });
+
+    const isFollowing = res.data?.is_user_follow_business === true;
+    console.log(`[WEBHOOK] Follow check for ${senderId}: is_user_follow_business=${isFollowing}`);
+
+    // Cache the result
+    followStatusCache.set(cacheKey, { value: isFollowing, ts: Date.now() });
+    // Keep cache bounded
+    if (followStatusCache.size > 5000) {
+      const firstKey = followStatusCache.keys().next().value;
+      followStatusCache.delete(firstKey);
     }
-    return false;
+
+    return isFollowing;
   } catch (err) {
-    console.error('Error checking follows:', err?.response?.data || err.message);
+    const metaErr = err?.response?.data?.error;
+    // Error code 100 / subcode 2534013 = permission not granted (user hasn't messaged yet — treat as not following)
+    // Error code 803 = unknown IGSID — treat as not following
+    if (metaErr?.code === 100 || metaErr?.code === 803 || metaErr?.code === 10) {
+      console.warn(`[WEBHOOK] Follow check failed (API restriction code=${metaErr?.code}), defaulting to NOT following`);
+      return false;
+    }
+    console.error('[WEBHOOK] Follow check unexpected error:', metaErr || err.message);
+    // On unexpected errors (network timeouts etc.), default to false so we don't skip the gate
     return false;
   }
 };
@@ -368,8 +437,7 @@ const extractMentionEvents = (entry = {}) => {
     if (!mediaId) continue;
 
     if (processedMentionMediaIds.has(mediaId)) continue;
-    processedMentionMediaIds.add(mediaId);
-    if (processedMentionMediaIds.size > 10000) processedMentionMediaIds.delete(processedMentionMediaIds.keys().next().value);
+    processedMentionMediaIds.add(mediaId); // BoundedFifoCache auto-evicts oldest when full
 
     events.push({ mediaId, senderId });
   }
@@ -405,8 +473,7 @@ const extractMentionEvents = (entry = {}) => {
     if (!mediaId) continue;
     if (processedMentionMediaIds.has(mediaId)) continue;
 
-    processedMentionMediaIds.add(mediaId);
-    if (processedMentionMediaIds.size > 10000) processedMentionMediaIds.delete(processedMentionMediaIds.keys().next().value);
+    processedMentionMediaIds.add(mediaId); // BoundedFifoCache auto-evicts oldest when full
 
     events.push({ mediaId, senderId });
   }
@@ -424,8 +491,7 @@ const extractMessageEvents = (entry = {}) => {
     const mid = msg.message?.mid;
     if (mid) {
       if (processedMessageIds.has(mid)) continue;
-      processedMessageIds.add(mid);
-      if (processedMessageIds.size > 10000) processedMessageIds.delete(processedMessageIds.keys().next().value);
+      processedMessageIds.add(mid); // BoundedFifoCache auto-evicts oldest when full
     }
 
     let text = null;
@@ -470,6 +536,7 @@ const sendPrivateReply = async ({ pageToken, commentId, messagePayload, pageId }
     {
       recipient: { comment_id: commentId },
       message: messagePayload,
+      messaging_type: 'RESPONSE', // Required by Meta Messaging API for comment-triggered DMs
     },
     {
       params: { access_token: pageToken },
@@ -582,6 +649,10 @@ const processCommentEventForProfile = async (profile, event) => {
       });
     }
 
+    // Humanized delay (1.5–3s) before DM — prevents Meta bot-detection flags
+    const humanDelay = 1500 + Math.floor(Math.random() * 1500);
+    await sleep(humanDelay);
+
     const result = await sendPrivateReply({
       pageToken,
       commentId: event.commentId,
@@ -636,10 +707,17 @@ const processCommentEventForProfile = async (profile, event) => {
   }
 };
 
-const findNextMessageForText = async (incomingText) => {
+const findNextMessageForText = async (incomingText, profile) => {
   const normIncoming = normalizeKeywordInput(incomingText);
   if (!normIncoming) return null;
-  const flows = await DMFlow.find({ active: true }).sort({ updatedAt: -1 }).lean();
+
+  // Scope to this user's brand only — prevents cross-user privacy bug
+  const userQuery = {
+    active: true,
+    user: profile.user,
+    $or: [{ brandId: profile._id }, { brandId: { $exists: false } }]
+  };
+  const flows = await DMFlow.find(userQuery).sort({ updatedAt: -1 }).lean();
 
   for (const flow of flows) {
     if (!Array.isArray(flow.messages)) continue;
@@ -678,6 +756,7 @@ const buildMessagePayloadForNextMessage = (flow, messageObj, profile, options = 
       }
       if (btn.type === 'url') {
         url = buildTrackedButtonUrl({ flowId: flow._id, buttonId: btn.id, targetUrl: url });
+        console.log(`[WEBHOOK] Built tracked URL for button: ${url}`);
       }
       return {
         type: 'web_url',
@@ -846,7 +925,7 @@ const processMessageEventForProfile = async (profile, event) => {
     }
   }
   
-  const match = await findNextMessageForText(event.text);
+  const match = await findNextMessageForText(event.text, profile);
   if (match && match.nextMessages.length > 0) {
     const { flow, nextMessages, matchingMsgIndex } = match;
     let targetMessage = nextMessages[0];

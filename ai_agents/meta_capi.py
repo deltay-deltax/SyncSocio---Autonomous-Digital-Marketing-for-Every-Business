@@ -70,3 +70,23 @@ def send_meta_capi_event(
         error_details = e.response.json() if e.response else str(e)
         print(f"[Meta CAPI] Error sending {event_name} event:", error_details)
         return False
+
+def send_free_creative_request_event(
+    event_id: str,
+    brand_name: str,
+    user_data: dict = None
+) -> bool:
+    """
+    Send a FreeCreativeRequest event to Meta CAPI when someone clicks claim free creatives.
+    
+    :param event_id: Unique event ID matching the browser pixel event
+    :param brand_name: The brand name passed in custom_data
+    :param user_data: User info dictionary
+    """
+    custom_data = {"brand": brand_name}
+    return send_meta_capi_event(
+        event_name="FreeCreativeRequest",
+        event_id=event_id,
+        user_data=user_data,
+        custom_data=custom_data
+    )
