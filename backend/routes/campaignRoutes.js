@@ -357,7 +357,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
 
     const sendWithThrottle = async () => {
       for (let i = 0; i < recipients.length; i++) {
-        const recipient = recipients[i].replace('+', ''); // WhatsApp API expects number without '+'
+        const recipient = String(recipients[i] || '').replace(/\D/g, ''); // WhatsApp API requires digits only (no '+', '-', or spaces)
         
         const payload = {
           messaging_product: 'whatsapp',
@@ -368,8 +368,8 @@ router.post('/send-whatsapp', protect, async (req, res) => {
         // Use the generic template created during connect
         payload.type = 'template';
         payload.template = {
-          name: 'velocity_campaign_generic',
-          language: { code: 'en' },
+          name: 'custom_campaign_image',
+          language: { code: 'en_US' },
           components: [
             {
               type: 'body',
@@ -380,17 +380,16 @@ router.post('/send-whatsapp', protect, async (req, res) => {
           ]
         };
 
-        if (mediaId) {
-          payload.template.components.unshift({
-            type: 'header',
-            parameters: [ { type: 'image', image: { id: mediaId } } ]
-          });
-        } else if (image && typeof image === 'string' && image.startsWith('http')) {
-          payload.template.components.unshift({
-            type: 'header',
-            parameters: [ { type: 'image', image: { link: image } } ]
-          });
-        }
+        const headerImageParam = mediaId
+          ? { type: 'image', image: { id: mediaId } }
+          : (image && typeof image === 'string' && image.startsWith('http'))
+          ? { type: 'image', image: { link: image } }
+          : { type: 'image', image: { link: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e' } };
+
+        payload.template.components.unshift({
+          type: 'header',
+          parameters: [ headerImageParam ]
+        });
 
         try {
           await axios.post(
@@ -406,6 +405,36 @@ router.post('/send-whatsapp', protect, async (req, res) => {
           console.log(`[WhatsApp] Sent successfully to ${recipient}`);
           successCount++;
         } catch (err) {
+          const errCode = err?.response?.data?.error?.code;
+          if (errCode === 132001) {
+            console.log(`[WhatsApp] Primary template not found in en_US, attempting fallback template 'custom_campaign_text'...`);
+            try {
+              const fallbackPayload = {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: recipient,
+                type: 'template',
+                template: {
+                  name: 'custom_campaign_text',
+                  language: { code: 'en_US' },
+                  components: [
+                    { type: 'body', parameters: [ { type: 'text', text: messageText } ] }
+                  ]
+                }
+              };
+              await axios.post(
+                `https://graph.facebook.com/v25.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+                fallbackPayload,
+                { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}` } }
+              );
+              console.log(`[WhatsApp] Fallback template sent successfully to ${recipient}`);
+              successCount++;
+              continue;
+            } catch (fbErr) {
+              console.error(`[WhatsApp] Fallback template also failed for ${recipient}:`, fbErr?.response?.data || fbErr.message);
+            }
+          }
+
           console.error(`[WhatsApp] Failed sending to ${recipient}:`, err?.response?.data || err.message);
           failCount++;
           lastError = err?.response?.data?.error?.message || err.message;
@@ -418,25 +447,26 @@ router.post('/send-whatsapp', protect, async (req, res) => {
       }
     };
 
-    // Trigger async throttled sending sequence
-    sendWithThrottle().then(async () => {
-      console.log(`WhatsApp Campaign completed. Success: ${successCount}, Failed: ${failCount}`);
-      if (successCount > 0) {
-        await createNotification(
-          req.user._id,
-          'success',
-          'WhatsApp Campaign Sent',
-          `Successfully triggered WhatsApp blast to ${successCount} recipients. ${failCount > 0 ? `(${failCount} failed)` : ''}`
-        );
-      } else {
-        await createNotification(
-          req.user._id,
-          'error',
-          'WhatsApp Campaign Failed',
-          `Blast failed to send to all ${failCount} recipients. Error: ${lastError}`
-        );
-      }
-    });
+    // Wait for the throttled sending sequence to finish before responding
+    // This is required for Serverless deployments (like Vercel/AWS Lambda) which freeze the process after res.json()
+    await sendWithThrottle();
+    
+    console.log(`WhatsApp Campaign completed. Success: ${successCount}, Failed: ${failCount}`);
+    if (successCount > 0) {
+      await createNotification(
+        req.user._id,
+        'success',
+        'WhatsApp Campaign Sent',
+        `Successfully triggered WhatsApp blast to ${successCount} recipients. ${failCount > 0 ? `(${failCount} failed)` : ''}`
+      );
+    } else {
+      await createNotification(
+        req.user._id,
+        'alert',
+        'WhatsApp Campaign Failed',
+        `Blast failed to send to all ${failCount} recipients. Error: ${lastError}`
+      );
+    }
 
     res.status(200).json({ success: true, message: 'WhatsApp campaign blast triggered successfully' });
   } catch (error) {
