@@ -529,9 +529,10 @@ const AssetLibrary = () => {
         <p className="text-sm text-muted-foreground mt-1">Your hearted AI-generated creatives — saved and ready to deploy.</p>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide w-full pb-2 scroll-smooth select-none shrink-0">
-        {(['all', 'image', 'carousel', 'video', 'photoshoot', 'draft', 'scheduled'] as const).map((f) => {
+      {/* Filter tabs & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 w-full">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 md:pb-0 scroll-smooth select-none flex-1 max-w-full">
+          {(['all', 'image', 'carousel', 'video', 'photoshoot', 'draft', 'scheduled'] as const).map((f) => {
           const Icon = f === 'all' ? Sparkles : typeIcon[f];
           const label = f === 'scheduled'
             ? `Scheduled & Posted ${scheduleLimit !== Infinity ? `(${activeScheduledCount}/30)` : ''}`
@@ -566,34 +567,38 @@ const AssetLibrary = () => {
             </button>
           );
         })}
-        {assets.length > 0 && (
-          <Button
-            onClick={() => {
-              if (!profile?.instagramIsConnected && !selectionMode) {
-                navigate('/setup?step=1');
-                return;
-              }
-              setSelectionMode(!selectionMode);
-              setSelectedAssetIds([]);
-            }}
-            variant={selectionMode ? "destructive" : "default"}
-            className={cn(
-              "ml-auto flex items-center gap-1.5 h-9 rounded-xl text-xs font-semibold px-3.5 shrink-0",
-              !selectionMode && "bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20"
-            )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+          {assets.length > 0 && (
+            <Button
+              onClick={() => {
+                if (!profile?.instagramIsConnected && !selectionMode) {
+                  navigate('/setup?step=1');
+                  return;
+                }
+                setSelectionMode(!selectionMode);
+                setSelectedAssetIds([]);
+              }}
+              variant={selectionMode ? "destructive" : "default"}
+              className={cn(
+                "flex items-center gap-1.5 h-9 rounded-xl text-xs font-semibold px-3.5 shrink-0",
+                !selectionMode && "bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20"
+              )}
+            >
+              <Calendar size={13} />
+              {selectionMode ? 'Cancel Selection' : 'Schedule Posts'}
+            </Button>
+          )}
+          <button
+            onClick={fetchAssets}
+            disabled={loading}
+            className={cn("p-2 rounded-xl text-muted-foreground hover:bg-muted transition shrink-0", loading && "opacity-50 cursor-not-allowed")}
+            title="Refresh"
           >
-            <Calendar size={13} />
-            {selectionMode ? 'Cancel Selection' : 'Schedule Posts'}
-          </Button>
-        )}
-        <button
-          onClick={fetchAssets}
-          disabled={loading}
-          className={cn("p-2 rounded-xl text-muted-foreground hover:bg-muted transition shrink-0", assets.length === 0 && "ml-auto", loading && "opacity-50 cursor-not-allowed")}
-          title="Refresh"
-        >
-          <RefreshCw size={14} className={cn(loading && "animate-spin text-primary")} />
-        </button>
+            <RefreshCw size={14} className={cn(loading && "animate-spin text-primary")} />
+          </button>
+        </div>
       </div>
 
       {/* Content */}

@@ -68,7 +68,6 @@ def analyze_brand_mix(brand_info: Dict[str, Any]):
     - Category: {(brand_info.get("otherCategory") if brand_info.get("businessCategory") == "Other" and brand_info.get("otherCategory") else brand_info.get("businessCategory", "General"))}
     - Tone: {brand_info.get('brandTone')}
     - USP: {brand_info.get('usp')}
-    - Goal: {brand_info.get('mainGoal')}
     
     TASK:
     1. Distribute {post_count} posts across (Reels, Static Images, Carousels).
@@ -251,7 +250,6 @@ def planner_node(state: GraphState):
     BRAND TONE: {brand.get('brandTone', 'Luxury/Premium')}
     VISUAL VIBE: {brand.get('visualVibe', 'Modern')}
     BRAND KEYWORDS: {brand.get('brandKeywords', '')}
-    MAIN GOAL: {brand.get('mainGoal', 'Growth')}
     USP (Unique Selling Proposition): {brand.get('usp', 'Not specified')}
     TARGET PAIN POINT: {brand.get('painPoint', 'Not specified')}
     TARGET AUDIENCES: {target_audiences}
@@ -365,7 +363,6 @@ def generate_brand_visual_dna(brand_info: Dict[str, Any]):
     - Tone: {brand_info.get('brandTone')}
     - Primary Color: {brand_info.get('primaryColor')}
     - Secondary Color: {brand_info.get('secondaryColor')}
-    - Main Goal: {brand_info.get('mainGoal')}
     
     OUTPUT: RETURN ONLY THE 200 CHAR IDENTITY STRING. NO INTRO.
     """

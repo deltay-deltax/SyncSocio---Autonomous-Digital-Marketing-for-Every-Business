@@ -114,7 +114,6 @@ def analyze_post_for_dm_flow(
     fmt = post.get("format", post.get("type", ""))
     why = post.get("why", "")
     brand_name = brand_info.get("brandName", "Brand")
-    brand_goal = brand_info.get("mainGoal", "Growth")
     brand_usp = brand_info.get("usp", "")
     brand_category = (brand_info.get("otherCategory") if brand_info.get("businessCategory") == "Other" and brand_info.get("otherCategory") else brand_info.get("businessCategory", "General"))
 
@@ -143,7 +142,6 @@ POST DATA:
 BRAND CONTEXT:
 - Brand Name: {brand_name}
 - Category: {brand_category}
-- Goal: {brand_goal}
 - USP: {brand_usp}
 
 DECISION CRITERIA:

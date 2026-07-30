@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackMetaEvent } from "@/utils/metaPixel";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
@@ -62,7 +63,10 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               <Button
                 size="lg"
                 className="gradient-bg text-primary-foreground border-0 text-sm md:text-base px-6 py-5 md:px-8 md:py-6 hover-lift w-fit"
-                onClick={onWaitlistClick}
+                onClick={() => {
+                  trackMetaEvent('Lead', { content_name: 'Hero Free Creatives Click' });
+                  onWaitlistClick();
+                }}
               >
                 Claim 3 Free Creatives
                 <ArrowRight size={18} className="ml-2" />

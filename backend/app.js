@@ -52,6 +52,8 @@ app.use(cors({
     'https://www.syncsocio.com',
     'https://syncsocio.com',
     'http://localhost:4173',
+    'http://localhost:5174',
+    'http://localhost:5175',
     'https://www.velocitydm.com',
     'https://velocitydm.com',
     process.env.FRONTEND_URL,

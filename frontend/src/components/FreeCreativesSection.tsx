@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Sparkles, Check, ArrowRight, X } from "lucide-react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+import { trackMetaEvent } from "@/utils/metaPixel";
 
 type Intent = "creatives" | "demo";
 
@@ -36,7 +37,10 @@ export default function FreeCreativesSection() {
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button
-              onClick={() => setIntent("creatives")}
+              onClick={() => {
+                trackMetaEvent('Lead', { content_name: 'Free Creatives Click' });
+                setIntent("creatives");
+              }}
               className="group inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/25"
             >
               Claim 3 Free Creatives
@@ -44,7 +48,10 @@ export default function FreeCreativesSection() {
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
             <button
-              onClick={() => setIntent("demo")}
+              onClick={() => {
+                trackMetaEvent('Lead', { content_name: 'Demo Call Click' });
+                setIntent("demo");
+              }}
               className="inline-flex items-center gap-2 h-12 px-6 rounded-xl border border-border/60 bg-card/40 font-bold text-sm hover:bg-card/70 transition-all"
             >
               Book a demo call
@@ -131,6 +138,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
               onSubmit={async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
+                const eventId = crypto.randomUUID();
                 const data = {
                   name: formData.get("name") as string,
                   email: formData.get("email") as string,
@@ -139,6 +147,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   website: formData.get("website") as string,
                   businessCategory: formData.get("businessCategory") as string,
                   intent: intent,
+                  eventId: eventId,
                   _gotcha: formData.get("_gotcha") as string,
                 };
 
