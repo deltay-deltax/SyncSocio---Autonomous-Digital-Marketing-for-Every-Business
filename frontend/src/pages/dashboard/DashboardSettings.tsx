@@ -1187,7 +1187,7 @@ const DashboardSettings = () => {
                 if (!isElite && !isAgency) {
                   return (
                     <div className="space-y-4 pt-4 border-t border-border/40">
-                      <div className="flex justify-between items-center ml-1">
+                      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center ml-1 gap-2">
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
                         {!canRenew && (
                           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
@@ -1195,17 +1195,17 @@ const DashboardSettings = () => {
                           </span>
                         )}
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex flex-col sm:flex-row gap-3 w-full">
                         <Button 
                           onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || 'Starter')} 
                           disabled={!canRenew}
-                          className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                          className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                         >
                           Renew Plan (₹999)
                         </Button>
                         <Button 
                           onClick={() => handlePlanAction('upgrade', 'Starter')} 
-                          className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
+                          className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
                         >
                           Upgrade to Elite (₹3199)
                         </Button>
@@ -1215,7 +1215,7 @@ const DashboardSettings = () => {
                 } else {
                   return (
                     <div className="space-y-4 pt-4 border-t border-border/40">
-                      <div className="flex justify-between items-center ml-1">
+                      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center ml-1 gap-2">
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
                         {!canRenew && (
                           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
