@@ -513,7 +513,7 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
     return f"""{block}
 {product_block}
 {idea_str}{template_block}{text_discipline_block}
-Create a high-converting product ad creative.
+Create a high-converting,scroll stopping, product ad creative.
 {platform_instruction}
 {logo_inst}
 Aspect ratio: {aspect}. Premium, photorealistic, commercial quality.
