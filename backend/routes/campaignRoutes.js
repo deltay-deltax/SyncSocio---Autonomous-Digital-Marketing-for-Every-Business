@@ -5,6 +5,7 @@ import EmailList from '../models/EmailList.js';
 import PhoneList from '../models/PhoneList.js';
 import BrandProfile from '../models/BrandProfile.js';
 import User from '../models/User.js';
+import RequestedTemplate from '../models/RequestedTemplate.js';
 import { createNotification } from '../utils/notificationHelper.js';
 
 // ── Email Quota Helper ────────────────────────────────────────────────────────
@@ -293,7 +294,7 @@ import FormData from 'form-data';
 
 // Send WhatsApp campaign
 router.post('/send-whatsapp', protect, async (req, res) => {
-  const { recipients, body, image, subject } = req.body;
+  const { recipients, body, image, subject, whatsappTemplateName, whatsappUrlParam } = req.body;
   try {
     if (!recipients || !recipients.length || !body) {
       return res.status(400).json({ message: 'Recipients and body are required' });
@@ -348,36 +349,97 @@ router.post('/send-whatsapp', protect, async (req, res) => {
       }
     }
 
-    // Combine subject and body for the message
-    const messageText = subject ? `*${subject}*\n\n${body}` : body;
+    // Meta API Error 132018: Template variable cannot contain newlines, tabs, or more than 4 consecutive spaces
+    const cleanSubject = (subject || 'Exclusive Offer')
+      .replace(/[\n\t\r]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim().substring(0, 60);
+
+    const cleanBody = body
+      .replace(/[\n\t\r]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim().substring(0, 1024);
 
     let successCount = 0;
     let failCount = 0;
     let lastError = null;
 
+    // Use the template name from frontend, otherwise default to our auto-created templates based on image presence
+    const targetTemplate = whatsappTemplateName || (mediaId || (image && typeof image === 'string' && image.startsWith('http')) ? 'custom_campaign_image' : 'custom_campaign_text');
+
+    // ─── TEMPLATE CATEGORY ROUTING ───────────────────────────────────────────
+    // Marketing templates (festival, promo_*): Use {{1}} = headline, {{2}} = body
+    const MARKETING_TWO_VAR_TEMPLATES = [
+      'syncsocio_festival',
+      'syncsocio_promo_image', 'syncsocio_promo_video', 'syncsocio_promo_generic',
+      'syncsocio_promo_lead',  'syncsocio_interactive_poll',
+      'syncsocio_promo_shop',  'syncsocio_promo_claim', 'syncsocio_promo_visit',
+      'syncsocio_promo_book',  'syncsocio_promo_order', 'syncsocio_promo_learn',
+      'syncsocio_promo_get',   'syncsocio_promo_text',
+    ];
+
+    // Templates that include an IMAGE header component
+    const TEMPLATES_WITH_IMAGE_HEADER = [
+      'custom_campaign_image',
+      'syncsocio_festival',
+      'syncsocio_promo_image', 'syncsocio_promo_video', 'syncsocio_promo_generic',
+      'syncsocio_promo_lead',
+      'syncsocio_promo_shop',  'syncsocio_promo_claim', 'syncsocio_promo_visit',
+      'syncsocio_promo_book',  'syncsocio_promo_order', 'syncsocio_promo_learn',
+      'syncsocio_promo_get',
+    ];
+
+    // Templates that include a dynamic URL button with {{1}}
+    const TEMPLATES_WITH_URL_BUTTON = [
+      'custom_campaign_image', 'custom_campaign_text',
+      'syncsocio_festival',
+      'syncsocio_promo_image', 'syncsocio_promo_video', 'syncsocio_promo_generic',
+      'syncsocio_promo_lead',
+      'syncsocio_promo_shop',  'syncsocio_promo_claim', 'syncsocio_promo_visit',
+      'syncsocio_promo_book',  'syncsocio_promo_order', 'syncsocio_promo_learn',
+      'syncsocio_promo_get',   'syncsocio_promo_text',
+    ];
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const isTwoVarMarketing = MARKETING_TWO_VAR_TEMPLATES.includes(targetTemplate);
+
     const sendWithThrottle = async () => {
       for (let i = 0; i < recipients.length; i++) {
-        const recipient = String(recipients[i] || '').replace(/\D/g, ''); // WhatsApp API requires digits only (no '+', '-', or spaces)
-        
+        // Strip non-digit characters. Ensure international format (e.g. 919876543210)
+        let recipient = String(recipients[i] || '').replace(/\D/g, '');
+        if (!recipient) continue;
+
+        // ── Build body parameters based on template type ──────────────────
+        let bodyParams;
+        if (isTwoVarMarketing) {
+          // Marketing approved templates: {{1}} = bold headline, {{2}} = campaign copy body
+          bodyParams = [
+            { type: 'text', text: cleanSubject.substring(0, 60) },  // {{1}} headline
+            { type: 'text', text: cleanBody.substring(0, 1024) },   // {{2}} body copy
+          ];
+        } else {
+          // Legacy custom templates (custom_campaign_image / custom_campaign_text) — single {{1}}
+          const combinedMessage = `${cleanSubject}\n\n${cleanBody}`;
+          bodyParams = [
+            { type: 'text', text: combinedMessage.substring(0, 1024) },
+          ];
+        }
+
         const payload = {
           messaging_product: 'whatsapp',
           recipient_type: 'individual',
           to: recipient,
-        };
-
-        // Use the generic template created during connect
-        payload.type = 'template';
-        payload.template = {
-          name: 'custom_campaign_image',
-          language: { code: 'en_US' },
-          components: [
-            {
-              type: 'body',
-              parameters: [
-                { type: 'text', text: messageText }
-              ]
-            }
-          ]
+          type: 'template',
+          template: {
+            name: targetTemplate,
+            language: { code: 'en_US' },
+            components: [
+              {
+                type: 'body',
+                parameters: bodyParams,
+              }
+            ]
+          }
         };
 
         const headerImageParam = mediaId
@@ -386,13 +448,33 @@ router.post('/send-whatsapp', protect, async (req, res) => {
           ? { type: 'image', image: { link: image } }
           : { type: 'image', image: { link: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e' } };
 
-        payload.template.components.unshift({
-          type: 'header',
-          parameters: [ headerImageParam ]
-        });
+        // 1. Add Image Header component if this template has one
+        if (TEMPLATES_WITH_IMAGE_HEADER.includes(targetTemplate)) {
+          payload.template.components.unshift({
+            type: 'header',
+            parameters: [ headerImageParam ]
+          });
+        }
+
+        // 2. Add dynamic URL button parameter if this template has one
+        if (TEMPLATES_WITH_URL_BUTTON.includes(targetTemplate)) {
+          const urlParamValue = (whatsappUrlParam || 'shop').replace(/[^a-zA-Z0-9\-_/]/g, '') || 'shop';
+          payload.template.components.push({
+            type: 'button',
+            sub_type: 'url',
+            index: '0',
+            parameters: [
+              { type: 'text', text: urlParamValue }
+            ]
+          });
+        }
 
         try {
-          await axios.post(
+          // ── DEBUG: Log the exact payload being sent ──
+          console.log(`[WhatsApp DEBUG] Sending to ${recipient} using template "${targetTemplate}" via phoneId ${WHATSAPP_PHONE_NUMBER_ID}`);
+          console.log(`[WhatsApp DEBUG] Payload:`, JSON.stringify(payload, null, 2));
+
+          const apiRes = await axios.post(
             `https://graph.facebook.com/v25.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
             payload,
             {
@@ -402,76 +484,195 @@ router.post('/send-whatsapp', protect, async (req, res) => {
               },
             }
           );
-          console.log(`[WhatsApp] Sent successfully to ${recipient}`);
+          // Log the FULL response — check for message_status field
+          console.log(`[WhatsApp] Sent successfully to ${recipient}. Full response:`, JSON.stringify(apiRes.data));
           successCount++;
         } catch (err) {
-          const errCode = err?.response?.data?.error?.code;
-          if (errCode === 132001) {
-            console.log(`[WhatsApp] Primary template not found in en_US, attempting fallback template 'custom_campaign_text'...`);
-            try {
-              const fallbackPayload = {
-                messaging_product: 'whatsapp',
-                recipient_type: 'individual',
-                to: recipient,
-                type: 'template',
-                template: {
-                  name: 'custom_campaign_text',
-                  language: { code: 'en_US' },
-                  components: [
-                    { type: 'body', parameters: [ { type: 'text', text: messageText } ] }
-                  ]
-                }
-              };
-              await axios.post(
-                `https://graph.facebook.com/v25.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-                fallbackPayload,
-                { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}` } }
-              );
-              console.log(`[WhatsApp] Fallback template sent successfully to ${recipient}`);
-              successCount++;
-              continue;
-            } catch (fbErr) {
-              console.error(`[WhatsApp] Fallback template also failed for ${recipient}:`, fbErr?.response?.data || fbErr.message);
-            }
-          }
-
-          console.error(`[WhatsApp] Failed sending to ${recipient}:`, err?.response?.data || err.message);
+          const errData = err?.response?.data?.error;
+          console.error(`[WhatsApp] Failed sending to ${recipient}:`, errData || err.message);
           failCount++;
-          lastError = err?.response?.data?.error?.message || err.message;
+          lastError = errData?.message || err.message;
         }
 
-        // Add slight delay to avoid rate limits
+        // Add 300ms throttle between sends to prevent Meta rate limits
         if (i < recipients.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
     };
 
-    // Wait for the throttled sending sequence to finish before responding
-    // This is required for Serverless deployments (like Vercel/AWS Lambda) which freeze the process after res.json()
     await sendWithThrottle();
     
-    console.log(`WhatsApp Campaign completed. Success: ${successCount}, Failed: ${failCount}`);
+    console.log(`[WhatsApp] Campaign finished. Success: ${successCount}, Failed: ${failCount}`);
+
     if (successCount > 0) {
       await createNotification(
         req.user._id,
         'success',
-        'WhatsApp Campaign Sent',
-        `Successfully triggered WhatsApp blast to ${successCount} recipients. ${failCount > 0 ? `(${failCount} failed)` : ''}`
+        'WhatsApp Campaign Blast Sent',
+        `Successfully sent "${cleanSubject}" to ${successCount} phone numbers. ${failCount > 0 ? `(${failCount} failed)` : ''}`
       );
+      return res.status(200).json({
+        success: true,
+        message: `WhatsApp campaign blast sent successfully to ${successCount} recipients`,
+        successCount,
+        failCount
+      });
     } else {
       await createNotification(
         req.user._id,
         'alert',
         'WhatsApp Campaign Failed',
-        `Blast failed to send to all ${failCount} recipients. Error: ${lastError}`
+        `Campaign failed to send. Error: ${lastError}`
       );
+      return res.status(400).json({
+        success: false,
+        message: `WhatsApp campaign failed to send. Meta Error: ${lastError}`,
+        failCount,
+        lastError
+      });
     }
-
-    res.status(200).json({ success: true, message: 'WhatsApp campaign blast triggered successfully' });
   } catch (error) {
     console.error('Error sending WhatsApp campaign:', error);
     res.status(500).json({ message: 'Server error sending WhatsApp campaign' });
+  }
+});
+// ── POST /api/campaigns/request-template ─────────────────────────────────────
+// Saves a custom WhatsApp template request to the database
+router.post('/request-template', protect, async (req, res) => {
+  try {
+    const {
+      templateName,
+      category,
+      language,
+      headerType,
+      headerContent,
+      bodyContent,
+      footerContent,
+      buttons,
+      status
+    } = req.body;
+
+    const brand = await BrandProfile.findOne({ user: req.user._id });
+    if (!brand) {
+      return res.status(404).json({ message: 'Brand profile not found.' });
+    }
+
+    const newRequest = new RequestedTemplate({
+      brandId: brand._id,
+      userId: req.user._id,
+      templateName,
+      category,
+      language,
+      headerType,
+      headerContent,
+      bodyContent,
+      footerContent,
+      buttons,
+      status: status || 'PENDING'
+    });
+
+    await newRequest.save();
+
+    res.status(201).json({
+      message: 'Template request submitted successfully.',
+      data: newRequest
+    });
+  } catch (error) {
+    console.error('Error submitting template request:', error);
+    res.status(500).json({ message: 'Failed to submit template request.' });
+  }
+});
+// ── PUT /api/campaigns/request-template/:id ─────────────────────────────────
+// Updates an existing custom WhatsApp template request (e.g. updating a draft)
+router.put('/request-template/:id', protect, async (req, res) => {
+  try {
+    const {
+      templateName,
+      category,
+      language,
+      headerType,
+      headerContent,
+      bodyContent,
+      footerContent,
+      buttons,
+      status
+    } = req.body;
+
+    const brand = await BrandProfile.findOne({ user: req.user._id });
+    if (!brand) {
+      return res.status(404).json({ message: 'Brand profile not found.' });
+    }
+
+    const template = await RequestedTemplate.findOne({ _id: req.params.id, brandId: brand._id });
+    if (!template) {
+      return res.status(404).json({ message: 'Template not found.' });
+    }
+
+    template.templateName = templateName || template.templateName;
+    template.category = category || template.category;
+    template.language = language || template.language;
+    template.headerType = headerType || template.headerType;
+    template.headerContent = headerContent !== undefined ? headerContent : template.headerContent;
+    template.bodyContent = bodyContent || template.bodyContent;
+    template.footerContent = footerContent !== undefined ? footerContent : template.footerContent;
+    template.buttons = buttons || template.buttons;
+    if (status) template.status = status;
+
+    await template.save();
+
+    res.status(200).json({
+      message: 'Template updated successfully.',
+      data: template
+    });
+  } catch (error) {
+    console.error('Error updating template:', error);
+    res.status(500).json({ message: 'Failed to update template.' });
+  }
+});
+
+// ── DELETE /api/campaigns/request-template/:id ──────────────────────────────
+// Deletes a custom WhatsApp template (only drafts or pending, not approved)
+router.delete('/request-template/:id', protect, async (req, res) => {
+  try {
+    const brand = await BrandProfile.findOne({ user: req.user._id });
+    if (!brand) {
+      return res.status(404).json({ message: 'Brand profile not found.' });
+    }
+
+    const template = await RequestedTemplate.findOne({ _id: req.params.id, brandId: brand._id });
+    if (!template) {
+      return res.status(404).json({ message: 'Template not found.' });
+    }
+
+    if (template.status === 'APPROVED') {
+      return res.status(403).json({ message: 'Approved templates cannot be deleted.' });
+    }
+
+    await RequestedTemplate.deleteOne({ _id: req.params.id });
+
+    res.status(200).json({ message: 'Template deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting template:', error);
+    res.status(500).json({ message: 'Failed to delete template.' });
+  }
+});
+
+// ── GET /api/campaigns/requested-templates ──────────────────────────────────
+// Fetches all requested custom WhatsApp templates for a brand
+router.get('/requested-templates', protect, async (req, res) => {
+  try {
+    const brand = await BrandProfile.findOne({ user: req.user._id });
+    if (!brand) {
+      return res.status(404).json({ message: 'Brand profile not found.' });
+    }
+
+    const templates = await RequestedTemplate.find({ brandId: brand._id }).sort({ createdAt: -1 });
+
+    res.status(200).json(templates);
+  } catch (error) {
+    console.error('Error fetching requested templates:', error);
+    res.status(500).json({ message: 'Failed to fetch requested templates.' });
   }
 });
 
