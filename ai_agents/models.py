@@ -59,6 +59,7 @@ class StrategyImageRequest(BaseModel):
     # Image ad template: None = auto, 1-10 = specific template, -1 = all 8 variants
     adTemplate: Optional[int] = None
     language: Optional[str] = "english"
+    whatsappTemplate: Optional[str] = None
     generateImage: Optional[bool] = True
     videoKind: Optional[str] = "ai-ugc"
     avatarDescription: Optional[str] = ""
