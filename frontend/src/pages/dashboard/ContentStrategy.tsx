@@ -14,6 +14,7 @@ import { cn, safeSetItem } from '@/lib/utils';
 import { useNavigate, useOutletContext, useLocation, useBlocker } from 'react-router-dom';
 import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
 import Masonry from 'react-masonry-css';
+import WhatsAppTemplates from './WhatsAppTemplates';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import { useToast } from '@/hooks/use-toast';
@@ -871,6 +872,10 @@ const DashboardStrategy = () => {
   const [recipients, setRecipients] = useState<string[]>([]);
   const [newRecipient, setNewRecipient] = useState('');
   const [whatsappCountryCode, setWhatsappCountryCode] = useState('+91');
+  const [whatsappTemplateName, setWhatsappTemplateName] = useState('custom_campaign_image');
+  const [requestedTemplates, setRequestedTemplates] = useState<any[]>([]);
+  const [isRequestingTemplate, setIsRequestingTemplate] = useState(false);
+  const [whatsappUrlParam, setWhatsappUrlParam] = useState('');
   const [campaignSubject, setCampaignSubject] = useState('');
   const [campaignBody, setCampaignBody] = useState('');
   const [campaignImage, setCampaignImage] = useState<string>('');
@@ -927,6 +932,29 @@ const DashboardStrategy = () => {
   const [selectedCampaignCreative, setSelectedCampaignCreative] = useState<any | null>(null);
   const [selectedCampaignComputerImage, setSelectedCampaignComputerImage] = useState<string | null>(null);
   const [activeCampaignImageSource, setActiveCampaignImageSource] = useState<'product' | 'creative' | 'computer' | null>(null);
+  const [isCapturing, setIsCapturing] = useState<boolean>(false);
+  const captureRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${NODE_BASE}/campaigns/requested-templates`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setRequestedTemplates(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch requested templates', err);
+      }
+    };
+    if (mode === 'whatsapp') {
+      fetchTemplates();
+    }
+  }, [mode]);
   const campaignFileInput = useRef<HTMLInputElement>(null);
   const modalFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1734,7 +1762,9 @@ const DashboardStrategy = () => {
         recipients: recipients,
         body: campaignBody,
         image: campaignImage,
-        subject: campaignSubject || (isWhatsapp ? 'WhatsApp Campaign' : 'Email Campaign')
+        subject: campaignSubject || (isWhatsapp ? 'WhatsApp Campaign' : 'Email Campaign'),
+        whatsappTemplateName: isWhatsapp ? whatsappTemplateName : undefined,
+        whatsappUrlParam: isWhatsapp ? whatsappUrlParam : undefined
       };
 
       const res = await fetch(endpoint, {
@@ -1959,6 +1989,7 @@ const DashboardStrategy = () => {
         refImages,
         products: (currentProducts.length > 0 && !hasCustomUpload) ? currentProducts : undefined,
         language: currentLanguage,
+        whatsappTemplate: (currentMode === 'whatsapp') ? whatsappTemplateName : undefined,
         generateImage: (currentMode === 'whatsapp' || currentMode === 'email') ? false : generateImage,
         ...(currentMode === 'ecomm' && {
           platform,
@@ -2529,6 +2560,29 @@ const DashboardStrategy = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   // RESULTS — WhatsApp / Email campaign preview
   // ─────────────────────────────────────────────────────────────────────────────
+  if (isRequestingTemplate) {
+    const editDraftId = whatsappTemplateName.startsWith('draft_') ? whatsappTemplateName.split('_')[1] : null;
+    const initialTpl = editDraftId ? requestedTemplates.find(t => t._id === editDraftId) : null;
+    return <WhatsAppTemplates onBack={() => {
+      setIsRequestingTemplate(false);
+      setWhatsappTemplateName('custom_campaign_image');
+    }} initialTemplate={initialTpl} onDraftSaved={(saved) => {
+      // Refresh the requestedTemplates list so the new draft appears in dropdown immediately
+      setRequestedTemplates(prev => {
+        const exists = prev.find(t => t._id === saved._id);
+        if (exists) {
+          return prev.map(t => t._id === saved._id ? saved : t);
+        }
+        return [...prev, saved];
+      });
+    }} onDeleted={(deletedId) => {
+      // Remove deleted template from dropdown immediately
+      setRequestedTemplates(prev => prev.filter(t => t._id !== deletedId));
+      setIsRequestingTemplate(false);
+      setWhatsappTemplateName('custom_campaign_image');
+    }} />;
+  }
+
   if (stage === 'results' && (mode === 'whatsapp' || mode === 'email')) {
     return (
       <CampaignResults
@@ -2553,6 +2607,7 @@ const DashboardStrategy = () => {
         sendCampaign={sendCampaign}
         back={resetToBuilder}
         regenerate={() => generate()}
+        whatsappTemplateName={whatsappTemplateName}
         savedLists={savedLists}
         setSavedLists={setSavedLists}
         selectedListId={selectedListId}
@@ -4545,6 +4600,72 @@ const DashboardStrategy = () => {
               ? 'e.g. Diwali blast — 20% off + free gift on prepaid. Short, warm, emoji-heavy.'
               : 'e.g. New collection launch — premium tone, hero image up top, single CTA to shop.'}
           />
+
+          {mode === 'whatsapp' && (
+            <section className="mb-6 mt-6">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                WhatsApp Template Settings
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Call-to-Action Template</label>
+                  <select
+                    value={whatsappTemplateName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setWhatsappTemplateName(val);
+                      if (val === 'request_template' || val.startsWith('draft_')) {
+                        setIsRequestingTemplate(true);
+                      }
+                    }}
+                    className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="request_template" className="font-bold text-primary">+ Request a Template</option>
+                    
+                    {requestedTemplates.length > 0 && (
+                      <optgroup label="My Templates">
+                        {requestedTemplates.map(t => (
+                          <option key={t._id} value={t.status === 'DRAFT' ? `draft_${t._id}` : `custom_${t._id}`}>
+                            {t.templateName} ({t.status.charAt(0) + t.status.slice(1).toLowerCase()})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    
+                    <optgroup label="Standard Templates">
+                      <option value="custom_campaign_image">Campaign with Image (Default)</option>
+                    <option value="custom_campaign_text">Campaign Text Only</option>
+                    <option value="syncsocio_interactive_poll">Interactive Poll (Swish Style)</option>
+                    <option value="syncsocio_festival">Festival - Celebrate Now (Marketing)</option>
+                    <option value="syncsocio_promo_shop">Promo - Shop Now (Marketing)</option>
+                    <option value="syncsocio_promo_claim">Promo - Claim Offer (Marketing)</option>
+                    <option value="syncsocio_promo_visit">Promo - Visit Website (Marketing)</option>
+                    <option value="syncsocio_promo_book">Promo - Book Now (Marketing)</option>
+                    <option value="syncsocio_promo_order">Promo - Order Now (Marketing)</option>
+                    <option value="syncsocio_promo_learn">Promo - Learn More (Marketing)</option>
+                    <option value="syncsocio_promo_get">Promo - Get It Free (Marketing)</option>
+                    <option value="syncsocio_promo_text">Promo Text - View Details (Marketing)</option>
+                    <option value="syncsocio_order_shipped_v2">Order Shipped - Track Order (Utility)</option>
+                    <option value="syncsocio_order_confirmed_v2">Order Confirmed - View Order (Utility)</option>
+                    <option value="syncsocio_payment_reminder_v2">Payment Reminder - Pay Now (Utility)</option>
+                    <option value="syncsocio_appointment_reminder_v3">Appointment Reminder - Confirm/Reschedule (Utility)</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">URL Suffix Parameter</label>
+                  <input
+                    type="text"
+                    value={whatsappUrlParam}
+                    onChange={(e) => setWhatsappUrlParam(e.target.value)}
+                    placeholder="e.g. diwali-sale"
+                    className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground/60"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1.5">Appended to your website URL (e.g. yoursite.com/<b>{whatsappUrlParam || '...'}</b>)</p>
+                </div>
+              </div>
+            </section>
+          )}
         </>
       )}
 
@@ -5003,7 +5124,25 @@ interface CampaignResultsProps {
   setListNameInput: (v: string) => void;
   handleSaveImportedList: () => Promise<void>;
   profile: any;
+  whatsappTemplateName?: string;
 }
+
+const WHATSAPP_BUTTON_LABELS: Record<string, string> = {
+  syncsocio_promo_shop: "Shop Now",
+  syncsocio_promo_claim: "Claim Offer",
+  syncsocio_promo_visit: "Visit Website",
+  syncsocio_promo_book: "Book Now",
+  syncsocio_promo_order: "Order Now",
+  syncsocio_promo_learn: "Learn More",
+  syncsocio_promo_get: "Get It Free",
+  syncsocio_festival: "Celebrate Now",
+  syncsocio_promo_text: "View Details",
+  syncsocio_order_confirmed_v2: "View Order",
+  syncsocio_order_shipped_v2: "Track Order",
+  syncsocio_payment_reminder_v2: "Pay Now",
+  syncsocio_appointment_reminder_v3: "Confirm",
+  syncsocio_interactive_poll: "Swish Now!",
+};
 
 const COUNTRY_CODES = [
   { code: "+91", name: "India", flag: "🇮🇳" },
@@ -5138,6 +5277,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
   recipientsFileRef, handleRecipientsFile, sendStatus, sendCampaign, back, regenerate, saveHeroImage, isHeroImageSaved,
   savedLists, setSavedLists, selectedListId, setSelectedListId,
   showListNameModal, setShowListNameModal, listNameInput, setListNameInput, handleSaveImportedList,
+  whatsappTemplateName,
 }) => {
   const isWA = mode === 'whatsapp';
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -5295,25 +5435,52 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Live preview</p>
           {isWA ? (
-            /* WhatsApp phone mockup */
-            <div className="rounded-3xl overflow-hidden border-[6px] border-foreground/80 shadow-2xl max-w-[320px] mx-auto bg-[#e5ddd5]">
-              <div className="bg-[#075E54] text-white px-3 py-2.5 flex items-center gap-3">
-                <ArrowLeft size={16} />
-                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">
+            /* WhatsApp iPhone Mockup */
+            <div className="rounded-[40px] overflow-hidden border-[8px] border-[#1f2022] shadow-2xl max-w-[320px] mx-auto bg-[#e5ddd5] relative ring-1 ring-black/10">
+              {/* iPhone Status Bar & Dynamic Island */}
+              <div className="bg-white px-5 pt-3 pb-1 flex justify-between items-center text-[10px] font-semibold text-black relative z-10">
+                <span>9:41</span>
+                <div className="absolute left-1/2 -translate-x-1/2 top-2 w-[85px] h-[24px] bg-black rounded-full z-20"></div>
+                <div className="flex items-center gap-1">
+                  <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 9V6H2.5V9H1ZM4 9V4.5H5.5V9H4ZM7 9V2.5H8.5V9H7ZM10 9V0H11.5V9H10Z" fill="black"/>
+                  </svg>
+                  <svg width="18" height="10" viewBox="0 0 18 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0.5" y="1.5" width="14" height="7" rx="2" stroke="black"/>
+                    <rect x="2" y="3" width="11" height="4" rx="1" fill="black"/>
+                    <path d="M15.5 4C16.3284 4 17 4.67157 17 5.5C17 6.32843 16.3284 7 15.5 7V4Z" fill="black"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* WhatsApp iOS Header */}
+              <div className="bg-white text-black px-3 py-2 border-b border-gray-200 flex items-center gap-3">
+                <ArrowLeft size={18} className="text-[#007AFF]" />
+                <div className="w-9 h-9 rounded-full bg-[#128C7E] flex items-center justify-center text-sm font-bold text-white">
                   {brandName.slice(0, 1).toUpperCase()}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold leading-tight">{brandName}</p>
-                  <p className="text-[10px] opacity-80">online</p>
+                  <p className="text-[14px] font-semibold leading-tight">{brandName}</p>
+                  <p className="text-[11px] text-gray-500">online</p>
                 </div>
-                <Phone size={16} />
-                <MoreHorizontal size={16} />
+                <Phone size={18} className="text-[#007AFF]" />
+                <MoreHorizontal size={18} className="text-[#007AFF]" />
               </div>
+
+              {/* Chat Body */}
               <div
-                className="p-3 min-h-[420px] space-y-2"
+                className="p-3 min-h-[550px] space-y-2 relative"
                 style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px)', backgroundSize: '14px 14px' }}
               >
-                <div className="ml-auto max-w-[88%] bg-white rounded-2xl rounded-tr-md shadow-sm overflow-hidden border border-black/5 flex flex-col">
+                {/* Date Badge */}
+                <div className="flex justify-center mb-4 mt-2">
+                  <span className="bg-[#E4EAEB] text-gray-600 text-[10px] font-medium px-3 py-1 rounded-lg">
+                    Today
+                  </span>
+                </div>
+
+                {/* Left-Aligned Message Bubble */}
+                <div className="mr-auto max-w-[85%] bg-white rounded-2xl rounded-tl-sm shadow-sm overflow-hidden border border-black/5 flex flex-col">
                   {image && (
                     <img src={image} className="w-full object-cover aspect-[16/10]" />
                   )}
@@ -5321,31 +5488,46 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                     <h4 className="text-[13px] font-bold text-gray-900 leading-snug mb-1.5">
                       {subject || `${brandName} Exclusive Offer`}
                     </h4>
-                    <pre className="text-[11px] text-gray-600 whitespace-pre-wrap font-sans leading-relaxed mb-2.5">{body}</pre>
-                    <p className="text-[9px] text-gray-400 font-medium">
+                    <pre className="text-[12px] text-[#111111] whitespace-pre-wrap font-sans leading-relaxed mb-2.5">{body}</pre>
+                    <p className="text-[10px] text-gray-400 font-medium">
                       T&C apply. Reply STOP to unsubscribe.
                     </p>
-                    <div className="flex items-center justify-end gap-1 mt-1.5 text-[9px] text-gray-400">
-                      {time} <CheckCheck size={11} className="text-[#34B7F1]" />
+                    <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-gray-400">
+                      {time}
                     </div>
                   </div>
                   <a
                     href="#"
-                    className="flex items-center justify-center gap-1.5 py-2.5 bg-white border-t border-gray-100 text-[11px] font-bold text-[#0066cc] hover:bg-gray-50 active:bg-gray-100 transition-colors w-full"
+                    className="flex items-center justify-center gap-1.5 py-2.5 bg-white border-t border-gray-100 text-[12px] font-bold text-[#007AFF] hover:bg-gray-50 active:bg-gray-100 transition-colors w-full"
                     onClick={(e) => e.preventDefault()}
                   >
-                    <ExternalLink size={11} className="text-[#0066cc]" />
-                    <span>{brandName.toLowerCase()} now</span>
+                    <ExternalLink size={12} className="text-[#007AFF]" />
+                    <span>
+                      {whatsappTemplateName && WHATSAPP_BUTTON_LABELS[whatsappTemplateName]
+                        ? WHATSAPP_BUTTON_LABELS[whatsappTemplateName]
+                        : `${brandName.toLowerCase()} now`}
+                    </span>
                   </a>
                 </div>
               </div>
-              <div className="bg-[#f0f0f0] px-3 py-2 flex items-center gap-2">
-                <Smile size={18} className="text-foreground/50" />
-                <div className="flex-1 bg-white rounded-full px-3 py-1.5 text-[11px] text-foreground/40">Message</div>
-                <Paperclip size={16} className="text-foreground/50" />
-                <div className="w-8 h-8 rounded-full bg-[#075E54] flex items-center justify-center text-white">
-                  <Mic size={14} />
+
+              {/* iOS WhatsApp Input Bar */}
+              <div className="bg-[#F6F6F6] px-3 py-2 flex items-center gap-2 border-t border-gray-200">
+                <Smile size={20} className="text-gray-500" />
+                <div className="flex-1 bg-white border border-gray-300 rounded-full px-3 py-1.5 text-[13px] text-gray-400 flex items-center justify-between">
+                  <span>Message</span>
+                  <div className="flex items-center gap-2">
+                    <Paperclip size={16} className="text-gray-400" />
+                  </div>
                 </div>
+                <div className="w-8 h-8 rounded-full bg-[#128C7E] flex items-center justify-center text-white shrink-0">
+                  <Mic size={15} />
+                </div>
+              </div>
+
+              {/* Home Indicator */}
+              <div className="bg-[#F6F6F6] pb-2 pt-1 flex justify-center">
+                <div className="w-1/3 h-1 bg-black rounded-full opacity-80"></div>
               </div>
             </div>
           ) : (
