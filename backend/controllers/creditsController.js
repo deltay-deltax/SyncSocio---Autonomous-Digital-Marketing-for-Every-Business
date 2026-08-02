@@ -7,9 +7,13 @@ import Coupon from '../models/Coupon.js';
 const PLAN_CREDITS = {
   'Starter': 200,
   'Elite': 700,
+  'Elite SD': 700,
+  'Elite HD': 700,
   'Agency': 1750,
   'SyncSocio Starter': 200,
   'SyncSocio Elite': 700,
+  'SyncSocio Elite SD': 700,
+  'SyncSocio Elite HD': 700,
   'SyncSocio Agency': 1750,
 };
 

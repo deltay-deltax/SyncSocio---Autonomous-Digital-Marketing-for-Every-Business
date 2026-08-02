@@ -54,6 +54,7 @@ export default function EditorPage() {
 
   const [isHearted, setIsHearted] = useState(false);
   const [showHeartPop, setShowHeartPop] = useState(false);
+  const [isEditingResult, setIsEditingResult] = useState(false);
   const lastTapRef = useRef<number>(0);
 
   useEffect(() => {
@@ -152,8 +153,22 @@ export default function EditorPage() {
     fetchProducts();
   }, []);
 
+  const handleEditResult = () => {
+    if (!result) return;
+    const base64Data = result.startsWith('data:') ? result.split(',')[1] : result;
+    setRefImage({
+      url: result,
+      name: 'Generated Result',
+      base64: base64Data,
+      aspectRatio: refImage?.aspectRatio || "1:1"
+    });
+    setResult(null);
+    setIsEditingResult(true);
+  };
+
   const handleRefFile = async (file: File | undefined) => {
     if (!file) return;
+    setIsEditingResult(false);
     const url = URL.createObjectURL(file);
     const b64 = await fileToBase64(file);
     
@@ -205,8 +220,6 @@ export default function EditorPage() {
     });
     setShowProductModal(false);
   };
-
-  // handleGenerate is now handled in the EditorContext
 
   return (
     <div className="max-w-5xl mx-auto flex flex-col gap-6 h-[calc(100vh-8rem)] pt-4">
@@ -275,6 +288,15 @@ export default function EditorPage() {
                 {isHearted ? 'Saved' : 'Heart'}
               </button>
 
+              {(!isEditingResult && !freeEditUsed) && (
+                <button
+                  onClick={handleEditResult}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-white/90 backdrop-blur text-black px-4 py-2 text-xs font-bold hover:bg-white transition-colors shadow-lg hover:scale-105 active:scale-95"
+                >
+                  <ImagePlus className="h-4 w-4" /> Edit Result
+                </button>
+              )}
+
               <a
                 href={result}
                 download="ai-edit-result.png"
@@ -309,7 +331,11 @@ export default function EditorPage() {
             sublabel="Upload from computer"
             value={refImage} 
             onChange={handleRefFile} 
-            onClear={() => setRefImage(null)} 
+            onClear={() => setRefImage(null)}
+            isEditingResult={isEditingResult}
+            freeEditUsed={freeEditUsed}
+            handleGenerate={handleGenerate}
+            loading={loading}
           />
           
           {/* Product Selection */}
@@ -361,7 +387,7 @@ export default function EditorPage() {
             className="flex-1 resize-none bg-transparent outline-none text-sm leading-relaxed py-2 max-h-40 text-foreground placeholder:text-muted-foreground/60"
           />
           <button
-            onClick={handleGenerate}
+            onClick={() => handleGenerate(isEditingResult && !freeEditUsed)}
             disabled={loading || !prompt.trim() || !refImage}
             className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-2.5 text-sm font-semibold shadow-md hover:opacity-95 disabled:opacity-40 disabled:cursor-not-allowed transition hover:shadow-lg active:scale-95 mb-0.5"
           >
@@ -463,12 +489,20 @@ function UploadSlot({
   value,
   onChange,
   onClear,
+  isEditingResult,
+  freeEditUsed,
+  handleGenerate,
+  loading
 }: {
   label: string;
   sublabel: string;
   value: Uploaded;
   onChange: (file: File | undefined) => void;
   onClear: () => void;
+  isEditingResult?: boolean;
+  freeEditUsed?: boolean;
+  handleGenerate?: (forceEdit?: boolean) => void;
+  loading?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (

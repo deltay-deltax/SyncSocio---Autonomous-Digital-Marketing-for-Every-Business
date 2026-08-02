@@ -543,7 +543,7 @@ const DashboardLayoutContent = () => {
 
         const data = await response.json();
         if (data.status === 'success') {
-          const updatedPost = { ...previewPost, id: Math.random().toString(36).substring(7) };
+          const updatedPost = { ...previewPost, id: Math.random().toString(36).substring(7), isEdited: true };
           if (previewPost.type === 'carousel') {
             const updatedSlides = [...(previewPost.slides || [])];
             if (updatedSlides[previewSlide]) {
@@ -1092,7 +1092,7 @@ const DashboardLayoutContent = () => {
               const isElite = planName.includes('elite');
               const isAgency = planName.includes('agency');
               const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-              const hasDMAutomationAccess = isElite || isAgency || profile?.dmAddonActive || isMetaReviewer;
+              const hasDMAutomationAccess = profile?.dmAddonActive || profile?.DM_Automation_Service || isMetaReviewer;
               const isLocked = item.label === 'DM Automation' && !hasDMAutomationAccess;
 
 
