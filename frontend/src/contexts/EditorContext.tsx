@@ -16,7 +16,9 @@ interface EditorContextType {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   unread: boolean;
   setUnread: React.Dispatch<React.SetStateAction<boolean>>;
-  handleGenerate: () => Promise<void>;
+  freeEditUsed: boolean;
+  setFreeEditUsed: React.Dispatch<React.SetStateAction<boolean>>;
+  handleGenerate: (isEdit?: boolean) => Promise<void>;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -31,8 +33,9 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [unread, setUnread] = useState(false);
+  const [freeEditUsed, setFreeEditUsed] = useState(false);
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (isEdit: boolean = false) => {
     if (!prompt.trim() || !refImage) {
       toast({
         title: "Missing fields",
@@ -58,6 +61,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           prod_info: prodImage?.info || "",
           instruction: prompt,
           aspectRatio: refImage.aspectRatio || "1:1",
+          isEdit: isEdit,
         })
       });
       
@@ -79,6 +83,12 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // If the user has navigated away from the Editor page, set unread indicator
       if (!window.location.pathname.includes('/dashboard/editor')) {
         setUnread(true);
+      }
+      
+      if (isEdit) {
+        setFreeEditUsed(true);
+      } else {
+        setFreeEditUsed(false); // Reset on new generation
       }
       
       toast({
@@ -111,6 +121,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading,
       unread,
       setUnread,
+      freeEditUsed,
+      setFreeEditUsed,
       handleGenerate
     }}>
       {children}

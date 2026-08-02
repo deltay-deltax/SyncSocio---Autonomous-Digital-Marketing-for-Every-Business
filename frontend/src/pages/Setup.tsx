@@ -11,136 +11,12 @@ import { useRazorpay } from '../hooks/useRazorpay';
 import { Checkout } from '@/components/Checkout';
 
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+import Pricing from '@/components/Pricing';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type Screen = 'checklist' | 'instagram' | 'plan' | 'checkout' | 'activation';
 
-interface Plan {
-  name: string;
-  price: string;
-  originalPrice?: number;
-  period: string;
-  frequency: string;
-  formats: string;
-  postsPerMonth: string;
-  features: string[];
-  popular?: boolean;
-  cta: string;
-  ctaStyle: 'outline' | 'primary' | 'inverted';
-}
 
-// ─── Plan Data ───────────────────────────────────────────────────────
-const plans: Plan[] = [
-  {
-    name: 'Starter',
-    price: '₹799',
-    originalPrice: 999,
-    period: '/month',
-    frequency: 'Queue up to 30 scheduled posts',
-    formats: 'All image generation types',
-    postsPerMonth: '200 credits/month',
-    features: [
-      "200 credits/month",
-      "Soft copy images",
-      "500 email campaigns/month",
-      "1 active brand profile",
-      "Import or Add Up to 50 Products",
-      "All image generation types",
-      "E-commerce listing generator",
-      "Festival calendar",
-      "English + 13 languages",
-      "Queue up to 30 scheduled posts",
-      "Email support",
-    ],
-    cta: 'Get Started',
-    ctaStyle: 'primary',
-  },
-  {
-    name: 'Elite',
-    price: '₹2199',
-    originalPrice: 3199,
-    period: '/month',
-    frequency: 'Best time to post analysis',
-    formats: 'UGC & Product Video + All-in-One Drops',
-    postsPerMonth: '700 credits/month (70 AI images)',
-    features: [
-      "700 credits/month (70 AI images)",
-      "HD quality images",
-      "2,000 email campaigns/month",
-      "2 brand profiles",
-      "Import or Add Up to 100 Products",
-      "Everything in Starter",
-      "All-in-One Drop feature",
-      "UGC & Product video generation",
-      "Best time to post analysis",
-      "Unlimited scheduled queue",
-      "Priority WhatsApp support",
-    ],
-    popular: true,
-    cta: 'Get Started',
-    ctaStyle: 'inverted',
-  },
-  {
-    name: 'Agency',
-    price: '₹4999',
-    originalPrice: 6999,
-    period: '/month',
-    frequency: 'Highest Priority generation',
-    formats: 'HD Quality Images + Unlimited Drops',
-    postsPerMonth: '1,750 credits/month (175 AI images)',
-    features: [
-      "1,750 credits/month (175 AI images)",
-      "10 credits per generation",
-      "⚡ 45-55% Margin",
-      "HD quality images",
-      "10,000 email campaigns/month",
-      "8 active brand profiles",
-      "Import or Add Up to 500 Products",
-      "Everything in Elite",
-      "All-in-One Drop feature",
-      "UGC & Product video generation",
-      "Dedicated Account Manager",
-      "Unlimited scheduled queue",
-      "Highest Priority generation",
-      "24/7 Priority support",
-    ],
-    cta: 'Get Started',
-    ctaStyle: 'primary',
-  },
-  {
-    name: 'Custom',
-    price: 'Talk to Us',
-    period: '',
-    frequency: 'Enterprise Scale & Workflows',
-    formats: 'Custom AI Models & API Integration',
-    postsPerMonth: 'Custom Credit Package',
-    features: [
-      "Custom credit volume & limits",
-      "Book a custom plan tailored to you",
-      "Unlimited active brand profiles",
-      "Dedicated Account Manager & SLA",
-      "Custom AI model & prompt tuning",
-      "24/7 Priority phone & WhatsApp support",
-      "White-label options & custom invoicing",
-    ],
-    cta: 'Talk to Us',
-    ctaStyle: 'outline',
-  }
-];
-
-const TOPUPS = [
-  { credits: 100, price: 299, per_credit: 2.99 },
-  { credits: 300, price: 799, per_credit: 2.66 },
-  { credits: 700, price: 1699, per_credit: 2.42 },
-];
-
-// Credits awarded per plan (shown in UI)
-const PLAN_CREDITS_DISPLAY: Record<string, { label: string; color: string; glow: string }> = {
-  'Starter':  { label: '200 Credits', color: 'from-sky-400 to-blue-600', glow: 'shadow-blue-500/30' },
-  'Elite': { label: '700 Credits', color: 'from-violet-500 to-purple-700', glow: 'shadow-purple-500/40' },
-  'Agency': { label: '1,750 Credits', color: 'from-emerald-500 to-teal-700', glow: 'shadow-emerald-500/40' },
-  'Custom': { label: 'Custom Credits', color: 'from-indigo-500 to-purple-800', glow: 'shadow-indigo-500/40' },
-};
 
 // ─── Checklist Steps ─────────────────────────────────────────────────
 interface StepItem {
@@ -221,7 +97,7 @@ const Setup = () => {
   const [screen, setScreen] = useState<Screen>(() => {
     const searchParams = new URLSearchParams(location.search);
     const stepParam = searchParams.get('step');
-    return stepParam === '1' ? 'instagram' : 'checklist';
+    return stepParam === 'plan' ? 'plan' : stepParam === '1' ? 'instagram' : 'checklist';
   });
   const [igConnectStage, setIgConnectStage] = useState<'initial' | 'connecting' | 'success' | 'failed'>('initial');
   const [selectedPlanAmount, setSelectedPlanAmount] = useState<number>(0);
@@ -233,7 +109,9 @@ const Setup = () => {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const stepParam = searchParams.get('step');
-    if (stepParam === '1') {
+    if (stepParam === 'plan') {
+      setScreen('plan');
+    } else if (stepParam === '1') {
       setScreen('instagram');
     }
   }, [location.search]);
@@ -364,12 +242,12 @@ const Setup = () => {
     }
     // --- END BYPASS ---
 
-    const basePrice = planName === 'Agency' ? 4999 : planName === 'Elite' ? 2199 : 599;
+    const basePrice = planName === 'Agency' ? 4999 : planName === 'Elite' ? 1999 : planName === 'Starter' ? 799 : 399;
     let currentPrice = basePrice;
     
     if (appliedCoupon) {
       if (appliedCoupon.code === 'LAUNCH') {
-        currentPrice = planName === 'Agency' ? 4999 : planName === 'Elite' ? 2199 : 599;
+        currentPrice = planName === 'Agency' ? 4999 : planName === 'Elite' ? 1999 : planName === 'Starter' ? 799 : 399;
       } else {
         const discount = appliedCoupon.discountPercentage;
         currentPrice = Math.round(currentPrice * (1 - discount / 100));
@@ -409,13 +287,7 @@ const Setup = () => {
     }
   }, []);
 
-  const handleSelectPlan = (plan: Plan) => {
-    if (plan.name === 'Custom') {
-      window.location.href = "mailto:support@syncsocio.com?subject=Book%20a%20Custom%20Plan%20Inquiry";
-      return;
-    }
-    proceedToCheckout(plan.name);
-  };
+
 
   const handleToggle = (planName: string) => {
     setDmToggles(prev => ({ ...prev, [planName]: !prev[planName] }));
@@ -666,144 +538,11 @@ const Setup = () => {
   // SCREEN 3 — CHOOSE PLAN
   // ════════════════════════════════════════════════════════════════════
   if (screen === 'plan') {
-    const discount = appliedCoupon ? appliedCoupon.discountPercentage : 0;
-
     return (
       <Wrapper maxW="max-w-7xl" screenKey={screen}>
-        <div className="text-center mb-10">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Choose how active your agent is</h1>
-          <p className="text-sm text-muted-foreground">Upgrade or downgrade anytime</p>
+        <div className="-mt-16">
+          <Pricing onWaitlistClick={(planName) => proceedToCheckout(planName || 'Starter')} />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
-          {plans.map((plan, i) => {
-            let currentPrice = plan.name === 'Agency' ? 4999 : plan.name === 'Elite' ? 2199 : plan.name === 'Custom' ? 0 : 799;
-            const originalPrice = plan.originalPrice;
-            const discountPercent = originalPrice ? Math.floor(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
-            const credInfo = PLAN_CREDITS_DISPLAY[plan.name];
-
-            return (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
-                className={cn(
-                  "relative rounded-3xl p-6 flex flex-col justify-between transition-all duration-300",
-                  plan.popular
-                    ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
-                    : plan.name === 'Custom'
-                    ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
-                    : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md",
-                  recommendedPlan === plan.name && !plan.popular ? "ring-2 ring-emerald-500/50 scale-[1.01]" : ""
-                )}
-              >
-                {/* Top Badge */}
-                {plan.popular ? (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-900 shadow-md z-20 whitespace-nowrap">
-                    Most Popular
-                  </div>
-                ) : plan.name === 'Custom' ? (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary text-primary-foreground shadow-md z-20 whitespace-nowrap">
-                    Enterprise
-                  </div>
-                ) : recommendedPlan === plan.name ? (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500 text-white shadow-md z-20 flex items-center gap-1 whitespace-nowrap">
-                    <Sparkles size={10} /> Recommended
-                  </div>
-                ) : null}
-
-                <div>
-                  {/* Header & Title */}
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-extrabold tracking-tight">{plan.name}</h3>
-                    {credInfo && (
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                        plan.popular
-                          ? "bg-white/20 text-white backdrop-blur-sm"
-                          : "bg-primary/10 text-primary"
-                      }`}>
-                        {credInfo.label}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className={`text-xs min-h-[36px] leading-relaxed mb-4 ${
-                    plan.popular ? "text-primary-foreground/85" : "text-muted-foreground"
-                  }`}>
-                    {plan.frequency}
-                  </p>
-
-                  {/* Price Block */}
-                  <div className="mb-6 pt-3 border-t border-border/20">
-                    {plan.name !== 'Custom' ? (
-                      <div>
-                        {originalPrice && currentPrice < originalPrice && (
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-xs line-through font-semibold ${
-                              plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"
-                            }`}>
-                              ₹{originalPrice}
-                            </span>
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                              plan.popular ? "bg-white/20 text-white" : "bg-emerald-500/10 text-emerald-600"
-                            }`}>
-                              {discountPercent}% OFF
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-3xl sm:text-4xl font-black tracking-tight">₹{currentPrice}</span>
-                          <span className={`text-xs font-semibold ${
-                            plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
-                          }`}>
-                            {plan.period}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="py-1">
-                        <span className="text-3xl font-black tracking-tight">Talk to Us</span>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Bespoke pricing & volume</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Feature List */}
-                  <ul className="space-y-2.5 mb-8 text-left">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
-                        <Check size={15} className={`shrink-0 mt-0.5 ${
-                          plan.popular ? 'text-white' : 'text-primary'
-                        }`} />
-                        <span className={plan.popular ? "text-primary-foreground/95" : "text-foreground/90"}>
-                          {f}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="pt-2">
-                  <Button
-                    onClick={() => handleSelectPlan(plan)}
-                    className={`w-full py-6 rounded-2xl font-bold text-xs tracking-wide shadow-md transition-all ${
-                      plan.popular
-                        ? 'bg-white text-primary hover:bg-white/90 hover:shadow-lg'
-                        : plan.ctaStyle === 'primary'
-                        ? 'gradient-bg text-primary-foreground border-0 hover:opacity-95'
-                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    }`}
-                  >
-                    {plan.cta}
-                  </Button>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-
       </Wrapper>
     );
   }
@@ -819,7 +558,11 @@ const Setup = () => {
           description={`Subscription: ${selectedPlan} Plan`}
           type="plan_purchase"
           planName={selectedPlan || ''}
-          creditsAdded={selectedPlan === 'Elite' ? 700 : 200}
+          creditsAdded={
+            selectedPlan === 'Agency' ? 1800 :
+            selectedPlan === 'Elite' ? 700 :
+            selectedPlan === 'Starter' ? 200 : 80
+          }
           onSuccess={handleCheckoutSuccess}
           onBack={() => setScreen('plan')}
         />

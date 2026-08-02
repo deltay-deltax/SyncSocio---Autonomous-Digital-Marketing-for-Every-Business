@@ -95,9 +95,14 @@ const Signup = () => {
 
       if (profRes.ok) {
         const profile = await profRes.json();
-        if (profile.selectedPlan && profile.selectedPlan !== 'Free') {
+        const hasBrandSetup = profile.brandName && profile.brandName.trim() !== '';
+        
+        if (profile.userPlan && profile.userPlan !== 'Free') {
           localStorage.setItem("syncsocio_setup_done", "true");
           window.location.href = "/dashboard";
+        } else if (hasBrandSetup) {
+          localStorage.setItem("syncsocio_setup_done", "false");
+          window.location.href = "/setup?step=plan";
         } else {
           localStorage.setItem("syncsocio_setup_done", "false");
           window.location.href = "/setup";
