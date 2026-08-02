@@ -2247,6 +2247,8 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
   const [manualWabaId, setManualWabaId] = useState(profile.whatsappWABAId === 'pending_setup' ? '' : profile.whatsappWABAId || '');
   const [savingManual, setSavingManual] = useState(false);
   const [showManualForm, setShowManualForm] = useState(profile.whatsappPhoneId === 'pending_setup' || profile.whatsappWABAId === 'pending_setup');
+  // Prevent the OAuth code exchange from firing more than once (StrictMode double-render guard)
+  const oauthProcessed = useRef(false);
   
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
   const FB_APP_ID = import.meta.env.VITE_FB_APP_ID || '1491990322515220';
@@ -2307,6 +2309,10 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
     const code = params.get('code');
     const error = params.get('error');
 
+    // Guard against double-fire from React StrictMode or component re-mount
+    if ((code || error) && oauthProcessed.current) return;
+    if (code || error) oauthProcessed.current = true;
+
     if (error) {
       toast({ title: 'Connection Failed', description: params.get('error_description') || 'Facebook login was cancelled.', variant: 'destructive' });
       // Clean up URL
@@ -2338,11 +2344,13 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
           whatsappIsConnected: true,
           whatsappPhoneId: data.profile?.whatsappPhoneId || 'pending_setup',
           whatsappWABAId: data.profile?.whatsappWABAId || 'pending_setup',
+          whatsappNumber: data.profile?.whatsappNumber || profile.whatsappNumber || '',
         };
         setProfile(updatedProfile);
         localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
 
-        toast({ title: '✅ WhatsApp Connected!', description: 'Your WhatsApp Business account is now linked.' });
+        const displayNumber = data.profile?.whatsappNumber || data.profile?.whatsappPhoneId || 'your account';
+        toast({ title: '✅ WhatsApp Connected!', description: `Connected: ${displayNumber}` });
       })
       .catch((err: any) => {
         toast({ title: 'Connection Failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
@@ -2357,12 +2365,21 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
 
   const launchEmbeddedSignup = () => {
     setLoading(true);
-    // Use manual OAuth redirect instead of FB.login to completely avoid popup blockers and silent SDK failures
-    const redirectUri = window.location.origin + window.location.pathname; // Usually http://localhost:5173/dashboard/settings
-    const scope = 'whatsapp_business_management,whatsapp_business_messaging,business_management';
+
+    const configId = '27762552940069627';
+    const redirectUri = window.location.origin + window.location.pathname; // http://localhost:5173/dashboard/settings
     
-    // Redirect the entire page to Facebook OAuth dialog
-    window.location.href = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code`;
+    // We must pass the exact extras stringified
+    const extras = JSON.stringify({
+      feature: 'whatsapp_embedded_signup',
+      version: 2,
+      sessionInfoVersion: '3',
+      setup: {}
+    });
+
+    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&config_id=${configId}&extras=${encodeURIComponent(extras)}&scope=whatsapp_business_management,whatsapp_business_messaging,business_management`;
+    
+    window.location.href = oauthUrl;
   };
 
   const handleDisconnect = async () => {
@@ -2402,7 +2419,11 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-base font-black text-foreground truncate">
-                {profile.whatsappNumber || 'WhatsApp Business'}
+                {profile.whatsappNumber
+                  ? profile.whatsappNumber
+                  : profile.whatsappPhoneId
+                    ? `Phone ID: ${profile.whatsappPhoneId}`
+                    : 'WhatsApp Business'}
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
