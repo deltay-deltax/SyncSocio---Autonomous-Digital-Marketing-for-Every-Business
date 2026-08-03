@@ -15,12 +15,22 @@ import { encryptField, verifyRazorpayWebhook, handleRazorpayPaid } from '../serv
 
 const router = express.Router();
 
+// Helper to strictly get the active brand
+async function getActiveBrand(req) {
+  let brand;
+  if (req.user.activeBrandId) {
+    brand = await BrandProfile.findOne({ _id: req.user.activeBrandId, user: req.user._id });
+  }
+  if (!brand) {
+    brand = await BrandProfile.findOne({ user: req.user._id });
+  }
+  return brand;
+}
+
 // ─── GET /api/nexa/settings ───────────────────────────────────────────────────
 router.get('/settings', protect, async (req, res) => {
   try {
-    const brand = await BrandProfile.findOne({
-      $or: [{ user: req.user._id, _id: req.user.activeBrandId }, { user: req.user._id }],
-    }).select('nexa brandName').lean();
+    const brand = await getActiveBrand(req);
 
     if (!brand) return res.status(404).json({ message: 'Brand not found' });
 
@@ -53,9 +63,7 @@ router.post('/settings', protect, async (req, res) => {
       max_discount,
     } = req.body;
 
-    const brand = await BrandProfile.findOne({
-      $or: [{ user: req.user._id, _id: req.user.activeBrandId }, { user: req.user._id }],
-    });
+    const brand = await getActiveBrand(req);
 
     if (!brand) return res.status(404).json({ message: 'Brand not found' });
 
@@ -90,10 +98,7 @@ router.post('/settings', protect, async (req, res) => {
 // ─── GET /api/nexa/conversations ─────────────────────────────────────────────
 router.get('/conversations', protect, async (req, res) => {
   try {
-    const brand = await BrandProfile.findOne({
-      $or: [{ user: req.user._id, _id: req.user.activeBrandId }, { user: req.user._id }],
-    }).select('_id').lean();
-
+    const brand = await getActiveBrand(req);
     if (!brand) return res.status(404).json({ message: 'Brand not found' });
 
     const page  = parseInt(req.query.page)  || 1;

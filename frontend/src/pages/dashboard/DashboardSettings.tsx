@@ -46,7 +46,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-const settingsTabs = ['Brand Profile', 'Connected Accounts', 'Email Setup', 'Posting Preferences', 'Plan & Billing', 'Legal & Privacy', 'Danger Zone'];
+const settingsTabs = ['Brand Profile', 'Connected Accounts', 'Email Setup', 'Posting Preferences', 'Nexa AI Setup', 'Plan & Billing', 'Legal & Privacy', 'Danger Zone'];
 
 const industries = [
   'Baby & Kids',
@@ -127,6 +127,26 @@ const DashboardSettings = () => {
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const razorpayLoaded = useRazorpay();
 
+  // Nexa State
+  const [nexaSettings, setNexaSettings] = useState<any>(null);
+  const [nexaLoading, setNexaLoading] = useState(false);
+  const [nexaSaving, setNexaSaving] = useState(false);
+  const [nexaForm, setNexaForm] = useState({
+    nexa_enabled: false,
+    razorpay_key_id: '',
+    razorpay_key_secret: '',
+    upi_id: '',
+    bank_details: '',
+    cod_enabled: false,
+    min_discount: 0,
+    max_discount: 10,
+  });
+
+  const getAuthHeaders = (isJson = false) => ({
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+    ...(isJson ? { 'Content-Type': 'application/json' } : {})
+  });
+
   const fetchBrands = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -145,6 +165,28 @@ const DashboardSettings = () => {
 
   useEffect(() => {
     fetchBrands();
+
+    (async () => {
+      setNexaLoading(true);
+      try {
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const res = await fetch(`${apiBase}/nexa/settings`, { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (res.ok && data.settings) {
+          setNexaSettings(data.settings);
+          setNexaForm(prev => ({
+            ...prev,
+            nexa_enabled: !!data.settings.nexa_enabled,
+            upi_id: data.settings.upi_id || '',
+            bank_details: data.settings.bank_details || '',
+            cod_enabled: !!data.settings.cod_enabled,
+            min_discount: data.settings.min_discount ?? 0,
+            max_discount: data.settings.max_discount ?? 10,
+          }));
+        }
+      } catch {}
+      setNexaLoading(false);
+    })();
   }, []);
 
   useEffect(() => {
@@ -1368,7 +1410,161 @@ const DashboardSettings = () => {
           </Card>
         )}
 
-        {/* ─── EMAIL SETUP TAB ─────────────────────────────────────────────── */}
+        {activeTab === 'Nexa AI Setup' && (
+            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+              <CardHeader className="p-8 pb-2 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-violet-600">Nexa AI Settings</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">Configure your AI sales closer's payment bounds and negotiation strategies.</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Agent Status</span>
+                  <button
+                    onClick={async () => {
+                      const newVal = !nexaForm.nexa_enabled;
+                      setNexaForm((p: any) => ({ ...p, nexa_enabled: newVal }));
+                      try {
+                        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                        await fetch(`${apiBase}/nexa/settings`, {
+                          method: 'POST', headers: getAuthHeaders(true),
+                          body: JSON.stringify({ nexa_enabled: newVal }),
+                        });
+                        toast({ title: newVal ? 'Nexa Activated' : 'Nexa Paused' });
+                      } catch {}
+                    }}
+                    className="mt-1"
+                  >
+                    {nexaForm.nexa_enabled 
+                      ? <CheckCircle2 size={32} className="text-emerald-500 hover:text-emerald-600 transition-colors" />
+                      : <Pause size={32} className="text-muted-foreground hover:text-foreground transition-colors" />}
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6">
+                
+                {/* Payment Integrations */}
+                <div className="bg-muted/10 border border-border/60 rounded-3xl p-6 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
+                       Payment Collection
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Razorpay */}
+                      <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-3">
+                        <label className="text-xs font-bold text-foreground">Razorpay API</label>
+                        <div className="space-y-2">
+                          <Input 
+                            placeholder="Key ID (rzp_live_...)" 
+                            value={nexaForm.razorpay_key_id}
+                            onChange={e => setNexaForm((p: any) => ({ ...p, razorpay_key_id: e.target.value }))}
+                            className="text-xs bg-muted/30"
+                          />
+                          <Input 
+                            type="password"
+                            placeholder="Key Secret" 
+                            value={nexaForm.razorpay_key_secret}
+                            onChange={e => setNexaForm((p: any) => ({ ...p, razorpay_key_secret: e.target.value }))}
+                            className="text-xs bg-muted/30"
+                          />
+                        </div>
+                      </div>
+
+                      {/* UPI & COD */}
+                      <div className="space-y-4">
+                        <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-2">
+                          <label className="text-xs font-bold text-foreground">UPI ID</label>
+                          <Input 
+                            placeholder="brand@upi or 9XXXXXXXXX@paytm" 
+                            value={nexaForm.upi_id}
+                            onChange={e => setNexaForm((p: any) => ({ ...p, upi_id: e.target.value }))}
+                            className="text-xs bg-muted/30"
+                          />
+                        </div>
+
+                        <div className="bg-background border border-border/40 rounded-2xl p-4 flex items-center justify-between">
+                          <div>
+                            <label className="text-xs font-bold text-foreground block">Cash on Delivery</label>
+                            <span className="text-[10px] text-muted-foreground">Allow manual COD orders</span>
+                          </div>
+                          <button onClick={() => setNexaForm((p: any) => ({ ...p, cod_enabled: !p.cod_enabled }))}>
+                            {nexaForm.cod_enabled 
+                              ? <CheckCircle2 size={24} className="text-emerald-500" />
+                              : <Pause size={24} className="text-muted-foreground" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bank Details */}
+                      <div className="md:col-span-2 bg-background border border-border/40 rounded-2xl p-4 space-y-2">
+                        <label className="text-xs font-bold text-foreground">Bank Details (IMPS/NEFT)</label>
+                        <Textarea 
+                          placeholder="Bank Name, Account No, IFSC, Account Holder Name" 
+                          value={nexaForm.bank_details}
+                          onChange={e => setNexaForm((p: any) => ({ ...p, bank_details: e.target.value }))}
+                          className="text-xs bg-muted/30 resize-none h-20"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr className="border-border/50" />
+
+                  {/* Negotiation Bounds */}
+                  <div>
+                    <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
+                       Negotiation Bounds
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground">Min Discount % (Floor)</label>
+                        <Input 
+                          type="number" min={0} max={50}
+                          value={nexaForm.min_discount}
+                          onChange={e => setNexaForm((p: any) => ({ ...p, min_discount: Number(e.target.value) }))}
+                          className="bg-background"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground">Max Discount % (Limit)</label>
+                        <Input 
+                          type="number" min={0} max={50}
+                          value={nexaForm.max_discount}
+                          onChange={e => setNexaForm((p: any) => ({ ...p, max_discount: Number(e.target.value) }))}
+                          className="bg-background"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <Button 
+                    onClick={async () => {
+                      setNexaSaving(true);
+                      try {
+                        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                        await fetch(`${apiBase}/nexa/settings`, {
+                          method: 'POST', headers: getAuthHeaders(true),
+                          body: JSON.stringify(nexaForm),
+                        });
+                        toast({ title: 'Settings Saved', description: 'Nexa agent updated successfully.' });
+                      } catch {
+                        toast({ title: 'Error', variant: 'destructive' });
+                      }
+                      setNexaSaving(false);
+                    }}
+                    disabled={nexaSaving}
+                    className="w-full rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold h-12"
+                  >
+                    {nexaSaving ? 'Saving...' : 'Save Agent Settings'}
+                  </Button>
+                </div>
+
+              </CardContent>
+            </Card>
+          )}
+
+        {/* ─── EMAIL SETUP TAB ───────────────────────────────────────────────────────────── */}
         {activeTab === 'Email Setup' && (
           <EmailSetupWizard profile={profile} setProfile={setProfile} />
         )}
