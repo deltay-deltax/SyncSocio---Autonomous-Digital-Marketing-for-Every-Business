@@ -573,6 +573,7 @@ def generate_instagram_caption_and_hashtags(
     language: str = "english",
     template_label: Optional[str] = None,
     index: int = 0,
+    trigger_keyword: Optional[str] = "",
 ) -> str:
     """Uses Gemini Flash to generate an engaging Instagram caption with relevant hashtags."""
     try:
@@ -587,15 +588,29 @@ def generate_instagram_caption_and_hashtags(
         idea_info = f"Campaign Topic/Idea: {idea}\n" if idea and idea.strip() else ""
         context_info = f"Visual Style/Layout: {template_label}\n" if template_label else ""
         
+        dm_instruction = ""
+        if trigger_keyword:
+            dm_instruction = (
+                f"\n\n═══════════ DM AUTOMATION CTA (MANDATORY) ═══════════\n"
+                f"The FIRST LINE of the caption MUST be a clear, natural call-to-action asking "
+                f"the reader to comment the exact keyword '{trigger_keyword}' to receive the link/details "
+                f"in their DMs. Do not bury this lower in the caption — it must be the opening line.\n"
+                f"Style it naturally in the brand's tone, not robotically.\n"
+                f"Example: \"Comment '{trigger_keyword}' and I'll send you the link 👇\" or "
+                f"\"Want this? Comment '{trigger_keyword}' below and check your DMs.\"\n"
+                f"After this opening line, continue with the rest of the caption as normal (hook, body, hashtags).\n"
+            )
+
         sys_msg = (
             "You are a brilliant, trendy Instagram social media manager and D2C copywriter. "
             f"Write a highly engaging Instagram caption in {language} for a post. "
             "The caption must: \n"
-            "1. Start with an attention-grabbing hook (use emojis naturally).\n"
+            "1. Start with an attention-grabbing hook (use emojis naturally), UNLESS a DM Automation CTA is required (in which case the CTA goes first).\n"
             "2. Focus on the brand value, product benefits, or the campaign idea.\n"
             "3. Include a clear Call to Action (CTA) like 'Click the link in bio to shop' or 'Tell us in the comments'.\n"
             "4. End with 5-10 highly relevant, trending Instagram hashtags (including the brand name as a hashtag).\n"
             "Keep the tone consistent with the brand tone. Output ONLY the caption with hashtags. Do not include markdown formatting or quotes."
+            f"{dm_instruction}"
         )
         
         user_msg = (
@@ -1027,6 +1042,7 @@ def generate_strategy_images(
     video_duration: Optional[int] = None,
     text_mode: str = "low",  # "low" = one headline | "heavy" = no TEXT DISCIPLINE
     avatar_url: Optional[str] = "",
+    comment_keyword: Optional[str] = "",
 ) -> List[Dict[str, Any]]:
     """
 Orchestrates generation for all layout types.
@@ -1265,6 +1281,7 @@ Orchestrates generation for all layout types.
                 language=language,
                 template_label=template_label,
                 index=index,
+                trigger_keyword=comment_keyword,
             )
             
             try:
@@ -1456,6 +1473,7 @@ Orchestrates generation for all layout types.
                 language=language,
                 template_label="Carousel Post",
                 index=index,
+                trigger_keyword=comment_keyword,
             )
 
             try:
@@ -1594,6 +1612,7 @@ Create a high-quality, photorealistic portrait image of this UGC creator/avatar 
                             language=language,
                             template_label="UGC Creator Video",
                             index=index,
+                            trigger_keyword=comment_keyword,
                         )
                     
                     # Stage 2: Take the generated hero image and animate it with Veo 3.1 Fast

@@ -3,6 +3,9 @@ import BrandProfile from '../models/BrandProfile.js';
 import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import DMConversation from '../models/DMConversation.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
+import NexaConversation from '../models/NexaConversation.js';
+import { upsertNexaConversationFromComment, upsertNexaConversationFromDM, handleIncomingMessage as nexaHandleMessage } from '../services/nexaAgent.js';
+import { generateRazorpayLink, getNexaSettings } from '../services/nexaPayment.js';
 import {
   buildPublicCommentReplyText,
   buildPublicCommentReplyTextFromTemplate,
@@ -682,6 +685,25 @@ const processCommentEventForProfile = async (profile, event) => {
       result,
     });
 
+    // ── Nexa Handoff: create/upsert NexaConversation if nexa is enabled for this brand ──
+    if (result?.recipient_id) {
+      try {
+        const freshBrand = await BrandProfile.findById(profile._id).select('nexa user').lean();
+        if (freshBrand?.nexa?.nexa_enabled) {
+          await upsertNexaConversationFromComment({
+            brandDoc: { _id: profile._id, user: profile.user, ...freshBrand },
+            igUserId: result.recipient_id,
+            dmFlowId: flow._id,
+            productInterested: flow.linkedPostTopic || flow.name || null,
+            priceAgreed: null,
+          });
+          console.log(`[Nexa] Conversation seeded for ${result.recipient_id}`);
+        }
+      } catch (nexaErr) {
+        console.error('[Nexa] Failed to seed conversation:', nexaErr.message);
+      }
+    }
+
     // Notify user of new lead
     try {
       const { createNotification } = await import('../utils/notificationHelper.js');
@@ -805,6 +827,9 @@ const sendStandardMessage = async ({ pageToken, igScopedId, messagePayload, page
   );
 };
 
+// Exported alias for nexaNudgeScheduler to avoid circular import issues
+export { sendStandardMessage as sendStandardMessageExternal };
+
 const processMentionEventForProfile = async (profile, event) => {
   console.log(`processMention: sender="${event.senderId}" mediaId="${event.mediaId}"`);
 
@@ -856,6 +881,69 @@ const processMentionEventForProfile = async (profile, event) => {
 
 const processMessageEventForProfile = async (profile, event) => {
   console.log(`processMsg: text="${event.text}", sender="${event.senderId}"`);
+
+  // ── Nexa: Check if there is an active Nexa conversation for this sender ──
+  try {
+    const nexaConvo = await NexaConversation.findOne({
+      brand_id: profile._id,
+      ig_user_id: event.senderId,
+      stage: { $nin: ['AWAITING_FOLLOWUP', 'CLOSED', 'ESCALATED'] },
+    });
+
+    if (nexaConvo) {
+      console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
+
+      const freshBrand = await BrandProfile.findById(profile._id).lean();
+      const nexaSettings = getNexaSettings(freshBrand);
+      const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
+
+      const result = await nexaHandleMessage({
+        convo: nexaConvo,
+        incomingText: event.text,
+        brandDoc: freshBrand,
+        nexaSettings,
+        sendStandardMessage,
+        pageToken,
+        pageId: profile.instagramPageId,
+      });
+
+      let replyText = result.replyText;
+
+      // If Nexa requests a Razorpay payment link, generate it and inject the URL
+      if (result.paymentLinkRequested && nexaSettings?.razorpay_connected) {
+        try {
+          const { razorpay_short_url } = await generateRazorpayLink({
+            brandDoc: freshBrand,
+            nexaSettings,
+            amountRupees: result.mergedCollected?.price_agreed || 0,
+            customerName: result.mergedCollected?.customer_name || 'Customer',
+            phone: result.mergedCollected?.phone_number || '',
+            description: `Order: ${result.mergedCollected?.product_interested || 'Product'} x${result.mergedCollected?.quantity || 1}`,
+            conversationId: nexaConvo._id,
+          });
+          // Inject the real URL into the reply
+          replyText = replyText + `\n\n🔗 Pay here: ${razorpay_short_url}`;
+        } catch (payErr) {
+          console.error('[Nexa] Failed to generate Razorpay link:', payErr.message);
+          replyText = replyText + '\n\n(Payment link generation failed — please contact us directly)';
+        }
+      }
+
+      // Send the Nexa reply
+      await sleep(1500);
+      await sendStandardMessage({
+        pageToken,
+        igScopedId: event.senderId,
+        messagePayload: { text: replyText.slice(0, 1000) },
+        pageId: profile.instagramPageId,
+      });
+
+      return true;
+    }
+  } catch (nexaErr) {
+    console.error('[Nexa] Error routing message:', nexaErr.message);
+    // Fall through to normal flow
+  }
 
   const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.senderId });
   if (pendingFollowUp && matchesFollowUpConfirmation(pendingFollowUp.flow, pendingFollowUp.pending, event.text)) {
@@ -1008,6 +1096,64 @@ const processMessageEventForProfile = async (profile, event) => {
       } catch (err) {
         console.error('DM keyword flow send failed', err?.response?.data || err.message);
       }
+    }
+  }
+
+
+  // ─── UNIVERSAL NEXA DM FALLBACK ──────────────────────────────────────────
+  // If the brand has Nexa enabled, and no specific DM Keyword matched, we let Nexa take over the conversation
+  const freshBrand = await BrandProfile.findById(profile._id).lean();
+  const nexaSettings = getNexaSettings(freshBrand);
+  if (nexaSettings?.nexa_enabled) {
+    console.log(`[Nexa] Nexa is enabled for ${freshBrand.instagramUsername}. Seeding direct DM conversation for ${event.senderId}`);
+    
+    const nexaConvo = await upsertNexaConversationFromDM({
+      brandDoc: freshBrand,
+      igUserId: event.senderId,
+    });
+
+    const pageToken = await resolvePageToken(profile);
+    if (pageToken) {
+      const result = await nexaHandleMessage({
+        convo: nexaConvo,
+        incomingText: event.text,
+        brandDoc: freshBrand,
+        nexaSettings,
+        sendStandardMessage,
+        pageToken,
+        pageId: profile.instagramPageId,
+      });
+
+      let replyText = result.replyText;
+
+      // Handle Razorpay Links
+      if (result.paymentLinkRequested && nexaSettings?.razorpay_connected) {
+        try {
+          const { razorpay_short_url } = await generateRazorpayLink({
+            brandDoc: freshBrand,
+            nexaSettings,
+            amountRupees: result.mergedCollected?.price_agreed || 0,
+            customerName: result.mergedCollected?.customer_name || 'Customer',
+            phone: result.mergedCollected?.phone_number || '',
+            description: `Order: ${result.mergedCollected?.product_interested || 'Product'} x${result.mergedCollected?.quantity || 1}`,
+            conversationId: nexaConvo._id,
+          });
+          replyText = replyText + `\n\n🔗 Pay here: ${razorpay_short_url}`;
+        } catch (payErr) {
+          console.error('[Nexa] Failed to generate Razorpay link:', payErr.message);
+          replyText = replyText + '\n\n(Payment link generation failed — please contact us directly)';
+        }
+      }
+
+      await sleep(1500);
+      await sendStandardMessage({
+        pageToken,
+        igScopedId: event.senderId,
+        messagePayload: { text: replyText.slice(0, 1000) },
+        pageId: profile.instagramPageId,
+      });
+
+      return true; // Nexa successfully handled the message
     }
   }
 

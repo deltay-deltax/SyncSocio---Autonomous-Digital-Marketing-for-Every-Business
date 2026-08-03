@@ -67,6 +67,7 @@ class StrategyImageRequest(BaseModel):
     videoDuration: Optional[int] = None
     textMode: Optional[str] = "low"  # "low" = one clean headline, "heavy" = no TEXT DISCIPLINE constraint
     avatarUrl: Optional[str] = ""    # URL to the global avatar image for e-comm consistency
+    commentKeyword: Optional[str] = ""
 
 class EditMediaRequest(BaseModel):
     image: str

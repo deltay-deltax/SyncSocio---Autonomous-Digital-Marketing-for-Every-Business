@@ -19,15 +19,7 @@ const DashboardFeed = () => {
   const [reconnectRequired, setReconnectRequired] = useState<{ message: string; reason: string } | null>(null);
   const navigate = useNavigate();
 
-  if (profile && !profile.instagramIsConnected) {
-    return (
-      <ConnectInstagramFallback 
-        title="Connect Instagram to View Feed" 
-        description="SyncSocio needs a connected Instagram account to display your brand's feed and recent agent activity."
-        metaTesterStatus={profile?.metaTesterStatus}
-      />
-    );
-  }
+
 
   useEffect(() => {
     let isMounted = true;
@@ -88,6 +80,17 @@ const DashboardFeed = () => {
   const filtered = activeTab === 'All' ? posts
     : activeTab === 'Agent Posts' ? posts.filter(p => isAgentPost(p))
     : posts.filter(p => !isAgentPost(p));
+
+  // ── Early returns ────────────────────────────────────────────────────────────
+  if (profile && !profile.instagramIsConnected) {
+    return (
+      <ConnectInstagramFallback 
+        title="Connect Instagram to View Feed" 
+        description="SyncSocio needs a connected Instagram account to display your brand's feed and recent agent activity."
+        metaTesterStatus={profile?.metaTesterStatus}
+      />
+    );
+  }
 
   // ── Loading state ────────────────────────────────────────────────────────────
   if (loading) {

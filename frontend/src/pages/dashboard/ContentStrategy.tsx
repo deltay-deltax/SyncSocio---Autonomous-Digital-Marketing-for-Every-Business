@@ -867,6 +867,9 @@ const DashboardStrategy = () => {
   const [newAvatarGender, setNewAvatarGender] = useState<'male' | 'female' | 'other'>('female');
   const [isGeneratingAvatar, setIsGeneratingAvatar] = useState<boolean>(false);
 
+  // ── DM Automation
+  const [commentKeyword, setCommentKeyword] = useState<string>('');
+
   // ── Image ad template (null = auto, 1–10 = specific template, -1 = all 8 variants)
   const [adTemplate, setAdTemplate] = useState<number | null>(null);
   // ── Text density mode for image generation ("low" = one clean headline | "heavy" = model decides freely)
@@ -1995,6 +1998,9 @@ const DashboardStrategy = () => {
         videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
         videoResolution: currentMode === 'video' ? videoResolution : undefined,
         videoDuration: currentMode === 'video' ? videoDuration : undefined,
+        ...((currentMode === 'image' || currentMode === 'carousel') && {
+          commentKeyword: commentKeyword.trim() ? commentKeyword.trim() : undefined,
+        }),
       };
 
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
@@ -4163,6 +4169,18 @@ const DashboardStrategy = () => {
           </section>
 
           <IdeaBox idea={idea} setIdea={setIdea} />
+
+          <section className="mb-6">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Comment Keyword <span className="font-normal text-muted-foreground/60 normal-case">(optional DM automation)</span>
+            </p>
+            <Input
+              value={commentKeyword}
+              onChange={(e) => setCommentKeyword(e.target.value)}
+              placeholder="e.g. LINK, PRICE, or GUIDE"
+              className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
+            />
+          </section>
         </>
       )}
 

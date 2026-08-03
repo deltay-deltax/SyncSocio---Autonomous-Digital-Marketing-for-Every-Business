@@ -1871,7 +1871,6 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             )
         else:
             import asyncio
-            # 3. Standard D2C route — run the original strategy image agent
             posts = await asyncio.to_thread(
                 generate_strategy_images,
                 brand_doc=brand_doc,
@@ -1893,6 +1892,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_duration=request.videoDuration,
                 text_mode=request.textMode or "low",
                 avatar_url=request.avatarUrl,
+                comment_keyword=request.commentKeyword,
             )
 
         # 3. Log the FAL API Cost to MongoDB (apilogs collection)
