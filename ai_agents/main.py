@@ -1893,6 +1893,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 text_mode=request.textMode or "low",
                 avatar_url=request.avatarUrl,
                 comment_keyword=request.commentKeyword,
+                whatsapp_template=request.whatsappTemplate,
             )
 
         # 3. Log the FAL API Cost to MongoDB (apilogs collection)

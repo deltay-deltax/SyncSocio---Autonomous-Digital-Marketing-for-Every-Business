@@ -522,7 +522,7 @@ Any text overlays, labels, or copy displayed in the image must be in {language}.
 # ──────────────────────────────────────────────
 # Copy generation for WhatsApp & Email
 # ──────────────────────────────────────────────
-def get_campaign_copy_prompts(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], layout: str, idea: Optional[str], language: str = "english") -> tuple:
+def get_campaign_copy_prompts(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], layout: str, idea: Optional[str], language: str = "english", whatsapp_template: Optional[str] = None) -> tuple:
     brand_name = brand_doc.get("brandName", "SyncSocio Brand")
     block = _brand_block(brand_doc)
     
@@ -537,14 +537,70 @@ Description: {product.get('description', '')}
         
     idea_info = f"\nUser's campaign idea: {idea}" if idea and idea.strip() else ""
 
+    # Marketing templates that need a separate {{1}} headline + {{2}} body
+    MARKETING_TEMPLATES = {
+        "syncsocio_festival", "syncsocio_promo_image", "syncsocio_promo_video",
+        "syncsocio_promo_generic", "syncsocio_promo_lead", "syncsocio_interactive_poll",
+        "syncsocio_promo_shop", "syncsocio_promo_claim", "syncsocio_promo_visit",
+        "syncsocio_promo_book", "syncsocio_promo_order", "syncsocio_promo_learn",
+        "syncsocio_promo_get", "syncsocio_promo_text",
+    }
+    is_marketing_template = whatsapp_template in MARKETING_TEMPLATES
+
     if layout == "whatsapp":
-        sys_msg = (
-            f"You are an expert D2C copywriter. Write a WhatsApp broadcast message in {language}. It must be short, punchy, conversational, and use emojis. "
-            "Output ONLY a valid JSON object with a single key 'body' containing the exact message string. "
-            "Strict Rule: Write the message as PLAIN TEXT only. Do NOT output any HTML tags, code, or CSS. "
-            "If a Website URL is provided in the prompt details, you MUST include it directly in the message/body as the CTA link (do NOT use placeholder links like [Link] or [website URL])."
-        )
-        user_msg = f"{block}\n{product_block}{idea_info}\n\nDraft the WhatsApp message now."
+        if is_marketing_template:
+            # Marketing templates: Gemini must produce a bold headline (≤60 chars) + engaging body copy
+            sys_msg = (
+                f"You are an expert D2C copywriter. Write a WhatsApp marketing campaign message in {language}. "
+                "Output ONLY a valid JSON object with two keys: "
+                "'subject' (a short, bold, attention-grabbing headline — MAX 60 characters, NO emojis, NO asterisks) and "
+                "'body' (the detailed campaign message — MAX 500 characters, conversational, emoji-rich, engaging). "
+                "Strict Rule: Write PLAIN TEXT only. No HTML, no CSS, no asterisks in subject. "
+                "If a Website URL is provided, include it naturally in the body as the CTA link."
+            )
+        else:
+            # Legacy single-variable templates
+            sys_msg = (
+                f"You are an expert D2C copywriter. Write a WhatsApp broadcast message in {language}. It must be short, punchy, conversational, and use emojis. "
+                "Output ONLY a valid JSON object with a single key 'body' containing the exact message string. "
+                "Strict Rule: Write the message as PLAIN TEXT only. Do NOT output any HTML tags, code, or CSS. "
+                "If a Website URL is provided in the prompt details, you MUST include it directly in the message/body as the CTA link (do NOT use placeholder links like [Link] or [website URL])."
+            )
+        
+        template_rule = ""
+        if whatsapp_template:
+            if "shipped" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This is a Utility 'Order Shipped' template. Focus ONLY on providing order status, tracking info, and a professional tone. Keep it highly concise."
+            elif "confirmed" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This is a Utility 'Order Confirmed' template. Focus ONLY on confirming the order and thanking the customer. Keep it highly concise."
+            elif "payment" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This is a Utility 'Payment Reminder' template. Politely remind the customer about a pending payment and provide a link to pay."
+            elif "appointment" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This is a Utility 'Appointment Reminder' template. Remind the user about an upcoming appointment, mentioning time and date placeholders."
+            elif "interactive_poll" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This is an 'Interactive Poll' template (Swish style). The 'body' should include: a short conversational opening, a question with 3 poll options using '◯ ' as radio button bullets with emojis, a witty one-liner below it, and 'T&C apply, reply STOP to unsubscribe' footer. The 'subject' should be a punchy sale announcement (e.g. 'Payday Sale is Here!')."
+            elif "festival" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This is a Marketing 'Festival Promo' template. Use high-energy, festive, celebratory language. The 'subject' should be a festive headline (e.g. 'Diwali Special — Light Up Your Savings!'). The 'body' should celebrate the occasion and push the offer."
+            elif "promo_shop" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This template has a 'Shop Now' button. The 'subject' must be a bold shopping headline (e.g. 'Flash Sale Alert!'). The 'body' must build excitement around products and direct them to shop the catalog."
+            elif "promo_claim" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This template has a 'Claim Offer' button. The 'subject' must be a discount/gift headline (e.g. 'Get 30% Off Today!'). The 'body' must invite them to claim their exclusive discount or coupon code."
+            elif "promo_visit" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This template has a 'Visit Website' button. The 'subject' must invite curiosity (e.g. 'Our New Website is Live!'). The 'body' must encourage the user to explore, browse the new arrivals, or visit the store online."
+            elif "promo_book" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This template has a 'Book Now' button. The 'subject' must be booking-related (e.g. 'Secure Your Spot!'). The 'body' must announce slot/consultation availability and urge them to book their appointment immediately."
+            elif "promo_order" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This template has an 'Order Now' button. The 'subject' must be craving/order-related (e.g. 'Dinner is Served!'). The 'body' must make the menu sound mouth-watering and urge them to place an order now."
+            elif "promo_learn" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This template has a 'Learn More' button. The 'subject' must be educational or curiosity-driven (e.g. 'Free Masterclass Access!'). The 'body' must highlight the knowledge/benefits they will gain and prompt them to learn more."
+            elif "promo_get" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This template has a 'Get It Free' button. The 'subject' must focus on free value (e.g. 'Your Free Guide Inside!'). The 'body' must describe the free ebook, guide, or gift and direct them to get it free."
+            elif "promo_text" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This is a text-only template with a 'View Details' button. The 'subject' should be a quick announcement headline (e.g. 'Quick Store Update!'). The 'body' must deliver clean informational text or announcement details."
+            elif "promo" in whatsapp_template:
+                template_rule = "\nTEMPLATE CONSTRAINT: This is a general 'Promo' template. The 'subject' should be a bold offer headline (e.g. 'Mega Sale — Up to 60% OFF!'). The 'body' should be persuasive copy highlighting the product's value with a strong CTA."
+
+        user_msg = f"{block}\n{product_block}{idea_info}{template_rule}\n\nDraft the WhatsApp message now."
     else:
         sys_msg = (
             f"You are an expert D2C email marketer. Write an email campaign in {language}. Output ONLY a valid JSON object with two keys: 'subject' (the email subject line) and 'body' (the email body). "
@@ -636,11 +692,11 @@ def generate_instagram_caption_and_hashtags(
         ]
         return default_captions[index % len(default_captions)]
 
-def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], layout: str, idea: Optional[str], language: str = "english") -> Dict[str, str]:
+def generate_campaign_copy(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], layout: str, idea: Optional[str], language: str = "english", whatsapp_template: Optional[str] = None) -> Dict[str, str]:
     """Uses Gemini Flash to write tailored email or whatsapp copy."""
     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
     
-    sys_msg, user_msg = get_campaign_copy_prompts(brand_doc, product, layout, idea, language)
+    sys_msg, user_msg = get_campaign_copy_prompts(brand_doc, product, layout, idea, language, whatsapp_template)
     
     print("\n" + "=" * 80)
     print(f"✍️ [RUNTIME TEXT COPY PROMPT] Passed to Gemini ({layout}):")
@@ -1043,6 +1099,7 @@ def generate_strategy_images(
     text_mode: str = "low",  # "low" = one headline | "heavy" = no TEXT DISCIPLINE
     avatar_url: Optional[str] = "",
     comment_keyword: Optional[str] = "",
+    whatsapp_template: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
 Orchestrates generation for all layout types.
@@ -1409,30 +1466,45 @@ Orchestrates generation for all layout types.
 
     # ── WHATSAPP & EMAIL ──────────────────────────────
     elif layout in ["whatsapp", "email"]:
-        # Only generating 1 campaign by default (ignore count)
         prod = assigned_products[0] if assigned_products else None
-        
-        # We completely removed AI image generation. 
-        # We simply use the selected product image or the reference image passed from the 3 boxes.
+
+        # Use the selected product image or the reference image passed from the 3 boxes.
         ref = ref_images[0] if (ref_images and ref_images[0]) else None
         hero_image = ref if ref else (prod.get("imageBase64") if prod else None)
-        
+
         if hero_image and not hero_image.startswith("http") and not hero_image.startswith("data:"):
             hero_image = "data:image/jpeg;base64," + hero_image
 
         print(f"\n[StrategyAgent] 📱 Campaign '{layout}' | Using campaign image: {'YES ✓' if hero_image else 'NONE'}")
 
-        # 2. Generate Copy via Gemini
-        print(f"[StrategyAgent] ✍️ Generating copy for {layout} in {language}...")
-        copy_res = generate_campaign_copy(brand_doc, prod, layout, idea, language=language)
+        # Generate `count` distinct message variations
+        num_variations = max(1, count)
+        print(f"[StrategyAgent] ✍️ Generating {num_variations} {layout} variation(s) in {language}...")
 
-        results.append({
-            "image": hero_image,
-            "caption": copy_res.get("body", "Failed to generate copy."),
-            "subject": copy_res.get("subject", ""),
-            "type": layout,
-            "template": "Hero + Copy"
-        })
+        # Variation tone modifiers so each call produces a meaningfully different copy
+        VARIATION_TONES = [
+            "",                          # 1st: neutral/default
+            "Make it more urgent and time-sensitive (e.g. 'Limited time!', 'Ends soon!').",
+            "Make it fun, playful and emoji-heavy.",
+            "Make it premium and sophisticated, minimal emoji.",
+        ]
+
+        for i in range(num_variations):
+            tone_hint = VARIATION_TONES[i % len(VARIATION_TONES)]
+            variation_idea = f"{idea or ''} {tone_hint}".strip() if tone_hint else idea
+            copy_res = generate_campaign_copy(
+                brand_doc, prod, layout, variation_idea,
+                language=language, whatsapp_template=whatsapp_template
+            )
+
+            results.append({
+                "image":    hero_image,
+                "caption":  copy_res.get("body", "Failed to generate copy."),
+                "subject":  copy_res.get("subject", ""),
+                "type":     layout,
+                "template": whatsapp_template or ("Hero + Copy" if hero_image else "Text Only"),
+                "variationIndex": i + 1,
+            })
 
     # ── CAROUSEL ───────────────────────────────
     elif layout == "carousel":
