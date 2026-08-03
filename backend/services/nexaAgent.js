@@ -9,7 +9,7 @@ import NexaConversation from '../models/NexaConversation.js';
 import BrandProfile from '../models/BrandProfile.js';
 import Product from '../models/Product.js';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'missing_key' });
 
 // ─── Valid stage transitions ──────────────────────────────────────────────────
 const VALID_TRANSITIONS = {
