@@ -98,19 +98,21 @@ router.post('/settings', protect, async (req, res) => {
 // ─── GET /api/nexa/conversations ─────────────────────────────────────────────
 router.get('/conversations', protect, async (req, res) => {
   try {
-    const brand = await getActiveBrand(req);
-    if (!brand) return res.status(404).json({ message: 'Brand not found' });
+    const brands = await BrandProfile.find({ user: req.user._id }).select('_id').lean();
+    if (!brands.length) return res.status(404).json({ message: 'No brands found for user' });
+
+    const brandIds = brands.map(b => b._id);
 
     const page  = parseInt(req.query.page)  || 1;
     const limit = parseInt(req.query.limit) || 20;
     const stage = req.query.stage; // optional filter
 
-    const query = { brand_id: brand._id };
+    const query = { brand_id: { $in: brandIds } };
     if (stage) query.stage = stage;
 
     const [conversations, total] = await Promise.all([
       NexaConversation.find(query)
-        .select('ig_user_id stage origin collected payment escalate_to_human nudge_sent createdAt updatedAt')
+        .select('ig_user_id stage origin collected payment escalate_to_human nudge_sent conversation_history createdAt updatedAt')
         .sort({ updatedAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -128,13 +130,12 @@ router.get('/conversations', protect, async (req, res) => {
 // ─── GET /api/nexa/conversations/:id ─────────────────────────────────────────
 router.get('/conversations/:id', protect, async (req, res) => {
   try {
-    const brand = await BrandProfile.findOne({
-      $or: [{ user: req.user._id, _id: req.user.activeBrandId }, { user: req.user._id }],
-    }).select('_id').lean();
+    const brands = await BrandProfile.find({ user: req.user._id }).select('_id').lean();
+    const brandIds = brands.map(b => b._id);
 
     const convo = await NexaConversation.findOne({
       _id: req.params.id,
-      brand_id: brand?._id,
+      brand_id: { $in: brandIds },
     }).lean();
 
     if (!convo) return res.status(404).json({ message: 'Conversation not found' });

@@ -34,10 +34,6 @@ const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
   const brandTone      = brandDoc.brandTone || 'friendly and helpful';
   const catalogStr     = JSON.stringify(convo.product_catalog_snapshot || [], null, 2);
   const collectedStr   = JSON.stringify(convo.collected, null, 2);
-  const historyStr     = convo.conversation_history
-    .slice(-20) // last 20 turns to stay within token budget
-    .map(h => `${h.role === 'user' ? 'Customer' : 'Nexa'}: ${h.text}`)
-    .join('\n');
 
   const paymentOptions = [];
   if (nexaSettings?.razorpay_connected && nexaSettings?.razorpay_key_id) paymentOptions.push('Razorpay payment link');
@@ -70,8 +66,6 @@ PAYMENT OPTIONS AVAILABLE: ${paymentOptionsStr}
 CURRENT STAGE: ${convo.stage}
 ALREADY COLLECTED:
 ${collectedStr}
-CONVERSATION HISTORY:
-${historyStr || '(no history yet)'}
 
 ═══════════ STAGE RULES (STRICT) ═══════════
 1. GREETING: Warm, brief. Ask what they're interested in if unclear. Never jump to price questions.
@@ -110,17 +104,34 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
   // 1. Build prompt
   const systemPrompt = buildSystemPrompt(brandDoc, convo, nexaSettings);
 
-  // 2. Call GPT-4o
+  // 2. Build the messages array with actual chat history for proper LLM memory
+  const messages = [
+    { role: 'system', content: systemPrompt }
+  ];
+
+  if (convo.conversation_history && convo.conversation_history.length > 0) {
+    const historyLimit = convo.conversation_history.slice(-10); // last 10 messages for memory
+    for (const h of historyLimit) {
+      if (h.role === 'user') {
+        messages.push({ role: 'user', content: h.text });
+      } else if (h.role === 'nexa') {
+        // Mock the assistant's previous JSON outputs to maintain the schema pattern
+        messages.push({ role: 'assistant', content: JSON.stringify({ reply_text: h.text }) });
+      }
+    }
+  }
+
+  // Add the current incoming message
+  messages.push({ role: 'user', content: incomingText });
+
+  // 3. Call GPT-4o
   let parsed;
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       temperature: 0.7,
       max_tokens: 600,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: incomingText },
-      ],
+      messages: messages,
     });
 
     const raw = completion.choices[0]?.message?.content || '{}';
@@ -190,28 +201,59 @@ export const upsertNexaConversationFromComment = async ({
     console.error('[Nexa] Failed to fetch products for catalog snapshot:', e.message);
   }
 
-  const doc = await NexaConversation.findOneAndUpdate(
-    { brand_id: brandDoc._id, ig_user_id: igUserId },
-    {
-      $setOnInsert: {
-        user: brandDoc.user,
-        brand_id: brandDoc._id,
-        ig_user_id: igUserId,
-        stage: 'AWAITING_FOLLOWUP',
-        origin: 'comment_trigger',
-        dm_flow_id: dmFlowId || null,
-        nudge_due_at: nudgeDueAt,
-        nudge_sent: false,
-        product_catalog_snapshot: productCatalog,
-        'collected.product_interested': productInterested || null,
-        'collected.price_agreed': priceAgreed || null,
-        conversation_history: [],
-      },
-    },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
+  // Check if conversation already exists
+  let doc = await NexaConversation.findOne({ brand_id: brandDoc._id, ig_user_id: igUserId });
 
-  console.log(`[Nexa] Conversation ${doc._id} created/found for IG user ${igUserId} | nudge due at ${nudgeDueAt.toISOString()}`);
+  if (doc) {
+    if (['CLOSED', 'ESCALATED'].includes(doc.stage)) {
+      // Re-open conversation
+      doc.stage = 'AWAITING_FOLLOWUP';
+      doc.origin = 'comment_trigger';
+      doc.dm_flow_id = dmFlowId || null;
+      doc.nudge_due_at = nudgeDueAt;
+      doc.nudge_sent = false;
+      doc.product_catalog_snapshot = productCatalog;
+      
+      // Reset order-specific fields, but KEEP name, phone, delivery_address
+      if (!doc.collected) doc.collected = {};
+      doc.collected.product_interested = productInterested || null;
+      doc.collected.price_agreed = priceAgreed || null;
+      doc.collected.quantity = null;
+      doc.collected.payment_mode = null;
+      
+      if (!doc.payment) doc.payment = {};
+      doc.payment.payment_status = 'not_generated';
+      doc.payment.provider = null;
+      doc.payment.amount_paise = null;
+      
+      doc.escalate_to_human = false;
+      await doc.save();
+      console.log(`[Nexa] Re-opened conversation ${doc._id} for IG user ${igUserId} from comment`);
+    } else {
+      // Just update product catalog and nudge if it's still active
+      doc.product_catalog_snapshot = productCatalog;
+      doc.nudge_due_at = nudgeDueAt;
+      await doc.save();
+    }
+  } else {
+    // Create new conversation
+    doc = await NexaConversation.create({
+      user: brandDoc.user,
+      brand_id: brandDoc._id,
+      ig_user_id: igUserId,
+      stage: 'AWAITING_FOLLOWUP',
+      origin: 'comment_trigger',
+      dm_flow_id: dmFlowId || null,
+      nudge_due_at: nudgeDueAt,
+      nudge_sent: false,
+      product_catalog_snapshot: productCatalog,
+      'collected.product_interested': productInterested || null,
+      'collected.price_agreed': priceAgreed || null,
+      conversation_history: [],
+    });
+    console.log(`[Nexa] Conversation ${doc._id} created for IG user ${igUserId}`);
+  }
+
   return doc;
 };
 
@@ -228,23 +270,48 @@ export const upsertNexaConversationFromDM = async ({
     console.error('[Nexa] Failed to fetch products for catalog snapshot:', e.message);
   }
 
-  const doc = await NexaConversation.findOneAndUpdate(
-    { brand_id: brandDoc._id, ig_user_id: igUserId },
-    {
-      $setOnInsert: {
-        user: brandDoc.user,
-        brand_id: brandDoc._id,
-        ig_user_id: igUserId,
-        stage: 'GREETING',
-        origin: 'direct_dm',
-        nudge_sent: false,
-        product_catalog_snapshot: productCatalog,
-        conversation_history: [],
-      },
-    },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
+  let doc = await NexaConversation.findOne({ brand_id: brandDoc._id, ig_user_id: igUserId });
 
-  console.log(`[Nexa] Conversation ${doc._id} created/found from direct DM for IG user ${igUserId}`);
+  if (doc) {
+    if (['CLOSED', 'ESCALATED'].includes(doc.stage)) {
+      // Re-open conversation
+      doc.stage = 'GREETING';
+      doc.origin = 'direct_dm';
+      doc.nudge_sent = false;
+      doc.product_catalog_snapshot = productCatalog;
+      
+      // Reset order-specific fields, but KEEP name, phone, delivery_address
+      if (!doc.collected) doc.collected = {};
+      doc.collected.product_interested = null;
+      doc.collected.price_agreed = null;
+      doc.collected.quantity = null;
+      doc.collected.payment_mode = null;
+      
+      if (!doc.payment) doc.payment = {};
+      doc.payment.payment_status = 'not_generated';
+      doc.payment.provider = null;
+      doc.payment.amount_paise = null;
+      
+      doc.escalate_to_human = false;
+      await doc.save();
+      console.log(`[Nexa] Re-opened conversation ${doc._id} from direct DM for IG user ${igUserId}`);
+    } else {
+      doc.product_catalog_snapshot = productCatalog;
+      await doc.save();
+    }
+  } else {
+    doc = await NexaConversation.create({
+      user: brandDoc.user,
+      brand_id: brandDoc._id,
+      ig_user_id: igUserId,
+      stage: 'GREETING',
+      origin: 'direct_dm',
+      nudge_sent: false,
+      product_catalog_snapshot: productCatalog,
+      conversation_history: [],
+    });
+    console.log(`[Nexa] Conversation ${doc._id} created from direct DM for IG user ${igUserId}`);
+  }
+
   return doc;
 };
