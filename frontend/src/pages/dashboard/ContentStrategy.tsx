@@ -3965,16 +3965,32 @@ const DashboardStrategy = () => {
             </>
           ) : (
             mode !== 'photoshoot' && (
-              <IdeaBox
-                idea={idea}
-                setIdea={setIdea}
-                placeholder={
-                  mode === 'video' && videoKind === 'img2video'
-                    ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
-                    : undefined
-                }
-                label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
-              />
+              <>
+                <IdeaBox
+                  idea={idea}
+                  setIdea={setIdea}
+                  placeholder={
+                    mode === 'video' && videoKind === 'img2video'
+                      ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
+                      : undefined
+                  }
+                  label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
+                />
+                
+                {(mode === 'image' || mode === 'carousel') && (
+                  <section className="mb-6">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                      Comment Keyword <span className="font-normal text-muted-foreground/60 normal-case">(optional DM automation)</span>
+                    </p>
+                    <Input
+                      value={commentKeyword}
+                      onChange={(e) => setCommentKeyword(e.target.value)}
+                      placeholder="e.g. LINK, PRICE, or GUIDE"
+                      className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
+                    />
+                  </section>
+                )}
+              </>
             )
           )}
         </>
@@ -4225,17 +4241,7 @@ const DashboardStrategy = () => {
 
           <IdeaBox idea={idea} setIdea={setIdea} />
 
-          <section className="mb-6">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
-              Comment Keyword <span className="font-normal text-muted-foreground/60 normal-case">(optional DM automation)</span>
-            </p>
-            <Input
-              value={commentKeyword}
-              onChange={(e) => setCommentKeyword(e.target.value)}
-              placeholder="e.g. LINK, PRICE, or GUIDE"
-              className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
-            />
-          </section>
+
         </>
       )}
 
