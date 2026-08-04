@@ -7,6 +7,7 @@ import CreativeShowcase from "@/components/CreativeShowcase";
 import HowItWorks from "@/components/HowItWorks";
 import DMAutomation from "@/components/DMAutomation";
 import CampaignChannels from "@/components/CampaignChannels";
+import NexaAI from "@/components/NexaAI";
 import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
@@ -115,6 +116,7 @@ const Index = () => {
       <Features />
       <DMAutomation />
       <CampaignChannels />
+      <NexaAI />
 
       {/* 7. Testimonials */}
       {/* <TestimonialsSection /> */}

@@ -523,6 +523,8 @@ const extractMessageEvents = (entry = {}) => {
       text: safeTrim(text),
       imageUrl: imageUrl,
       pageId: safeTrim(msg.recipient?.id),
+      isPostback: !!msg.postback,
+      postbackPayload: msg.postback ? msg.postback.payload : null,
     });
   }
   return events;
@@ -895,6 +897,9 @@ const processMentionEventForProfile = async (profile, event) => {
 const processMessageEventForProfile = async (profile, event) => {
   console.log(`processMsg: text="${event.text}", sender="${event.senderId}"`);
 
+  // Detect if this is an explicit DM Flow button click
+  const isFlowPostback = event.isPostback && event.postbackPayload && String(event.postbackPayload).startsWith('FLOW_');
+
   // ── Nexa rate-limit: 4s cooldown per sender to prevent GPT spam ──
   const nexaRateLimitKey = `${profile._id}:${event.senderId}`;
   const lastNexaReply = nexaReplyTimestamps.get(nexaRateLimitKey);
@@ -922,11 +927,14 @@ const processMessageEventForProfile = async (profile, event) => {
       const nexaSettings = getNexaSettings(freshBrand);
 
       if (nexaSettings?.nexa_enabled) {
-        if (isNexaRateLimited) {
-          console.log(`[Nexa] Rate-limited: Skipping GPT call for ${event.senderId} (last reply ${Date.now() - lastNexaReply}ms ago)`);
-          return true;
-        }
-        console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
+        if (isFlowPostback) {
+          console.log(`[Nexa] Skipping Nexa routing for active convo because this is a DM flow button click.`);
+        } else {
+          if (isNexaRateLimited) {
+            console.log(`[Nexa] Rate-limited: Skipping GPT call for ${event.senderId} (last reply ${Date.now() - lastNexaReply}ms ago)`);
+            return true;
+          }
+          console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
         nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
         if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
 
@@ -999,7 +1007,8 @@ const processMessageEventForProfile = async (profile, event) => {
         }
       }
 
-      return true;
+        return true;
+        }
       }
     }
   } catch (nexaErr) {
@@ -1166,7 +1175,7 @@ const processMessageEventForProfile = async (profile, event) => {
   // If the brand has Nexa enabled, and no specific DM Keyword matched, we let Nexa take over the conversation
   const freshBrand = await BrandProfile.findById(profile._id).lean();
   const nexaSettings = getNexaSettings(freshBrand);
-  if (nexaSettings?.nexa_enabled) {
+  if (nexaSettings?.nexa_enabled && !isFlowPostback) {
     if (isNexaRateLimited) {
       console.log(`[Nexa] Rate-limited (fallback): Skipping GPT call for ${event.senderId}`);
       return true;
