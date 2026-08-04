@@ -134,18 +134,6 @@ const DashboardNexa = () => {
               Manage your AI-driven sales conversations and orders.
             </p>
           </div>
-          {/* Brand slot indicator */}
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border text-xs font-bold ${
-            totalBrands >= brandLimit
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-600'
-              : 'bg-muted/40 border-border/40 text-muted-foreground'
-          }`}>
-            <Users size={13} />
-            <span>{totalBrands}/{brandLimit} Brand{brandLimit !== 1 ? 's' : ''}</span>
-            {totalBrands >= brandLimit && (
-              <span className="text-[10px] font-black uppercase tracking-wider ml-1">· Limit reached</span>
-            )}
-          </div>
         </div>
 
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 h-[75vh]">

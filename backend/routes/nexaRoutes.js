@@ -201,22 +201,42 @@ router.get('/razorpay-webhook/:brandId', (req, res) => {
 // Register this URL in each brand's Razorpay dashboard
 router.post('/razorpay-webhook/:brandId', express.raw({ type: '*/*' }), async (req, res) => {
   try {
+    console.log(`[NexaRoutes] 🔔 Received Razorpay webhook for brand ID: ${req.params.brandId}`);
+    
     const brand = await BrandProfile.findById(req.params.brandId).select('nexa user').lean();
-    if (!brand) return res.status(400).send('Brand not found');
+    if (!brand) {
+      console.warn(`[NexaRoutes] ❌ Webhook failed: Brand ${req.params.brandId} not found`);
+      return res.status(400).send('Brand not found');
+    }
 
     const signature = req.headers['x-razorpay-signature'];
+    if (!signature) {
+      console.warn(`[NexaRoutes] ❌ Webhook failed: Missing x-razorpay-signature header`);
+    }
+
     const bodyStr = req.body.toString('utf8');
     let bodyJson;
-    try { bodyJson = JSON.parse(bodyStr); } catch { return res.status(400).send('Invalid JSON'); }
+    try { 
+      bodyJson = JSON.parse(bodyStr); 
+    } catch { 
+      console.error(`[NexaRoutes] ❌ Webhook failed: Invalid JSON payload`);
+      return res.status(400).send('Invalid JSON'); 
+    }
+
+    console.log(`[NexaRoutes] Webhook Event Type: ${bodyJson.event}`);
 
     const isValid = await verifyRazorpayWebhook(bodyJson, signature, brand, brand.nexa);
     if (!isValid) {
-      console.warn('[NexaRoutes] Razorpay webhook signature mismatch for brand:', req.params.brandId);
+      console.warn('[NexaRoutes] ❌ Razorpay webhook signature mismatch for brand:', req.params.brandId);
       return res.status(400).send('Invalid signature');
     }
 
     if (bodyJson.event === 'payment_link.paid') {
+      console.log(`[NexaRoutes] ✅ Signature valid! Processing payment_link.paid event...`);
       await handleRazorpayPaid(bodyJson);
+      console.log(`[NexaRoutes] 🎉 Successfully processed payment_link.paid!`);
+    } else {
+      console.log(`[NexaRoutes] ℹ️ Ignoring unhandled event: ${bodyJson.event}`);
     }
 
     res.status(200).send('ok');
