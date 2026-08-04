@@ -22,7 +22,10 @@ const DashboardNexa = () => {
   const isElite = planName.includes('elite');
   const isAgency = planName.includes('agency');
   const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-  const hasDMAutomationAccess = isElite || isAgency || profile?.dmAddonActive || isMetaReviewer;
+  // nexaIncluded is computed server-side — Elite & Agency get Nexa free; Starter+ need the add-on
+  const hasNexaAccess = profile?.nexaIncluded || isElite || isAgency || profile?.dmAddonActive || isMetaReviewer;
+  const brandLimit = profile?.brandLimit ?? (isAgency ? 8 : isElite ? 2 : 1);
+  const totalBrands = profile?.totalBrands ?? 1;
   const isInstagramConnected = !!profile?.instagramIsConnected && !!profile?.instagramBusinessAccountId && !!profile?.instagramAccessToken;
 
   // CRM State
@@ -93,14 +96,26 @@ const DashboardNexa = () => {
     );
   }
 
-  if (!hasDMAutomationAccess) {
+  if (!hasNexaAccess) {
     return (
       <div className="max-w-md mx-auto my-16 p-8 bg-card border border-border/60 rounded-3xl text-center shadow-lg">
-        <h2 className="text-xl font-bold mb-2">Nexa Agent Locked</h2>
-        <p className="text-sm text-muted-foreground mb-8">
-          Nexa is a premium service included in the Elite Plan or available as an add-on.
+        <div className="w-16 h-16 bg-violet-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Bot size={32} className="text-violet-500" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Nexa AI Agent</h2>
+        <p className="text-sm text-muted-foreground mb-2">
+          Your AI-powered Instagram sales closer. Turns DMs into confirmed orders — 24/7.
         </p>
-        <Button onClick={handleBuyAddon} className="w-full">Buy DM Automation Add-on</Button>
+        <p className="text-xs text-muted-foreground/70 mb-8">
+          Included in <span className="font-bold text-violet-500">Elite</span> &amp; <span className="font-bold text-violet-500">Agency</span> plans, or available as an add-on for ₹199/month.
+        </p>
+        {isElite || isAgency ? (
+          <p className="text-sm text-emerald-500 font-bold">✓ Included in your plan — enable it in Settings → Nexa AI Setup</p>
+        ) : (
+          <Button onClick={handleBuyAddon} className="w-full bg-violet-600 hover:bg-violet-700">
+            Add Nexa Agent — ₹199/month
+          </Button>
+        )}
       </div>
     );
   }
@@ -118,6 +133,18 @@ const DashboardNexa = () => {
             <p className="text-sm text-muted-foreground mt-1">
               Manage your AI-driven sales conversations and orders.
             </p>
+          </div>
+          {/* Brand slot indicator */}
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border text-xs font-bold ${
+            totalBrands >= brandLimit
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-600'
+              : 'bg-muted/40 border-border/40 text-muted-foreground'
+          }`}>
+            <Users size={13} />
+            <span>{totalBrands}/{brandLimit} Brand{brandLimit !== 1 ? 's' : ''}</span>
+            {totalBrands >= brandLimit && (
+              <span className="text-[10px] font-black uppercase tracking-wider ml-1">· Limit reached</span>
+            )}
           </div>
         </div>
 

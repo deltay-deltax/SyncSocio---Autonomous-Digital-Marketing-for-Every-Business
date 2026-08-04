@@ -19,7 +19,7 @@ const VALID_TRANSITIONS = {
   NEGOTIATING:         ['COLLECTING_DETAILS', 'ESCALATED'],
   COLLECTING_DETAILS:  ['CONFIRMING', 'ESCALATED'],
   CONFIRMING:          ['CLOSED', 'NEGOTIATING', 'ESCALATED'],
-  CLOSED:              [],
+  CLOSED:              ['CLOSED', 'GREETING', 'QUALIFYING', 'ESCALATED'],
   ESCALATED:           [],
 };
 
@@ -78,7 +78,7 @@ ${collectedStr}
    - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot.
    - If Bank transfer: share the bank details. Tell them to send and share a screenshot.
    - If COD: set payment_mode="cod" in collected. Move to CLOSED.
-8. CLOSED: Thank them warmly. Say the team will confirm shortly. Do NOT re-negotiate.
+8. CLOSED: Thank them warmly. Say the team will confirm shortly. Do NOT re-negotiate. If they are just saying thanks/okay, remain in CLOSED. If they want to buy something new, transition to GREETING or QUALIFYING.
 9. ESCALATION (HUMAN REQUEST): If the customer explicitly asks to talk to a human or agent, acknowledge this, say "Our team will connect with you shortly," set escalate_to_human=true, and set new_stage="ESCALATED".
 
 ═══════════ HARD RULES ═══════════
@@ -115,8 +115,8 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
       if (h.role === 'user') {
         messages.push({ role: 'user', content: h.text });
       } else if (h.role === 'nexa') {
-        // Mock the assistant's previous JSON outputs to maintain the schema pattern
-        messages.push({ role: 'assistant', content: JSON.stringify({ reply_text: h.text }) });
+        // Pass as plain assistant text — not JSON-wrapped — so GPT doesn't get confused about schema
+        messages.push({ role: 'assistant', content: h.text });
       }
     }
   }
@@ -129,7 +129,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      temperature: 0.7,
+      temperature: 0.3, // Low temperature for deterministic, accurate sales responses
       max_tokens: 600,
       messages: messages,
     });
@@ -161,6 +161,14 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
     Object.assign(mergedCollected, parsed.updated_collected_fields);
   }
 
+  // If the agent decided to start a new inquiry from a CLOSED state, wipe old order data
+  if (convo.stage === 'CLOSED' && ['GREETING', 'QUALIFYING'].includes(finalStage)) {
+    mergedCollected.product_interested = null;
+    mergedCollected.price_agreed = null;
+    mergedCollected.quantity = null;
+    mergedCollected.payment_mode = null;
+  }
+
   // 5. Update conversation in DB
   const newHistoryEntry = { role: 'user', text: incomingText, ts: new Date() };
   const nexaHistoryEntry = { role: 'nexa', text: parsed.reply_text, ts: new Date() };
@@ -169,7 +177,12 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
     stage: parsed.escalate_to_human ? 'ESCALATED' : finalStage,
     collected: mergedCollected,
     escalate_to_human: !!parsed.escalate_to_human,
-    $push: { conversation_history: { $each: [newHistoryEntry, nexaHistoryEntry] } },
+    $push: {
+      conversation_history: {
+        $each: [newHistoryEntry, nexaHistoryEntry],
+        $slice: -100, // cap at last 100 messages to prevent unbounded growth
+      },
+    },
   };
 
   await NexaConversation.updateOne({ _id: convo._id }, updateData);
@@ -196,7 +209,7 @@ export const upsertNexaConversationFromComment = async ({
   // Fetch live product catalog for the brand
   let productCatalog = [];
   try {
-    productCatalog = await Product.find({ user: brandDoc.user }).select('name price keyBenefit description').lean();
+    productCatalog = await Product.find({ user: brandDoc.user }).select('name price offerPrice keyBenefit description').lean();
   } catch (e) {
     console.error('[Nexa] Failed to fetch products for catalog snapshot:', e.message);
   }
@@ -205,7 +218,7 @@ export const upsertNexaConversationFromComment = async ({
   let doc = await NexaConversation.findOne({ brand_id: brandDoc._id, ig_user_id: igUserId });
 
   if (doc) {
-    if (['CLOSED', 'ESCALATED'].includes(doc.stage)) {
+    if (['ESCALATED'].includes(doc.stage)) {
       // Re-open conversation
       doc.stage = 'AWAITING_FOLLOWUP';
       doc.origin = 'comment_trigger';
@@ -265,7 +278,7 @@ export const upsertNexaConversationFromDM = async ({
   // Fetch live product catalog for the brand
   let productCatalog = [];
   try {
-    productCatalog = await Product.find({ user: brandDoc.user }).select('name price keyBenefit description').lean();
+    productCatalog = await Product.find({ user: brandDoc.user }).select('name price offerPrice keyBenefit description').lean();
   } catch (e) {
     console.error('[Nexa] Failed to fetch products for catalog snapshot:', e.message);
   }
@@ -273,7 +286,7 @@ export const upsertNexaConversationFromDM = async ({
   let doc = await NexaConversation.findOne({ brand_id: brandDoc._id, ig_user_id: igUserId });
 
   if (doc) {
-    if (['CLOSED', 'ESCALATED'].includes(doc.stage)) {
+    if (['ESCALATED'].includes(doc.stage)) {
       // Re-open conversation
       doc.stage = 'GREETING';
       doc.origin = 'direct_dm';

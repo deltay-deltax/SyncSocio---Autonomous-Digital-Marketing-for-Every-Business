@@ -29,12 +29,12 @@ const productSchema = new mongoose.Schema({
   },
 
   price: {
-    type: String,
-    default: '',
+    type: Number,
+    default: null,
   },
   offerPrice: {
-    type: String,
-    default: '',
+    type: Number,
+    default: null,
   },
   keyBenefit: {
     type: String,

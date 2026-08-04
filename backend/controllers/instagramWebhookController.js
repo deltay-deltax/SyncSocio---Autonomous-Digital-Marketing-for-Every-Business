@@ -323,6 +323,9 @@ class BoundedFifoCache {
 const processedMessageIds = new BoundedFifoCache(10000);
 const processedMentionMediaIds = new BoundedFifoCache(10000);
 
+// Per-sender cooldown map to prevent rapid-fire GPT calls from spammy users
+const nexaReplyTimestamps = new Map();
+
 /**
  * Seed in-memory dedup caches from DB on startup.
  * Call this once from app.js after DB connects to prevent re-processing
@@ -882,16 +885,28 @@ const processMentionEventForProfile = async (profile, event) => {
 const processMessageEventForProfile = async (profile, event) => {
   console.log(`processMsg: text="${event.text}", sender="${event.senderId}"`);
 
+  // ── Nexa rate-limit: 4s cooldown per sender to prevent GPT spam ──
+  const nexaRateLimitKey = `${profile._id}:${event.senderId}`;
+  const lastNexaReply = nexaReplyTimestamps.get(nexaRateLimitKey);
+  const NEXA_COOLDOWN_MS = 4000;
+  const isNexaRateLimited = lastNexaReply && (Date.now() - lastNexaReply < NEXA_COOLDOWN_MS);
+
   // ── Nexa: Check if there is an active Nexa conversation for this sender ──
   try {
     const nexaConvo = await NexaConversation.findOne({
       brand_id: profile._id,
       ig_user_id: event.senderId,
-      stage: { $nin: ['AWAITING_FOLLOWUP', 'CLOSED', 'ESCALATED'] },
+      stage: { $nin: ['AWAITING_FOLLOWUP', 'ESCALATED'] },
     });
 
     if (nexaConvo) {
+      if (isNexaRateLimited) {
+        console.log(`[Nexa] Rate-limited: Skipping GPT call for ${event.senderId} (last reply ${Date.now() - lastNexaReply}ms ago)`);
+        return true;
+      }
       console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
+      nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
+      if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
 
       const freshBrand = await BrandProfile.findById(profile._id).lean();
       const nexaSettings = getNexaSettings(freshBrand);
@@ -1105,7 +1120,13 @@ const processMessageEventForProfile = async (profile, event) => {
   const freshBrand = await BrandProfile.findById(profile._id).lean();
   const nexaSettings = getNexaSettings(freshBrand);
   if (nexaSettings?.nexa_enabled) {
+    if (isNexaRateLimited) {
+      console.log(`[Nexa] Rate-limited (fallback): Skipping GPT call for ${event.senderId}`);
+      return true;
+    }
     console.log(`[Nexa] Nexa is enabled for ${freshBrand.instagramUsername}. Seeding direct DM conversation for ${event.senderId}`);
+    nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
+    if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
     
     const nexaConvo = await upsertNexaConversationFromDM({
       brandDoc: freshBrand,
@@ -1140,7 +1161,7 @@ const processMessageEventForProfile = async (profile, event) => {
           });
           replyText = replyText + `\n\n🔗 Pay here: ${razorpay_short_url}`;
         } catch (payErr) {
-          console.error('[Nexa] Failed to generate Razorpay link:', payErr.message);
+          console.error('[Nexa] Failed to generate Razorpay link:', payErr?.error?.description || payErr?.error?.message || payErr.message || payErr);
           replyText = replyText + '\n\n(Payment link generation failed — please contact us directly)';
         }
       }

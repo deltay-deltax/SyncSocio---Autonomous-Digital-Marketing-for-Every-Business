@@ -67,11 +67,12 @@ const processDueNudges = async () => {
           });
         }
 
-        // Mark nudge sent and advance to QUALIFYING
+        // Mark nudge as sent but keep stage at AWAITING_FOLLOWUP.
+        // When the customer replies, the Nexa handler will properly transition the stage.
         await NexaConversation.updateOne(
           { _id: convo._id },
           {
-            $set: { nudge_sent: true, stage: 'QUALIFYING' },
+            $set: { nudge_sent: true },
             $push: {
               conversation_history: {
                 role: 'nexa',

@@ -182,6 +182,8 @@ const DashboardSettings = () => {
             cod_enabled: !!data.settings.cod_enabled,
             min_discount: data.settings.min_discount ?? 0,
             max_discount: data.settings.max_discount ?? 10,
+            razorpay_key_id: data.settings.razorpay_key_id || '',
+            razorpay_key_secret: data.settings.razorpay_key_secret || '',
           }));
         }
       } catch {}

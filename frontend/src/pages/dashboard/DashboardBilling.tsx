@@ -54,7 +54,8 @@ const plans = [
     ],
     addons: [
       { name: "500 Email Campaign", prices: { INR: 59, USD: 1 } },
-      { name: "DM Automation", prices: { INR: 199, USD: 3 } }
+      { name: "DM Automation", prices: { INR: 199, USD: 3 } },
+      { name: "Nexa AI Agent", prices: { INR: 199, USD: 3 } }
     ],
     popular: false,
     cta: "Get Started",
@@ -76,12 +77,13 @@ const plans = [
       "Import up to 100 products",
       "All-in-One Drop & AI Mode",
       "UGC & Product Video generation",
+      "💬 DM Automation (included)",
+      "🤖 Nexa AI Sales Agent (included)",
       "Best time to post analytics",
       "Priority WhatsApp support",
     ],
     addons: [
       { name: "2000 Email Campaign", prices: { INR: 149, USD: 2 } },
-      { name: "DM Automation", prices: { INR: 199, USD: 3 } }
     ],
     popular: true,
     cta: "Get Started",
@@ -103,12 +105,13 @@ const plans = [
       "Import up to 500 products",
       "Everything in Elite plan",
       "UGC & Product Video generation",
+      "💬 DM Automation (included)",
+      "🤖 Nexa AI Sales Agent (included)",
       "Dedicated Account Manager",
       "24/7 Priority support",
     ],
     addons: [
       { name: "5000 Email Campaign", prices: { INR: 299, USD: 4 } },
-      { name: "DM Automation", prices: { INR: 199, USD: 3 } }
     ],
     popular: false,
     cta: "Get Started",
@@ -209,8 +212,14 @@ const DashboardBilling = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
         {plans.map((plan, i) => {
           const planPrices = plan.prices[currency];
-          const currentPrice = planPrices.basePrice;
-          const originalPrice = planPrices.originalPrice;
+          
+          const addonTotal = (plan.addons || []).reduce((sum, addon) => {
+            const isSelected = (addonQuantities[plan.name]?.[addon.name] || 0) > 0;
+            return sum + (isSelected ? addon.prices[currency as 'INR' | 'USD'] : 0);
+          }, 0);
+
+          const currentPrice = planPrices.basePrice + addonTotal;
+          const originalPrice = planPrices.originalPrice ? planPrices.originalPrice + addonTotal : 0;
           const discountPercent = originalPrice ? Math.floor(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
           
           const currentPlan = (profile?.selectedPlan || '').toLowerCase();
@@ -356,30 +365,41 @@ const DashboardBilling = () => {
                       {plan.addons.map((addon) => {
                         const addonPrice = addon.prices[currency as 'INR' | 'USD'];
                         const quantity = addonQuantities[plan.name]?.[addon.name] || 0;
+                        const isSelected = quantity > 0;
                         return (
-                          <div key={addon.name} className="flex items-center justify-between gap-4">
+                          <div 
+                            key={addon.name} 
+                            onClick={() => updateAddonQuantity(plan.name, addon.name, isSelected ? -1 : 1)}
+                            className={`flex items-center justify-between gap-4 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                              isSelected 
+                                ? (plan.popular ? "border-white/40 bg-white/10 shadow-sm" : "border-primary/40 bg-primary/5 shadow-sm") 
+                                : (plan.popular ? "border-white/10 hover:bg-white/5" : "border-border hover:bg-muted/50")
+                            }`}
+                          >
                             <div>
-                              <p className={`text-xs font-semibold ${plan.popular ? "text-primary-foreground" : "text-foreground"}`}>
+                              <p className={`text-xs font-semibold ${
+                                isSelected 
+                                  ? (plan.popular ? "text-white" : "text-primary") 
+                                  : (plan.popular ? "text-primary-foreground" : "text-foreground")
+                              }`}>
                                 {addon.name}
                               </p>
-                              <p className={`text-[10px] ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                                ({symbol}{addonPrice}/month)
+                              <p className={`text-[10px] ${
+                                isSelected 
+                                  ? (plan.popular ? "text-white/80" : "text-primary/80") 
+                                  : (plan.popular ? "text-primary-foreground/70" : "text-muted-foreground")
+                              }`}>
+                                + {symbol}{addonPrice}/month
                               </p>
                             </div>
-                            <div className={`flex items-center gap-2 px-1.5 py-1 rounded-md border ${plan.popular ? "border-white/20 bg-white/10" : "border-border bg-background"}`}>
-                              <button 
-                                onClick={() => updateAddonQuantity(plan.name, addon.name, -1)}
-                                className={`flex items-center justify-center w-4 h-4 rounded-full border ${plan.popular ? "border-white/30 text-white hover:bg-white/20" : "border-muted-foreground/30 hover:bg-muted"}`}
-                              >
-                                <Minus size={10} />
-                              </button>
-                              <span className={`text-[10px] font-bold w-3 text-center ${plan.popular ? "text-white" : ""}`}>{quantity}</span>
-                              <button 
-                                onClick={() => updateAddonQuantity(plan.name, addon.name, 1)}
-                                className={`flex items-center justify-center w-4 h-4 rounded-full border ${plan.popular ? "border-white/30 text-white hover:bg-white/20" : "border-muted-foreground/30 hover:bg-muted"}`}
-                              >
-                                <Plus size={10} />
-                              </button>
+                            <div className="flex items-center">
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors ${
+                                isSelected 
+                                  ? (plan.popular ? "bg-white text-primary border-white" : "bg-primary text-primary-foreground border-primary") 
+                                  : (plan.popular ? "border-white/30 text-transparent" : "border-muted-foreground/30 text-transparent")
+                              }`}>
+                                <Check size={12} strokeWidth={3} />
+                              </div>
                             </div>
                           </div>
                         );
