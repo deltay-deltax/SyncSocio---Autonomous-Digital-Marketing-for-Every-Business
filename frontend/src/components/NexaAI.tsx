@@ -85,14 +85,14 @@ const NexaAI = () => {
   const closed = step >= total;
 
   return (
-    <section id="nexa-ai" className="relative py-24 sm:py-32 overflow-hidden">
+    <section id="nexa-ai" className="relative py-16 md:py-24 overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-20 left-1/3 w-[28rem] h-[28rem] bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-10 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.05fr] gap-12 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.05fr] gap-12 lg:gap-16 items-center max-w-6xl mx-auto">
           {/* Copy */}
           <div>
             <motion.span
@@ -109,7 +109,7 @@ const NexaAI = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] mb-6"
+              className="text-3xl md:text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-6"
             >
               It sells while you{" "}
               <span className="gradient-text">sleep.</span>

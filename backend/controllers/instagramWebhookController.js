@@ -19,6 +19,11 @@ const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
 let clickTrackingBaseUrl = (process.env.BACKEND_PUBLIC_URL || process.env.WEBHOOK_PUBLIC_URL || '').trim();
 
+// Map to temporarily hold context for sent comment private replies (using the message ID).
+// We need this because Meta does NOT return the user's IGSID synchronously when we reply to a comment.
+// We only get the IGSID in the subsequent 'is_echo' webhook.
+const pendingCommentEchoes = new Map();
+
 const safeTrim = (value) => (typeof value === 'string' ? value.trim() : '');
 
 const getConnectedProfileUrl = (profile) => {
@@ -492,9 +497,20 @@ const extractMessageEvents = (entry = {}) => {
   const events = [];
 
   for (const msg of messaging) {
-    if (msg.message && msg.message.is_echo) continue;
-
     const mid = msg.message?.mid;
+
+    if (msg.message && msg.message.is_echo) {
+      if (mid && pendingCommentEchoes.has(mid)) {
+        events.push({
+          isEcho: true,
+          mid: mid,
+          senderId: safeTrim(msg.recipient?.id), // In an echo, recipient is the user (IGSID)
+          pageId: safeTrim(msg.sender?.id),      // sender is the page
+        });
+      }
+      continue;
+    }
+
     if (mid) {
       if (processedMessageIds.has(mid)) continue;
       processedMessageIds.add(mid); // BoundedFifoCache auto-evicts oldest when full
@@ -678,46 +694,32 @@ const processCommentEventForProfile = async (profile, event) => {
       pageId: profile.instagramPageId,
     });
 
-    await queueFollowUpMessage({
-      profile,
-      flow,
-      commentId: event.commentId,
-      recipientId: result?.recipient_id,
-    });
+    if (result && result.id) {
+      pendingCommentEchoes.set(result.id, {
+        commentId: event.commentId,
+        flow,
+        profile,
+      });
+      // Auto-evict to prevent memory leaks if echo never arrives
+      setTimeout(() => {
+        pendingCommentEchoes.delete(result.id);
+      }, 5 * 60 * 1000); 
+    }
 
     await markCommentReplyDmSent({
       user: profile.user,
       commentId: event.commentId,
-      recipientId: result?.recipient_id,
+      recipientId: result?.id || null,
     });
 
     await DMFlow.updateOne({ _id: flow._id }, { $inc: { 'stats.replied': 1 } });
 
-    console.log('Instagram private reply sent', {
+    console.log('Instagram private reply sent (waiting for echo to seed Nexa and follow-up)', {
       flowId: flow._id.toString(),
       commentId: event.commentId,
       actorUsername: event.actorUsername,
-      result,
+      messageId: result?.id,
     });
-
-    // ── Nexa Handoff: create/upsert NexaConversation if nexa is enabled for this brand ──
-    if (result?.recipient_id) {
-      try {
-        const freshBrand = await BrandProfile.findById(profile._id).select('nexa user').lean();
-        if (freshBrand?.nexa?.nexa_enabled) {
-          await upsertNexaConversationFromComment({
-            brandDoc: { _id: profile._id, user: profile.user, ...freshBrand },
-            igUserId: result.recipient_id,
-            dmFlowId: flow._id,
-            productInterested: flow.linkedPostTopic || flow.name || null,
-            priceAgreed: null,
-          });
-          console.log(`[Nexa] Conversation seeded for ${result.recipient_id}`);
-        }
-      } catch (nexaErr) {
-        console.error('[Nexa] Failed to seed conversation:', nexaErr.message);
-      }
-    }
 
     // Notify user of new lead
     try {
@@ -844,7 +846,6 @@ const sendStandardMessage = async ({ pageToken, igScopedId, messagePayload, page
 
 // Exported alias for nexaNudgeScheduler to avoid circular import issues
 export { sendStandardMessage as sendStandardMessageExternal, resolvePageToken };
-
 const processMentionEventForProfile = async (profile, event) => {
   console.log(`processMention: sender="${event.senderId}" mediaId="${event.mediaId}"`);
 
@@ -895,7 +896,46 @@ const processMentionEventForProfile = async (profile, event) => {
 };
 
 const processMessageEventForProfile = async (profile, event) => {
+  if (event.isEcho && event.mid && pendingCommentEchoes.has(event.mid)) {
+    const { commentId, flow, profile: originalProfile } = pendingCommentEchoes.get(event.mid);
+    pendingCommentEchoes.delete(event.mid);
+
+    console.log(`[Echo Handler] Found echo for mid=${event.mid}. Seeding Nexa and Queueing follow-up for IGSID=${event.senderId}`);
+
+    // Seed Nexa
+    try {
+      const freshBrand = await BrandProfile.findById(profile._id).select('nexa user').lean();
+      if (freshBrand?.nexa?.nexa_enabled) {
+        await upsertNexaConversationFromComment({
+          brandDoc: { _id: profile._id, user: profile.user, ...freshBrand },
+          igUserId: event.senderId,
+          dmFlowId: flow._id,
+          productInterested: flow.linkedPostTopic || flow.name || null,
+          priceAgreed: null,
+        });
+        console.log(`[Nexa] Conversation seeded for ${event.senderId} via Echo`);
+      }
+    } catch (e) {
+      console.error('[Nexa] Failed to seed conversation via Echo:', e.message);
+    }
+
+    // Queue follow-up message now that we have the real IGSID!
+    await queueFollowUpMessage({
+      profile: originalProfile,
+      flow,
+      commentId,
+      recipientId: event.senderId,
+    });
+
+    return true; // handled
+  }
+
   console.log(`processMsg: text="${event.text}", sender="${event.senderId}"`);
+
+  // Handle human interventions gracefully
+  if (event.pageId !== profile.instagramPageId) {
+    return false;
+  }
 
   // Detect if this is an explicit DM Flow button click
   const isFlowPostback = event.isPostback && event.postbackPayload && String(event.postbackPayload).startsWith('FLOW_');
