@@ -448,12 +448,21 @@ router.post('/send-whatsapp', protect, async (req, res) => {
 
     // ── AI refinement: rewrite rough draft into professional campaign copy ──
     const targetTemplateForAI = whatsappTemplateName || (mediaId || (image && typeof image === 'string' && image.startsWith('http')) ? 'custom_campaign_image' : 'custom_campaign_text');
-    const { refinedSubject, refinedBody } = await refineCampaignCopy({
-      rawSubject: cleanSubject,
-      rawBody: cleanBody,
-      profile,
-      templateType: targetTemplateForAI,
-    });
+    let refinedSubject, refinedBody;
+    
+    if (req.body.whatsappVariables) {
+      refinedSubject = req.body.whatsappVariables['1'] || cleanSubject;
+      refinedBody = req.body.whatsappVariables['2'] || req.body.whatsappVariables['1'] || cleanBody;
+    } else {
+      const refined = await refineCampaignCopy({
+        rawSubject: cleanSubject,
+        rawBody: cleanBody,
+        profile,
+        templateType: targetTemplateForAI,
+      });
+      refinedSubject = refined.refinedSubject;
+      refinedBody = refined.refinedBody;
+    }
 
     let successCount = 0;
     let failCount = 0;
@@ -465,34 +474,34 @@ router.post('/send-whatsapp', protect, async (req, res) => {
     // ─── TEMPLATE CATEGORY ROUTING ───────────────────────────────────────────
     // Marketing templates (festival, promo_*): Use {{1}} = headline, {{2}} = body
     const MARKETING_TWO_VAR_TEMPLATES = [
-      'syncsocio_festival',
-      'syncsocio_promo_image', 'syncsocio_promo_video', 'syncsocio_promo_generic',
-      'syncsocio_promo_lead',  'syncsocio_interactive_poll',
-      'syncsocio_promo_shop',  'syncsocio_promo_claim', 'syncsocio_promo_visit',
-      'syncsocio_promo_book',  'syncsocio_promo_order', 'syncsocio_promo_learn',
-      'syncsocio_promo_get',   'syncsocio_promo_text',
+      'syncsocio_v2_festival',
+      'syncsocio_v2_promo_image', 'syncsocio_v2_promo_video', 'syncsocio_v2_promo_generic',
+      'syncsocio_v2_promo_lead',  'syncsocio_v2_interactive_poll',
+      'syncsocio_v2_promo_shop',  'syncsocio_v2_promo_claim', 'syncsocio_v2_promo_visit',
+      'syncsocio_v2_promo_book',  'syncsocio_v2_promo_order', 'syncsocio_v2_promo_learn',
+      'syncsocio_v2_promo_get',   'syncsocio_v2_promo_text',
     ];
 
     // Templates that include an IMAGE header component
     const TEMPLATES_WITH_IMAGE_HEADER = [
       'custom_campaign_image',
-      'syncsocio_festival',
-      'syncsocio_promo_image', 'syncsocio_promo_video', 'syncsocio_promo_generic',
-      'syncsocio_promo_lead',
-      'syncsocio_promo_shop',  'syncsocio_promo_claim', 'syncsocio_promo_visit',
-      'syncsocio_promo_book',  'syncsocio_promo_order', 'syncsocio_promo_learn',
-      'syncsocio_promo_get',
+      'syncsocio_v2_festival',
+      'syncsocio_v2_promo_image', 'syncsocio_v2_promo_video', 'syncsocio_v2_promo_generic',
+      'syncsocio_v2_promo_lead',
+      'syncsocio_v2_promo_shop',  'syncsocio_v2_promo_claim', 'syncsocio_v2_promo_visit',
+      'syncsocio_v2_promo_book',  'syncsocio_v2_promo_order', 'syncsocio_v2_promo_learn',
+      'syncsocio_v2_promo_get',
     ];
 
     // Templates that include a dynamic URL button with {{1}}
     const TEMPLATES_WITH_URL_BUTTON = [
       'custom_campaign_image', 'custom_campaign_text',
-      'syncsocio_festival',
-      'syncsocio_promo_image', 'syncsocio_promo_video', 'syncsocio_promo_generic',
-      'syncsocio_promo_lead',
-      'syncsocio_promo_shop',  'syncsocio_promo_claim', 'syncsocio_promo_visit',
-      'syncsocio_promo_book',  'syncsocio_promo_order', 'syncsocio_promo_learn',
-      'syncsocio_promo_get',   'syncsocio_promo_text',
+      'syncsocio_v2_festival',
+      'syncsocio_v2_promo_image', 'syncsocio_v2_promo_video', 'syncsocio_v2_promo_generic',
+      'syncsocio_v2_promo_lead',
+      'syncsocio_v2_promo_shop',  'syncsocio_v2_promo_claim', 'syncsocio_v2_promo_visit',
+      'syncsocio_v2_promo_book',  'syncsocio_v2_promo_order', 'syncsocio_v2_promo_learn',
+      'syncsocio_v2_promo_get',   'syncsocio_v2_promo_text',
     ];
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -505,8 +514,16 @@ router.post('/send-whatsapp', protect, async (req, res) => {
         if (!recipient) continue;
 
         // ── Build body parameters based on template type ──────────────────
-        let bodyParams;
-        if (isTwoVarMarketing) {
+        let bodyParams = [];
+        if (req.body.whatsappVariables) {
+          // Dynamic BYO Templates: Map all variables directly
+          const numVars = Object.keys(req.body.whatsappVariables).length;
+          for (let v = 1; v <= numVars; v++) {
+            if (req.body.whatsappVariables[String(v)]) {
+              bodyParams.push({ type: 'text', text: String(req.body.whatsappVariables[String(v)]).substring(0, 1024) });
+            }
+          }
+        } else if (isTwoVarMarketing) {
           // Marketing approved templates: {{1}} = bold headline, {{2}} = campaign copy body
           bodyParams = [
             { type: 'text', text: refinedSubject.substring(0, 60) },   // {{1}} headline — AI refined

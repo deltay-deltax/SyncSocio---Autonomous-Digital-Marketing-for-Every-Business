@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HexColorPicker } from "react-colorful";
-import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, Copy, CheckCheck, ArrowRight, Shield, Inbox } from 'lucide-react';
+import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, AlertCircle, Copy, CheckCheck, ArrowRight, Shield, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkout } from '@/components/Checkout';
@@ -2612,6 +2612,21 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
     window.location.href = oauthUrl;
   };
 
+  const handleSyncTemplates = async () => {
+    try {
+      toast({ title: 'Syncing Templates', description: 'Submitting templates to Meta. Please wait...' });
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/whatsapp/sync-templates`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to sync templates');
+      toast({ title: 'Templates Synced', description: 'Your templates have been submitted for review.' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
+    }
+  };
+
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
@@ -2642,8 +2657,18 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
   if (profile.whatsappIsConnected) {
     return (
       <div className="flex flex-col gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+        
+        {/* Billing Warning */}
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-400">
+          <AlertCircle size={20} className="shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <span className="font-bold block mb-1">Meta Billing Requirement</span>
+            Meta requires a valid Credit/Debit card on file in your WhatsApp Business Manager to send campaigns, even for free tiers. If no card is added, your messages will silently fail to deliver.
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-4 w-full">
             <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-tr from-[#128C7E] to-[#25D366] border border-green-500/30">
               <WhatsAppIcon size={24} className="text-white" />
             </div>
@@ -2667,12 +2692,21 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
               )}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+          <div className="flex flex-wrap gap-2 w-full">
+            <Button
+              onClick={handleSyncTemplates}
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5 bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+            >
+              <RefreshCw size={14} className="mr-2 shrink-0" />
+              Resync Templates
+            </Button>
             <Button
               onClick={() => setShowManualForm(!showManualForm)}
               variant="outline"
               size="sm"
-              className="w-full sm:w-auto text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+              className="flex-1 sm:flex-none text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
             >
               {showManualForm ? 'Hide Settings' : 'Configure Manually'}
             </Button>
@@ -2681,9 +2715,9 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
               disabled={loading}
               variant="outline"
               size="sm"
-              className="w-full sm:w-auto text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+              className="flex-1 sm:flex-none text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
             >
-              {loading ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <RefreshCw size={14} className="mr-2 shrink-0" />}
+              {loading ? <RefreshCw size={14} className="mr-2 animate-spin shrink-0" /> : <RefreshCw size={14} className="mr-2 shrink-0" />}
               Reconnect
             </Button>
             <Button
@@ -2691,7 +2725,7 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
               disabled={disconnecting}
               variant="outline"
               size="sm"
-              className="w-full sm:w-auto text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-destructive/30 text-destructive hover:bg-destructive/10 px-5"
+              className="flex-1 sm:flex-none text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-destructive/30 text-destructive hover:bg-destructive/10 px-5"
             >
               {disconnecting ? 'Unlinking...' : 'Disconnect'}
             </Button>

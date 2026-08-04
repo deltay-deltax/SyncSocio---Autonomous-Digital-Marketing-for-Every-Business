@@ -890,11 +890,14 @@ const DashboardStrategy = () => {
   const [newRecipient, setNewRecipient] = useState('');
   const [whatsappCountryCode, setWhatsappCountryCode] = useState('+91');
   const [whatsappTemplateName, setWhatsappTemplateName] = useState('custom_campaign_image');
+  const [whatsappTemplates, setWhatsappTemplates] = useState<any[]>([]);
+  const [whatsappTemplatesLoading, setWhatsappTemplatesLoading] = useState(false);
   const [requestedTemplates, setRequestedTemplates] = useState<any[]>([]);
   const [isRequestingTemplate, setIsRequestingTemplate] = useState(false);
   const [whatsappUrlParam, setWhatsappUrlParam] = useState('');
   const [campaignSubject, setCampaignSubject] = useState('');
   const [campaignBody, setCampaignBody] = useState('');
+  const [campaignVariables, setCampaignVariables] = useState<any>(null);
   const [campaignImage, setCampaignImage] = useState<string>('');
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const recipientsFileRef = useRef<HTMLInputElement>(null);
@@ -954,7 +957,7 @@ const DashboardStrategy = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchTemplates = async () => {
+    const fetchRequestedTemplates = async () => {
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${NODE_BASE}/campaigns/requested-templates`, {
@@ -968,8 +971,36 @@ const DashboardStrategy = () => {
         console.error('Failed to fetch requested templates', err);
       }
     };
+
+    const fetchMetaTemplates = async () => {
+      setWhatsappTemplatesLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${NODE_BASE}/whatsapp/templates`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // data.data contains the templates list from Meta Graph API
+          if (data && data.data && Array.isArray(data.data)) {
+            setWhatsappTemplates(data.data);
+            // Default to first approved template if available
+            const approved = data.data.filter((t: any) => t.status === 'APPROVED');
+            if (approved.length > 0) {
+              setWhatsappTemplateName(approved[0].name);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch Meta templates', err);
+      } finally {
+        setWhatsappTemplatesLoading(false);
+      }
+    };
+
     if (mode === 'whatsapp') {
-      fetchTemplates();
+      fetchRequestedTemplates();
+      fetchMetaTemplates();
     }
   }, [mode]);
   const campaignFileInput = useRef<HTMLInputElement>(null);
@@ -1784,7 +1815,8 @@ const DashboardStrategy = () => {
         image: campaignImage,
         subject: campaignSubject || (isWhatsapp ? 'WhatsApp Campaign' : 'Email Campaign'),
         whatsappTemplateName: isWhatsapp ? whatsappTemplateName : undefined,
-        whatsappUrlParam: isWhatsapp ? whatsappUrlParam : undefined
+        whatsappUrlParam: isWhatsapp ? whatsappUrlParam : undefined,
+        whatsappVariables: isWhatsapp ? campaignVariables : undefined
       };
 
       const res = await fetch(endpoint, {
@@ -2070,28 +2102,56 @@ const DashboardStrategy = () => {
       if (currentMode === 'whatsapp' || currentMode === 'email') {
         try {
           const token = localStorage.getItem('token');
-          const startRes = await fetch(`${NODE_BASE}/ai/start-generation`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ endpoint: 'generate-strategy-images', payload }),
-          });
-
-          if (!startRes.ok) throw new Error('Failed to start generation');
-          const { jobId } = await startRes.json();
           let data = null;
 
-          while (true) {
-            await new Promise(r => setTimeout(r, 5000));
-            const pollRes = await fetch(`${NODE_BASE}/ai/job/${jobId}`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            const job = await pollRes.json();
+          if (currentMode === 'whatsapp') {
+            // Find the template body
+            let templateBody = WHATSAPP_TEMPLATE_BODIES[whatsappTemplateName] || '';
+            const dynamicTemplate = whatsappTemplates.find((t: any) => t.name === whatsappTemplateName);
+            if (dynamicTemplate && dynamicTemplate.components) {
+              const bodyComponent = dynamicTemplate.components.find((c: any) => c.type === 'BODY');
+              if (bodyComponent && bodyComponent.text) templateBody = bodyComponent.text;
+            }
 
-            if (job.status === 'success') {
-              data = job.data;
-              break;
-            } else if (job.status === 'error') {
-              throw new Error(job.error || 'Generation failed');
+            const mapRes = await fetch(`${NODE_BASE}/whatsapp/map-variables`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ idea: finalIdea, templateBody, templateName: whatsappTemplateName }),
+            });
+
+            if (!mapRes.ok) throw new Error('Failed to map WhatsApp variables');
+            const mapData = await mapRes.json();
+            setCampaignVariables(mapData.variables);
+            
+            // Format result like what the UI expects for social generation
+            data = {
+              status: 'success',
+              posts: [{ caption: mapData.filledText || mapData.variables?.['2'] || finalIdea, image: refImages[0] || '' }]
+            };
+          } else {
+            // Email uses python backend
+            const startRes = await fetch(`${NODE_BASE}/ai/start-generation`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ endpoint: 'generate-strategy-images', payload }),
+            });
+
+            if (!startRes.ok) throw new Error('Failed to start generation');
+            const { jobId } = await startRes.json();
+
+            while (true) {
+              await new Promise(r => setTimeout(r, 5000));
+              const pollRes = await fetch(`${NODE_BASE}/ai/job/${jobId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              const job = await pollRes.json();
+
+              if (job.status === 'success') {
+                data = job.data;
+                break;
+              } else if (job.status === 'error') {
+                throw new Error(job.error || 'Generation failed');
+              }
             }
           }
 
@@ -2645,6 +2705,7 @@ const DashboardStrategy = () => {
         back={resetToBuilder}
         regenerate={() => generate()}
         whatsappTemplateName={whatsappTemplateName}
+        whatsappTemplates={whatsappTemplates}
         savedLists={savedLists}
         setSavedLists={setSavedLists}
         selectedListId={selectedListId}
@@ -3111,7 +3172,7 @@ const DashboardStrategy = () => {
                       </div>
                     ) : (
                       <div className="flex gap-2">
-                        {!isBasic && mode !== 'edit_media' && !previewPost.isEdited && ['image', 'carousel', 'video', 'ecomm'].includes(previewPost.type || previewPost.sectionType || '') ? (
+                        {!isBasic && mode !== 'edit_media' && !(previewPost as any).isEdited && ['image', 'carousel', 'video', 'ecomm'].includes(previewPost.type || previewPost.sectionType || '') ? (
                           <>
                             <button
                               onClick={() => setIsEditing(true)}
@@ -3200,7 +3261,7 @@ const DashboardStrategy = () => {
                 ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
                 : upgradeModalReason === 'video'
                 ? 'AI Video Generation (UGC & Product Videos) is exclusive to Elite and Agency plans. Please upgrade to the Elite Plan to unlock AI video generation.'
-                : `This is an Elite feature. Upgrade to the Elite Plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.name || 'premium'} feature.`}
+                : `This is an Elite feature. Upgrade to the Elite Plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
             </p>
 
             <Button
@@ -4669,6 +4730,14 @@ const DashboardStrategy = () => {
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
                 WhatsApp Template Settings
               </p>
+              
+              <div className="flex items-start gap-3 p-4 mb-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-400">
+                <AlertCircle size={20} className="shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <span className="font-bold block mb-1">Meta Billing Requirement</span>
+                  Meta requires a valid Credit/Debit card on file in your WhatsApp Business Manager to send campaigns, even for free tiers. If no card is added, your messages will silently fail to deliver.
+                </div>
+              </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <label className="block text-xs font-semibold text-foreground mb-1.5">Call-to-Action Template</label>
@@ -4695,23 +4764,22 @@ const DashboardStrategy = () => {
                       </optgroup>
                     )}
                     
-                    <optgroup label="Standard Templates">
-                      <option value="custom_campaign_image">Campaign with Image (Default)</option>
-                    <option value="custom_campaign_text">Campaign Text Only</option>
-                    <option value="syncsocio_interactive_poll">Interactive Poll (Swish Style)</option>
-                    <option value="syncsocio_festival">Festival - Celebrate Now (Marketing)</option>
-                    <option value="syncsocio_promo_shop">Promo - Shop Now (Marketing)</option>
-                    <option value="syncsocio_promo_claim">Promo - Claim Offer (Marketing)</option>
-                    <option value="syncsocio_promo_visit">Promo - Visit Website (Marketing)</option>
-                    <option value="syncsocio_promo_book">Promo - Book Now (Marketing)</option>
-                    <option value="syncsocio_promo_order">Promo - Order Now (Marketing)</option>
-                    <option value="syncsocio_promo_learn">Promo - Learn More (Marketing)</option>
-                    <option value="syncsocio_promo_get">Promo - Get It Free (Marketing)</option>
-                    <option value="syncsocio_promo_text">Promo Text - View Details (Marketing)</option>
-                    <option value="syncsocio_order_shipped_v2">Order Shipped - Track Order (Utility)</option>
-                    <option value="syncsocio_order_confirmed_v2">Order Confirmed - View Order (Utility)</option>
-                    <option value="syncsocio_payment_reminder_v2">Payment Reminder - Pay Now (Utility)</option>
-                    <option value="syncsocio_appointment_reminder_v3">Appointment Reminder - Confirm/Reschedule (Utility)</option>
+                    <optgroup label="Meta Approved Templates">
+                      {whatsappTemplatesLoading ? (
+                        <option disabled>Loading templates...</option>
+                      ) : whatsappTemplates.length > 0 ? (
+                        whatsappTemplates.map((t: any) => (
+                          <option 
+                            key={t.name} 
+                            value={t.name}
+                            disabled={t.status !== 'APPROVED'}
+                          >
+                            {t.name} ({t.status})
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled>No templates found. Resync settings.</option>
+                      )}
                     </optgroup>
                   </select>
                 </div>
@@ -5188,6 +5256,7 @@ interface CampaignResultsProps {
   handleSaveImportedList: () => Promise<void>;
   profile: any;
   whatsappTemplateName?: string;
+  whatsappTemplates?: any[];
 }
 
 const WHATSAPP_BUTTON_LABELS: Record<string, string> = {
@@ -5361,6 +5430,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
   savedLists, setSavedLists, selectedListId, setSelectedListId,
   showListNameModal, setShowListNameModal, listNameInput, setListNameInput, handleSaveImportedList,
   whatsappTemplateName,
+  whatsappTemplates = [],
 }) => {
   const isWA = mode === 'whatsapp';
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -5570,7 +5640,22 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 <div className="p-3.5 pb-2.5">
                     {/* Show the REAL template text with variables filled in */}
                     {(() => {
-                      const tplBody = WHATSAPP_TEMPLATE_BODIES[whatsappTemplateName];
+                      let tplBody = WHATSAPP_TEMPLATE_BODIES[whatsappTemplateName || ''];
+                      let buttonLabel = WHATSAPP_BUTTON_LABELS[whatsappTemplateName || ''] || `${brandName.toLowerCase()} now`;
+
+                      // Use dynamic template data if available
+                      const dynamicTemplate = whatsappTemplates.find((t: any) => t.name === whatsappTemplateName);
+                      if (dynamicTemplate && dynamicTemplate.components) {
+                        const bodyComponent = dynamicTemplate.components.find((c: any) => c.type === 'BODY');
+                        if (bodyComponent && bodyComponent.text) {
+                          tplBody = bodyComponent.text;
+                        }
+                        const buttonComponent = dynamicTemplate.components.find((c: any) => c.type === 'BUTTONS');
+                        if (buttonComponent && buttonComponent.buttons && buttonComponent.buttons.length > 0) {
+                          buttonLabel = buttonComponent.buttons[0].text;
+                        }
+                      }
+
                       const headline = subject || `${brandName} Exclusive Offer`;
                       const filled = tplBody
                         ? tplBody
@@ -5580,34 +5665,31 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                       // Render bold *text* as <strong>
                       const parts = filled.split(/(\*[^*]+\*)/g);
                       return (
-                        <pre className="text-[12px] text-[#111111] whitespace-pre-wrap font-sans leading-relaxed mb-2.5">
-                          {parts.map((part, i) =>
-                            part.startsWith('*') && part.endsWith('*')
-                              ? <strong key={i}>{part.slice(1, -1)}</strong>
-                              : part
-                          )}
-                        </pre>
+                        <>
+                          <pre className="text-[12px] text-[#111111] whitespace-pre-wrap font-sans leading-relaxed mb-2.5">
+                            {parts.map((part: string, i: number) =>
+                              part.startsWith('*') && part.endsWith('*')
+                                ? <strong key={i}>{part.slice(1, -1)}</strong>
+                                : part
+                            )}
+                          </pre>
+                          <p className="text-[10px] text-gray-400 font-medium">
+                            T&C apply. Reply STOP to unsubscribe.
+                          </p>
+                          <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-gray-400">
+                            {time}
+                          </div>
+                        <a
+                          href="#"
+                          className="flex items-center justify-center gap-1.5 py-2.5 bg-white border-t border-gray-100 text-[12px] font-bold text-[#007AFF] hover:bg-gray-50 active:bg-gray-100 transition-colors w-full"
+                          onClick={(e) => e.preventDefault()}
+                        >
+                          <ExternalLink size={12} className="text-[#007AFF]" />
+                          <span>{buttonLabel}</span>
+                        </a>
+                        </>
                       );
                     })()}
-                    <p className="text-[10px] text-gray-400 font-medium">
-                      T&C apply. Reply STOP to unsubscribe.
-                    </p>
-                    <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-gray-400">
-                      {time}
-                    </div>
-                  </div>
-                  <a
-                    href="#"
-                    className="flex items-center justify-center gap-1.5 py-2.5 bg-white border-t border-gray-100 text-[12px] font-bold text-[#007AFF] hover:bg-gray-50 active:bg-gray-100 transition-colors w-full"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    <ExternalLink size={12} className="text-[#007AFF]" />
-                    <span>
-                      {whatsappTemplateName && WHATSAPP_BUTTON_LABELS[whatsappTemplateName]
-                        ? WHATSAPP_BUTTON_LABELS[whatsappTemplateName]
-                        : `${brandName.toLowerCase()} now`}
-                    </span>
-                  </a>
                 </div>
               </div>
 
@@ -5629,6 +5711,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
               <div className="bg-[#F6F6F6] pb-2 pt-1 flex justify-center">
                 <div className="w-1/3 h-1 bg-black rounded-full opacity-80"></div>
               </div>
+            </div>
             </div>
           ) : (
             /* Email mockup */
