@@ -292,6 +292,92 @@ router.post('/send', protect, async (req, res) => {
 import axios from 'axios';
 import FormData from 'form-data';
 
+// ─── AI-powered campaign copy refinement ─────────────────────────────────────
+// Calls Gemini to rewrite the user's rough draft into professional,
+// industry-appropriate campaign copy based on the brand profile.
+async function refineCampaignCopy({ rawSubject, rawBody, profile, templateType }) {
+  const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+  if (!GOOGLE_API_KEY) return { refinedSubject: rawSubject, refinedBody: rawBody };
+
+  const industry     = profile?.businessCategory || 'Retail';
+  const tone         = profile?.brandTone || 'professional and engaging';
+  const audiences    = (profile?.targetAudiences || []).join(', ') || 'customers';
+  const usp          = profile?.usp || '';
+  const keywords     = profile?.brandKeywords || '';
+  const brandName    = profile?.brandName || 'our brand';
+
+  // Map template name to a short campaign type description
+  const templateDescriptions = {
+    syncsocio_festival: 'festive seasonal promotion',
+    syncsocio_promo_image: 'product/collection promotion',
+    syncsocio_promo_generic: 'general promotional offer',
+    syncsocio_promo_text: 'text-only announcement',
+    syncsocio_promo_shop: 'shopping/e-commerce offer',
+    syncsocio_promo_claim: 'exclusive deal or coupon',
+    syncsocio_promo_visit: 'store visit or location-based offer',
+    syncsocio_promo_book: 'appointment or booking promotion',
+    syncsocio_promo_order: 'order-related update or promotion',
+    syncsocio_promo_learn: 'educational or course promotion',
+    syncsocio_promo_get: 'freebie or lead magnet offer',
+    syncsocio_promo_lead: 'lead generation or sign-up offer',
+    syncsocio_interactive_poll: 'customer poll or feedback request',
+  };
+  const campaignType = templateDescriptions[templateType] || 'marketing promotion';
+
+  const prompt = `You are an expert WhatsApp marketing copywriter for ${industry} brands.
+
+Brand: ${brandName}
+Industry: ${industry}
+Brand Tone: ${tone}
+Target Audience: ${audiences}
+USP: ${usp}
+Brand Keywords: ${keywords}
+Campaign Type: ${campaignType}
+
+The user gave this rough campaign brief:
+Headline: "${rawSubject}"
+Body: "${rawBody}"
+
+Rewrite this as a crisp, professional WhatsApp marketing message tailored to this brand's industry and tone.
+
+Return ONLY a valid JSON object with exactly these two keys:
+{
+  "headline": "<bold attention-grabbing headline, max 55 chars, no quotes, emojis OK>",
+  "body": "<sharp campaign body, max 160 chars, no line breaks, no sign-off like Best/Regards/Team, no mention of SyncSocio, no generic filler like 'Hey there' or 'Check out our latest release'>"
+}
+
+Rules:
+- Match tone exactly: ${tone}
+- Be specific to ${industry} industry
+- Keep it punchy and action-oriented
+- Do NOT invent discounts or offers that were not in the original brief
+- Output ONLY the JSON, nothing else`;
+
+  try {
+    const geminiRes = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GOOGLE_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 300, responseMimeType: 'application/json' }
+      },
+      { timeout: 15000 }
+    );
+
+    const raw = geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const parsed = JSON.parse(raw.trim());
+
+    const refinedSubject = (parsed.headline || rawSubject).trim().substring(0, 60);
+    const refinedBody    = (parsed.body    || rawBody   ).replace(/[\n\r]+/g, ' ').trim().substring(0, 1024);
+
+    console.log(`[WhatsApp AI] Refined copy — Headline: "${refinedSubject}" | Body: "${refinedBody.substring(0, 80)}..."`); 
+    return { refinedSubject, refinedBody };
+  } catch (aiErr) {
+    console.warn('[WhatsApp AI] Refinement failed, using raw text:', aiErr?.response?.data || aiErr.message);
+    return { refinedSubject: rawSubject, refinedBody: rawBody };
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Send WhatsApp campaign
 router.post('/send-whatsapp', protect, async (req, res) => {
   const { recipients, body, image, subject, whatsappTemplateName, whatsappUrlParam } = req.body;
@@ -360,6 +446,15 @@ router.post('/send-whatsapp', protect, async (req, res) => {
       .replace(/\s{2,}/g, ' ')
       .trim().substring(0, 1024);
 
+    // ── AI refinement: rewrite rough draft into professional campaign copy ──
+    const targetTemplateForAI = whatsappTemplateName || (mediaId || (image && typeof image === 'string' && image.startsWith('http')) ? 'custom_campaign_image' : 'custom_campaign_text');
+    const { refinedSubject, refinedBody } = await refineCampaignCopy({
+      rawSubject: cleanSubject,
+      rawBody: cleanBody,
+      profile,
+      templateType: targetTemplateForAI,
+    });
+
     let successCount = 0;
     let failCount = 0;
     let lastError = null;
@@ -414,12 +509,12 @@ router.post('/send-whatsapp', protect, async (req, res) => {
         if (isTwoVarMarketing) {
           // Marketing approved templates: {{1}} = bold headline, {{2}} = campaign copy body
           bodyParams = [
-            { type: 'text', text: cleanSubject.substring(0, 60) },  // {{1}} headline
-            { type: 'text', text: cleanBody.substring(0, 1024) },   // {{2}} body copy
+            { type: 'text', text: refinedSubject.substring(0, 60) },   // {{1}} headline — AI refined
+            { type: 'text', text: refinedBody.substring(0, 1024) },    // {{2}} body copy — AI refined
           ];
         } else {
           // Legacy custom templates (custom_campaign_image / custom_campaign_text) — single {{1}}
-          const combinedMessage = `${cleanSubject}\n\n${cleanBody}`;
+          const combinedMessage = `${refinedSubject}\n\n${refinedBody}`;
           bodyParams = [
             { type: 'text', text: combinedMessage.substring(0, 1024) },
           ];

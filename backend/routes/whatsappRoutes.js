@@ -445,8 +445,7 @@ router.post('/callback', protect, async (req, res) => {
       const SYNCSOCIO_TEMPLATES = [
         {
           name: 'syncsocio_festival',
-          // Body text is long enough relative to 2 variables (words-ratio check)
-          bodyText: '🎉 *{{1}}*\n\nHere is your exclusive deal from us:\n{{2}}\n\nDon\'t miss out — this offer is valid for a limited time only. Powered by SyncSocio.',
+          bodyText: '🎉 *{{1}}*\nThis festive season, we have something special for you:\n{{2}}\nOffer valid for a limited time. Powered by SyncSocio.',
           example: ['Happy Diwali — Exclusive Offer!', 'Celebrate with 20% OFF on all products today only!'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -454,7 +453,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_image',
-          bodyText: '🛍️ *{{1}}*\n\nHere is what we have for you:\n{{2}}\n\nGrab it before it runs out. Powered by SyncSocio.',
+          bodyText: '🛍️ *{{1}}*\n{{2}}\nGrab it before it runs out. Powered by SyncSocio.',
           example: ['New Collection Drop', 'Our latest arrivals are live — grab yours before they run out!'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -462,7 +461,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_generic',
-          bodyText: '🔥 *{{1}}*\n\nHere are the details:\n{{2}}\n\nAct fast — limited availability. Powered by SyncSocio.',
+          bodyText: '🔥 *{{1}}*\n{{2}}\nAct fast — limited availability. Powered by SyncSocio.',
           example: ['Exclusive Offer Inside', 'Get 30% off when you order today. Limited time only!'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -470,8 +469,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_text',
-          // TEXT-ONLY: no image header. Longer body needed to satisfy words-to-variable ratio.
-          bodyText: '💬 *{{1}}*\n\nWe wanted to share something important with you:\n{{2}}\n\nTap below to find out more and stay ahead. Powered by SyncSocio.',
+          bodyText: '💬 *{{1}}*\n{{2}}\nTap below to find out more and stay ahead. Powered by SyncSocio.',
           example: ['Special Announcement', 'We have something big coming your way — stay tuned for the big reveal!'],
           hasImageHeader: false,
           hasUrlButton: true,
@@ -479,7 +477,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_shop',
-          bodyText: '🛒 *{{1}}*\n\nHere is what is on offer:\n{{2}}\n\nShop now before stocks run out. Powered by SyncSocio.',
+          bodyText: '🛒 *{{1}}*\n{{2}}\nShop now before stocks run out. Powered by SyncSocio.',
           example: ['Weekend Sale is Live!', 'Shop our bestsellers at up to 40% off this weekend only.'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -487,7 +485,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_claim',
-          bodyText: '🎁 *{{1}}*\n\nYour exclusive deal is waiting:\n{{2}}\n\nClaim it before it expires. Powered by SyncSocio.',
+          bodyText: '🎁 *{{1}}*\n{{2}}\nClaim it before it expires. Powered by SyncSocio.',
           example: ['Your Offer is Ready', 'Claim your exclusive discount before it expires tonight!'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -495,7 +493,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_visit',
-          bodyText: '📍 *{{1}}*\n\nHere is what you need to know:\n{{2}}\n\nCome visit us — we would love to see you. Powered by SyncSocio.',
+          bodyText: '📍 *{{1}}*\n{{2}}\nCome visit us — we would love to see you. Powered by SyncSocio.',
           example: ['Visit Our Store', 'We would love to see you! Find us at our new location this weekend.'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -503,7 +501,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_book',
-          bodyText: '📅 *{{1}}*\n\nHere are the details for your booking:\n{{2}}\n\nSecure your spot now. Powered by SyncSocio.',
+          bodyText: '📅 *{{1}}*\n{{2}}\nSecure your spot now — slots are filling fast. Powered by SyncSocio.',
           example: ['Book Your Appointment', 'Slots are filling fast — reserve yours now before they are all gone!'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -511,7 +509,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_order',
-          bodyText: '📦 *{{1}}*\n\nHere is the latest update on your order:\n{{2}}\n\nThank you for shopping with us. Powered by SyncSocio.',
+          bodyText: '📦 *{{1}}*\n{{2}}\nThank you for shopping with us. Powered by SyncSocio.',
           example: ['Order Update', 'Your order has been dispatched and is on its way. Track it here.'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -519,7 +517,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_learn',
-          bodyText: '📚 *{{1}}*\n\nHere is what we have lined up for you:\n{{2}}\n\nStart learning today and grow your skills. Powered by SyncSocio.',
+          bodyText: '📚 *{{1}}*\n{{2}}\nStart today and grow your skills. Powered by SyncSocio.',
           example: ['New Course Alert', 'Enrol in our new course and level up your skills starting today!'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -527,7 +525,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_get',
-          bodyText: '⚡ *{{1}}*\n\nHere is your exclusive freebie:\n{{2}}\n\nDownload it now — available for a limited time only. Powered by SyncSocio.',
+          bodyText: '⚡ *{{1}}*\n{{2}}\nDownload now — available for a limited time only. Powered by SyncSocio.',
           example: ['Grab Your Freebie', 'Download your free guide — available for 24 hours only. Grab it now!'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -535,7 +533,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_promo_lead',
-          bodyText: '📋 *{{1}}*\n\nHere is how you can claim your reward:\n{{2}}\n\nFill the form and get your exclusive benefit. Powered by SyncSocio.',
+          bodyText: '📋 *{{1}}*\n{{2}}\nFill the form and get your exclusive benefit. Powered by SyncSocio.',
           example: ['You Have Been Selected', 'Fill out a quick form and get your exclusive reward today!'],
           hasImageHeader: true,
           hasUrlButton: true,
@@ -543,8 +541,7 @@ router.post('/callback', protect, async (req, res) => {
         },
         {
           name: 'syncsocio_interactive_poll',
-          // TEXT-ONLY: longer body to satisfy words-to-variable ratio.
-          bodyText: '🗳️ *{{1}}*\n\nWe would love to hear from you:\n{{2}}\n\nYour feedback helps us serve you better. Thank you for participating! Powered by SyncSocio.',
+          bodyText: '🗳️ *{{1}}*\n{{2}}\nYour feedback helps us serve you better. Thank you for participating! Powered by SyncSocio.',
           example: ['Quick Poll for You', 'Tell us what you think — your opinion shapes what we build next for you!'],
           hasImageHeader: false,
           hasUrlButton: true,

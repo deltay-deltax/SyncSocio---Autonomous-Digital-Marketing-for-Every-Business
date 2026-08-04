@@ -5144,6 +5144,26 @@ const WHATSAPP_BUTTON_LABELS: Record<string, string> = {
   syncsocio_interactive_poll: "Swish Now!",
 };
 
+// Real template body text — exactly what the recipient sees on their WhatsApp.
+// {{1}} = campaign heading/subject, {{2}} = campaign body text
+const WHATSAPP_TEMPLATE_BODIES: Record<string, string> = {
+  syncsocio_festival: '🎉 *{{1}}*\nThis festive season, we have something special for you:\n{{2}}\nOffer valid for a limited time. Powered by SyncSocio.',
+  syncsocio_promo_image: '🛍️ *{{1}}*\n{{2}}\nGrab it before it runs out. Powered by SyncSocio.',
+  syncsocio_promo_generic: '🔥 *{{1}}*\n{{2}}\nAct fast — limited availability. Powered by SyncSocio.',
+  syncsocio_promo_text: '💬 *{{1}}*\n{{2}}\nTap below to find out more. Powered by SyncSocio.',
+  syncsocio_promo_shop: '🛒 *{{1}}*\n{{2}}\nShop now before stocks run out. Powered by SyncSocio.',
+  syncsocio_promo_claim: '🎁 *{{1}}*\n{{2}}\nClaim it before it expires. Powered by SyncSocio.',
+  syncsocio_promo_visit: '📍 *{{1}}*\n{{2}}\nCome visit us — we would love to see you. Powered by SyncSocio.',
+  syncsocio_promo_book: '📅 *{{1}}*\n{{2}}\nSecure your spot now — slots are filling fast. Powered by SyncSocio.',
+  syncsocio_promo_order: '📦 *{{1}}*\n{{2}}\nThank you for shopping with us. Powered by SyncSocio.',
+  syncsocio_promo_learn: '📚 *{{1}}*\n{{2}}\nStart today and grow your skills. Powered by SyncSocio.',
+  syncsocio_promo_get: '⚡ *{{1}}*\n{{2}}\nDownload now — available for a limited time only. Powered by SyncSocio.',
+  syncsocio_promo_lead: '📋 *{{1}}*\n{{2}}\nFill the form and get your exclusive benefit. Powered by SyncSocio.',
+  syncsocio_interactive_poll: '🗳️ *{{1}}*\n{{2}}\nYour feedback helps us serve you better. Thank you! Powered by SyncSocio.',
+  custom_campaign_image: '*{{1}}*\n{{2}}\nPowered by SyncSocio.',
+  custom_campaign_text: '*{{1}}*\n{{2}}\nPowered by SyncSocio.',
+};
+
 const COUNTRY_CODES = [
   { code: "+91", name: "India", flag: "🇮🇳" },
   { code: "+1", name: "United States", flag: "🇺🇸" },
@@ -5484,11 +5504,28 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                   {image && (
                     <img src={image} className="w-full object-cover aspect-[16/10]" />
                   )}
-                  <div className="p-3.5 pb-2.5">
-                    <h4 className="text-[13px] font-bold text-gray-900 leading-snug mb-1.5">
-                      {subject || `${brandName} Exclusive Offer`}
-                    </h4>
-                    <pre className="text-[12px] text-[#111111] whitespace-pre-wrap font-sans leading-relaxed mb-2.5">{body}</pre>
+                <div className="p-3.5 pb-2.5">
+                    {/* Show the REAL template text with variables filled in */}
+                    {(() => {
+                      const tplBody = WHATSAPP_TEMPLATE_BODIES[whatsappTemplateName];
+                      const headline = subject || `${brandName} Exclusive Offer`;
+                      const filled = tplBody
+                        ? tplBody
+                            .replace(/\{\{1\}\}/g, headline)
+                            .replace(/\{\{2\}\}/g, body || '...')
+                        : `${headline}\n\n${body}`;
+                      // Render bold *text* as <strong>
+                      const parts = filled.split(/(\*[^*]+\*)/g);
+                      return (
+                        <pre className="text-[12px] text-[#111111] whitespace-pre-wrap font-sans leading-relaxed mb-2.5">
+                          {parts.map((part, i) =>
+                            part.startsWith('*') && part.endsWith('*')
+                              ? <strong key={i}>{part.slice(1, -1)}</strong>
+                              : part
+                          )}
+                        </pre>
+                      );
+                    })()}
                     <p className="text-[10px] text-gray-400 font-medium">
                       T&C apply. Reply STOP to unsubscribe.
                     </p>
