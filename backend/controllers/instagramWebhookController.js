@@ -19,11 +19,6 @@ const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
 let clickTrackingBaseUrl = (process.env.BACKEND_PUBLIC_URL || process.env.WEBHOOK_PUBLIC_URL || '').trim();
 
-// Map to temporarily hold context for sent comment private replies (using the message ID).
-// We need this because Meta does NOT return the user's IGSID synchronously when we reply to a comment.
-// We only get the IGSID in the subsequent 'is_echo' webhook.
-const pendingCommentEchoes = new Map();
-
 const safeTrim = (value) => (typeof value === 'string' ? value.trim() : '');
 
 const getConnectedProfileUrl = (profile) => {
@@ -362,11 +357,11 @@ const resolvePageToken = async (profile) => {
     });
     const page = res.data.data.find((p) => String(p.id) === String(profile.instagramPageId));
     if (page?.access_token) {
-      profile.instagramPageAccessToken = page.access_token; // Cache it in memory for this run
-      return page.access_token;
+        profile.instagramPageAccessToken = page.access_token; // Cache it in memory for this run
+        return page.access_token;
     }
   } catch (err) {
-    console.error('[WEBHOOK] Failed to resolve page token on the fly');
+      console.error('[WEBHOOK] Failed to resolve page token on the fly');
   }
   return null;
 };
@@ -497,20 +492,9 @@ const extractMessageEvents = (entry = {}) => {
   const events = [];
 
   for (const msg of messaging) {
+    if (msg.message && msg.message.is_echo) continue;
+
     const mid = msg.message?.mid;
-
-    if (msg.message && msg.message.is_echo) {
-      if (mid && pendingCommentEchoes.has(mid)) {
-        events.push({
-          isEcho: true,
-          mid: mid,
-          senderId: safeTrim(msg.recipient?.id), // In an echo, recipient is the user (IGSID)
-          pageId: safeTrim(msg.sender?.id),      // sender is the page
-        });
-      }
-      continue;
-    }
-
     if (mid) {
       if (processedMessageIds.has(mid)) continue;
       processedMessageIds.add(mid); // BoundedFifoCache auto-evicts oldest when full
@@ -518,7 +502,7 @@ const extractMessageEvents = (entry = {}) => {
 
     let text = null;
     let imageUrl = null;
-
+    
     if (msg.message && msg.message.text) {
       text = msg.message.text;
     } else if (msg.postback) {
@@ -638,7 +622,7 @@ const processCommentEventForProfile = async (profile, event) => {
     console.log('Skipping: message generated from flow was empty');
     return false;
   }
-
+  
   console.log(`Sending message preview payload:`, JSON.stringify(messagePayload));
 
   try {
@@ -694,33 +678,47 @@ const processCommentEventForProfile = async (profile, event) => {
       pageId: profile.instagramPageId,
     });
 
-    if (result && result.id) {
-      pendingCommentEchoes.set(result.id, {
-        commentId: event.commentId,
-        flow,
-        profile,
-      });
-      // Auto-evict to prevent memory leaks if echo never arrives
-      setTimeout(() => {
-        pendingCommentEchoes.delete(result.id);
-      }, 5 * 60 * 1000);
-    }
+    await queueFollowUpMessage({
+      profile,
+      flow,
+      commentId: event.commentId,
+      recipientId: result?.recipient_id,
+    });
 
     await markCommentReplyDmSent({
       user: profile.user,
       commentId: event.commentId,
-      recipientId: result?.id || null,
+      recipientId: result?.recipient_id,
     });
 
     await DMFlow.updateOne({ _id: flow._id }, { $inc: { 'stats.replied': 1 } });
 
-    console.log('Instagram private reply sent (waiting for echo to seed Nexa and follow-up)', {
+    console.log('Instagram private reply sent', {
       flowId: flow._id.toString(),
       commentId: event.commentId,
       actorUsername: event.actorUsername,
-      messageId: result?.id,
+      result,
     });
-    //ok
+
+    // ── Nexa Handoff: create/upsert NexaConversation if nexa is enabled for this brand ──
+    if (result?.recipient_id) {
+      try {
+        const freshBrand = await BrandProfile.findById(profile._id).select('nexa user').lean();
+        if (freshBrand?.nexa?.nexa_enabled) {
+          await upsertNexaConversationFromComment({
+            brandDoc: { _id: profile._id, user: profile.user, ...freshBrand },
+            igUserId: result.recipient_id,
+            dmFlowId: flow._id,
+            productInterested: flow.linkedPostTopic || flow.name || null,
+            priceAgreed: null,
+          });
+          console.log(`[Nexa] Conversation seeded for ${result.recipient_id}`);
+        }
+      } catch (nexaErr) {
+        console.error('[Nexa] Failed to seed conversation:', nexaErr.message);
+      }
+    }
+
     // Notify user of new lead
     try {
       const { createNotification } = await import('../utils/notificationHelper.js');
@@ -730,7 +728,7 @@ const processCommentEventForProfile = async (profile, event) => {
         'New Lead Captured',
         `User ${event.actorUsername || 'on Instagram'} triggered your "${flow.name}" flow via a comment.`
       );
-    } catch (e) { }
+    } catch (e) {}
 
     return true;
   } catch (error) {
@@ -761,16 +759,16 @@ const findNextMessageForText = async (incomingText, profile) => {
   for (const flow of flows) {
     if (!Array.isArray(flow.messages)) continue;
     for (let i = 0; i < flow.messages.length - 1; i++) {
-      const currentMsg = flow.messages[i];
-      const matchingBtn = currentMsg.buttons?.find(
-        (btn) => btn.type === 'next' && normalizeKeywordInput(btn.label) === normIncoming
-      );
-
-      if (matchingBtn) {
-        // Find all potential next messages
-        const nextMessages = flow.messages.slice(i + 1);
-        return { flow, nextMessages, matchingMsgIndex: i };
-      }
+        const currentMsg = flow.messages[i];
+        const matchingBtn = currentMsg.buttons?.find(
+          (btn) => btn.type === 'next' && normalizeKeywordInput(btn.label) === normIncoming
+        );
+        
+        if (matchingBtn) {
+            // Find all potential next messages
+            const nextMessages = flow.messages.slice(i + 1);
+            return { flow, nextMessages, matchingMsgIndex: i };
+        }
     }
   }
   return null;
@@ -846,6 +844,7 @@ const sendStandardMessage = async ({ pageToken, igScopedId, messagePayload, page
 
 // Exported alias for nexaNudgeScheduler to avoid circular import issues
 export { sendStandardMessage as sendStandardMessageExternal, resolvePageToken };
+
 const processMentionEventForProfile = async (profile, event) => {
   console.log(`processMention: sender="${event.senderId}" mediaId="${event.mediaId}"`);
 
@@ -867,8 +866,8 @@ const processMentionEventForProfile = async (profile, event) => {
   try {
     const pageToken = await resolvePageToken(profile);
     if (!pageToken) {
-      console.error('Mention DM check failed: Could not resolve page token.');
-      return false;
+        console.error('Mention DM check failed: Could not resolve page token.');
+        return false;
     }
     const result = await sendStandardMessage({
       pageToken,
@@ -886,7 +885,7 @@ const processMentionEventForProfile = async (profile, event) => {
         'Story Thanks Sent',
         `Agent automatically thanked a user for mentioning you in their story.`
       );
-    } catch (e) { }
+    } catch (e) {}
 
     return true;
   } catch (err) {
@@ -896,46 +895,7 @@ const processMentionEventForProfile = async (profile, event) => {
 };
 
 const processMessageEventForProfile = async (profile, event) => {
-  if (event.isEcho && event.mid && pendingCommentEchoes.has(event.mid)) {
-    const { commentId, flow, profile: originalProfile } = pendingCommentEchoes.get(event.mid);
-    pendingCommentEchoes.delete(event.mid);
-
-    console.log(`[Echo Handler] Found echo for mid=${event.mid}. Seeding Nexa and Queueing follow-up for IGSID=${event.senderId}`);
-
-    // Seed Nexa
-    try {
-      const freshBrand = await BrandProfile.findById(profile._id).select('nexa user').lean();
-      if (freshBrand?.nexa?.nexa_enabled) {
-        await upsertNexaConversationFromComment({
-          brandDoc: { _id: profile._id, user: profile.user, ...freshBrand },
-          igUserId: event.senderId,
-          dmFlowId: flow._id,
-          productInterested: flow.linkedPostTopic || flow.name || null,
-          priceAgreed: null,
-        });
-        console.log(`[Nexa] Conversation seeded for ${event.senderId} via Echo`);
-      }
-    } catch (e) {
-      console.error('[Nexa] Failed to seed conversation via Echo:', e.message);
-    }
-
-    // Queue follow-up message now that we have the real IGSID!
-    await queueFollowUpMessage({
-      profile: originalProfile,
-      flow,
-      commentId,
-      recipientId: event.senderId,
-    });
-
-    return true; // handled
-  }
-
   console.log(`processMsg: text="${event.text}", sender="${event.senderId}"`);
-
-  // Handle human interventions gracefully
-  if (event.pageId !== profile.instagramPageId) {
-    return false;
-  }
 
   // Detect if this is an explicit DM Flow button click
   const isFlowPostback = event.isPostback && event.postbackPayload && String(event.postbackPayload).startsWith('FLOW_');
@@ -975,79 +935,79 @@ const processMessageEventForProfile = async (profile, event) => {
             return true;
           }
           console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
-          nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
-          if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
+        nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
+        if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
 
-          const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
+        const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
 
-          const result = await nexaHandleMessage({
-            convo: nexaConvo,
-            incomingText: event.text,
-            imageUrl: event.imageUrl,
-            brandDoc: freshBrand,
-            nexaSettings,
-            sendStandardMessage,
-            pageToken,
-            pageId: profile.instagramPageId,
-          });
+        const result = await nexaHandleMessage({
+          convo: nexaConvo,
+          incomingText: event.text,
+          imageUrl: event.imageUrl,
+          brandDoc: freshBrand,
+          nexaSettings,
+          sendStandardMessage,
+          pageToken,
+          pageId: profile.instagramPageId,
+        });
 
-          let replyText = result.replyText;
+        let replyText = result.replyText;
 
-          // If Nexa requests a Razorpay payment link, generate it and inject the URL
-          if (result.paymentLinkRequested && nexaSettings?.razorpay_connected) {
-            try {
-              const amount = result.mergedCollected?.price_agreed || 0;
-              if (amount <= 0) {
-                throw new Error('Cannot generate link: Order amount is zero (price not finalized yet).');
-              }
-
-              const { razorpay_short_url } = await generateRazorpayLink({
-                brandDoc: freshBrand,
-                nexaSettings,
-                amountRupees: amount,
-                customerName: result.mergedCollected?.customer_name || 'Customer',
-                phone: result.mergedCollected?.phone_number || '',
-                description: `Order: ${result.mergedCollected?.product_interested || 'Product'} x${result.mergedCollected?.quantity || 1}`,
-                conversationId: nexaConvo._id,
-              });
-              // Inject the real URL into the reply
-              replyText = replyText + `\n\n🔗 Pay here: ${razorpay_short_url}`;
-            } catch (payErr) {
-              console.error('[Nexa] Failed to generate Razorpay link:', payErr?.error?.description || payErr?.error?.message || payErr.message || payErr);
-              replyText = replyText + '\n\n(Payment link generation failed — please contact us directly)';
-            }
+      // If Nexa requests a Razorpay payment link, generate it and inject the URL
+      if (result.paymentLinkRequested && nexaSettings?.razorpay_connected) {
+        try {
+          const amount = result.mergedCollected?.price_agreed || 0;
+          if (amount <= 0) {
+            throw new Error('Cannot generate link: Order amount is zero (price not finalized yet).');
           }
 
-          // Send the Nexa reply text
-          await sleep(1500);
+          const { razorpay_short_url } = await generateRazorpayLink({
+            brandDoc: freshBrand,
+            nexaSettings,
+            amountRupees: amount,
+            customerName: result.mergedCollected?.customer_name || 'Customer',
+            phone: result.mergedCollected?.phone_number || '',
+            description: `Order: ${result.mergedCollected?.product_interested || 'Product'} x${result.mergedCollected?.quantity || 1}`,
+            conversationId: nexaConvo._id,
+          });
+          // Inject the real URL into the reply
+          replyText = replyText + `\n\n🔗 Pay here: ${razorpay_short_url}`;
+        } catch (payErr) {
+          console.error('[Nexa] Failed to generate Razorpay link:', payErr?.error?.description || payErr?.error?.message || payErr.message || payErr);
+          replyText = replyText + '\n\n(Payment link generation failed — please contact us directly)';
+        }
+      }
+
+      // Send the Nexa reply text
+      await sleep(1500);
+      await sendStandardMessage({
+        pageToken,
+        igScopedId: event.senderId,
+        messagePayload: { text: replyText.slice(0, 1000) },
+        pageId: profile.instagramPageId,
+      });
+
+      // If Nexa requests to send UPI QR code, send it as an image attachment
+      if (result.sendUpiQr && nexaSettings?.upi_qr_code_url) {
+        try {
+          await sleep(1000);
           await sendStandardMessage({
             pageToken,
             igScopedId: event.senderId,
-            messagePayload: { text: replyText.slice(0, 1000) },
+            messagePayload: {
+              attachment: {
+                type: 'image',
+                payload: { url: nexaSettings.upi_qr_code_url }
+              }
+            },
             pageId: profile.instagramPageId,
           });
+        } catch (qrErr) {
+          console.error('[Nexa] Failed to send UPI QR code attachment:', qrErr.message);
+        }
+      }
 
-          // If Nexa requests to send UPI QR code, send it as an image attachment
-          if (result.sendUpiQr && nexaSettings?.upi_qr_code_url) {
-            try {
-              await sleep(1000);
-              await sendStandardMessage({
-                pageToken,
-                igScopedId: event.senderId,
-                messagePayload: {
-                  attachment: {
-                    type: 'image',
-                    payload: { url: nexaSettings.upi_qr_code_url }
-                  }
-                },
-                pageId: profile.instagramPageId,
-              });
-            } catch (qrErr) {
-              console.error('[Nexa] Failed to send UPI QR code attachment:', qrErr.message);
-            }
-          }
-
-          return true;
+        return true;
         }
       }
     }
@@ -1063,20 +1023,20 @@ const processMessageEventForProfile = async (profile, event) => {
     let matchedMsg = messages[currentIndex];
 
     if (matchedMsg && matchedMsg.conditional) {
-      const isFollowing = await checkUserFollows(profile, event.senderId);
-      matchedMsg = null;
-      for (let i = currentIndex; i < messages.length; i++) {
-        if (messages[i].conditional === 'if_following' && isFollowing) {
-          matchedMsg = messages[i]; break;
-        }
-        if (messages[i].conditional === 'if_not_following' && !isFollowing) {
-          matchedMsg = messages[i]; break;
-        }
-        if (!messages[i].conditional) {
-          matchedMsg = messages[i]; break;
-        }
-      }
-      if (!matchedMsg) matchedMsg = messages[currentIndex];
+       const isFollowing = await checkUserFollows(profile, event.senderId);
+       matchedMsg = null;
+       for (let i = currentIndex; i < messages.length; i++) {
+           if (messages[i].conditional === 'if_following' && isFollowing) {
+               matchedMsg = messages[i]; break;
+           }
+           if (messages[i].conditional === 'if_not_following' && !isFollowing) {
+               matchedMsg = messages[i]; break;
+           }
+           if (!messages[i].conditional) {
+               matchedMsg = messages[i]; break;
+           }
+       }
+       if (!matchedMsg) matchedMsg = messages[currentIndex];
     }
 
     const messagePayload = buildMessagePayloadForNextMessage(
@@ -1085,7 +1045,7 @@ const processMessageEventForProfile = async (profile, event) => {
       profile,
       { forcePrimaryLinkOnly: matchedMsg?.conditional === 'if_following' }
     );
-
+    
     if (!messagePayload) {
       return false;
     }
@@ -1123,7 +1083,7 @@ const processMessageEventForProfile = async (profile, event) => {
       return false;
     }
   }
-
+  
   const match = await findNextMessageForText(event.text, profile);
   if (match && match.nextMessages.length > 0) {
     const { flow, nextMessages, matchingMsgIndex } = match;
@@ -1131,32 +1091,32 @@ const processMessageEventForProfile = async (profile, event) => {
     const previousMessage = flow.messages[matchingMsgIndex];
 
     if (targetMessage && targetMessage.conditional) {
-      const isFollowing = await checkUserFollows(profile, event.senderId);
-      let foundMatchingSeqMsg = null;
-
-      for (const msg of nextMessages) {
-        if (msg.conditional === 'if_following' && isFollowing) {
-          foundMatchingSeqMsg = msg; break;
-        }
-        if (msg.conditional === 'if_not_following' && !isFollowing) {
-          foundMatchingSeqMsg = msg; break;
-        }
-        if (!msg.conditional) {
-          foundMatchingSeqMsg = msg; break;
-        }
-      }
-      targetMessage = foundMatchingSeqMsg || previousMessage;
+       const isFollowing = await checkUserFollows(profile, event.senderId);
+       let foundMatchingSeqMsg = null;
+       
+       for (const msg of nextMessages) {
+           if (msg.conditional === 'if_following' && isFollowing) {
+               foundMatchingSeqMsg = msg; break;
+           }
+           if (msg.conditional === 'if_not_following' && !isFollowing) {
+               foundMatchingSeqMsg = msg; break;
+           }
+           if (!msg.conditional) {
+               foundMatchingSeqMsg = msg; break;
+           }
+       }
+       targetMessage = foundMatchingSeqMsg || previousMessage;
     }
 
     const messagePayload = buildMessagePayloadForNextMessage(flow, targetMessage, profile, {
       forcePrimaryLinkOnly: targetMessage?.conditional === 'if_following'
     });
-
+    
     try {
       const pageToken = await resolvePageToken(profile);
       if (!pageToken) {
-        console.error('Standard DM failed: Could not resolve page token.');
-        return false;
+          console.error('Standard DM failed: Could not resolve page token.');
+          return false;
       }
 
       await sleep(1500);
@@ -1223,7 +1183,7 @@ const processMessageEventForProfile = async (profile, event) => {
     console.log(`[Nexa] Nexa is enabled for ${freshBrand.instagramUsername}. Seeding direct DM conversation for ${event.senderId}`);
     nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
     if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
-
+    
     const nexaConvo = await upsertNexaConversationFromDM({
       brandDoc: freshBrand,
       igUserId: event.senderId,
@@ -1252,7 +1212,7 @@ const processMessageEventForProfile = async (profile, event) => {
           if (amount <= 0) {
             throw new Error('Cannot generate link: Order amount is zero (price not finalized yet).');
           }
-
+          
           const { razorpay_short_url } = await generateRazorpayLink({
             brandDoc: freshBrand,
             nexaSettings,
@@ -1262,7 +1222,7 @@ const processMessageEventForProfile = async (profile, event) => {
             description: `Order: ${result.mergedCollected?.product_interested || 'Product'} x${result.mergedCollected?.quantity || 1}`,
             conversationId: nexaConvo._id,
           });
-
+          
           messagePayload = {
             attachment: {
               type: 'template',
@@ -1320,9 +1280,9 @@ const processMessageEventForProfile = async (profile, event) => {
   try {
     const automations = profile.automations || {};
     const isActive = automations.defaultReply?.active;
-
+    
     console.log(`processMessage: evaluating defaultReply for ${profile.instagramUsername}. active=${isActive}`);
-
+    
     if (!isActive) {
       return false;
     }
@@ -1330,13 +1290,13 @@ const processMessageEventForProfile = async (profile, event) => {
     // ─── 24 HOUR WINDOW CHECK ───
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
     const now = new Date();
-
+    
     let convo = await DMConversation.findOne({ user: profile.user, senderId: event.senderId });
-
+    
     if (convo && convo.lastDefaultReplyAt) {
       const timeSinceLastReply = now.getTime() - convo.lastDefaultReplyAt.getTime();
       if (timeSinceLastReply < TWENTY_FOUR_HOURS_MS) {
-        console.log(`processMessage: Sent auto-reply recently (${Math.round(timeSinceLastReply / 3600000)}h ago). Skipping to avoid spam.`);
+        console.log(`processMessage: Sent auto-reply recently (${Math.round(timeSinceLastReply/3600000)}h ago). Skipping to avoid spam.`);
         return false;
       }
     }
@@ -1382,14 +1342,14 @@ const processMessageEventForProfile = async (profile, event) => {
 
 const processWebhookPayload = async (payload) => {
   console.log('--- WEBHOOK PAYLOAD DEBUG ---', JSON.stringify(payload, null, 2));
-
+  
   const entries = Array.isArray(payload?.entry) ? payload.entry : [];
 
   for (const entry of entries) {
     console.log(`Processing entry ID: ${entry?.id}`);
     let profiles = await findProfilesForEntry(entry?.id);
     console.log(`Found ${profiles.length} profiles for entry ID ${entry?.id}`);
-
+    
     // Meta sends id:"0" for synthetic test events from the Webhooks dashboard.
     // In that case fall back to all connected profiles so the event is processed.
     if (profiles.length === 0 && String(entry?.id) === '0') {
@@ -1409,7 +1369,7 @@ const processWebhookPayload = async (payload) => {
 
     const commentEvents = extractCommentEvents(entry);
     const messageEvents = extractMessageEvents(entry);
-
+    
     // Process comments
     for (const event of commentEvents) {
       let handled = false;
