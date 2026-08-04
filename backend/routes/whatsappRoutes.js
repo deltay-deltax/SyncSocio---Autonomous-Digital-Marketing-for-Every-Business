@@ -2,6 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
+import { upsertNexaConversationFromDM, handleIncomingMessage } from '../services/nexaAgent.js';
 
 const router = express.Router();
 
@@ -795,6 +796,106 @@ Rules:
   } catch (err) {
     console.error('[WhatsApp MapVariables] Error:', err.message);
     res.status(500).json({ message: 'Failed to map variables.', error: err.message });
+  }
+});
+
+// ── GET /api/whatsapp/webhook ─────────────────────────────────────────────────
+// Meta webhook verification handshake
+router.get('/webhook', (req, res) => {
+  const verify_token = process.env.META_WEBHOOK_VERIFY_TOKEN || 'velocity_verify_token_123';
+  
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode && token) {
+    if (mode === 'subscribe' && token === verify_token) {
+      console.log('[WhatsApp Webhook] Verification successful');
+      return res.status(200).send(challenge);
+    } else {
+      console.log('[WhatsApp Webhook] Verification failed - token mismatch');
+      return res.sendStatus(403);
+    }
+  }
+  res.sendStatus(400);
+});
+
+// ── POST /api/whatsapp/webhook ────────────────────────────────────────────────
+// Receives incoming messages from WhatsApp users
+router.post('/webhook', async (req, res) => {
+  const body = req.body;
+  
+  console.log(`[WhatsApp Webhook] Incoming POST request. Body:`, JSON.stringify(body, null, 2));
+
+  if (body.object === 'whatsapp_business_account') {
+    try {
+      for (const entry of body.entry) {
+        for (const change of entry.changes) {
+          const value = change.value;
+          if (value && value.messages && value.messages.length > 0) {
+            
+            const phoneNumberId = value.metadata.phone_number_id;
+            const message = value.messages[0];
+            const senderId = message.from; // The user's WhatsApp number
+            const messageText = message.type === 'text' ? message.text.body : '';
+
+            console.log(`[WhatsApp Webhook] Received message from ${senderId} to phone ID ${phoneNumberId}`);
+
+            // Find the brand that owns this WhatsApp Phone ID
+            const brandProfile = await BrandProfile.findOne({ whatsappPhoneId: phoneNumberId });
+            
+            if (!brandProfile || !brandProfile.nexa?.nexa_enabled || !brandProfile.whatsappAccessToken) {
+              console.log(`[WhatsApp Webhook] Ignored: Brand not found, Nexa disabled, or access token missing for phone ID ${phoneNumberId}`);
+              continue;
+            }
+
+            // Load or create the conversation state
+            const convo = await upsertNexaConversationFromDM({
+              brandDoc: brandProfile,
+              igUserId: senderId, // Reusing ig_user_id field for WhatsApp number
+            });
+
+            // Pass the message to the Nexa AI Agent
+            const nexaResult = await handleIncomingMessage({
+              convo,
+              incomingText: messageText,
+              imageUrl: null, // Basic text support for MVP
+              brandDoc: brandProfile,
+              nexaSettings: brandProfile.nexa,
+            });
+
+            // Send Nexa's reply back to the user via Meta API
+            if (nexaResult && nexaResult.replyText) {
+              const replyPayload = {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: senderId,
+                type: 'text',
+                text: { body: nexaResult.replyText }
+              };
+
+              await axios.post(
+                `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`,
+                replyPayload,
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${brandProfile.whatsappAccessToken}`,
+                  },
+                }
+              );
+              console.log(`[WhatsApp Webhook] Sent reply to ${senderId}`);
+            }
+          }
+        }
+      }
+      res.sendStatus(200);
+    } catch (err) {
+      console.error('[WhatsApp Webhook] Error processing message:', err.message);
+      res.sendStatus(500);
+    }
+  } else {
+    res.sendStatus(404);
   }
 });
 
