@@ -1150,10 +1150,15 @@ const processMessageEventForProfile = async (profile, event) => {
       // Handle Razorpay Links
       if (result.paymentLinkRequested && nexaSettings?.razorpay_connected) {
         try {
+          const amount = result.mergedCollected?.price_agreed || 0;
+          if (amount <= 0) {
+            throw new Error('Cannot generate link: Order amount is zero (price not finalized yet).');
+          }
+          
           const { razorpay_short_url } = await generateRazorpayLink({
             brandDoc: freshBrand,
             nexaSettings,
-            amountRupees: result.mergedCollected?.price_agreed || 0,
+            amountRupees: amount,
             customerName: result.mergedCollected?.customer_name || 'Customer',
             phone: result.mergedCollected?.phone_number || '',
             description: `Order: ${result.mergedCollected?.product_interested || 'Product'} x${result.mergedCollected?.quantity || 1}`,

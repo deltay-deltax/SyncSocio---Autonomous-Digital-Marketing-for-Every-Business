@@ -13,14 +13,14 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'missing_key' 
 
 // ─── Valid stage transitions ──────────────────────────────────────────────────
 const VALID_TRANSITIONS = {
-  AWAITING_FOLLOWUP:   ['GREETING', 'QUALIFYING'],
-  GREETING:            ['QUALIFYING', 'ESCALATED'],
-  QUALIFYING:          ['NEGOTIATING', 'COLLECTING_DETAILS', 'ESCALATED'],
-  NEGOTIATING:         ['COLLECTING_DETAILS', 'ESCALATED'],
-  COLLECTING_DETAILS:  ['CONFIRMING', 'ESCALATED'],
-  CONFIRMING:          ['CLOSED', 'NEGOTIATING', 'ESCALATED'],
-  CLOSED:              ['CLOSED', 'GREETING', 'QUALIFYING', 'ESCALATED'],
-  ESCALATED:           [],
+  AWAITING_FOLLOWUP: ['GREETING', 'QUALIFYING'],
+  GREETING: ['QUALIFYING', 'ESCALATED'],
+  QUALIFYING: ['NEGOTIATING', 'COLLECTING_DETAILS', 'ESCALATED'],
+  NEGOTIATING: ['COLLECTING_DETAILS', 'ESCALATED'],
+  COLLECTING_DETAILS: ['CONFIRMING', 'ESCALATED'],
+  CONFIRMING: ['CLOSED', 'NEGOTIATING', 'ESCALATED'],
+  CLOSED: ['CLOSED', 'GREETING', 'QUALIFYING', 'ESCALATED'],
+  ESCALATED: [],
 };
 
 const isValidTransition = (from, to) => {
@@ -30,10 +30,10 @@ const isValidTransition = (from, to) => {
 
 // ─── Build the system prompt ───────────────────────────────────────────────────
 const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
-  const brandName      = brandDoc.brandName || 'Brand';
-  const brandTone      = brandDoc.brandTone || 'friendly and helpful';
-  const catalogStr     = JSON.stringify(convo.product_catalog_snapshot || [], null, 2);
-  const collectedStr   = JSON.stringify(convo.collected, null, 2);
+  const brandName = brandDoc.brandName || 'Brand';
+  const brandTone = brandDoc.brandTone || 'friendly and helpful';
+  const catalogStr = JSON.stringify(convo.product_catalog_snapshot || [], null, 2);
+  const collectedStr = JSON.stringify(convo.collected, null, 2);
 
   const paymentOptions = [];
   if (nexaSettings?.razorpay_connected && nexaSettings?.razorpay_key_id) paymentOptions.push('Razorpay payment link');
@@ -87,8 +87,9 @@ ${collectedStr}
 - NEVER fabricate stock, delivery timelines, or discounts not listed above.
 - Keep messages EXTREMELY short and concise. Use bullet points instead of long paragraphs to make it highly readable in Instagram DMs.
 - If the customer asks something outside your knowledge: set escalate_to_human=true and new_stage="ESCALATED".
+- NEVER set payment_link_requested=true unless price_agreed is already finalized and > 0. If they ask to pay before agreeing on an order, politely ask them what they want to order first.
 
-═══════════ OUTPUT FORMAT ═══════════
+════ ═══════ OUTPUT FORMAT ═══════════
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
   "reply_text": "your message to the customer",
@@ -226,19 +227,19 @@ export const upsertNexaConversationFromComment = async ({
       doc.nudge_due_at = nudgeDueAt;
       doc.nudge_sent = false;
       doc.product_catalog_snapshot = productCatalog;
-      
+
       // Reset order-specific fields, but KEEP name, phone, delivery_address
       if (!doc.collected) doc.collected = {};
       doc.collected.product_interested = productInterested || null;
       doc.collected.price_agreed = priceAgreed || null;
       doc.collected.quantity = null;
       doc.collected.payment_mode = null;
-      
+
       if (!doc.payment) doc.payment = {};
       doc.payment.payment_status = 'not_generated';
       doc.payment.provider = null;
       doc.payment.amount_paise = null;
-      
+
       doc.escalate_to_human = false;
       await doc.save();
       console.log(`[Nexa] Re-opened conversation ${doc._id} for IG user ${igUserId} from comment`);
@@ -292,19 +293,19 @@ export const upsertNexaConversationFromDM = async ({
       doc.origin = 'direct_dm';
       doc.nudge_sent = false;
       doc.product_catalog_snapshot = productCatalog;
-      
+
       // Reset order-specific fields, but KEEP name, phone, delivery_address
       if (!doc.collected) doc.collected = {};
       doc.collected.product_interested = null;
       doc.collected.price_agreed = null;
       doc.collected.quantity = null;
       doc.collected.payment_mode = null;
-      
+
       if (!doc.payment) doc.payment = {};
       doc.payment.payment_status = 'not_generated';
       doc.payment.provider = null;
       doc.payment.amount_paise = null;
-      
+
       doc.escalate_to_human = false;
       await doc.save();
       console.log(`[Nexa] Re-opened conversation ${doc._id} from direct DM for IG user ${igUserId}`);
