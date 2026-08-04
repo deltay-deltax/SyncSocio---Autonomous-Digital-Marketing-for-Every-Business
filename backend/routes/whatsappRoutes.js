@@ -5,6 +5,226 @@ import BrandProfile from '../models/BrandProfile.js';
 
 const router = express.Router();
 
+// ── TEMPLATE SYNC LOGIC ──────────────────────────────────────────────────────
+export async function syncDefaultTemplates(profile, accessToken, sampleHandle = null) {
+  if (!profile.whatsappWABAId || !accessToken) return;
+  
+  const appIdForTemplates = process.env.INSTAGRAM_CLIENT_ID || process.env.FB_APP_ID || '1491990322515220';
+  let sharedSampleHandle = sampleHandle || null; 
+
+  if (!sharedSampleHandle) {
+    try {
+      const samplePng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+      const sessionRes = await axios.post(
+        `https://graph.facebook.com/v21.0/${appIdForTemplates}/uploads`,
+        null,
+        { params: { file_length: samplePng.length, file_type: 'image/png', access_token: accessToken } }
+      );
+      const sessionId = sessionRes.data?.id;
+      if (sessionId) {
+        const uploadRes = await axios.post(
+          `https://graph.facebook.com/v21.0/${sessionId}`,
+          samplePng,
+          { headers: { 'Authorization': `OAuth ${accessToken}`, 'file_offset': 0, 'Content-Type': 'image/png' } }
+        );
+        sharedSampleHandle = uploadRes.data?.h || null;
+        console.log(`[WhatsApp Templates] Uploaded shared sample image handle: ${sharedSampleHandle}`);
+      }
+    } catch (uploadErr) {
+      console.warn('[WhatsApp Templates] Could not upload shared sample image handle:', uploadErr?.response?.data || uploadErr.message);
+    }
+  }
+
+  const SYNCSOCIO_TEMPLATES = [
+    {
+      name: 'syncsocio_v2_festival',
+      bodyText: '🎉 *{{1}}*\nThis festive season, we have something special for you:\n{{2}}\nOffer valid for a limited time. Powered by SyncSocio.',
+      example: ['Happy Diwali — Exclusive Offer!', 'Celebrate with 20% OFF on all products today only!'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Claim Offer',
+    },
+    {
+      name: 'syncsocio_v2_abandoned',
+      bodyText: 'Hi *{{1}}*,\nYou left something behind! 🛒\n{{2}}\nComplete your purchase now before it runs out of stock. Powered by SyncSocio.',
+      example: ['John', 'Your favorite red sneakers are waiting in your cart.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Complete Purchase',
+    },
+    {
+      name: 'syncsocio_v2_launch',
+      bodyText: '🚀 *{{1}}*\nWe are thrilled to announce:\n{{2}}\nBe the first to check it out! Powered by SyncSocio.',
+      example: ['New Collection Live!', 'Our Summer 2024 Collection just dropped featuring 50+ new styles.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Shop New Arrivals',
+    },
+    {
+      name: 'syncsocio_v2_promo_visit',
+      bodyText: 'Hey there,\n*{{1}}*\n{{2}}\nBest, Team Powered by SyncSocio.',
+      example: ['Check out our latest release!', 'We just added 20+ new items to our store. Grab them before they are gone.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Shop Now',
+    },
+    {
+      name: 'syncsocio_v2_welcome',
+      bodyText: 'Welcome to *{{1}}*!\n{{2}}\nWe are so glad to have you with us. Powered by SyncSocio.',
+      example: ['SyncSocio VIP Club', 'Enjoy 10% off your first order with code WELCOME10.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Start Shopping',
+    },
+    {
+      name: 'syncsocio_v2_feedback',
+      bodyText: 'Hi *{{1}}*,\nWe hope you are enjoying your recent experience with us.\n{{2}}\nYour feedback means the world to us! Powered by SyncSocio.',
+      example: ['Sarah', 'Could you take 1 minute to leave us a review?'],
+      hasImageHeader: false,
+      hasUrlButton: true,
+      btnText: 'Leave a Review',
+    },
+    {
+      name: 'syncsocio_v2_update',
+      bodyText: '🔔 *{{1}}*\n{{2}}\nStay tuned for more updates! Powered by SyncSocio.',
+      example: ['Important Account Update', 'We have updated our Terms of Service effective next month.'],
+      hasImageHeader: false,
+      hasUrlButton: true,
+      btnText: 'Read More',
+    },
+    {
+      name: 'syncsocio_v2_reengagement',
+      bodyText: 'We miss you, *{{1}}*!\n{{2}}\nCome back and see what is new. Powered by SyncSocio.',
+      example: ['Alex', 'It has been a while! Here is a special 15% discount just for you.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'See What is New',
+    },
+    {
+      name: 'syncsocio_v2_exclusive_vip',
+      bodyText: '🌟 *{{1}}*\nAs a valued member, here is your exclusive perk:\n{{2}}\nPowered by SyncSocio.',
+      example: ['VIP Early Access', 'Shop the Black Friday sale 24 hours before anyone else.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Access VIP Sale',
+    },
+    {
+      name: 'syncsocio_v2_newsletter',
+      bodyText: '📰 *{{1}}*\nHere is what is happening this month:\n{{2}}\nThanks for being part of our community. Powered by SyncSocio.',
+      example: ['Monthly Wrap-Up', 'Read about our new features, community highlights, and upcoming events.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Read Newsletter',
+    },
+    {
+      name: 'syncsocio_v2_webinar_invite',
+      bodyText: '📅 *{{1}}*\nJoin our upcoming session:\n{{2}}\nSeats are limited, reserve yours today! Powered by SyncSocio.',
+      example: ['Masterclass: Growth Marketing', 'Learn top strategies from industry experts this Thursday at 2 PM.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Register Now',
+    },
+    {
+      name: 'syncsocio_v2_lead_magnet',
+      bodyText: 'Here is your requested resource, *{{1}}*!\n{{2}}\nWe hope you find it valuable. Powered by SyncSocio.',
+      example: ['Alex', 'Your free PDF guide to Social Media Automation is ready to download.'],
+      hasImageHeader: false,
+      hasUrlButton: true,
+      btnText: 'Download Guide',
+    },
+    {
+      name: 'syncsocio_v2_interactive_poll',
+      bodyText: '🗳️ *{{1}}*\n{{2}}\nYour feedback helps us serve you better. Thank you for participating! Powered by SyncSocio.',
+      example: ['Quick Poll for You', 'Tell us what you think — your opinion shapes what we build next for you!'],
+      hasImageHeader: false,
+      hasUrlButton: true,
+      btnText: 'Vote Now',
+    },
+  ];
+
+  const brandWebsite = profile.website && profile.website.startsWith('http')
+    ? profile.website
+    : 'https://www.syncsocio.com';
+
+  console.log(`[WhatsApp Templates] Auto-submitting ${SYNCSOCIO_TEMPLATES.length} campaign templates for WABA ${profile.whatsappWABAId}...`);
+  let existingTemplatesMap = {};
+  try {
+    let nextUrl = `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates?fields=name,id&limit=100`;
+    while (nextUrl) {
+      const existingRes = await axios.get(nextUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const templatesList = existingRes.data?.data || [];
+      templatesList.forEach(t => {
+        existingTemplatesMap[t.name] = t.id;
+      });
+      nextUrl = existingRes.data?.paging?.next || null;
+    }
+  } catch (err) {
+    console.warn('[WhatsApp Templates] Could not fetch existing templates for robust syncing:', err.message);
+  }
+
+  for (const tmpl of SYNCSOCIO_TEMPLATES) {
+    try {
+      const components = [];
+      if (tmpl.hasImageHeader) {
+        const headerComp = { type: 'HEADER', format: 'IMAGE' };
+        if (sharedSampleHandle) {
+          headerComp.example = { header_handle: [sharedSampleHandle] };
+        }
+        components.push(headerComp);
+      }
+      components.push({
+        type: 'BODY',
+        text: tmpl.bodyText,
+        example: { body_text: [tmpl.example] }
+      });
+      components.push({ type: 'FOOTER', text: 'T&C apply. Reply STOP to unsubscribe.' });
+      if (tmpl.hasUrlButton) {
+        components.push({
+          type: 'BUTTONS',
+          buttons: [{
+            type: 'URL',
+            text: tmpl.btnText,
+            url: `${brandWebsite}/{{1}}`,
+            example: ['shop']
+          }]
+        });
+      }
+      
+      const existingTemplateId = existingTemplatesMap[tmpl.name];
+
+      if (existingTemplateId) {
+        // Edit existing template
+        await axios.post(
+          `https://graph.facebook.com/v21.0/${existingTemplateId}`,
+          { components },
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        ).catch(e => {
+          console.error(`[WhatsApp Templates] Failed to edit ${tmpl.name}:`, e?.response?.data || e.message);
+        });
+      } else {
+        // Create new template
+        await axios.post(
+          `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates`,
+          { name: tmpl.name, language: 'en_US', category: 'MARKETING', components },
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        ).catch(e => {
+          if (
+            !e?.response?.data?.error?.error_user_msg?.toLowerCase().includes('already exists') &&
+            !e?.response?.data?.error?.error_user_title?.toLowerCase().includes('already exists') &&
+            e?.response?.data?.error?.error_subcode !== 2388040
+          ) {
+            console.error(`[WhatsApp Templates] Failed to submit ${tmpl.name}:`, e?.response?.data || e.message);
+          }
+        });
+      }
+    } catch (e) {}
+    await new Promise(r => setTimeout(r, 500));
+  }
+  console.log(`[WhatsApp Templates] Batch submission complete.`);
+}
+
 // ── GET /api/whatsapp/config ─────────────────────────────────────────────────
 // Returns the Meta App ID needed by the frontend Embedded Signup SDK
 router.get('/config', protect, (req, res) => {
@@ -406,228 +626,13 @@ router.post('/callback', protect, async (req, res) => {
             }
           }
         }
+        
+        // Call the new template sync function
+        await syncDefaultTemplates(profile, accessToken, sampleHandle);
+
       } catch (outerErr) {
         console.error('[WhatsApp Template] Unexpected error during initial template auto-creation:', outerErr?.response?.data || outerErr.message);
       }
-    }
-    // ── AUTO-SUBMIT ALL SYNCSOCIO CAMPAIGN TEMPLATES FOR REVIEW ─────────────
-    // These are the pre-built templates used by WhatsApp campaigns. Submit all
-    // so they go into "In Review" on Meta and can be approved for messaging.
-    if (profile.whatsappWABAId && accessToken) {
-      // Upload a shared sample image handle for all IMAGE-header templates
-      // (Meta requires example.header_handle for IMAGE headers — error_subcode 2388043)
-      const appIdForTemplates = process.env.INSTAGRAM_CLIENT_ID || process.env.FB_APP_ID || '1491990322515220';
-      let sharedSampleHandle = sampleHandle || null; // Reuse handle from custom_campaign_image upload if available
-
-      if (!sharedSampleHandle) {
-        try {
-          const samplePng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
-          const sessionRes = await axios.post(
-            `https://graph.facebook.com/v21.0/${appIdForTemplates}/uploads`,
-            null,
-            { params: { file_length: samplePng.length, file_type: 'image/png', access_token: accessToken } }
-          );
-          const sessionId = sessionRes.data?.id;
-          if (sessionId) {
-            const uploadRes = await axios.post(
-              `https://graph.facebook.com/v21.0/${sessionId}`,
-              samplePng,
-              { headers: { 'Authorization': `OAuth ${accessToken}`, 'file_offset': 0, 'Content-Type': 'image/png' } }
-            );
-            sharedSampleHandle = uploadRes.data?.h || null;
-            console.log(`[WhatsApp Templates] Uploaded shared sample image handle: ${sharedSampleHandle}`);
-          }
-        } catch (uploadErr) {
-          console.warn('[WhatsApp Templates] Could not upload shared sample image handle:', uploadErr?.response?.data || uploadErr.message);
-        }
-      }
-
-      const SYNCSOCIO_TEMPLATES = [
-        {
-          name: 'syncsocio_festival',
-          // Body text is long enough relative to 2 variables (words-ratio check)
-          bodyText: '🎉 *{{1}}*\n\nHere is your exclusive deal from us:\n{{2}}\n\nDon\'t miss out — this offer is valid for a limited time only. Powered by SyncSocio.',
-          example: ['Happy Diwali — Exclusive Offer!', 'Celebrate with 20% OFF on all products today only!'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Shop Now',
-        },
-        {
-          name: 'syncsocio_promo_image',
-          bodyText: '🛍️ *{{1}}*\n\nHere is what we have for you:\n{{2}}\n\nGrab it before it runs out. Powered by SyncSocio.',
-          example: ['New Collection Drop', 'Our latest arrivals are live — grab yours before they run out!'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'View Collection',
-        },
-        {
-          name: 'syncsocio_promo_generic',
-          bodyText: '🔥 *{{1}}*\n\nHere are the details:\n{{2}}\n\nAct fast — limited availability. Powered by SyncSocio.',
-          example: ['Exclusive Offer Inside', 'Get 30% off when you order today. Limited time only!'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Claim Offer',
-        },
-        {
-          name: 'syncsocio_promo_text',
-          // TEXT-ONLY: no image header. Longer body needed to satisfy words-to-variable ratio.
-          bodyText: '💬 *{{1}}*\n\nWe wanted to share something important with you:\n{{2}}\n\nTap below to find out more and stay ahead. Powered by SyncSocio.',
-          example: ['Special Announcement', 'We have something big coming your way — stay tuned for the big reveal!'],
-          hasImageHeader: false,
-          hasUrlButton: true,
-          btnText: 'Learn More',
-        },
-        {
-          name: 'syncsocio_promo_shop',
-          bodyText: '🛒 *{{1}}*\n\nHere is what is on offer:\n{{2}}\n\nShop now before stocks run out. Powered by SyncSocio.',
-          example: ['Weekend Sale is Live!', 'Shop our bestsellers at up to 40% off this weekend only.'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Shop Now',
-        },
-        {
-          name: 'syncsocio_promo_claim',
-          bodyText: '🎁 *{{1}}*\n\nYour exclusive deal is waiting:\n{{2}}\n\nClaim it before it expires. Powered by SyncSocio.',
-          example: ['Your Offer is Ready', 'Claim your exclusive discount before it expires tonight!'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Claim Now',
-        },
-        {
-          name: 'syncsocio_promo_visit',
-          bodyText: '📍 *{{1}}*\n\nHere is what you need to know:\n{{2}}\n\nCome visit us — we would love to see you. Powered by SyncSocio.',
-          example: ['Visit Our Store', 'We would love to see you! Find us at our new location this weekend.'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Get Directions',
-        },
-        {
-          name: 'syncsocio_promo_book',
-          bodyText: '📅 *{{1}}*\n\nHere are the details for your booking:\n{{2}}\n\nSecure your spot now. Powered by SyncSocio.',
-          example: ['Book Your Appointment', 'Slots are filling fast — reserve yours now before they are all gone!'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Book Now',
-        },
-        {
-          name: 'syncsocio_promo_order',
-          bodyText: '📦 *{{1}}*\n\nHere is the latest update on your order:\n{{2}}\n\nThank you for shopping with us. Powered by SyncSocio.',
-          example: ['Order Update', 'Your order has been dispatched and is on its way. Track it here.'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Track Order',
-        },
-        {
-          name: 'syncsocio_promo_learn',
-          bodyText: '📚 *{{1}}*\n\nHere is what we have lined up for you:\n{{2}}\n\nStart learning today and grow your skills. Powered by SyncSocio.',
-          example: ['New Course Alert', 'Enrol in our new course and level up your skills starting today!'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Learn More',
-        },
-        {
-          name: 'syncsocio_promo_get',
-          bodyText: '⚡ *{{1}}*\n\nHere is your exclusive freebie:\n{{2}}\n\nDownload it now — available for a limited time only. Powered by SyncSocio.',
-          example: ['Grab Your Freebie', 'Download your free guide — available for 24 hours only. Grab it now!'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Get It Now',
-        },
-        {
-          name: 'syncsocio_promo_lead',
-          bodyText: '📋 *{{1}}*\n\nHere is how you can claim your reward:\n{{2}}\n\nFill the form and get your exclusive benefit. Powered by SyncSocio.',
-          example: ['You Have Been Selected', 'Fill out a quick form and get your exclusive reward today!'],
-          hasImageHeader: true,
-          hasUrlButton: true,
-          btnText: 'Fill Form',
-        },
-        {
-          name: 'syncsocio_interactive_poll',
-          // TEXT-ONLY: longer body to satisfy words-to-variable ratio.
-          bodyText: '🗳️ *{{1}}*\n\nWe would love to hear from you:\n{{2}}\n\nYour feedback helps us serve you better. Thank you for participating! Powered by SyncSocio.',
-          example: ['Quick Poll for You', 'Tell us what you think — your opinion shapes what we build next for you!'],
-          hasImageHeader: false,
-          hasUrlButton: true,
-          btnText: 'Vote Now',
-        },
-      ];
-
-      const brandWebsite = profile.website && profile.website.startsWith('http')
-        ? profile.website
-        : 'https://www.syncsocio.com';
-
-      console.log(`[WhatsApp Templates] Auto-submitting ${SYNCSOCIO_TEMPLATES.length} campaign templates for WABA ${profile.whatsappWABAId}...`);
-      for (const tmpl of SYNCSOCIO_TEMPLATES) {
-        try {
-          const components = [];
-
-          if (tmpl.hasImageHeader) {
-            // IMAGE header MUST include example.header_handle — Meta error_subcode 2388043
-            const headerComp = { type: 'HEADER', format: 'IMAGE' };
-            if (sharedSampleHandle) {
-              headerComp.example = { header_handle: [sharedSampleHandle] };
-            }
-            components.push(headerComp);
-          }
-
-          components.push({
-            type: 'BODY',
-            text: tmpl.bodyText,
-            example: { body_text: [tmpl.example] }
-          });
-
-          components.push({ type: 'FOOTER', text: 'T&C apply. Reply STOP to unsubscribe.' });
-
-          if (tmpl.hasUrlButton) {
-            components.push({
-              type: 'BUTTONS',
-              buttons: [{
-                type: 'URL',
-                text: tmpl.btnText,
-                url: `${brandWebsite}/{{1}}`,
-                example: ['shop']
-              }]
-            });
-          }
-
-          // Submit with one retry for transient Meta server errors (code 2, is_transient: true)
-          let submitted = false;
-          for (let attempt = 1; attempt <= 2; attempt++) {
-            try {
-              await axios.post(
-                `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates`,
-                { name: tmpl.name, language: 'en_US', category: 'MARKETING', components },
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              );
-              console.log(`[WhatsApp Templates] Submitted: ${tmpl.name}`);
-              submitted = true;
-              break;
-            } catch (tmplErr) {
-              const isTransient = tmplErr?.response?.data?.error?.is_transient;
-              const errCode = tmplErr?.response?.data?.error?.code;
-              const subcode = tmplErr?.response?.data?.error?.error_subcode;
-              const msg = tmplErr?.response?.data?.error?.message || '';
-              const errTitle = tmplErr?.response?.data?.error?.error_user_title || '';
-              if (subcode === 2388040 || subcode === 2388024 || msg.toLowerCase().includes('already exists') || errTitle.toLowerCase().includes('already exists')) {
-                console.log(`[WhatsApp Templates] Already exists (skipping): ${tmpl.name}`);
-                submitted = true;
-                break;
-              } else if (isTransient && errCode === 2 && attempt < 2) {
-                console.warn(`[WhatsApp Templates] Transient error on ${tmpl.name}, retrying in 2s...`);
-                await new Promise(r => setTimeout(r, 2000));
-              } else {
-                console.error(`[WhatsApp Templates] Failed to submit ${tmpl.name}:`, tmplErr?.response?.data || tmplErr.message);
-                break;
-              }
-            }
-          }
-        } catch (outerErr) {
-          console.error(`[WhatsApp Templates] Error preparing template ${tmpl.name}:`, outerErr.message);
-        }
-        // Delay between template submissions to avoid Meta rate limits (1s)
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      console.log(`[WhatsApp Templates] Batch submission complete.`);
     }
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -695,7 +700,7 @@ router.get('/templates', protect, async (req, res) => {
     }
 
     const result = await axios.get(`https://graph.facebook.com/v25.0/${wabaId}/message_templates`, {
-      params: { fields: 'name,status,category,language', limit: 50 },
+      params: { fields: 'name,status,category,language,components', limit: 50 },
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -703,6 +708,93 @@ router.get('/templates', protect, async (req, res) => {
   } catch (err) {
     console.error('[WhatsApp Templates] Error fetching templates:', err?.response?.data || err.message);
     res.status(500).json({ message: 'Failed to fetch templates.', error: err?.response?.data });
+  }
+});
+
+// ── POST /api/whatsapp/sync-templates ────────────────────────────────────────
+// Manually triggers template re-sync using the existing connection
+router.post('/sync-templates', protect, async (req, res) => {
+  try {
+    const profile = await BrandProfile.findOne({
+      user: req.user._id,
+      ...(req.user.activeBrandId ? { _id: req.user.activeBrandId } : {})
+    }) || await BrandProfile.findOne({ user: req.user._id });
+
+    if (!profile || !profile.whatsappIsConnected || !profile.whatsappAccessToken) {
+      return res.status(400).json({ message: 'WhatsApp is not connected.' });
+    }
+    await syncDefaultTemplates(profile, profile.whatsappAccessToken, null);
+    res.json({ success: true, message: 'Templates submitted successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to sync templates.', error: err.message });
+  }
+});
+// ── POST /api/whatsapp/map-variables ─────────────────────────────────────────
+// Uses Gemini to auto-map user instructions to template variables
+router.post('/map-variables', protect, async (req, res) => {
+  const { idea, templateBody, templateName } = req.body;
+  if (!idea || !templateBody) {
+    return res.status(400).json({ message: 'Idea and templateBody are required.' });
+  }
+
+  try {
+    const profile = await BrandProfile.findOne({
+      user: req.user._id,
+      ...(req.user.activeBrandId ? { _id: req.user.activeBrandId } : {})
+    }) || await BrandProfile.findOne({ user: req.user._id });
+
+    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+    if (!GOOGLE_API_KEY) {
+      // Fallback if no AI
+      const fallbackMsg = idea.substring(0, 1024);
+      return res.json({ filledText: templateBody.replace(/\{\{1\}\}/g, 'Offer').replace(/\{\{2\}\}/g, fallbackMsg), variables: { '1': 'Offer', '2': fallbackMsg } });
+    }
+
+    const industry = profile?.businessCategory || 'Retail';
+    const tone = profile?.brandTone || 'professional and engaging';
+    
+    const prompt = `You are an expert WhatsApp marketing copywriter for ${industry} brands.
+
+Brand Tone: ${tone}
+
+The user wants to send a WhatsApp campaign about: "${idea}"
+
+The chosen WhatsApp template is:
+"${templateBody}"
+
+This template contains variables like {{1}}, {{2}}, etc.
+Your job is to generate the best text to fill in these variables based on the user's campaign idea.
+Ensure the filled template reads naturally and fits the brand tone.
+
+Return a valid JSON object where keys are the variable numbers (e.g., "1", "2") and values are the text to insert.
+Rules:
+- Keep text for variables short enough to fit WhatsApp limits.
+- If it's a headline variable (usually {{1}} if it's a short intro), keep it under 60 chars.
+- If it's a body variable, make it engaging.
+- Output ONLY JSON.`;
+
+    const geminiRes = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GOOGLE_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 300, responseMimeType: 'application/json' }
+      },
+      { timeout: 15000 }
+    );
+
+    const raw = geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const variables = JSON.parse(raw.trim());
+
+    let filledText = templateBody;
+    for (const [key, value] of Object.entries(variables)) {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+      filledText = filledText.replace(regex, String(value));
+    }
+
+    res.json({ filledText, variables });
+  } catch (err) {
+    console.error('[WhatsApp MapVariables] Error:', err.message);
+    res.status(500).json({ message: 'Failed to map variables.', error: err.message });
   }
 });
 

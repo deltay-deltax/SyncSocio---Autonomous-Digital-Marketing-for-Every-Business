@@ -161,11 +161,11 @@ const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({ onBack, initialTe
 
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  // Parse body content to replace {{1}}, {{2}} with generic placeholders for preview
+  // Parse body content to replace {{1}}, {{2}} with realistic sample values for preview
   const previewBody = template.bodyContent
-    .replace(/\{\{1\}\}/g, '[Name]')
-    .replace(/\{\{2\}\}/g, '[Offer/Details]')
-    .replace(/\{\{3\}\}/g, '[Value]');
+    .replace(/\{\{1\}\}/g, brandName || 'Rahul')
+    .replace(/\{\{2\}\}/g, 'Exclusive offer: Flat 20% OFF on all orders today!')
+    .replace(/\{\{3\}\}/g, 'SAVE20');
 
   return (
     <div className="max-w-7xl mx-auto h-[calc(100vh-100px)] flex flex-col pt-4">
@@ -372,11 +372,12 @@ const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({ onBack, initialTe
         </div>
 
         {/* RIGHT PANE - PREVIEW */}
-        <div className="lg:col-span-5 h-full flex flex-col items-center justify-center p-4 bg-muted/20 rounded-[24px] border border-border/40 relative overflow-hidden">
+        <div className="lg:col-span-5 h-full flex flex-col items-center justify-start py-4 px-4 bg-muted/20 rounded-[24px] border border-border/40 relative overflow-y-auto custom-scrollbar">
            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/30 pointer-events-none" />
+           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 shrink-0 z-10">Live Preview</p>
            
            {/* WhatsApp iPhone Mockup */}
-           <div className="rounded-[40px] overflow-hidden border-[8px] border-[#1f2022] shadow-2xl w-full max-w-[320px] bg-[#e5ddd5] relative ring-1 ring-black/10 z-10 shrink-0 transform scale-[0.9] sm:scale-100 origin-center">
+           <div className="rounded-[40px] overflow-hidden border-[8px] border-[#1f2022] shadow-2xl w-full max-w-[300px] bg-[#e5ddd5] relative ring-1 ring-black/10 z-10 shrink-0">
               
               {/* iOS Status Bar */}
               <div className="bg-white px-5 pt-3 pb-1 flex justify-between items-center text-[10px] font-semibold text-black relative z-10">
