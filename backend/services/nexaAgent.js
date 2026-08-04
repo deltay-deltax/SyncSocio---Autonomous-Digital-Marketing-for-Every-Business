@@ -108,7 +108,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
   const recentUserMessages = (convo.conversation_history || []).filter(h => h.role === 'user' && new Date(h.ts) > tenMinsAgo);
   
-  if (recentUserMessages.length >= 15) {
+  if (recentUserMessages.length >= 40) {
     console.log(`[Nexa Circuit Breaker] Triggered for ${convo.ig_user_id}. Too many messages in 10 mins.`);
     await NexaConversation.updateOne({ _id: convo._id }, { stage: 'ESCALATED', escalate_to_human: true });
     return {
