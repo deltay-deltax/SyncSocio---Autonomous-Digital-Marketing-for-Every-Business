@@ -903,11 +903,19 @@ const processMessageEventForProfile = async (profile, event) => {
 
   // ── Nexa: Check if there is an active Nexa conversation for this sender ──
   try {
-    const nexaConvo = await NexaConversation.findOne({
+    let nexaConvo = await NexaConversation.findOne({
       brand_id: profile._id,
       ig_user_id: event.senderId,
       stage: { $nin: ['AWAITING_FOLLOWUP', 'ESCALATED'] },
-    });
+    }).sort({ updatedAt: -1 });
+
+    if (nexaConvo && nexaConvo.stage === 'CLOSED') {
+      const timeSinceLastUpdate = Date.now() - new Date(nexaConvo.updatedAt).getTime();
+      if (timeSinceLastUpdate > 30 * 60 * 1000) {
+        // It's been > 30 minutes since the CLOSED conversation was active. Treat as no active conversation.
+        nexaConvo = null;
+      }
+    }
 
     if (nexaConvo) {
       const freshBrand = await BrandProfile.findById(profile._id).lean();
@@ -962,7 +970,7 @@ const processMessageEventForProfile = async (profile, event) => {
         }
       }
 
-      // Send the Nexa reply
+      // Send the Nexa reply text
       await sleep(1500);
       await sendStandardMessage({
         pageToken,
@@ -970,6 +978,26 @@ const processMessageEventForProfile = async (profile, event) => {
         messagePayload: { text: replyText.slice(0, 1000) },
         pageId: profile.instagramPageId,
       });
+
+      // If Nexa requests to send UPI QR code, send it as an image attachment
+      if (result.sendUpiQr && nexaSettings?.upi_qr_code_url) {
+        try {
+          await sleep(1000);
+          await sendStandardMessage({
+            pageToken,
+            igScopedId: event.senderId,
+            messagePayload: {
+              attachment: {
+                type: 'image',
+                payload: { url: nexaSettings.upi_qr_code_url }
+              }
+            },
+            pageId: profile.instagramPageId,
+          });
+        } catch (qrErr) {
+          console.error('[Nexa] Failed to send UPI QR code attachment:', qrErr.message);
+        }
+      }
 
       return true;
       }

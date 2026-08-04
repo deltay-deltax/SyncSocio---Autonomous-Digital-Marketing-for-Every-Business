@@ -1361,6 +1361,50 @@ const DashboardSettings = () => {
               <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
                 <div className="flex items-center gap-3">
                   <Trash2 size={18} className="text-destructive" />
+                  <p className="text-sm font-black text-foreground">Delete Current Brand</p>
+                </div>
+                <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently delete this brand profile, its products, conversations, and settings. This action cannot be reversed.</p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
+                  onClick={async () => {
+                    setConfirmModal({
+                      isOpen: true,
+                      title: 'DELETE BRAND',
+                      message: `You are about to permanently delete the brand profile "${profile?.brandName}". This will erase all products, automations, and conversation history tied to this brand. Are you sure?`,
+                      onConfirm: async () => {
+                        setConfirmModal(null);
+                        try {
+                          const token = localStorage.getItem('token');
+                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                          const res = await fetch(`${apiBase}/profile/brand/${profile?._id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          });
+                          if (res.ok) {
+                            toast({ title: 'Brand Deleted', description: 'The brand profile has been permanently removed.' });
+                            setTimeout(() => {
+                              window.location.reload();
+                            }, 1000);
+                          } else {
+                            const data = await res.json();
+                            toast({ title: 'Deletion Failed', description: data.message || 'Failed to delete brand.', variant: 'destructive' });
+                          }
+                        } catch (err) {
+                          console.error("Brand deletion failed:", err);
+                        }
+                      }
+                    });
+                  }}
+                >
+                  Delete Brand
+                </Button>
+              </div>
+
+              <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
+                <div className="flex items-center gap-3">
+                  <Trash2 size={18} className="text-destructive" />
                   <p className="text-sm font-black text-foreground">Terminate Account</p>
                 </div>
                 <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently erase your digital entity, synthesis weights, and all associated analytics. This action cannot be reversed.</p>

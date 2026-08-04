@@ -215,6 +215,70 @@ export const switchBrand = async (req, res) => {
 import StrategyCreative from '../models/StrategyCreative.js';
 import Product from '../models/Product.js';
 
+export const deleteBrand = async (req, res) => {
+  try {
+    const brandId = req.params.id;
+    const userId = req.user._id;
+
+    console.log(`[DELETE BRAND] ⚠️ Deleting brand ${brandId} for user ${userId}...`);
+
+    const brand = await BrandProfile.findOne({ _id: brandId, user: userId });
+    if (!brand) return res.status(404).json({ message: 'Brand not found' });
+
+    // Clean up Cloudinary assets
+    try {
+      if (brand.logo && brand.logo.startsWith('http')) {
+        await deleteFromCloudinary(brand.logo).catch(() => {});
+      }
+      
+      const creatives = await StrategyCreative.find({ brand_id: brandId });
+      for (const creative of creatives) {
+        if (creative.thumbnailBase64 && creative.thumbnailBase64.startsWith('http')) {
+          await deleteFromCloudinary(creative.thumbnailBase64).catch(() => {});
+        }
+        if (creative.slides?.length) {
+          creative.slides.forEach(s => {
+            if (s.image?.startsWith('http')) deleteFromCloudinary(s.image).catch(() => {});
+          });
+        }
+      }
+
+      const products = await Product.find({ brandId: brandId });
+      for (const prod of products) {
+        if (prod.imageBase64 && prod.imageBase64.startsWith('http')) {
+          await deleteFromCloudinary(prod.imageBase64).catch(() => {});
+        }
+      }
+    } catch (cleanErr) {
+      console.warn('[DELETE BRAND] Cloudinary cleanup warning:', cleanErr.message);
+    }
+
+    // Wipe all related records
+    await Promise.all([
+      StrategyCreative.deleteMany({ brand_id: brandId }),
+      Product.deleteMany({ brandId: brandId }),
+      import('../models/NexaConversation.js').then(m => m.default.deleteMany({ brand_id: brandId })),
+      import('../models/DMFlow.js').then(m => m.default.deleteMany({ brandId: brandId })),
+      import('../models/DMFlowFollowUp.js').then(m => m.default.deleteMany({ brandId: brandId })),
+    ]);
+
+    await BrandProfile.deleteOne({ _id: brandId });
+
+    // Reset user activeBrandId if it was this one
+    const user = await User.findById(userId);
+    if (user.activeBrandId && user.activeBrandId.toString() === brandId.toString()) {
+      const remainingBrand = await BrandProfile.findOne({ user: userId });
+      user.activeBrandId = remainingBrand ? remainingBrand._id : null;
+      await user.save();
+    }
+
+    res.json({ success: true, message: 'Brand deleted permanently' });
+  } catch (error) {
+    console.error('[DELETE BRAND] Error:', error.message);
+    res.status(500).json({ message: 'Server error deleting brand' });
+  }
+};
+
 export const terminateAccount = async (req, res) => {
   try {
     const userId = req.user._id;

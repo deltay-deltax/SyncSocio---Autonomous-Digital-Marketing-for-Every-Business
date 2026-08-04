@@ -87,6 +87,7 @@ ${collectedStr}
 - Keep messages EXTREMELY short and concise. Use bullet points instead of long paragraphs. IMPORTANT: When listing product features or details, ALWAYS leave a full blank line (double spacing) between each bullet point to make it highly readable in Instagram DMs.
 - If the customer asks something outside your knowledge: set escalate_to_human=true and new_stage="ESCALATED".
 - NEVER set payment_link_requested=true unless price_agreed is already finalized and > 0. If they ask to pay before agreeing on an order, politely ask them what they want to order first.
+- AD DISPUTE RULE: If a customer mentions seeing a different price in an advertisement, politely inform them that the ad might be outdated or for a different variant, and strictly enforce the current catalog price. DO NOT escalate just because they mention an ad.
 
 ════ ═══════ OUTPUT FORMAT ═══════════
 Respond ONLY with valid JSON (no markdown, no backticks):
@@ -236,20 +237,41 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   const newHistoryEntry = { role: 'user', text: incomingText, ts: new Date() };
   const nexaHistoryEntry = { role: 'nexa', text: parsed.reply_text, ts: new Date() };
 
-  const updateData = {
-    stage: parsed.escalate_to_human ? 'ESCALATED' : (parsed.payment_verified_from_screenshot ? 'CLOSED' : finalStage),
-    collected: mergedCollected,
-    escalate_to_human: !!parsed.escalate_to_human,
-    ...paymentUpdate,
-    $push: {
-      conversation_history: {
-        $each: [newHistoryEntry, nexaHistoryEntry],
-        $slice: -100, // cap at last 100 messages to prevent unbounded growth
-      },
-    },
-  };
+  const newStage = parsed.escalate_to_human ? 'ESCALATED' : (parsed.payment_verified_from_screenshot ? 'CLOSED' : finalStage);
 
-  await NexaConversation.updateOne({ _id: convo._id }, updateData);
+  // If the conversation was already CLOSED (e.g. order completed) but the AI decides to transition to a new active stage 
+  // (because the customer wants to buy something else within the 30-min window), we should FORK a new conversation 
+  // so we don't overwrite the old completed order in the CRM!
+  if (convo.stage === 'CLOSED' && newStage !== 'CLOSED' && newStage !== 'ESCALATED') {
+    const newConvo = await NexaConversation.create({
+      user: convo.user,
+      brand_id: convo.brand_id,
+      ig_user_id: convo.ig_user_id,
+      stage: newStage,
+      origin: convo.origin,
+      nudge_sent: false,
+      product_catalog_snapshot: convo.product_catalog_snapshot,
+      conversation_history: [...(convo.conversation_history || []), newHistoryEntry, nexaHistoryEntry].slice(-100),
+      collected: mergedCollected,
+      payment: {},
+      escalate_to_human: !!parsed.escalate_to_human,
+    });
+    console.log(`[Nexa] Forked new conversation ${newConvo._id} because customer wanted a new order from CLOSED stage.`);
+  } else {
+    const updateData = {
+      stage: newStage,
+      collected: mergedCollected,
+      escalate_to_human: !!parsed.escalate_to_human,
+      ...paymentUpdate,
+      $push: {
+        conversation_history: {
+          $each: [newHistoryEntry, nexaHistoryEntry],
+          $slice: -100, // cap at last 100 messages to prevent unbounded growth
+        },
+      },
+    };
+    await NexaConversation.updateOne({ _id: convo._id }, updateData);
+  }
 
   return {
     replyText: parsed.reply_text,
@@ -348,10 +370,24 @@ export const upsertNexaConversationFromDM = async ({
     console.error('[Nexa] Failed to fetch products for catalog snapshot:', e.message);
   }
 
-  let doc = await NexaConversation.findOne({ brand_id: brandDoc._id, ig_user_id: igUserId });
+  let doc = await NexaConversation.findOne({ brand_id: brandDoc._id, ig_user_id: igUserId }).sort({ updatedAt: -1 });
 
   if (doc) {
-    if (['ESCALATED'].includes(doc.stage)) {
+    const timeSinceLastUpdate = Date.now() - new Date(doc.updatedAt).getTime();
+    if (doc.stage === 'CLOSED' && timeSinceLastUpdate > 30 * 60 * 1000) {
+      // It's been > 30 minutes since the CLOSED conversation was active. Create a new one!
+      doc = await NexaConversation.create({
+        user: brandDoc.user,
+        brand_id: brandDoc._id,
+        ig_user_id: igUserId,
+        stage: 'GREETING',
+        origin: 'direct_dm',
+        nudge_sent: false,
+        product_catalog_snapshot: productCatalog,
+        conversation_history: [],
+      });
+      console.log(`[Nexa] Conversation ${doc._id} created from direct DM (previous was CLOSED and stale) for IG user ${igUserId}`);
+    } else if (['ESCALATED'].includes(doc.stage)) {
       // Re-open conversation
       doc.stage = 'GREETING';
       doc.origin = 'direct_dm';
