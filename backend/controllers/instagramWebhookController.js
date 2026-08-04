@@ -4,7 +4,7 @@ import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import DMConversation from '../models/DMConversation.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
 import NexaConversation from '../models/NexaConversation.js';
-import { upsertNexaConversationFromComment, upsertNexaConversationFromDM, handleIncomingMessage as nexaHandleMessage } from '../services/nexaAgent.js';
+import { upsertNexaConversationFromDM, handleIncomingMessage as nexaHandleMessage } from '../services/nexaAgent.js';
 import { generateRazorpayLink, getNexaSettings } from '../services/nexaPayment.js';
 import {
   buildPublicCommentReplyText,
@@ -699,25 +699,6 @@ const processCommentEventForProfile = async (profile, event) => {
       actorUsername: event.actorUsername,
       result,
     });
-
-    // ── Nexa Handoff: create/upsert NexaConversation if nexa is enabled for this brand ──
-    if (result?.recipient_id) {
-      try {
-        const freshBrand = await BrandProfile.findById(profile._id).select('nexa user').lean();
-        if (freshBrand?.nexa?.nexa_enabled) {
-          await upsertNexaConversationFromComment({
-            brandDoc: { _id: profile._id, user: profile.user, ...freshBrand },
-            igUserId: result.recipient_id,
-            dmFlowId: flow._id,
-            productInterested: flow.linkedPostTopic || flow.name || null,
-            priceAgreed: null,
-          });
-          console.log(`[Nexa] Conversation seeded for ${result.recipient_id}`);
-        }
-      } catch (nexaErr) {
-        console.error('[Nexa] Failed to seed conversation:', nexaErr.message);
-      }
-    }
 
     // Notify user of new lead
     try {

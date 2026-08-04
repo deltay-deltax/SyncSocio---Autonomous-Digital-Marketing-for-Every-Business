@@ -156,7 +156,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       temperature: 0.3, // Low temperature for deterministic, accurate sales responses
-      max_tokens: 600,
+      max_tokens: 1200, // Increased to prevent JSON truncation
       response_format: { type: 'json_object' },
       messages: messages,
     });
@@ -193,6 +193,11 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
     parsed.payment_link_requested = false;
     parsed.reply_text = "Before I send the payment link, could you please confirm exactly what you'd like to order so I can finalize the price?";
     parsed.new_stage = 'QUALIFYING';
+  }
+
+  // FORCE RULE: Only send payment links in the CONFIRMING stage
+  if (parsed.payment_link_requested && finalStage !== 'CONFIRMING') {
+    parsed.payment_link_requested = false;
   }
 
   // If the agent decided to start a new inquiry from a CLOSED state, wipe old order data
