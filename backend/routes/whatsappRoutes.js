@@ -3,6 +3,7 @@ import axios from 'axios';
 import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
 import { upsertNexaConversationFromDM, handleIncomingMessage } from '../services/nexaAgent.js';
+import { generateRazorpayLink } from '../services/nexaPayment.js';
 
 const router = express.Router();
 
@@ -879,14 +880,37 @@ router.post('/webhook', async (req, res) => {
               nexaSettings: brandProfile.nexa,
             });
 
+            // Handle Razorpay Links
+            let finalReplyText = nexaResult?.replyText || '';
+            if (nexaResult?.paymentLinkRequested && brandProfile.nexa?.razorpay_connected) {
+              try {
+                const amount = nexaResult.mergedCollected?.price_agreed || 0;
+                if (amount > 0) {
+                  const { razorpay_short_url } = await generateRazorpayLink({
+                    brandDoc: brandProfile,
+                    nexaSettings: brandProfile.nexa,
+                    amountRupees: amount,
+                    customerName: nexaResult.mergedCollected?.customer_name || 'Customer',
+                    phone: nexaResult.mergedCollected?.phone_number || '',
+                    description: `Order: ${nexaResult.mergedCollected?.product_interested || 'Product'} x${nexaResult.mergedCollected?.quantity || 1}`,
+                    conversationId: convo._id,
+                  });
+                  finalReplyText += `\n\n🔗 Pay here: ${razorpay_short_url}`;
+                }
+              } catch (payErr) {
+                console.error('[WhatsApp Nexa] Failed to generate Razorpay link:', payErr.message);
+                finalReplyText += '\n\n(Payment link generation failed — please contact us directly)';
+              }
+            }
+
             // Send Nexa's reply back to the user via Meta API
-            if (nexaResult && nexaResult.replyText) {
+            if (finalReplyText) {
               const replyPayload = {
                 messaging_product: 'whatsapp',
                 recipient_type: 'individual',
                 to: senderId,
                 type: 'text',
-                text: { body: nexaResult.replyText }
+                text: { body: finalReplyText }
               };
 
               await axios.post(
@@ -900,6 +924,33 @@ router.post('/webhook', async (req, res) => {
                 }
               );
               console.log(`[WhatsApp Webhook] Sent reply to ${senderId}`);
+            }
+
+            // If Nexa requests to send UPI QR code, send it as an image attachment
+            if (nexaResult?.sendUpiQr && brandProfile.nexa?.upi_qr_code_url) {
+              try {
+                const qrPayload = {
+                  messaging_product: 'whatsapp',
+                  recipient_type: 'individual',
+                  to: senderId,
+                  type: 'image',
+                  image: { link: brandProfile.nexa.upi_qr_code_url }
+                };
+
+                await axios.post(
+                  `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`,
+                  qrPayload,
+                  {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${brandProfile.whatsappAccessToken}`,
+                    },
+                  }
+                );
+                console.log(`[WhatsApp Webhook] Sent UPI QR to ${senderId}`);
+              } catch (qrErr) {
+                console.error('[WhatsApp Nexa] Failed to send UPI QR:', qrErr.message);
+              }
             }
           }
         }

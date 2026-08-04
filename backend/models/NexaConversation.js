@@ -62,7 +62,7 @@ const nexaConversationSchema = new mongoose.Schema(
   { timestamps: true, collection: 'nexa_conversations' }
 );
 
-nexaConversationSchema.index({ brand_id: 1, ig_user_id: 1 }, { unique: true });
+nexaConversationSchema.index({ brand_id: 1, ig_user_id: 1, platform: 1 });
 nexaConversationSchema.index({ user: 1, stage: 1, nudge_due_at: 1, nudge_sent: 1 });
 
 export default mongoose.model('NexaConversation', nexaConversationSchema);
