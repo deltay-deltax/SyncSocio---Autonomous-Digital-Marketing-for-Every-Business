@@ -75,7 +75,7 @@ ${collectedStr}
    a) Customer's name  b) Product + quantity  c) Confirm final price  d) Full delivery address  e) Phone number
 5. CONFIRMING: Read back everything. Ask payment preference from: ${paymentOptionsStr}
    - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL.
-   - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot.
+   - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'If they explicitly ask for a QR code, set send_upi_qr=true to automatically attach the QR image.' : ''}
    - If Bank transfer: share the bank details. Tell them to send and share a screenshot.
    - If COD: set payment_mode="cod" in collected. Move to CLOSED.
 8. CLOSED: Thank them warmly. Say the team will confirm shortly. Do NOT re-negotiate. If they are just saying thanks/okay, remain in CLOSED. If they want to buy something new, transition to GREETING or QUALIFYING.
@@ -96,7 +96,8 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "new_stage": "one of: GREETING|QUALIFYING|NEGOTIATING|COLLECTING_DETAILS|CONFIRMING|CLOSED|ESCALATED",
   "updated_collected_fields": {},
   "payment_link_requested": false,
-  "escalate_to_human": false
+  "escalate_to_human": false,
+  "send_upi_qr": false
 }`;
 };
 
@@ -194,6 +195,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
     newStage: updateData.stage,
     paymentLinkRequested: !!parsed.payment_link_requested,
     escalate: !!parsed.escalate_to_human,
+    sendUpiQr: !!parsed.send_upi_qr,
     mergedCollected,
   };
 };

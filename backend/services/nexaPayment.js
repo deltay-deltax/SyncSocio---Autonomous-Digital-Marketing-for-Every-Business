@@ -7,10 +7,11 @@
  * This keeps SyncSocio outside RBI's Payment Aggregator rules.
  */
 
-import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import Razorpay from 'razorpay';
 import BrandProfile from '../models/BrandProfile.js';
 import NexaConversation from '../models/NexaConversation.js';
+import { sendStandardMessageExternal, resolvePageToken } from '../controllers/instagramWebhookController.js';
 
 // ─── Encryption helpers (AES-256-GCM) ────────────────────────────────────────
 const ALGO = 'aes-256-gcm';
@@ -143,7 +144,30 @@ export const handleRazorpayPaid = async (body) => {
         `${collected?.customer_name || 'A customer'} just paid for ${collected?.product_interested || 'an order'} ✅ ` +
         `Amount: ₹${collected?.price_agreed || '?'} | Address: ${collected?.delivery_address || 'N/A'} | Phone: ${collected?.phone_number || 'N/A'}`
       );
-    } catch (e) {}
+    } catch (e) {
+      console.error('[NexaPayment] Failed to send notification for paid order:', e.message);
+    }
+
+    // Auto-reply to the customer on Instagram
+    try {
+      const brand = await BrandProfile.findById(convo.brand_id);
+      if (brand) {
+        const pageToken = await resolvePageToken(brand);
+        if (pageToken) {
+          await sendStandardMessageExternal({
+            pageToken,
+            igScopedId: convo.ig_user_id,
+            messagePayload: { 
+              text: `🎉 Payment received! Thank you so much for your order.\n\nYour payment of ₹${convo.collected?.price_agreed} for ${convo.collected?.product_interested} is confirmed. Our team will process this right away!\n\n📦 Order Details:\nItem: ${convo.collected?.product_interested || 'N/A'} (x${convo.collected?.quantity || 1})\nName: ${convo.collected?.customer_name || 'N/A'}\nAddress: ${convo.collected?.delivery_address || 'N/A'}\nPhone: ${convo.collected?.phone_number || 'N/A'}`
+            },
+            pageId: brand.instagramPageId,
+          });
+          console.log(`[NexaPayment] Sent auto-reply to ${convo.ig_user_id} for paid order.`);
+        }
+      }
+    } catch (msgErr) {
+      console.error('[NexaPayment] Failed to send auto-reply to customer:', msgErr.message);
+    }
 
     console.log(`[NexaPayment] ✅ Payment confirmed for conversation ${convo._id}`);
   } catch (err) {

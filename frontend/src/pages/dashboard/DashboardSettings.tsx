@@ -136,6 +136,7 @@ const DashboardSettings = () => {
     razorpay_key_id: '',
     razorpay_key_secret: '',
     upi_id: '',
+    upi_qr_code_url: '',
     bank_details: '',
     cod_enabled: false,
     min_discount: 0,
@@ -178,6 +179,7 @@ const DashboardSettings = () => {
             ...prev,
             nexa_enabled: !!data.settings.nexa_enabled,
             upi_id: data.settings.upi_id || '',
+            upi_qr_code_url: data.settings.upi_qr_code_url || '',
             bank_details: data.settings.bank_details || '',
             cod_enabled: !!data.settings.cod_enabled,
             min_discount: data.settings.min_discount ?? 0,
@@ -479,8 +481,17 @@ const DashboardSettings = () => {
     }
   };
   const fileRef = useRef<HTMLInputElement>(null);
+  const qrFileRef = useRef<HTMLInputElement>(null);
   const [keywords, setKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
+
+  const handleQrLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setNexaForm((p: any) => ({ ...p, upi_qr_code_url: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -1474,14 +1485,46 @@ const DashboardSettings = () => {
 
                       {/* UPI & COD */}
                       <div className="space-y-4">
-                        <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-2">
-                          <label className="text-xs font-bold text-foreground">UPI ID</label>
-                          <Input 
-                            placeholder="brand@upi or 9XXXXXXXXX@paytm" 
-                            value={nexaForm.upi_id}
-                            onChange={e => setNexaForm((p: any) => ({ ...p, upi_id: e.target.value }))}
-                            className="text-xs bg-muted/30"
-                          />
+                        <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-foreground">UPI ID</label>
+                            <Input 
+                              placeholder="brand@upi or 9XXXXXXXXX@paytm" 
+                              value={nexaForm.upi_id}
+                              onChange={e => setNexaForm((p: any) => ({ ...p, upi_id: e.target.value }))}
+                              className="text-xs bg-muted/30"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-foreground block">UPI QR Code</label>
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-16 h-16 rounded-xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors relative"
+                                onClick={() => qrFileRef.current?.click()}
+                              >
+                                {nexaForm.upi_qr_code_url ? (
+                                  <img src={nexaForm.upi_qr_code_url} alt="QR Code" className="w-full h-full object-contain p-1" />
+                                ) : (
+                                  <Camera size={20} className="text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-muted-foreground max-w-[140px] leading-tight mb-2">
+                                  Upload a QR code. The AI will send this image if a customer asks for it.
+                                </span>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-7 text-[10px] uppercase font-bold"
+                                  onClick={() => qrFileRef.current?.click()}
+                                >
+                                  Upload QR
+                                </Button>
+                              </div>
+                              <input ref={qrFileRef} type="file" accept="image/*" hidden onChange={handleQrLogo} />
+                            </div>
+                          </div>
                         </div>
 
                         <div className="bg-background border border-border/40 rounded-2xl p-4 flex items-center justify-between">

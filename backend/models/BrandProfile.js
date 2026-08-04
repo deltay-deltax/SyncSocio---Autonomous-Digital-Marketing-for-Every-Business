@@ -120,6 +120,7 @@ const brandProfileSchema = new mongoose.Schema({
     razorpay_connected:  { type: Boolean, default: false },
     cod_enabled:         { type: Boolean, default: false },
     upi_id:              { type: String, default: '' },      // brand's UPI ID for manual payments
+    upi_qr_code_url:     { type: String, default: '' },      // URL of the uploaded UPI QR code image
     bank_details:        { type: String, default: '' },      // bank details for manual payments
     min_discount:        { type: Number, default: 0 },       // % minimum Nexa can offer
     max_discount:        { type: Number, default: 10 },      // % maximum before escalating

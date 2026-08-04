@@ -831,7 +831,7 @@ const sendStandardMessage = async ({ pageToken, igScopedId, messagePayload, page
 };
 
 // Exported alias for nexaNudgeScheduler to avoid circular import issues
-export { sendStandardMessage as sendStandardMessageExternal };
+export { sendStandardMessage as sendStandardMessageExternal, resolvePageToken };
 
 const processMentionEventForProfile = async (profile, event) => {
   console.log(`processMention: sender="${event.senderId}" mediaId="${event.mediaId}"`);
@@ -1151,6 +1151,7 @@ const processMessageEventForProfile = async (profile, event) => {
       });
 
       let replyText = result.replyText;
+      let messagePayload = { text: replyText.slice(0, 1000) };
 
       // Handle Razorpay Links
       if (result.paymentLinkRequested && nexaSettings?.razorpay_connected) {
@@ -1169,10 +1170,27 @@ const processMessageEventForProfile = async (profile, event) => {
             description: `Order: ${result.mergedCollected?.product_interested || 'Product'} x${result.mergedCollected?.quantity || 1}`,
             conversationId: nexaConvo._id,
           });
-          replyText = replyText + `\n\n🔗 Pay here: ${razorpay_short_url}`;
+          
+          messagePayload = {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: replyText.slice(0, 640),
+                buttons: [
+                  {
+                    type: 'web_url',
+                    url: razorpay_short_url,
+                    title: 'Pay Now',
+                  }
+                ]
+              }
+            }
+          };
         } catch (payErr) {
           console.error('[Nexa] Failed to generate Razorpay link:', payErr?.error?.description || payErr?.error?.message || payErr.message || payErr);
           replyText = replyText + '\n\n(Payment link generation failed — please contact us directly)';
+          messagePayload = { text: replyText.slice(0, 1000) };
         }
       }
 
@@ -1180,9 +1198,27 @@ const processMessageEventForProfile = async (profile, event) => {
       await sendStandardMessage({
         pageToken,
         igScopedId: event.senderId,
-        messagePayload: { text: replyText.slice(0, 1000) },
+        messagePayload,
         pageId: profile.instagramPageId,
       });
+
+      // Handle UPI QR Code
+      if (result.sendUpiQr && nexaSettings?.upi_qr_code_url) {
+        await sleep(1500);
+        await sendStandardMessage({
+          pageToken,
+          igScopedId: event.senderId,
+          messagePayload: {
+            attachment: {
+              type: 'image',
+              payload: {
+                url: nexaSettings.upi_qr_code_url
+              }
+            }
+          },
+          pageId: profile.instagramPageId,
+        });
+      }
 
       return true; // Nexa successfully handled the message
     }

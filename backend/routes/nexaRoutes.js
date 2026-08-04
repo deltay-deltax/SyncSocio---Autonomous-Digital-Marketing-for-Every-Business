@@ -12,6 +12,7 @@ import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
 import NexaConversation from '../models/NexaConversation.js';
 import { encryptField, verifyRazorpayWebhook, handleRazorpayPaid } from '../services/nexaPayment.js';
+import { uploadBase64ToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload.js';
 
 const router = express.Router();
 
@@ -61,6 +62,7 @@ router.post('/settings', protect, async (req, res) => {
       bank_details,
       min_discount,
       max_discount,
+      upi_qr_code_url,
     } = req.body;
 
     const brand = await getActiveBrand(req);
@@ -84,6 +86,25 @@ router.post('/settings', protect, async (req, res) => {
     }
     if (razorpay_key_secret && !razorpay_key_secret.startsWith('•')) {
       nexaUpdate['nexa.razorpay_key_secret'] = encryptField(razorpay_key_secret.trim());
+    }
+
+    // Process UPI QR Code Upload
+    if (upi_qr_code_url !== undefined) {
+      if (upi_qr_code_url && !upi_qr_code_url.startsWith('http')) {
+        // It's a new base64 image, upload it
+        try {
+          if (brand.nexa?.upi_qr_code_url && brand.nexa.upi_qr_code_url.startsWith('http')) {
+            await deleteFromCloudinary(brand.nexa.upi_qr_code_url).catch(() => {});
+          }
+          nexaUpdate['nexa.upi_qr_code_url'] = await uploadBase64ToCloudinary(upi_qr_code_url, 'syncsocio/nexa');
+        } catch (uploadErr) {
+          console.error('[NexaRoutes] Failed to upload QR code to Cloudinary:', uploadErr);
+          // If upload fails, just don't update the field
+        }
+      } else {
+        // Just saving the existing URL, or clearing it if empty
+        nexaUpdate['nexa.upi_qr_code_url'] = upi_qr_code_url || '';
+      }
     }
 
     await BrandProfile.updateOne({ _id: brand._id }, { $set: nexaUpdate });
@@ -144,6 +165,36 @@ router.get('/conversations/:id', protect, async (req, res) => {
     console.error('[NexaRoutes] GET conversation error:', err);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+// ─── GET /api/nexa/razorpay-webhook/:brandId ─────────────────────────────────
+// Handles the redirect after successful payment on Razorpay checkout
+router.get('/razorpay-webhook/:brandId', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Payment Successful</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f9fafb; }
+          .card { text-align: center; padding: 2.5rem; background: white; border-radius: 1.5rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); max-width: 90%; }
+          .icon { font-size: 64px; margin-bottom: 1rem; }
+          h2 { color: #111827; margin-top: 0; margin-bottom: 0.5rem; font-size: 1.5rem; font-weight: 700; }
+          p { color: #4b5563; margin-bottom: 1.5rem; font-size: 1rem; line-height: 1.5; }
+          .btn { display: inline-block; padding: 0.75rem 1.5rem; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 9999px; font-weight: 600; transition: background-color 0.2s; }
+          .btn:hover { background-color: #4338ca; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">✅</div>
+          <h2>Payment Successful!</h2>
+          <p>Thank you for your order. Your payment has been securely processed.</p>
+          <p style="font-size: 0.875rem; margin-bottom: 0;">You can safely close this window and return to Instagram.</p>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
 // ─── POST /api/nexa/razorpay-webhook/:brandId ─────────────────────────────────
