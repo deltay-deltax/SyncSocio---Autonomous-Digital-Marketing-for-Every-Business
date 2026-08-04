@@ -185,6 +185,9 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   // 4. Merge collected fields
   const mergedCollected = { ...convo.collected.toObject?.() || convo.collected };
   if (parsed.updated_collected_fields && typeof parsed.updated_collected_fields === 'object') {
+    if (parsed.updated_collected_fields.payment_mode) {
+      parsed.updated_collected_fields.payment_mode = String(parsed.updated_collected_fields.payment_mode).toLowerCase();
+    }
     Object.assign(mergedCollected, parsed.updated_collected_fields);
   }
 
@@ -366,6 +369,7 @@ export const upsertNexaConversationFromComment = async ({
 export const upsertNexaConversationFromDM = async ({
   brandDoc,
   igUserId,
+  platform = 'instagram',
 }) => {
   // Fetch live product catalog for the brand
   let productCatalog = [];
@@ -375,7 +379,7 @@ export const upsertNexaConversationFromDM = async ({
     console.error('[Nexa] Failed to fetch products for catalog snapshot:', e.message);
   }
 
-  let doc = await NexaConversation.findOne({ brand_id: brandDoc._id, ig_user_id: igUserId }).sort({ updatedAt: -1 });
+  let doc = await NexaConversation.findOne({ brand_id: brandDoc._id, ig_user_id: igUserId, platform }).sort({ updatedAt: -1 });
 
   if (doc) {
     const timeSinceLastUpdate = Date.now() - new Date(doc.updatedAt).getTime();
@@ -385,6 +389,7 @@ export const upsertNexaConversationFromDM = async ({
         user: brandDoc.user,
         brand_id: brandDoc._id,
         ig_user_id: igUserId,
+        platform,
         stage: 'GREETING',
         origin: 'direct_dm',
         nudge_sent: false,
@@ -423,6 +428,7 @@ export const upsertNexaConversationFromDM = async ({
       user: brandDoc.user,
       brand_id: brandDoc._id,
       ig_user_id: igUserId,
+      platform,
       stage: 'GREETING',
       origin: 'direct_dm',
       nudge_sent: false,

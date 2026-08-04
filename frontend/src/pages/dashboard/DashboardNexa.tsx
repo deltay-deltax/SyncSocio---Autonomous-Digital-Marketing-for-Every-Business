@@ -32,6 +32,7 @@ const DashboardNexa = () => {
   const [nexaConversations, setNexaConversations] = useState<any[]>([]);
   const [nexaConvLoading, setNexaConvLoading] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [activePlatform, setActivePlatform] = useState<'instagram' | 'whatsapp'>('instagram');
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
@@ -120,6 +121,7 @@ const DashboardNexa = () => {
     );
   }
 
+  const filteredConversations = nexaConversations.filter(c => (c.platform || 'instagram') === activePlatform);
   const selectedLead = nexaConversations.find(c => c._id === selectedLeadId);
 
   return (
@@ -141,14 +143,28 @@ const DashboardNexa = () => {
           {/* Left Panel - Leads List */}
           <Card className="rounded-[2rem] border-border/50 shadow-sm flex flex-col h-full overflow-hidden">
             <CardHeader className="p-6 pb-4 border-b border-border/40">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2 mb-4">
                 <Users size={16} /> Recent Leads
               </CardTitle>
+              <div className="flex bg-muted/50 p-1 rounded-xl">
+                <button
+                  onClick={() => { setActivePlatform('instagram'); setSelectedLeadId(null); }}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${activePlatform === 'instagram' ? 'bg-background shadow text-violet-600' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Instagram
+                </button>
+                <button
+                  onClick={() => { setActivePlatform('whatsapp'); setSelectedLeadId(null); }}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${activePlatform === 'whatsapp' ? 'bg-background shadow text-emerald-600' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  WhatsApp
+                </button>
+              </div>
             </CardHeader>
             <ScrollArea className="flex-1 p-4">
               {nexaConvLoading ? (
                 <div className="p-8 text-center text-muted-foreground text-sm">Loading leads...</div>
-              ) : nexaConversations.length === 0 ? (
+              ) : filteredConversations.length === 0 ? (
                 <div className="p-8 text-center space-y-3">
                   <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto">
                     <Bot size={20} className="text-muted-foreground" />
@@ -157,7 +173,7 @@ const DashboardNexa = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {nexaConversations.map((convo: any) => (
+                  {filteredConversations.map((convo: any) => (
                     <div 
                       key={convo._id} 
                       onClick={() => setSelectedLeadId(convo._id)}

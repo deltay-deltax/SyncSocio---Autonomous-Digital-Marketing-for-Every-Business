@@ -133,7 +133,7 @@ router.get('/conversations', protect, async (req, res) => {
 
     const [conversations, total] = await Promise.all([
       NexaConversation.find(query)
-        .select('ig_user_id stage origin collected payment escalate_to_human nudge_sent conversation_history createdAt updatedAt')
+        .select('ig_user_id platform stage origin collected payment escalate_to_human nudge_sent conversation_history createdAt updatedAt')
         .sort({ updatedAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)

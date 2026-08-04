@@ -867,6 +867,7 @@ router.post('/webhook', async (req, res) => {
             const convo = await upsertNexaConversationFromDM({
               brandDoc: brandProfile,
               igUserId: senderId, // Reusing ig_user_id field for WhatsApp number
+              platform: 'whatsapp',
             });
 
             // Pass the message to the Nexa AI Agent

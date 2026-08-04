@@ -22,6 +22,7 @@ const nexaConversationSchema = new mongoose.Schema(
       default: 'AWAITING_FOLLOWUP',
     },
     origin: { type: String, enum: ['comment_trigger', 'direct_dm'], default: 'comment_trigger' },
+    platform: { type: String, enum: ['instagram', 'whatsapp'], default: 'instagram' },
 
     // Slot-fill state
     collected: {
