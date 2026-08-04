@@ -132,6 +132,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
       model: 'gpt-4o',
       temperature: 0.3, // Low temperature for deterministic, accurate sales responses
       max_tokens: 600,
+      response_format: { type: 'json_object' },
       messages: messages,
     });
 
