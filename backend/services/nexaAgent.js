@@ -275,7 +275,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
 
   return {
     replyText: parsed.reply_text,
-    newStage: updateData.stage,
+    newStage: newStage,
     paymentLinkRequested: !!parsed.payment_link_requested,
     escalate: !!parsed.escalate_to_human,
     sendUpiQr: !!parsed.send_upi_qr,

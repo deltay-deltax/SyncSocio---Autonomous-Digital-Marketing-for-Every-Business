@@ -736,8 +736,8 @@ const DashboardDMs = () => {
                               >
                                 {post.type === 'VIDEO' ? (
                                   <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-                                    <Zap size={20} className="text-white/40" />
-                                    <img src={post.media_url} className="absolute inset-0 w-full h-full object-cover opacity-50" />
+                                    <Zap size={20} className="text-white/40 z-10" />
+                                    <img src={post.thumbnail_url || post.media_url} className="absolute inset-0 w-full h-full object-cover opacity-50" />
                                   </div>
                                 ) : (
                                   <img src={post.media_url} className="w-full h-full object-cover" />

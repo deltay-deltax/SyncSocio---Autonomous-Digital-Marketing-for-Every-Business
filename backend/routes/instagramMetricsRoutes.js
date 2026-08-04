@@ -546,7 +546,7 @@ router.get('/feed', protect, async (req, res) => {
         const mediaUrl = `https://graph.facebook.com/v25.0/${igId}/media`;
         const mediaRes = await axios.get(mediaUrl, {
             params: { 
-                fields: 'id,caption,media_type,media_url,timestamp,like_count,comments_count,permalink', 
+                fields: 'id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count,permalink', 
                 access_token: accessToken 
             }
         });
@@ -570,6 +570,7 @@ router.get('/feed', protect, async (req, res) => {
                 type: p.media_type,
                 caption: p.caption,
                 media_url: p.media_url,
+                thumbnail_url: p.thumbnail_url,
                 timestamp: p.timestamp,
                 likes: p.like_count,
                 comments: p.comments_count,
