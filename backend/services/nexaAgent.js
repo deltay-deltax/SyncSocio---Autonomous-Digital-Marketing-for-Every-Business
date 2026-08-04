@@ -38,7 +38,6 @@ const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
   const paymentOptions = [];
   if (nexaSettings?.razorpay_connected && nexaSettings?.razorpay_key_id) paymentOptions.push('Razorpay payment link');
   if (nexaSettings?.upi_id) paymentOptions.push(`UPI (${nexaSettings.upi_id})`);
-  if (nexaSettings?.bank_details) paymentOptions.push('Bank transfer');
   if (nexaSettings?.cod_enabled) paymentOptions.push('Cash on Delivery (COD)');
   const paymentOptionsStr = paymentOptions.length > 0 ? paymentOptions.join(', ') : 'COD only';
 
@@ -76,8 +75,8 @@ ${collectedStr}
 5. CONFIRMING: Read back everything. Ask payment preference from: ${paymentOptionsStr}
    - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL.
    - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'If they explicitly ask for a QR code, set send_upi_qr=true to automatically attach the QR image.' : ''}
-   - If Bank transfer: share the bank details. Tell them to send and share a screenshot.
    - If COD: set payment_mode="cod" in collected. Move to CLOSED.
+7. SCREENSHOT VERIFICATION: If the user uploads an image while in CONFIRMING or CLOSED stage waiting for payment, analyze it. If it is a valid payment screenshot showing a successful transaction to our UPI, set payment_verified_from_screenshot=true. If it is NOT a valid payment screenshot, politely tell the customer "This doesn't look like a valid payment screenshot. Please provide a clear screenshot showing the payment." and remain in the same stage.
 8. CLOSED: Thank them warmly. Say the team will confirm shortly. Do NOT re-negotiate. If they are just saying thanks/okay, remain in CLOSED. If they want to buy something new, transition to GREETING or QUALIFYING.
 9. ESCALATION (HUMAN REQUEST): If the customer explicitly asks to talk to a human or agent, acknowledge this, say "Our team will connect with you shortly," set escalate_to_human=true, and set new_stage="ESCALATED".
 
@@ -97,12 +96,13 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "updated_collected_fields": {},
   "payment_link_requested": false,
   "escalate_to_human": false,
-  "send_upi_qr": false
+  "send_upi_qr": false,
+  "payment_verified_from_screenshot": false
 }`;
 };
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
-export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nexaSettings, sendStandardMessage, pageToken, pageId }) => {
+export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, brandDoc, nexaSettings, sendStandardMessage, pageToken, pageId }) => {
   // 1. Build prompt
   const systemPrompt = buildSystemPrompt(brandDoc, convo, nexaSettings);
 
@@ -124,7 +124,13 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
   }
 
   // Add the current incoming message
-  messages.push({ role: 'user', content: incomingText });
+  let content = [];
+  if (incomingText) content.push({ type: 'text', text: incomingText });
+  if (imageUrl) content.push({ type: 'image_url', image_url: { url: imageUrl } });
+  
+  if (content.length === 0) content = " "; // fallback for empty message
+  
+  messages.push({ role: 'user', content });
 
   // 3. Call GPT-4o
   let parsed;
@@ -172,14 +178,45 @@ export const handleIncomingMessage = async ({ convo, incomingText, brandDoc, nex
     mergedCollected.payment_mode = null;
   }
 
+  // Handle successful screenshot verification
+  let paymentUpdate = {};
+  if (parsed.payment_verified_from_screenshot && ['CONFIRMING', 'CLOSED'].includes(convo.stage)) {
+    paymentUpdate = {
+      'payment.payment_status': 'paid',
+      'payment.provider': 'manual_screenshot',
+      'payment.amount_paise': (mergedCollected.price_agreed || 0) * 100,
+    };
+    
+    // Automatically transition to CLOSED if not already there
+    if (finalStage !== 'CLOSED') {
+      parsed.new_stage = 'CLOSED';
+    }
+
+    // Trigger dashboard notification asynchronously
+    try {
+      import('../utils/notificationHelper.js').then(({ createNotification }) => {
+        createNotification(
+          brandDoc.user,
+          'success',
+          '💰 Nexa: Order Paid (Screenshot Verified)',
+          `${mergedCollected?.customer_name || 'A customer'} just paid for ${mergedCollected?.product_interested || 'an order'} via UPI/Bank transfer ✅ ` +
+          `Amount: ₹${mergedCollected?.price_agreed || '?'} | Address: ${mergedCollected?.delivery_address || 'N/A'}`
+        );
+      });
+    } catch (e) {
+      console.error('[Nexa] Failed to send screenshot verification notification', e);
+    }
+  }
+
   // 5. Update conversation in DB
   const newHistoryEntry = { role: 'user', text: incomingText, ts: new Date() };
   const nexaHistoryEntry = { role: 'nexa', text: parsed.reply_text, ts: new Date() };
 
   const updateData = {
-    stage: parsed.escalate_to_human ? 'ESCALATED' : finalStage,
+    stage: parsed.escalate_to_human ? 'ESCALATED' : (parsed.payment_verified_from_screenshot ? 'CLOSED' : finalStage),
     collected: mergedCollected,
     escalate_to_human: !!parsed.escalate_to_human,
+    ...paymentUpdate,
     $push: {
       conversation_history: {
         $each: [newHistoryEntry, nexaHistoryEntry],

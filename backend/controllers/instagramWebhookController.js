@@ -501,17 +501,27 @@ const extractMessageEvents = (entry = {}) => {
     }
 
     let text = null;
+    let imageUrl = null;
+    
     if (msg.message && msg.message.text) {
       text = msg.message.text;
     } else if (msg.postback) {
       text = msg.postback.title || msg.postback.payload;
     }
 
-    if (!text) continue;
+    if (msg.message && Array.isArray(msg.message.attachments)) {
+      const imgAttachment = msg.message.attachments.find(a => a.type === 'image');
+      if (imgAttachment && imgAttachment.payload && imgAttachment.payload.url) {
+        imageUrl = imgAttachment.payload.url;
+      }
+    }
+
+    if (!text && !imageUrl) continue;
 
     events.push({
       senderId: safeTrim(msg.sender?.id),
       text: safeTrim(text),
+      imageUrl: imageUrl,
       pageId: safeTrim(msg.recipient?.id),
     });
   }
@@ -900,29 +910,32 @@ const processMessageEventForProfile = async (profile, event) => {
     });
 
     if (nexaConvo) {
-      if (isNexaRateLimited) {
-        console.log(`[Nexa] Rate-limited: Skipping GPT call for ${event.senderId} (last reply ${Date.now() - lastNexaReply}ms ago)`);
-        return true;
-      }
-      console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
-      nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
-      if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
-
       const freshBrand = await BrandProfile.findById(profile._id).lean();
       const nexaSettings = getNexaSettings(freshBrand);
-      const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
 
-      const result = await nexaHandleMessage({
-        convo: nexaConvo,
-        incomingText: event.text,
-        brandDoc: freshBrand,
-        nexaSettings,
-        sendStandardMessage,
-        pageToken,
-        pageId: profile.instagramPageId,
-      });
+      if (nexaSettings?.nexa_enabled) {
+        if (isNexaRateLimited) {
+          console.log(`[Nexa] Rate-limited: Skipping GPT call for ${event.senderId} (last reply ${Date.now() - lastNexaReply}ms ago)`);
+          return true;
+        }
+        console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
+        nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
+        if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
 
-      let replyText = result.replyText;
+        const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
+
+        const result = await nexaHandleMessage({
+          convo: nexaConvo,
+          incomingText: event.text,
+          imageUrl: event.imageUrl,
+          brandDoc: freshBrand,
+          nexaSettings,
+          sendStandardMessage,
+          pageToken,
+          pageId: profile.instagramPageId,
+        });
+
+        let replyText = result.replyText;
 
       // If Nexa requests a Razorpay payment link, generate it and inject the URL
       if (result.paymentLinkRequested && nexaSettings?.razorpay_connected) {
@@ -959,6 +972,7 @@ const processMessageEventForProfile = async (profile, event) => {
       });
 
       return true;
+      }
     }
   } catch (nexaErr) {
     console.error('[Nexa] Error routing message:', nexaErr.message);
@@ -1143,6 +1157,7 @@ const processMessageEventForProfile = async (profile, event) => {
       const result = await nexaHandleMessage({
         convo: nexaConvo,
         incomingText: event.text,
+        imageUrl: event.imageUrl,
         brandDoc: freshBrand,
         nexaSettings,
         sendStandardMessage,

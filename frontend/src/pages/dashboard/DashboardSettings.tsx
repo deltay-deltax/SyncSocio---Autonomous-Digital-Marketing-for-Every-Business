@@ -1540,17 +1540,7 @@ const DashboardSettings = () => {
                         </div>
                       </div>
 
-                      {/* Bank Details */}
-                      <div className="md:col-span-2 bg-background border border-border/40 rounded-2xl p-4 space-y-2">
-                        <label className="text-xs font-bold text-foreground">Bank Details (IMPS/NEFT)</label>
-                        <Textarea 
-                          placeholder="Bank Name, Account No, IFSC, Account Holder Name" 
-                          value={nexaForm.bank_details}
-                          onChange={e => setNexaForm((p: any) => ({ ...p, bank_details: e.target.value }))}
-                          className="text-xs bg-muted/30 resize-none h-20"
-                        />
-                      </div>
-                    </div>
+
                   </div>
 
                   <hr className="border-border/50" />
