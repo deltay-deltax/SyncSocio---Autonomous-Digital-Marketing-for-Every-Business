@@ -639,6 +639,20 @@ router.post('/callback', protect, async (req, res) => {
 
     await profile.save();
 
+    // Subscribe our App to the client's WABA to receive incoming messages via webhook
+    if (profile.whatsappWABAId && accessToken) {
+      try {
+        await axios.post(
+          `https://graph.facebook.com/v25.0/${profile.whatsappWABAId}/subscribed_apps`,
+          {},
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        console.log(`[WhatsApp OAuth] Successfully subscribed App to WABA: ${profile.whatsappWABAId}`);
+      } catch (subErr) {
+        console.error(`[WhatsApp OAuth] Failed to subscribe App to WABA ${profile.whatsappWABAId}:`, subErr?.response?.data || subErr.message);
+      }
+    }
+
     console.log(`[WhatsApp OAuth] Successfully connected WhatsApp. WABA: ${profile.whatsappWABAId}, Phone: ${profile.whatsappPhoneId}`);
 
     res.json({
