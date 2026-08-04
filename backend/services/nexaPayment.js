@@ -72,7 +72,7 @@ export const generateRazorpayLink = async ({ brandDoc, nexaSettings, amountRupee
     },
     notify: { sms: true, email: false },
     reminder_enable: true,
-    callback_url: `${process.env.BACKEND_PUBLIC_URL || process.env.WEBHOOK_PUBLIC_URL || ''}/api/nexa/razorpay-webhook/${brandDoc._id}`,
+    callback_url: `${process.env.BACKEND_PUBLIC_URL || process.env.BACKEND_URL || process.env.WEBHOOK_PUBLIC_URL || 'https://syncsocio.com'}/api/nexa/razorpay-webhook/${brandDoc._id}`,
     callback_method: 'get',
     notes: { nexa_conversation_id: String(conversationId) },
   });
