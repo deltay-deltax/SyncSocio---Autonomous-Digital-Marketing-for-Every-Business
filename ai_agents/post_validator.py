@@ -234,7 +234,6 @@ def vision_actor_node(state: PostState) -> PostState:
             You are a Social Media Content Expert. Analyze this image for a brand with the following context:
             - Brand: {state['brand_profile'].get('brandName', 'SyncSocio User')}
             - Niche: {state['brand_profile'].get('businessCategory', '')}
-            - Goal: {state['brand_profile'].get('mainGoal', '')}
             - Locale: {state['brand_profile'].get('businessLocation', 'Global')}
             
             Analyze critically:
@@ -409,7 +408,6 @@ def caption_generator_node(state: PostState) -> PostState:
 
     CONTEXT:
     - Brand: {brand.get('brandName', '')} ({(brand.get("otherCategory") if brand.get("businessCategory") == "Other" and brand.get("otherCategory") else brand.get("businessCategory", ''))})
-    - Goal: {brand.get('mainGoal', '')}
     - Tone: {brand.get('brandTone', 'Professional')}
     - Target Audience: {brand.get('targetAudience', 'General')}
     - USP (Unique Selling Point): {brand.get('usp', '')}

@@ -47,7 +47,8 @@ export const sendMetaCapiEvent = async (eventName, eventId, userData = {}, custo
         },
         custom_data: customData,
       }
-    ]
+    ],
+    test_event_code: 'TEST32471'
   };
 
   try {

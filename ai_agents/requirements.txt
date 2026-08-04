@@ -14,3 +14,6 @@ Pillow
 moviepy
 numpy
 fal-client
+playwright
+playwright-stealth
+httpx

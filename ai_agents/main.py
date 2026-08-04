@@ -4,20 +4,27 @@ import sys
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Query
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+# pyrefly: ignore [missing-import]
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timezone
 import re
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# pyrefly: ignore [missing-import]
 from langchain_core.globals import set_debug
 set_debug(True)
 
+# pyrefly: ignore [missing-import]
 from bson import ObjectId
 from agents import generate_strategy, analyze_brand_mix
 from dm_flow_agent import process_calendar_for_dm_flows
@@ -1864,7 +1871,6 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             )
         else:
             import asyncio
-            # 3. Standard D2C route — run the original strategy image agent
             posts = await asyncio.to_thread(
                 generate_strategy_images,
                 brand_doc=brand_doc,
@@ -1886,6 +1892,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_duration=request.videoDuration,
                 text_mode=request.textMode or "low",
                 avatar_url=request.avatarUrl,
+                comment_keyword=request.commentKeyword,
                 whatsapp_template=request.whatsappTemplate,
             )
 

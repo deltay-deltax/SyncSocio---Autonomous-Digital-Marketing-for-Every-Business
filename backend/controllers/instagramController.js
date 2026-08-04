@@ -1,4 +1,5 @@
 import BrandProfile from '../models/BrandProfile.js';
+import User from '../models/User.js';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { runMetricsFetch } from '../services/metricsPoller.js';
@@ -272,8 +273,13 @@ export const instagramCallback = async (req, res) => {
     console.log(`igPageAccessToken from discovery: ${Boolean(igPageAccessToken)}`);
     console.log(`resolvedPageToken final: ${Boolean(resolvedPageToken)}`);
 
+    const userDoc = await User.findById(userId).select('activeBrandId');
+    const brandFilter = userDoc?.activeBrandId 
+      ? { user: userId, _id: userDoc.activeBrandId }
+      : { user: userId };
+
     await BrandProfile.findOneAndUpdate(
-      { user: userId },
+      brandFilter,
       {
         instagramAccessToken: accessToken,
         instagramPageAccessToken: resolvedPageToken || '',

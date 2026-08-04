@@ -30,6 +30,7 @@ import AutopilotPage from './pages/dashboard/Autopilot';
 import CloneMode from './pages/dashboard/CloneMode';
 import PostOptimizer from './pages/PostOptimizer';
 import DashboardDMs from './pages/dashboard/DashboardDMs';
+import DashboardNexa from './pages/dashboard/DashboardNexa';
 import ContentMix from './pages/dashboard/ContentMix';
 import ContentPlan from './pages/dashboard/ContentPlan';
 import DashboardFAQ from './pages/dashboard/DashboardFAQ';
@@ -114,6 +115,7 @@ function App() {
               <Route path="strategy" element={<ContentStrategy />} />
               <Route path="post-optimizer" element={<PostOptimizer />} />
               <Route path="dms" element={<DashboardDMs />} />
+              <Route path="nexa" element={<DashboardNexa />} />
               <Route path="settings" element={<DashboardSettings />} />
               <Route path="history" element={<History />} />
               <Route path="assets" element={<AssetLibrary />} />

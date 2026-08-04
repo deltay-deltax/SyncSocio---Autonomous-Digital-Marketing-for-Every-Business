@@ -91,19 +91,22 @@ router.post('/captions', async (req, res) => {
 
 router.post('/edit-product-image', async (req, res) => {
     try {
-        const { ref_image, prod_image, prod_info, logo_image, instruction, aspectRatio } = req.body;
+        const { ref_image, prod_image, prod_info, logo_image, instruction, aspectRatio, isEdit } = req.body;
         
-        // 1. Check if user has sufficient credits (5 credits required)
+        // 1. Check if user has sufficient credits (5 credits required unless it's a free edit)
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ error: 'User not found' });
         
-        const creditCost = 5;
+        const profile = await BrandProfile.findOne({ user: req.user._id }).lean();
+        const isEliteHD = profile && profile.selectedPlan && profile.selectedPlan.includes('Elite HD');
+        const isAgency = profile && profile.selectedPlan && profile.selectedPlan.includes('Agency');
+        const creditCost = isEdit ? 0 : (isAgency ? 8 : (isEliteHD ? 10 : 5));
+        
         if ((user.credits ?? 0) < creditCost) {
-            return res.status(402).json({ error: 'Insufficient credits. AI Editor requires 5 credits per generation.' });
+            return res.status(402).json({ error: `Insufficient credits. AI Editor requires ${creditCost} credits per generation.` });
         }
 
         // 2. Fetch full brand profile (excluding logo and tokens)
-        const profile = await BrandProfile.findOne({ user: req.user._id }).lean();
         if (profile) {
             delete profile.logo;
             delete profile.instagramAccessToken;
@@ -137,7 +140,7 @@ router.post('/edit-product-image', async (req, res) => {
         
         const data = await response.json();
 
-        // 4. Deduct 5 credits and update User DB
+        // 4. Deduct credits and update User DB
         const updatedUser = await User.findByIdAndUpdate(
             req.user._id,
             { $inc: { credits: -creditCost } },
@@ -146,7 +149,7 @@ router.post('/edit-product-image', async (req, res) => {
 
         // 5. Log activity
         const { logActivity } = await import('../utils/activityLogger.js');
-        await logActivity(req.user._id, 'Creative Agent', `Spent 5 credits on AI Editor generation.`, 'done');
+        await logActivity(req.user._id, 'Creative Agent', `Spent ${creditCost} credits on AI Editor ${isEdit ? 'edit' : 'generation'}.`, 'done');
 
         // 6. Return image and updated credits balance
         res.json({

@@ -154,6 +154,23 @@ export const getProfile = async (req, res) => {
     profileObj.userCredits = user?.credits;
     profileObj.userPlan = user?.plan;
     profileObj.userEmail = user?.email;
+
+    // ── Plan-derived feature flags (single source of truth) ──────────────────
+    const planLower = (user?.plan || '').toLowerCase();
+    const isElitePlan  = planLower.includes('elite');
+    const isAgencyPlan = planLower.includes('agency');
+
+    // Nexa is included in Elite & Agency, or available via the DM add-on
+    const hasDMAddon = !!profile.DM_Automation_Service;
+    profileObj.dmAddonActive      = hasDMAddon;
+    profileObj.nexaIncluded       = isElitePlan || isAgencyPlan || hasDMAddon;
+
+    // Brand limits per plan
+    profileObj.brandLimit = isAgencyPlan ? 8 : isElitePlan ? 2 : 1;
+
+    // Total brands this user owns (for UI enforcement)
+    const totalBrands = await BrandProfile.countDocuments({ user: req.user._id });
+    profileObj.totalBrands = totalBrands;
     
     // Check if there is a pending Meta Tester request
     const pendingTester = await MetaTester.findOne({ userId: req.user._id, status: 'pending' });

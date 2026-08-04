@@ -1,11 +1,12 @@
 import express from 'express';
 import Lead from '../models/Lead.js';
+import { sendMetaCapiEvent } from '../services/metaConversionsAPI.js';
 
 const router = express.Router();
 
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, businessName, businessCategory, intent, website, _gotcha } = req.body;
+    const { name, email, phone, businessName, businessCategory, intent, website, eventId, _gotcha } = req.body;
 
     // Honeypot check: If the hidden field is filled, it's a bot.
     if (_gotcha && _gotcha.length > 0) {
@@ -65,6 +66,22 @@ router.post('/', async (req, res) => {
     });
 
     await newLead.save();
+
+    // Fire CAPI event if eventId is provided
+    if (eventId) {
+      // Need IP and UserAgent for CAPI
+      const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const clientUserAgent = req.headers['user-agent'];
+      
+      await sendMetaCapiEvent('Lead', eventId, {
+        email,
+        phone: digitsOnly,
+        clientIp,
+        clientUserAgent
+      }, {
+        content_name: intent === 'demo' ? 'Demo Call' : 'Free Creatives'
+      });
+    }
 
     return res.status(201).json({ success: true, message: 'Lead submitted successfully.' });
   } catch (error) {

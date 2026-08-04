@@ -102,6 +102,9 @@ export const verifyPayment = async (req, res) => {
           user.totalCreditsPurchased = (user.totalCreditsPurchased || 0) + transaction.creditsAdded;
         } else if (transaction.type === 'plan_purchase' || transaction.type === 'plan_renewal') {
           user.plan = transaction.plan;
+          if (user.planExpiresAt && new Date(user.planExpiresAt) < new Date()) {
+            user.credits = 0; // Reset expired credits
+          }
           user.credits = (user.credits || 0) + transaction.creditsAdded;
           user.totalCreditsPurchased = (user.totalCreditsPurchased || 0) + transaction.creditsAdded;
           const expiry = new Date();
@@ -109,6 +112,9 @@ export const verifyPayment = async (req, res) => {
           user.planExpiresAt = expiry;
         } else if (transaction.type === 'plan_upgrade') {
           user.plan = transaction.plan;
+          if (user.planExpiresAt && new Date(user.planExpiresAt) < new Date()) {
+            user.credits = 0; // Reset expired credits
+          }
           user.credits = (user.credits || 0) + transaction.creditsAdded;
           user.totalCreditsPurchased = (user.totalCreditsPurchased || 0) + transaction.creditsAdded;
           const expiry = new Date();

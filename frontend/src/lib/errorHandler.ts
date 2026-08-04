@@ -48,6 +48,10 @@ export function getFriendlyErrorMessage(error: any, defaultMsg = 'Oops! Somethin
     return 'Your request was blocked by the AI safety filter. Please try rephrasing your instruction.';
   }
 
+  if (lowerMsg.includes('scrape_failed_all_layers')) {
+    return 'Your website cannot be scraped automatically due to strong firewall protection or bot-blockers. Please fill in your brand details and products manually.';
+  }
+
   if (lowerMsg.includes('out of credits') || lowerMsg.includes('insufficient credits') || lowerMsg.includes('credit')) {
     return "You've run out of credits. Please top up to continue generating content.";
   }

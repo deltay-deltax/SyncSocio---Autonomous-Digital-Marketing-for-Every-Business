@@ -30,6 +30,7 @@ import whatsappRoutes from './routes/whatsappRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import avatarRoutes from './routes/avatarRoutes.js';
 import leadScraperRoutes from './routes/lead_scraper.js';
+import nexaRoutes from './routes/nexaRoutes.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
@@ -41,6 +42,7 @@ import { startPolling } from './services/commentPoller.js';
 import { startKeepAlivePoller } from './utils/keepAlivePoller.js';
 import { startMetricsPoller } from './services/metricsPoller.js';
 import { startInstagramScheduler } from './services/instagramScheduler.js';
+import { startNexaNudgeScheduler } from './services/nexaNudgeScheduler.js';
 
 const app = express();
 
@@ -52,6 +54,8 @@ app.use(cors({
     'https://www.syncsocio.com',
     'https://syncsocio.com',
     'http://localhost:4173',
+    'http://localhost:5174',
+    'http://localhost:5175',
     'https://www.velocitydm.com',
     'https://velocitydm.com',
     process.env.FRONTEND_URL,
@@ -103,6 +107,7 @@ app.use('/api/leads', leadRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/avatars', avatarRoutes);
 app.use('/api/admin/scraper', leadScraperRoutes);
+app.use('/api/nexa', nexaRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
@@ -138,6 +143,8 @@ if (process.env.MONGO_URI) {
         startMetricsPoller();
         // Start Instagram native scheduler background queue
         startInstagramScheduler();
+        // Start Nexa DM sales agent nudge scheduler
+        startNexaNudgeScheduler();
       });
     })
     .catch((err) => {

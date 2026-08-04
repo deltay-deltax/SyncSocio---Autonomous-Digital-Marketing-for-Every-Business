@@ -36,9 +36,12 @@ const Index = () => {
           const profile = await profRes.json();
           localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
 
-          if (profile.selectedPlan && profile.selectedPlan !== 'Free') {
+          if (profile.userPlan && profile.userPlan !== 'Free') {
             localStorage.setItem("syncsocio_setup_done", "true");
             navigate("/dashboard");
+          } else if (profile.brandName && profile.brandName.trim() !== '') {
+            localStorage.setItem("syncsocio_setup_done", "false");
+            navigate("/setup?step=plan");
           } else {
             localStorage.setItem("syncsocio_setup_done", "false");
             navigate("/setup");

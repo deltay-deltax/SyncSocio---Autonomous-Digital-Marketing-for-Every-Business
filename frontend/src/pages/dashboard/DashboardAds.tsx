@@ -28,15 +28,6 @@ const DashboardAds = () => {
   const [nextScan, setNextScan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (profile && !profile.instagramIsConnected) {
-    return (
-      <ConnectInstagramFallback
-        title="Connect Instagram to View Ad Recommendations"
-        description="SyncSocio needs a connected Instagram account to scan your top-performing organic posts and recommend high-ROI paid boost campaigns."
-        metaTesterStatus={profile?.metaTesterStatus}
-      />
-    );
-  }
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -66,6 +57,16 @@ const DashboardAds = () => {
   const handleBoost = (id: string) => {
     window.open('https://adsmanager.facebook.com/', '_blank');
   };
+
+  if (profile && !profile.instagramIsConnected) {
+    return (
+      <ConnectInstagramFallback
+        title="Connect Instagram to View Ad Recommendations"
+        description="SyncSocio needs a connected Instagram account to scan your top-performing organic posts and recommend high-ROI paid boost campaigns."
+        metaTesterStatus={profile?.metaTesterStatus}
+      />
+    );
+  }
 
   if (loading) {
     return (

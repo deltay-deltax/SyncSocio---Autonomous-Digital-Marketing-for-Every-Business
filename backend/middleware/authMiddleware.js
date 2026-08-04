@@ -27,6 +27,12 @@ export const protect = async (req, res, next) => {
       }
     }
 
+    // Lazy check: If plan is expired, zero out credits automatically
+    if (req.user.planExpiresAt && new Date(req.user.planExpiresAt) < new Date() && req.user.credits > 0) {
+      req.user.credits = 0;
+      await req.user.save();
+    }
+
     if (req.user.isBlocked) {
       return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });
     }

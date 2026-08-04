@@ -471,6 +471,12 @@ export const updateUserPlan = async (req, res) => {
     user.plan = plan;
     await user.save();
 
+    // Sync the updated plan to the user's BrandProfile
+    await BrandProfile.findOneAndUpdate(
+      { user: id },
+      { selectedPlan: plan }
+    );
+
     return res.status(200).json({ success: true, user });
   } catch (error) {
     console.error('Error updating user plan:', error);
@@ -518,7 +524,14 @@ export const updateUserDeepProfile = async (req, res) => {
 
     if (name !== undefined) user.name = name;
     if (email !== undefined) user.email = email;
-    if (plan !== undefined) user.plan = plan;
+    if (plan !== undefined) {
+      user.plan = plan;
+      // Sync the updated plan to the user's BrandProfile
+      await BrandProfile.findOneAndUpdate(
+        { user: id },
+        { selectedPlan: plan }
+      );
+    }
     if (credits !== undefined) user.credits = Number(credits);
     if (isVerified !== undefined) user.isVerified = Boolean(isVerified);
     if (isBlocked !== undefined) user.isBlocked = Boolean(isBlocked);

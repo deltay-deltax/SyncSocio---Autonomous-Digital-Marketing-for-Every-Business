@@ -16,15 +16,6 @@ const DashboardAnalytics = () => {
   const [loading, setLoading] = useState(!cachedAnalyticsData['default']);
   const [error, setError] = useState<string | null>(null);
 
-  if (profile && !profile.instagramIsConnected) {
-    return (
-      <ConnectInstagramFallback 
-        title="Connect Instagram to View Analytics" 
-        description="SyncSocio requires a linked Instagram Business account to track live metrics and audience insights."
-        metaTesterStatus={profile?.metaTesterStatus}
-      />
-    );
-  }
 
   useEffect(() => {
     let isMounted = true;
@@ -66,6 +57,16 @@ const DashboardAnalytics = () => {
       clearInterval(intervalId);
     };
   }, []);
+
+  if (profile && !profile.instagramIsConnected) {
+    return (
+      <ConnectInstagramFallback 
+        title="Connect Instagram to View Analytics" 
+        description="SyncSocio requires a linked Instagram Business account to track live metrics and audience insights."
+        metaTesterStatus={profile?.metaTesterStatus}
+      />
+    );
+  }
 
   if (loading && !data) {
     return (

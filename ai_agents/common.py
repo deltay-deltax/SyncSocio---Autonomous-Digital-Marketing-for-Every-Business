@@ -34,7 +34,6 @@ def get_brand_dna(payload: Dict[str, Any]) -> str:
     dna += f"- Target Audience: {target}\n"
     
     dna += f"- Pain Point to Address: {brand.get('painPoint', 'Not specified')}\n"
-    dna += f"- Main Goal: {brand.get('mainGoal', 'Growth and Engagement')}\n"
     
     # 2. Performance Metrics (Ground Reality)
     dna += f"\nINSTAGRAM PERFORMANCE METRICS (PAST 30 DAYS):\n"

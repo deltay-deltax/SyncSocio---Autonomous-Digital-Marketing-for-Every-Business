@@ -519,14 +519,8 @@ const STUDIOS: Studio[] = [
   }
 ];
 
-const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void }> = ({ s, i, onPick }) => {
+const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void; isLocked: boolean }> = ({ s, i, onPick, isLocked }) => {
   const Icon = s.icon;
-  const profile = React.useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('syncsocio_profile') || '{}'); } catch { return {}; }
-  }, []);
-  const planName = (profile.userPlan || profile.selectedPlan || profile.plan || '').toLowerCase();
-  const isStarter = planName === 'starter' || (!planName.includes('elite') && !planName.includes('agency'));
-  const isLocked = isStarter && (s.id === 'video' || s.id === 'all_in_one');
 
   return (
     <motion.div
@@ -670,6 +664,26 @@ const DashboardStrategy = () => {
   const brandId = profile?._id || 'default';
   const brandName = (profile?.brandName || 'yourbrand').toLowerCase().replace(/\s+/g, '');
   const { toast } = useToast();
+
+  const planName = (profile.userPlan || profile.selectedPlan || profile.plan || '').toLowerCase();
+  const isBasic = planName === 'basic';
+  const isStarter = planName === 'starter' || (!planName.includes('elite') && !planName.includes('agency'));
+
+  const checkLocked = (sId: string) => {
+    if (isBasic) {
+      return !['image', 'photoshoot', 'editor'].includes(sId);
+    }
+    return isStarter && (sId === 'video' || sId === 'all_in_one' || sId === 'sprint');
+  };
+
+  const sortedStudios = React.useMemo(() => {
+    return [...STUDIOS].sort((a, b) => {
+      const aLocked = checkLocked(a.id);
+      const bLocked = checkLocked(b.id);
+      if (aLocked === bLocked) return 0;
+      return aLocked ? 1 : -1;
+    });
+  }, [isBasic, isStarter]);
 
   // ── Stage / Mode
   const [stage, setStage] = useState<'pick' | 'builder' | 'generating' | 'results'>(() => {
@@ -854,6 +868,9 @@ const DashboardStrategy = () => {
   const [newAvatarGender, setNewAvatarGender] = useState<'male' | 'female' | 'other'>('female');
   const [isGeneratingAvatar, setIsGeneratingAvatar] = useState<boolean>(false);
 
+  // ── DM Automation
+  const [commentKeyword, setCommentKeyword] = useState<string>('');
+
   // ── Image ad template (null = auto, 1–10 = specific template, -1 = all 8 variants)
   const [adTemplate, setAdTemplate] = useState<number | null>(null);
   // ── Text density mode for image generation ("low" = one clean headline | "heavy" = model decides freely)
@@ -991,30 +1008,46 @@ const DashboardStrategy = () => {
 
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeModalReason, setUpgradeModalReason] = useState<'expired' | 'premium' | 'video' | null>(null);
+  const [upgradeModalReason, setUpgradeModalReason] = useState<string | null>(null);
 
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
-  const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+
   const isElite = planName.includes('elite');
 
   React.useEffect(() => {
     if (mode) {
-      const isPremium = ['all_in_one'].includes(mode);
       if (isPlanExpired) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason('expired');
         setShowUpgradeModal(true);
-      } else if (isPremium && !isElite) {
+      } else if (mode === 'video' && !isElite) {
         setStage('pick');
         setMode(null);
-        setUpgradeModalReason('premium');
+        setUpgradeModalReason('video');
+        setShowUpgradeModal(true);
+      } else if (['all_in_one'].includes(mode) && !isElite) {
+        setStage('pick');
+        setMode(null);
+        setUpgradeModalReason(mode);
         setShowUpgradeModal(true);
       }
     }
   }, [mode, isPlanExpired, isElite]);
 
   const handleModeClick = (mId: Mode) => {
+    if (checkLocked(mId)) {
+      setUpgradeModalReason(mId);
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    if (isPlanExpired) {
+      setUpgradeModalReason('expired');
+      setShowUpgradeModal(true);
+      return;
+    }
+
     if (mId === 'clone') {
       navigate('/dashboard/clone');
       return;
@@ -1025,19 +1058,6 @@ const DashboardStrategy = () => {
     }
     if (mId === 'editor') {
       navigate('/dashboard/editor');
-      return;
-    }
-    const isPremium = ['all_in_one'].includes(mId);
-
-    if (isPlanExpired) {
-      setUpgradeModalReason('expired');
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    if (isPremium && !isElite) {
-      setUpgradeModalReason('premium');
-      setShowUpgradeModal(true);
       return;
     }
 
@@ -2009,20 +2029,37 @@ const DashboardStrategy = () => {
         videoScript: (currentMode === 'video' && videoKind === 'ai-ugc') ? videoScript : undefined,
         videoResolution: currentMode === 'video' ? videoResolution : undefined,
         videoDuration: currentMode === 'video' ? videoDuration : undefined,
+        ...((currentMode === 'image' || currentMode === 'carousel') && {
+          commentKeyword: commentKeyword.trim() ? commentKeyword.trim() : undefined,
+        }),
       };
 
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
       let creditCost = 0;
+      const baseImageCost = profile?.selectedPlan?.includes('Agency') ? 8 : (profile?.selectedPlan?.includes('Elite HD') ? 10 : 5);
+      
       if (currentMode === 'video') {
-        creditCost = currentCount * (videoResolution === '720p' ? 80 : 100);
+        if (videoKind === 'ai-ugc') {
+          if (videoResolution === '720p') {
+            creditCost = currentCount * (videoDuration === 8 ? 80 : videoDuration === 12 ? 120 : 150);
+          } else {
+            creditCost = currentCount * (videoDuration === 8 ? 100 : videoDuration === 12 ? 140 : 170);
+          }
+        } else {
+          if (videoResolution === '720p') {
+            creditCost = currentCount * (videoDuration === 5 ? 50 : 80);
+          } else {
+            creditCost = currentCount * (videoDuration === 5 ? 70 : 100);
+          }
+        }
       } else if (currentMode === 'carousel') {
-        creditCost = currentCount * slideCount * 5;
+        creditCost = currentCount * slideCount * baseImageCost;
       } else if (currentMode === 'ecomm') {
-        creditCost = ecommTotal * 5;
+        creditCost = ecommTotal * baseImageCost;
       } else if (currentMode === 'whatsapp' || currentMode === 'email') {
         creditCost = 0;  // campaigns are free
       } else {
-        creditCost = currentCount * 5;  // image / festival
+        creditCost = currentCount * baseImageCost;  // image / festival
       }
       const creditReason = `${currentMode} generation (${currentMode === 'ecomm' ? ecommTotal
         : currentMode === 'carousel' ? `${currentCount} × ${slideCount} slides`
@@ -3074,7 +3111,7 @@ const DashboardStrategy = () => {
                       </div>
                     ) : (
                       <div className="flex gap-2">
-                        {['image', 'carousel', 'video', 'ecomm'].includes(previewPost.type || previewPost.sectionType || '') ? (
+                        {!isBasic && mode !== 'edit_media' && !previewPost.isEdited && ['image', 'carousel', 'video', 'ecomm'].includes(previewPost.type || previewPost.sectionType || '') ? (
                           <>
                             <button
                               onClick={() => setIsEditing(true)}
@@ -3163,7 +3200,7 @@ const DashboardStrategy = () => {
                 ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
                 : upgradeModalReason === 'video'
                 ? 'AI Video Generation (UGC & Product Videos) is exclusive to Elite and Agency plans. Please upgrade to the Elite Plan to unlock AI video generation.'
-                : 'This is an Elite feature. Upgrade to the Elite Plan to unlock the All-in-One Drops feature.'}
+                : `This is an Elite feature. Upgrade to the Elite Plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.name || 'premium'} feature.`}
             </p>
 
             <Button
@@ -3210,11 +3247,11 @@ const DashboardStrategy = () => {
 
             {/* Studio grid — 6-col so wide cards can span 3 */}
             <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-6 md:auto-rows-[210px]">
-              {STUDIOS.filter(s => {
+              {sortedStudios.filter(s => {
                 if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
                 return true;
               }).map((s, i) => (
-                <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} />
+                <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} isLocked={checkLocked(s.id)} />
               ))}
             </div>
           </div>
@@ -3342,7 +3379,11 @@ const DashboardStrategy = () => {
                     </span>
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide border bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border-emerald-400/30 text-emerald-600 dark:text-emerald-400 shadow-sm">
                       <Sparkles size={11} className="text-emerald-500" />
-                      <span>80 Credits</span>
+                      <span>
+                        {videoKind === 'ai-ugc' 
+                          ? (videoDuration === 8 ? 80 : videoDuration === 12 ? 120 : 150)
+                          : (videoDuration === 5 ? 50 : 80)} Credits
+                      </span>
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -3372,7 +3413,11 @@ const DashboardStrategy = () => {
                     </div>
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide border bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-blue-500/10 border-violet-400/30 text-violet-600 dark:text-violet-400 shadow-sm">
                       <Sparkles size={11} className="text-violet-500" />
-                      <span>100 Credits</span>
+                      <span>
+                        {videoKind === 'ai-ugc' 
+                          ? (videoDuration === 8 ? 100 : videoDuration === 12 ? 140 : 170)
+                          : (videoDuration === 5 ? 70 : 100)} Credits
+                      </span>
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -3920,16 +3965,32 @@ const DashboardStrategy = () => {
             </>
           ) : (
             mode !== 'photoshoot' && (
-              <IdeaBox
-                idea={idea}
-                setIdea={setIdea}
-                placeholder={
-                  mode === 'video' && videoKind === 'img2video'
-                    ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
-                    : undefined
-                }
-                label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
-              />
+              <>
+                <IdeaBox
+                  idea={idea}
+                  setIdea={setIdea}
+                  placeholder={
+                    mode === 'video' && videoKind === 'img2video'
+                      ? 'Describe how the product should animate in the video (e.g. dynamic zoom, product rotating, clean background motion)...'
+                      : undefined
+                  }
+                  label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
+                />
+                
+                {(mode === 'image' || mode === 'carousel') && (
+                  <section className="mb-6">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                      Comment Keyword <span className="font-normal text-muted-foreground/60 normal-case">(optional DM automation)</span>
+                    </p>
+                    <Input
+                      value={commentKeyword}
+                      onChange={(e) => setCommentKeyword(e.target.value)}
+                      placeholder="e.g. LINK, PRICE, or GUIDE"
+                      className="rounded-2xl border-border/60 bg-card h-12 text-sm text-foreground focus-visible:ring-primary"
+                    />
+                  </section>
+                )}
+              </>
             )
           )}
         </>
@@ -4179,6 +4240,8 @@ const DashboardStrategy = () => {
           </section>
 
           <IdeaBox idea={idea} setIdea={setIdea} />
+
+
         </>
       )}
 

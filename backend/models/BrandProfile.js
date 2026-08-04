@@ -112,6 +112,19 @@ const brandProfileSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // ── Nexa DM Sales Agent Settings ──────────────────────────────────────────
+  nexa: {
+    nexa_enabled:        { type: Boolean, default: false },
+    razorpay_key_id:     { type: String, default: null },    // AES-GCM encrypted
+    razorpay_key_secret: { type: String, default: null },    // AES-GCM encrypted, never logged
+    razorpay_connected:  { type: Boolean, default: false },
+    cod_enabled:         { type: Boolean, default: false },
+    upi_id:              { type: String, default: '' },      // brand's UPI ID for manual payments
+    upi_qr_code_url:     { type: String, default: '' },      // URL of the uploaded UPI QR code image
+    bank_details:        { type: String, default: '' },      // bank details for manual payments
+    min_discount:        { type: Number, default: 0 },       // % minimum Nexa can offer
+    max_discount:        { type: Number, default: 10 },      // % maximum before escalating
+  },
   automations: {
     storyMention: {
       active: { type: Boolean, default: false },
