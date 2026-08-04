@@ -1539,8 +1539,7 @@ const DashboardSettings = () => {
                           </button>
                         </div>
                       </div>
-
-
+                    </div>
                   </div>
 
                   <hr className="border-border/50" />

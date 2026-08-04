@@ -103,6 +103,23 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, brandDoc, nexaSettings, sendStandardMessage, pageToken, pageId }) => {
+  // 0. Circuit Breaker: Prevent infinite bot loops
+  const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const recentUserMessages = (convo.conversation_history || []).filter(h => h.role === 'user' && new Date(h.ts) > tenMinsAgo);
+  
+  if (recentUserMessages.length >= 15) {
+    console.log(`[Nexa Circuit Breaker] Triggered for ${convo.ig_user_id}. Too many messages in 10 mins.`);
+    await NexaConversation.updateOne({ _id: convo._id }, { stage: 'ESCALATED', escalate_to_human: true });
+    return {
+      replyText: "I'm pausing our chat for now as we've exchanged many messages quickly. A human agent will connect with you shortly! 🙏",
+      newStage: 'ESCALATED',
+      paymentLinkRequested: false,
+      escalate: true,
+      sendUpiQr: false,
+      mergedCollected: convo.collected,
+    };
+  }
+
   // 1. Build prompt
   const systemPrompt = buildSystemPrompt(brandDoc, convo, nexaSettings);
 
