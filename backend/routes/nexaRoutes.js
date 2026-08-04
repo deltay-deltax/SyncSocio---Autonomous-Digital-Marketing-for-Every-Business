@@ -43,7 +43,7 @@ router.get('/settings', protect, async (req, res) => {
       settings.razorpay_key_id = '••••••••••••';
     }
 
-    res.json({ settings, brandName: brand.brandName });
+    res.json({ settings, brandName: brand.brandName, brandId: brand._id });
   } catch (err) {
     console.error('[NexaRoutes] GET settings error:', err);
     res.status(500).json({ message: 'Server error' });

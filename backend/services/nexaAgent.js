@@ -84,7 +84,7 @@ ${collectedStr}
 - NEVER ask for card numbers, CVV, OTPs, or any sensitive payment credentials in DM.
 - NEVER write out, guess, or invent a payment link URL. Say "the link is coming in your next message."
 - NEVER fabricate stock, delivery timelines, or discounts not listed above.
-- Keep messages EXTREMELY short and concise. Use bullet points instead of long paragraphs to make it highly readable in Instagram DMs.
+- Keep messages EXTREMELY short and concise. Use bullet points instead of long paragraphs. IMPORTANT: When listing product features or details, ALWAYS leave a full blank line (double spacing) between each bullet point to make it highly readable in Instagram DMs.
 - If the customer asks something outside your knowledge: set escalate_to_human=true and new_stage="ESCALATED".
 - NEVER set payment_link_requested=true unless price_agreed is already finalized and > 0. If they ask to pay before agreeing on an order, politely ask them what they want to order first.
 
@@ -185,6 +185,13 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   const mergedCollected = { ...convo.collected.toObject?.() || convo.collected };
   if (parsed.updated_collected_fields && typeof parsed.updated_collected_fields === 'object') {
     Object.assign(mergedCollected, parsed.updated_collected_fields);
+  }
+
+  // FORCE RULE: Cannot request payment link if price is not finalized
+  if (parsed.payment_link_requested && (!mergedCollected.price_agreed || mergedCollected.price_agreed <= 0)) {
+    parsed.payment_link_requested = false;
+    parsed.reply_text = "Before I send the payment link, could you please confirm exactly what you'd like to order so I can finalize the price?";
+    parsed.new_stage = 'QUALIFYING';
   }
 
   // If the agent decided to start a new inquiry from a CLOSED state, wipe old order data

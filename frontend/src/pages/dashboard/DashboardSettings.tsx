@@ -142,6 +142,7 @@ const DashboardSettings = () => {
     min_discount: 0,
     max_discount: 10,
   });
+  const [activeBrandId, setActiveBrandId] = useState<string>('');
 
   const getAuthHeaders = (isJson = false) => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -174,6 +175,7 @@ const DashboardSettings = () => {
         const res = await fetch(`${apiBase}/nexa/settings`, { headers: getAuthHeaders() });
         const data = await res.json();
         if (res.ok && data.settings) {
+          if (data.brandId) setActiveBrandId(data.brandId);
           setNexaSettings(data.settings);
           setNexaForm(prev => ({
             ...prev,
@@ -1480,6 +1482,32 @@ const DashboardSettings = () => {
                             onChange={e => setNexaForm((p: any) => ({ ...p, razorpay_key_secret: e.target.value }))}
                             className="text-xs bg-muted/30"
                           />
+                          {activeBrandId && (
+                            <div className="mt-4 p-3 bg-muted/20 border border-border/40 rounded-xl space-y-1">
+                              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Razorpay Webhook URL</label>
+                              <div className="flex items-center gap-2">
+                                <code className="text-[10px] bg-background px-2 py-1 rounded text-primary flex-1 overflow-x-auto whitespace-nowrap">
+                                  https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/{activeBrandId}
+                                </code>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-6 px-2 text-[10px]"
+                                  onClick={() => {
+                                    const url = `https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/${activeBrandId}`;
+                                    navigator.clipboard.writeText(url);
+                                    toast({ title: 'Webhook URL Copied!' });
+                                  }}
+                                >
+                                  Copy
+                                </Button>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                                Paste this in your Razorpay Webhook Settings. Select <b>payment_link.paid</b> event.<br/>
+                                <b>Important:</b> Paste your <b>Key Secret</b> into the "Secret" field in Razorpay!
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
 
