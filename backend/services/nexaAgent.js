@@ -74,7 +74,7 @@ ${collectedStr}
    a) Customer's name  b) Product + quantity  c) Confirm final price  d) Full delivery address  e) Phone number
 5. CONFIRMING: Read back everything. Ask payment preference from: ${paymentOptionsStr}
    - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL.
-   - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'If they explicitly ask for a QR code, set send_upi_qr=true to automatically attach the QR image.' : ''}
+   - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'ALWAYS set send_upi_qr=true so the customer receives the QR image automatically.' : ''}
    - If COD: set payment_mode="cod" in collected. Move to CLOSED.
 7. SCREENSHOT VERIFICATION: If the user uploads an image while in CONFIRMING or CLOSED stage waiting for payment, analyze it. If it is a valid payment screenshot showing a successful transaction to our UPI, set payment_verified_from_screenshot=true. If it is NOT a valid payment screenshot, politely tell the customer "This doesn't look like a valid payment screenshot. Please provide a clear screenshot showing the payment." and remain in the same stage.
 8. CLOSED: Thank them warmly. Say the team will confirm shortly. Do NOT re-negotiate. If they are just saying thanks/okay, remain in CLOSED. If they want to buy something new, transition to GREETING or QUALIFYING.

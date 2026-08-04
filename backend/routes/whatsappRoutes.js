@@ -852,7 +852,15 @@ router.post('/webhook', async (req, res) => {
             const phoneNumberId = value.metadata.phone_number_id;
             const message = value.messages[0];
             const senderId = message.from; // The user's WhatsApp number
-            const messageText = message.type === 'text' ? message.text.body : '';
+            
+            let messageText = '';
+            let imageUrl = null;
+            if (message.type === 'text') {
+              messageText = message.text.body;
+            } else if (message.type === 'image') {
+              messageText = '[Image uploaded]';
+              imageUrl = message.image?.url || null; // May require auth, but we try passing it
+            }
 
             console.log(`[WhatsApp Webhook] Received message from ${senderId} to phone ID ${phoneNumberId}`);
 
@@ -875,7 +883,7 @@ router.post('/webhook', async (req, res) => {
             const nexaResult = await handleIncomingMessage({
               convo,
               incomingText: messageText,
-              imageUrl: null, // Basic text support for MVP
+              imageUrl: imageUrl,
               brandDoc: brandProfile,
               nexaSettings: brandProfile.nexa,
             });
