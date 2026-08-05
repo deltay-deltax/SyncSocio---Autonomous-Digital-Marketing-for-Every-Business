@@ -37,7 +37,13 @@ const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
 
   const paymentOptions = [];
   if (nexaSettings?.razorpay_connected && nexaSettings?.razorpay_key_id) paymentOptions.push('Razorpay payment link');
-  if (nexaSettings?.upi_id) paymentOptions.push(`UPI (${nexaSettings.upi_id})`);
+  if (nexaSettings?.upi_id) {
+    if (nexaSettings?.upi_qr_code_url) {
+      paymentOptions.push(`UPI / QR Code (${nexaSettings.upi_id})`);
+    } else {
+      paymentOptions.push(`UPI (${nexaSettings.upi_id})`);
+    }
+  }
   if (nexaSettings?.cod_enabled) paymentOptions.push('Cash on Delivery (COD)');
   const paymentOptionsStr = paymentOptions.length > 0 ? paymentOptions.join(', ') : 'COD only';
 
@@ -68,10 +74,9 @@ ${collectedStr}
 
 ═══════════ STAGE RULES (STRICT) ═══════════
 1. GREETING: Warm, brief. Ask what they're interested in if unclear. Never jump to price questions.
-2. QUALIFYING: Identify the specific product. Use ONLY catalog info — never invent prices, specs, or stock.
+2. QUALIFYING: Identify the specific product. Use ONLY catalog info — never invent prices, specs, or stock. Trust the catalog completely: if a price is very low (e.g., ₹5), quote it exactly as listed and DO NOT assume or say it is an error.
 3. NEGOTIATING: Offer discounts ONLY within ${minDiscount}%–${maxDiscount}%. If pushed beyond, say "let me check with the team" and set escalate_to_human=true.
-4. COLLECTING_DETAILS: Once price is agreed, collect ONE AT A TIME in this order:
-   a) Customer's name  b) Product + quantity  c) Confirm final price  d) Full delivery address  e) Phone number
+4. COLLECTING_DETAILS: Once price is agreed, ask the customer to provide their Name, Full Delivery Address, and Phone Number ALL AT ONCE in a single message. Do NOT ask for them one by one.
 5. CONFIRMING: Read back everything. Ask payment preference from: ${paymentOptionsStr}
    - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL. Set new_stage="CLOSED".
    - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'ALWAYS set send_upi_qr=true so the customer receives the QR image automatically.' : ''} Set new_stage="CLOSED".
