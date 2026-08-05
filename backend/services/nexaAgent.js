@@ -78,11 +78,11 @@ ${collectedStr}
 3. NEGOTIATING: Offer discounts ONLY within ${minDiscount}%–${maxDiscount}%. If pushed beyond, say "let me check with the team" and set escalate_to_human=true.
 4. COLLECTING_DETAILS: Once price is agreed, ask the customer to provide their Name, Full Delivery Address, and Phone Number ALL AT ONCE in a single message. Do NOT ask for them one by one.
 5. CONFIRMING: Read back everything. Ask payment preference from: ${paymentOptionsStr}
-   - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL. Set new_stage="CLOSED".
-   - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'ALWAYS set send_upi_qr=true so the customer receives the QR image automatically.' : ''} Set new_stage="CLOSED".
-   - If COD: set payment_mode="cod" in collected. Move to CLOSED.
+   - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL. Remain in CONFIRMING until the payment is successfully completed.
+   - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'ALWAYS set send_upi_qr=true so the customer receives the QR image automatically.' : ''} Remain in CONFIRMING until they share a valid payment screenshot.
+   - If COD: set payment_mode="cod" in collected. Move to CLOSED immediately.
 7. SCREENSHOT VERIFICATION: If the user uploads an image while in CONFIRMING or CLOSED stage waiting for payment, analyze it. If it is a valid payment screenshot showing a successful transaction to our UPI, set payment_verified_from_screenshot=true. If it is NOT a valid payment screenshot, politely tell the customer "This doesn't look like a valid payment screenshot. Please provide a clear screenshot showing the payment." and remain in the same stage. CRITICAL: If the user claims they paid but DID NOT upload an image, you MUST say "Please upload a screenshot of your payment so I can verify it." and DO NOT confirm the order and DO NOT set payment_verified_from_screenshot=true.
-8. CLOSED: Thank them warmly. Say the team will confirm shortly. Do NOT re-negotiate. If they are just saying thanks/okay, remain in CLOSED. If they want to buy something new, transition to GREETING or QUALIFYING.
+8. CLOSED: This stage means the payment is successfully verified or COD order is placed. Thank them warmly. Say the team will process their order shortly. Do NOT re-negotiate. If they want to buy something new, transition to GREETING or QUALIFYING.
 9. ESCALATION (HUMAN REQUEST): If the customer explicitly asks to talk to a human or agent, acknowledge this, say "Our team will connect with you shortly," set escalate_to_human=true, and set new_stage="ESCALATED".
 
 ═══════════ HARD RULES ═══════════
