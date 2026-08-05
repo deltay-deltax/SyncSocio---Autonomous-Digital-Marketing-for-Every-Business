@@ -190,7 +190,7 @@ router.get('/razorpay-webhook/:brandId', (req, res) => {
           <div class="icon">✅</div>
           <h2>Payment Successful!</h2>
           <p>Thank you for your order. Your payment has been securely processed.</p>
-          <p style="font-size: 0.875rem; margin-bottom: 0;">You can safely close this window and return to Instagram.</p>
+          <p style="font-size: 0.875rem; margin-bottom: 0;">You can safely close this window and return to Instagram/WhatsApp.</p>
         </div>
       </body>
     </html>
@@ -199,7 +199,7 @@ router.get('/razorpay-webhook/:brandId', (req, res) => {
 
 // ─── POST /api/nexa/razorpay-webhook/:brandId ─────────────────────────────────
 // Register this URL in each brand's Razorpay dashboard
-router.post('/razorpay-webhook/:brandId', express.raw({ type: '*/*' }), async (req, res) => {
+router.post('/razorpay-webhook/:brandId', async (req, res) => {
   try {
     console.log(`[NexaRoutes] 🔔 Received Razorpay webhook for brand ID: ${req.params.brandId}`);
     
@@ -214,7 +214,7 @@ router.post('/razorpay-webhook/:brandId', express.raw({ type: '*/*' }), async (r
       console.warn(`[NexaRoutes] ❌ Webhook failed: Missing x-razorpay-signature header`);
     }
 
-    const bodyStr = req.body.toString('utf8');
+    const bodyStr = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body);
     let bodyJson;
     try { 
       bodyJson = JSON.parse(bodyStr); 
@@ -226,9 +226,25 @@ router.post('/razorpay-webhook/:brandId', express.raw({ type: '*/*' }), async (r
     console.log(`[NexaRoutes] Webhook Event Type: ${bodyJson.event}`);
 
     const isValid = await verifyRazorpayWebhook(bodyJson, signature, brand, brand.nexa);
+    // Note: To be perfectly robust against whitespace issues, verifyRazorpayWebhook should ideally use bodyStr.
+    // However, verifyRazorpayWebhook currently stringifies bodyJson. We will leave it as is for now, but 
+    // ideally it should be: verifyRazorpayWebhookStr(bodyStr, signature, ...)
     if (!isValid) {
-      console.warn('[NexaRoutes] ❌ Razorpay webhook signature mismatch for brand:', req.params.brandId);
-      return res.status(400).send('Invalid signature');
+      // Fallback: Try validating with the raw body string directly if JSON.stringify alters it
+      const { decryptField } = await import('../services/nexaPayment.js');
+      const crypto = await import('crypto');
+      const secret = decryptField(brand.nexa.razorpay_key_secret);
+      
+      let isValidRaw = false;
+      if (secret) {
+        const expectedSignature = crypto.createHmac('sha256', secret).update(bodyStr).digest('hex');
+        isValidRaw = (expectedSignature === signature);
+      }
+      
+      if (!isValidRaw) {
+        console.warn('[NexaRoutes] ❌ Razorpay webhook signature mismatch for brand:', req.params.brandId);
+        return res.status(400).send('Invalid signature');
+      }
     }
 
     if (bodyJson.event === 'payment_link.paid') {

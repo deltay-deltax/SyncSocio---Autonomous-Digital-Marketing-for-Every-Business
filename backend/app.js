@@ -63,7 +63,12 @@ app.use(cors({
   ].filter(Boolean),
   credentials: true
 }));
-app.use(express.json({ limit: '200mb' }));
+app.use(express.json({ 
+  limit: '200mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ limit: '200mb', extended: true, parameterLimit: 200000 }));
 
 // Serve static uploads with public caching
