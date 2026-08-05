@@ -148,25 +148,48 @@ export const handleRazorpayPaid = async (body) => {
       console.error('[NexaPayment] Failed to send notification for paid order:', e.message);
     }
 
-    // Auto-reply to the customer on Instagram
+    // Auto-reply to the customer on Instagram or WhatsApp
     try {
       const brand = await BrandProfile.findById(convo.brand_id);
       if (brand) {
-        const pageToken = await resolvePageToken(brand);
-        if (pageToken) {
-          await sendStandardMessageExternal({
-            pageToken,
-            igScopedId: convo.ig_user_id,
-            messagePayload: { 
-              text: `🎉 Payment received! Thank you so much for your order.\n\nYour payment of ₹${convo.collected?.price_agreed} for ${convo.collected?.product_interested} is confirmed. Our team will process this right away!\n\n📦 Order Details:\nItem: ${convo.collected?.product_interested || 'N/A'} (x${convo.collected?.quantity || 1})\nName: ${convo.collected?.customer_name || 'N/A'}\nAddress: ${convo.collected?.delivery_address || 'N/A'}\nPhone: ${convo.collected?.phone_number || 'N/A'}`
-            },
-            pageId: brand.instagramPageId,
-          });
-          console.log(`[NexaPayment] Sent auto-reply to ${convo.ig_user_id} for paid order.`);
+        const textMsg = `🎉 Payment received! Thank you so much for your order.\n\nYour payment of ₹${convo.collected?.price_agreed} for ${convo.collected?.product_interested} is confirmed. Our team will process this right away!\n\n📦 Order Details:\nItem: ${convo.collected?.product_interested || 'N/A'} (x${convo.collected?.quantity || 1})\nName: ${convo.collected?.customer_name || 'N/A'}\nAddress: ${convo.collected?.delivery_address || 'N/A'}\nPhone: ${convo.collected?.phone_number || 'N/A'}`;
+
+        if (convo.platform === 'whatsapp') {
+          if (brand.whatsappAccessToken && brand.whatsappPhoneId) {
+            const axios = (await import('axios')).default;
+            await axios.post(
+              `https://graph.facebook.com/v25.0/${brand.whatsappPhoneId}/messages`,
+              {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: convo.ig_user_id,
+                type: 'text',
+                text: { body: textMsg }
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${brand.whatsappAccessToken}`,
+                }
+              }
+            );
+            console.log(`[NexaPayment] Sent auto-reply to ${convo.ig_user_id} via WhatsApp for paid order.`);
+          }
+        } else {
+          const pageToken = await resolvePageToken(brand);
+          if (pageToken) {
+            await sendStandardMessageExternal({
+              pageToken,
+              igScopedId: convo.ig_user_id,
+              messagePayload: { text: textMsg },
+              pageId: brand.instagramPageId,
+            });
+            console.log(`[NexaPayment] Sent auto-reply to ${convo.ig_user_id} via Instagram for paid order.`);
+          }
         }
       }
     } catch (msgErr) {
-      console.error('[NexaPayment] Failed to send auto-reply to customer:', msgErr.message);
+      console.error('[NexaPayment] Failed to send auto-reply to customer:', msgErr?.response?.data || msgErr.message);
     }
 
     console.log(`[NexaPayment] ✅ Payment confirmed for conversation ${convo._id}`);
