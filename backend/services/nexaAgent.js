@@ -73,10 +73,10 @@ ${collectedStr}
 4. COLLECTING_DETAILS: Once price is agreed, collect ONE AT A TIME in this order:
    a) Customer's name  b) Product + quantity  c) Confirm final price  d) Full delivery address  e) Phone number
 5. CONFIRMING: Read back everything. Ask payment preference from: ${paymentOptionsStr}
-   - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL.
-   - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'ALWAYS set send_upi_qr=true so the customer receives the QR image automatically.' : ''}
+   - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL. Set new_stage="CLOSED".
+   - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'ALWAYS set send_upi_qr=true so the customer receives the QR image automatically.' : ''} Set new_stage="CLOSED".
    - If COD: set payment_mode="cod" in collected. Move to CLOSED.
-7. SCREENSHOT VERIFICATION: If the user uploads an image while in CONFIRMING or CLOSED stage waiting for payment, analyze it. If it is a valid payment screenshot showing a successful transaction to our UPI, set payment_verified_from_screenshot=true. If it is NOT a valid payment screenshot, politely tell the customer "This doesn't look like a valid payment screenshot. Please provide a clear screenshot showing the payment." and remain in the same stage.
+7. SCREENSHOT VERIFICATION: If the user uploads an image while in CONFIRMING or CLOSED stage waiting for payment, analyze it. If it is a valid payment screenshot showing a successful transaction to our UPI, set payment_verified_from_screenshot=true. If it is NOT a valid payment screenshot, politely tell the customer "This doesn't look like a valid payment screenshot. Please provide a clear screenshot showing the payment." and remain in the same stage. CRITICAL: If the user claims they paid but DID NOT upload an image, you MUST say "Please upload a screenshot of your payment so I can verify it." and DO NOT confirm the order and DO NOT set payment_verified_from_screenshot=true.
 8. CLOSED: Thank them warmly. Say the team will confirm shortly. Do NOT re-negotiate. If they are just saying thanks/okay, remain in CLOSED. If they want to buy something new, transition to GREETING or QUALIFYING.
 9. ESCALATION (HUMAN REQUEST): If the customer explicitly asks to talk to a human or agent, acknowledge this, say "Our team will connect with you shortly," set escalate_to_human=true, and set new_stage="ESCALATED".
 
@@ -191,6 +191,14 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
     Object.assign(mergedCollected, parsed.updated_collected_fields);
   }
 
+  let paymentUpdate = {};
+
+  // If a payment mode was selected but status is not_generated, set it to pending
+  if (mergedCollected.payment_mode && (!convo.payment?.payment_status || convo.payment.payment_status === 'not_generated')) {
+    paymentUpdate['payment.payment_status'] = 'pending';
+    paymentUpdate['payment.provider'] = mergedCollected.payment_mode;
+  }
+
   // FORCE RULE: Cannot request payment link if price is not finalized
   if (parsed.payment_link_requested && (!mergedCollected.price_agreed || mergedCollected.price_agreed <= 0)) {
     parsed.payment_link_requested = false;
@@ -198,8 +206,8 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
     parsed.new_stage = 'QUALIFYING';
   }
 
-  // FORCE RULE: Only send payment links in the CONFIRMING stage
-  if (parsed.payment_link_requested && finalStage !== 'CONFIRMING') {
+  // FORCE RULE: Only send payment links in the CONFIRMING or CLOSED stage
+  if (parsed.payment_link_requested && !['CONFIRMING', 'CLOSED'].includes(finalStage)) {
     parsed.payment_link_requested = false;
   }
 
@@ -212,13 +220,10 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   }
 
   // Handle successful screenshot verification
-  let paymentUpdate = {};
   if (parsed.payment_verified_from_screenshot && ['CONFIRMING', 'CLOSED'].includes(convo.stage)) {
-    paymentUpdate = {
-      'payment.payment_status': 'paid',
-      'payment.provider': 'manual_screenshot',
-      'payment.amount_paise': (mergedCollected.price_agreed || 0) * 100,
-    };
+    paymentUpdate['payment.payment_status'] = 'paid';
+    paymentUpdate['payment.amount_paise'] = (mergedCollected.price_agreed || 0) * 100;
+    paymentUpdate['payment.paid_at'] = new Date();
     
     // Automatically transition to CLOSED if not already there
     if (finalStage !== 'CLOSED') {
@@ -267,10 +272,12 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
     console.log(`[Nexa] Forked new conversation ${newConvo._id} because customer wanted a new order from CLOSED stage.`);
   } else {
     const updateData = {
-      stage: newStage,
-      collected: mergedCollected,
-      escalate_to_human: !!parsed.escalate_to_human,
-      ...paymentUpdate,
+      $set: {
+        stage: newStage,
+        collected: mergedCollected,
+        escalate_to_human: !!parsed.escalate_to_human,
+        ...paymentUpdate
+      },
       $push: {
         conversation_history: {
           $each: [newHistoryEntry, nexaHistoryEntry],
