@@ -13,6 +13,8 @@ import BrandProfile from '../models/BrandProfile.js';
 import NexaConversation from '../models/NexaConversation.js';
 import { encryptField, verifyRazorpayWebhook, handleRazorpayPaid } from '../services/nexaPayment.js';
 import { uploadBase64ToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload.js';
+import { sendStandardMessage } from '../controllers/instagramWebhookController.js';
+import { extractKnowledgeFromReply } from '../services/nexaKnowledgeService.js';
 
 const router = express.Router();
 
@@ -164,6 +166,68 @@ router.get('/conversations/:id', protect, async (req, res) => {
   } catch (err) {
     console.error('[NexaRoutes] GET conversation error:', err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ─── POST /api/nexa/conversations/:id/reply ─────────────────────────────────
+router.post('/conversations/:id/reply', protect, async (req, res) => {
+  try {
+    const brands = await BrandProfile.find({ user: req.user._id }).select('_id instagramPageAccessToken instagramAccessToken instagramPageId nexa').lean();
+    const brandIds = brands.map(b => b._id.toString());
+    
+    const convo = await NexaConversation.findById(req.params.id);
+    if (!convo) return res.status(404).json({ message: 'Conversation not found' });
+    
+    const brandStrId = convo.brand_id.toString();
+    if (!brandIds.includes(brandStrId)) {
+      return res.status(403).json({ message: 'Unauthorized access to this conversation' });
+    }
+
+    const brandDoc = brands.find(b => b._id.toString() === brandStrId);
+    const { replyText, learn } = req.body;
+
+    if (!replyText) return res.status(400).json({ message: 'Reply text is required' });
+
+    const pageToken = brandDoc.instagramPageAccessToken || brandDoc.instagramAccessToken;
+    if (!pageToken) return res.status(400).json({ message: 'Instagram not connected properly' });
+
+    // Send the manual reply to Instagram
+    await sendStandardMessage({
+      pageToken,
+      igScopedId: convo.ig_user_id,
+      messagePayload: { text: replyText },
+      pageId: brandDoc.instagramPageId,
+    });
+
+    // Save human reply to history
+    convo.conversation_history.push({
+      role: 'nexa', // Still recorded as the brand's persona
+      text: replyText,
+      timestamp: new Date()
+    });
+    
+    // Reset escalation
+    convo.escalate_to_human = false;
+    // Put back into active state (e.g., GREETING or QUALIFYING so AI takes over the next msg)
+    convo.stage = 'GREETING';
+    await convo.save();
+
+    // Auto-Learn Knowledge Base
+    if (learn) {
+      const extractedKnowledge = await extractKnowledgeFromReply(convo.conversation_history, replyText);
+      if (extractedKnowledge) {
+        await BrandProfile.updateOne(
+          { _id: brandDoc._id },
+          { $push: { 'nexa.knowledge_base': { ...extractedKnowledge, autoLearned: true, addedAt: new Date() } } }
+        );
+        console.log(`[NexaKnowledge] Auto-learned Q&A for brand ${brandDoc._id}:`, extractedKnowledge.question);
+      }
+    }
+
+    res.json({ success: true, message: 'Reply sent', convo });
+  } catch (err) {
+    console.error('[NexaRoutes] POST conversation reply error:', err);
+    res.status(500).json({ message: 'Server error sending reply' });
   }
 });
 

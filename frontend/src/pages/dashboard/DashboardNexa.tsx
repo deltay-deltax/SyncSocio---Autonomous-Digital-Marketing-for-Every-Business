@@ -33,6 +33,9 @@ const DashboardNexa = () => {
   const [nexaConvLoading, setNexaConvLoading] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<'instagram' | 'whatsapp'>('instagram');
+  const [replyText, setReplyText] = useState('');
+  const [learnCheckbox, setLearnCheckbox] = useState(true);
+  const [replying, setReplying] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
@@ -70,6 +73,29 @@ const DashboardNexa = () => {
   const handleCheckoutSuccess = () => {
     toast({ title: 'Add-on Activated', description: 'DM Automation is now active!' });
     window.location.reload();
+  };
+
+  const handleReply = async () => {
+    if (!replyText.trim() || !selectedLeadId) return;
+    setReplying(true);
+    try {
+      const res = await fetch(`${API_BASE}/nexa/conversations/${selectedLeadId}/reply`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ replyText, learn: learnCheckbox })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: 'Reply Sent', description: 'Conversation is back to automation.' });
+        setReplyText('');
+        setNexaConversations(prev => prev.map(c => c._id === selectedLeadId ? data.convo : c));
+      } else {
+        toast({ title: 'Error', description: data.message, variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to send reply', variant: 'destructive' });
+    }
+    setReplying(false);
   };
 
   if (checkoutData) {
@@ -309,6 +335,40 @@ const DashboardNexa = () => {
                         <p className="text-sm text-muted-foreground text-center py-4">No conversation history available.</p>
                       )}
                     </div>
+                    
+                    {/* Reply & Auto-Learn Box (only for escalated) */}
+                    {selectedLead.escalate_to_human && (
+                      <div className="mt-4 p-4 border border-violet-500/30 bg-violet-500/5 rounded-2xl space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertCircle size={16} className="text-violet-600" />
+                          <h4 className="text-sm font-bold text-violet-900 dark:text-violet-100">Reply & Resolve</h4>
+                        </div>
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Type your reply to the customer..."
+                          className="w-full min-h-[80px] p-3 text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                        />
+                        <div className="flex items-center justify-between">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={learnCheckbox} 
+                              onChange={(e) => setLearnCheckbox(e.target.checked)}
+                              className="rounded text-violet-600 focus:ring-violet-500"
+                            />
+                            <span className="font-medium text-muted-foreground">Save to Nexa's Knowledge Base (Auto-Learn)</span>
+                          </label>
+                          <Button 
+                            onClick={handleReply} 
+                            disabled={replying || !replyText.trim()}
+                            className="bg-violet-600 hover:bg-violet-700"
+                          >
+                            {replying ? 'Sending...' : 'Send Reply'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </>

@@ -57,6 +57,17 @@ const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
   const targetAudiences = brandDoc.targetAudiences && brandDoc.targetAudiences.length > 0 ? brandDoc.targetAudiences.join(', ') : 'Not specified';
   const locationStr = brandDoc.location && brandDoc.location.city ? `${brandDoc.location.city}, ${brandDoc.location.country}` : 'Not specified';
 
+  const businessContext = nexaSettings?.business_context ? `\nBUSINESS POLICIES & CONTEXT:\n${nexaSettings.business_context}\n` : '';
+  
+  let knowledgeBaseStr = '';
+  if (nexaSettings?.knowledge_base && nexaSettings.knowledge_base.length > 0) {
+    knowledgeBaseStr = '\n═══════════ KNOWLEDGE BASE (FAQs) ═══════════\n';
+    knowledgeBaseStr += 'Use these exact answers for related customer questions:\n';
+    nexaSettings.knowledge_base.forEach(kb => {
+      knowledgeBaseStr += `Q: ${kb.question}\nA: ${kb.answer}\n\n`;
+    });
+  }
+
   return `You are Nexa, the AI Sales Assistant for ${brandName} on Instagram.
 You reply to DMs on behalf of ${brandName} in their brand voice: ${brandTone}.
 Your job: answer questions, qualify interest, negotiate within approved bounds, and close the sale.
@@ -68,12 +79,12 @@ WEBSITE: ${brandDoc.website || 'Not provided'}
 LOCATION: ${locationStr}
 TARGET AUDIENCE: ${targetAudiences}
 USP: ${brandDoc.usp || ''}
-TONE: ${brandTone}
+TONE: ${brandTone}${businessContext}
 APPROVED DISCOUNT RANGE: ${minDiscount}% – ${maxDiscount}% (NEVER exceed this without escalating)
 PAYMENT OPTIONS AVAILABLE: ${paymentOptionsStr}
 PRODUCTS/CATALOG:
 ${catalogStr}
-
+${knowledgeBaseStr}
 ═══════════ CONVERSATION STATE ═══════════
 CURRENT STAGE: ${convo.stage}
 ALREADY COLLECTED:
