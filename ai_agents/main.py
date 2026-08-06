@@ -1526,7 +1526,7 @@ async def api_generate_visuals(request: VisualGenRequest):
             user_plan = "starter"
             if brand_doc:
                 user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
-            img_quality = "low" if "starter" in user_plan else "medium"
+            img_quality = "medium" if "pro" in user_plan else "low"
 
             if brand_doc:
                 location = brand_doc.get('location')
@@ -1868,6 +1868,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_script=request.videoScript,
                 video_resolution=request.videoResolution or "1080p",
                 video_duration=request.videoDuration,
+                comment_keyword=request.commentKeyword,
             )
         else:
             import asyncio
@@ -2142,7 +2143,9 @@ async def api_product_image_editor(request: ProductEditRequest):
                 safe_brand_dna = json.dumps(pruned_dna)
                 
                 user_plan = str(dna_dict.get("selectedPlan", "starter")).lower()
-                if "starter" in user_plan:
+                if "pro" in user_plan:
+                    img_quality = "medium"
+                else:
                     img_quality = "low"
             except Exception:
                 # If not JSON or fails, just truncate it

@@ -1108,7 +1108,7 @@ Orchestrates generation for all layout types.
         list of {image?: str (base64), url?: str, caption: str, type: str}
     """
     user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
-    img_quality = "low" if "starter" in user_plan else "medium"
+    img_quality = "medium" if "pro" in user_plan else "low"
     
     brand_name = brand_doc.get("brandName", "the brand")
     # If Nepal target, force language to English or Nepali

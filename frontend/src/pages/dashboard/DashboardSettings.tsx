@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkout } from '@/components/Checkout';
 import { useOutletContext, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 import { useRazorpay } from '../../hooks/useRazorpay';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
@@ -116,6 +117,7 @@ const DashboardSettings = () => {
   }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const { currency, symbol, setCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('code') || params.get('error')) {
@@ -267,23 +269,24 @@ const DashboardSettings = () => {
     let creditsAdded = 0;
     let typeStr = '';
 
-    const isElite = currentPlan.toLowerCase().includes('elite');
+    const isPro = currentPlan.toLowerCase().includes('pro');
+    const isGrowth = currentPlan.toLowerCase().includes('growth');
 
     if (actionType === 'renew') {
-       amount = isElite ? 3199 : 999;
+       amount = isPro ? (currency === 'USD' ? 45 : 3499) : isGrowth ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 5 : 399);
        planStr = currentPlan;
-       creditsAdded = isElite ? 700 : 200;
+       creditsAdded = isPro ? 1000 : isGrowth ? 400 : 80;
        typeStr = 'plan_renewal';
     } else if (actionType === 'upgrade') {
-      amount = 3199; // Full Elite Plan price
-      planStr = 'Elite';
-      creditsAdded = 700; // Full Elite Plan credits
+      amount = isPro ? (currency === 'USD' ? 45 : 3499) : (currency === 'USD' ? 19 : 1499);
+      planStr = isPro ? 'Pro' : 'Growth';
+      creditsAdded = isPro ? 1000 : 400;
       typeStr = 'plan_upgrade';
     }
 
     setCheckoutData({
       baseAmount: amount,
-      description: actionType === 'renew' ? `Renew ${planStr} Plan` : 'Upgrade to Elite Plan',
+      description: actionType === 'renew' ? `Renew ${planStr} Plan` : `Upgrade to ${planStr} Plan`,
       type: typeStr,
       planName: planStr,
       creditsAdded: creditsAdded
@@ -1120,58 +1123,56 @@ const DashboardSettings = () => {
               </div>
 
               {(() => {
-                const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
-                const isAgency = plan.includes('agency');
-                const isElite = plan.includes('elite');
+                const plan = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+                const isPro = plan.includes('pro');
+                const isGrowth = plan.includes('growth');
                 
-                const planName = isAgency ? 'Agency' : isElite ? 'Elite' : 'Starter';
-                const planPrice = isAgency ? '₹13333/month' : isElite ? '₹3199/month' : '₹999/month';
-                const planCredits = isAgency ? '2,000 credits/month' : isElite ? '700 credits/month' : '200 credits/month';
-                const planFeatures = isAgency
+                const planName = isPro ? 'Pro' : isGrowth ? 'Growth' : 'Starter';
+                const planPrice = isPro ? `${symbol}${currency === 'USD' ? '45' : '3,499'}/month` : isGrowth ? `${symbol}${currency === 'USD' ? '19' : '1,499'}/month` : `${symbol}${currency === 'USD' ? '5' : '399'}/month`;
+                const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : '80 credits/month';
+                const planFeatures = isPro
                   ? [
-                      '2,000 credits/month',
-                      'HD quality images',
-                      '10,000 email campaigns/month',
-                      '8 active brand profiles',
-                      'Import or Add Up to 500 Products',
-                      'All-in-One Drop feature',
-                      'UGC & Product video generation',
-                      'Dedicated Account Manager',
+                      '1,000 credits/month (125 HD images)',
+                      'HD quality image exports',
+                      '2,000 email sends/month',
+                      '2 brand profiles',
+                      '500 products catalog',
+                      'All content formats unlocked',
+                      'Video & Reels (up to 30/mo)',
+                      'DM Automation (IG + WA)',
+                      'Nexa AI Sales Agent (all brands)',
+                      'Unlimited Nexa conversations',
                       'Unlimited post scheduling',
-                      'Analytics dashboard',
-                      'Highest Priority generation',
-                      '24/7 Priority support'
+                      'Best time to post analytics',
+                      'Dedicated WhatsApp support'
                     ]
-                  : isElite
+                  : isGrowth
                   ? [
-                      '700 credits/month',
-                      'HD quality images',
-                      '2,000 email campaigns/month',
-                      '2 active brand profiles',
-                      'Import or Add Up to 100 Products',
-                      'UGC & Product video generation',
-                      'All-in-One Drop feature',
-                      'Festival calendar & suggestions',
-                      'Caption & hashtag generation',
-                      'Unlimited post scheduling',
-                      'Reels + Video + UGC support',
-                      'DM automation & lead capture',
-                      'Best time to post analysis',
-                      'Analytics dashboard',
-                      'Priority 24/7 support'
+                      '400 credits/month (80 AI images)',
+                      'SD quality image exports',
+                      '500 email sends/month',
+                      '1 brand profile',
+                      '200 products catalog',
+                      'All content formats unlocked',
+                      'Clone Mode & Sprint (bulk gen)',
+                      'Video & Reels (up to 8/mo)',
+                      'DM Automation (IG + WA)',
+                      'Nexa AI Sales Agent',
+                      'Nexa: Razorpay + UPI payments',
+                      'WhatsApp Campaign (Meta self-paid)',
+                      'Best time to post analytics',
+                      'Priority WhatsApp support'
                     ]
                   : [
-                      '200 credits/month',
-                      'Soft copy images',
-                      '500 email campaigns/month',
-                      '1 active brand profile',
-                      'Import or Add Up to 50 Products',
-                      'All image generation types',
-                      'Festival calendar',
-                      'Hinglish + 13 languages',
-                      'Caption & hashtag generation',
-                      'Schedule up to 30 posts/month',
-                      'Analytics dashboard',
+                      '80 credits/month (16 AI images)',
+                      'SD quality image exports',
+                      '1 brand profile',
+                      '50 products catalog',
+                      'Image, Carousel, Festival posts',
+                      'Ecomm listing generator',
+                      'Photoshoot mode',
+                      'AI Editor (1 edit/post)',
+                      'Schedule up to 20 posts',
                       'Email support'
                     ];
 
@@ -1225,8 +1226,8 @@ const DashboardSettings = () => {
 
               {(() => {
                 const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
-                const isElite = plan.includes('elite');
-                const isAgency = plan.includes('agency');
+                const isPro = plan.includes('pro');
+                const isGrowth = plan.includes('growth');
 
                 let expiryTime = 0;
                 if (profile.userPlanExpiresAt) {
@@ -1241,7 +1242,7 @@ const DashboardSettings = () => {
                 const oneDay = 24 * 60 * 60 * 1000;
                 const canRenew = expiryTime === 0 || diff <= oneDay;
 
-                if (!isElite && !isAgency) {
+                if (!isPro && !isGrowth) {
                   return (
                     <div className="space-y-4 pt-4 border-t border-border/40">
                       <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center ml-1 gap-2">
@@ -1258,13 +1259,13 @@ const DashboardSettings = () => {
                           disabled={!canRenew}
                           className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                         >
-                          Renew Plan (₹999)
+                          Renew Starter Plan ({symbol}{currency === 'USD' ? '5' : '399'})
                         </Button>
                         <Button 
                           onClick={() => handlePlanAction('upgrade', 'Starter')} 
                           className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
                         >
-                          Upgrade to Elite (₹3199)
+                          Upgrade to Growth ({symbol}{currency === 'USD' ? '19' : '1,499'})
                         </Button>
                       </div>
                     </div>
@@ -1281,11 +1282,11 @@ const DashboardSettings = () => {
                         )}
                       </div>
                       <Button 
-                        onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || (isAgency ? 'Agency' : 'Elite'))} 
+                        onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || (isPro ? 'Pro' : 'Growth'))} 
                         disabled={!canRenew}
                         className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                       >
-                        Renew {isAgency ? 'Agency' : 'Elite'} Plan ({isAgency ? '₹7999' : '₹3199'})
+                        Renew {isPro ? 'Pro' : 'Growth'} Plan ({symbol}{isPro ? (currency === 'USD' ? '45' : '3,499') : (currency === 'USD' ? '19' : '1,499')})
                       </Button>
                     </div>
                   );

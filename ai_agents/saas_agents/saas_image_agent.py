@@ -439,6 +439,7 @@ def generate_saas_instagram_caption(
     idea: Optional[str],
     language: str = "english",
     index: int = 0,
+    comment_keyword: Optional[str] = "",
 ) -> str:
     """Generates a B2B Instagram caption with SaaS copy tone."""
     try:
@@ -452,6 +453,12 @@ def generate_saas_instagram_caption(
         profile = get_saas_profile((brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")))
         cta = profile["cta_style"] if profile else "Book a Call | Learn More"
         idea_info = f"Campaign Topic/Idea: {idea}\n" if idea and idea.strip() else ""
+        
+        if comment_keyword:
+            cta_inst = f'3. Include a clear CTA: You MUST instruct the user to comment the exact word "{comment_keyword}" below to get the link or details via DM.\n'
+        else:
+            cta_inst = f"3. Include a clear CTA: use one of these → {cta}\n"
+
         sys_msg = (
             f"You are a B2B copywriter and Instagram content expert. "
             f"Write a professional Instagram caption in {language} for a {layout} post "
@@ -459,7 +466,7 @@ def generate_saas_instagram_caption(
             "The caption must:\n"
             "1. Open with a bold stat, insight, or provocative question (no emojis in the opening line).\n"
             "2. Deliver 2-3 lines of value — a framework, result, or key insight.\n"
-            "3. Include a clear CTA: use one of these → " + cta + "\n"
+            f"{cta_inst}"
             "4. End with 5-8 highly relevant B2B hashtags.\n"
             "DO NOT use: sale language, urgency/FOMO, discount copy, or consumer lifestyle references.\n"
             "Output ONLY the caption with hashtags. No markdown. No quotes."
@@ -509,6 +516,7 @@ def generate_saas_strategy_images(
     video_script: Optional[str] = "",
     video_resolution: Optional[str] = "1080p",
     video_duration: Optional[int] = None,
+    comment_keyword: Optional[str] = "",
 ) -> List[Dict[str, Any]]:
     """
     SaaS-aware orchestrator for image/carousel/video/festival generation.
@@ -518,7 +526,7 @@ def generate_saas_strategy_images(
     so the caller in main.py can swap them transparently.
     """
     user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
-    img_quality = "low" if "starter" in user_plan else "medium"
+    img_quality = "medium" if "pro" in user_plan else "low"
 
     # If Nepal target, force language to English or Nepali
     loc = brand_doc.get("location")
@@ -666,6 +674,7 @@ def generate_saas_strategy_images(
                 idea=idea,
                 language=language,
                 index=index,
+                comment_keyword=comment_keyword,
             )
             try:
                 result = generate_fal_image_gpt2(
@@ -746,6 +755,7 @@ def generate_saas_strategy_images(
                 idea=idea,
                 language=language,
                 index=index,
+                comment_keyword=comment_keyword,
             )
 
             try:

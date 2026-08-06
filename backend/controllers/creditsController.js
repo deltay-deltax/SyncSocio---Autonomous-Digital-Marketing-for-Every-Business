@@ -5,12 +5,16 @@ import Coupon from '../models/Coupon.js';
 
 // Credit amounts per plan tier
 const PLAN_CREDITS = {
-  'Starter': 200,
+  'Starter': 80,
+  'Growth': 400,
+  'Pro': 1000,
   'Elite': 700,
   'Elite SD': 700,
   'Elite HD': 700,
   'Agency': 1750,
-  'SyncSocio Starter': 200,
+  'SyncSocio Starter': 80,
+  'SyncSocio Growth': 400,
+  'SyncSocio Pro': 1000,
   'SyncSocio Elite': 700,
   'SyncSocio Elite SD': 700,
   'SyncSocio Elite HD': 700,
@@ -57,11 +61,13 @@ export const assignCredits = async (req, res) => {
     }
 
     // Calculate billing amount (₹)
-    let basePrice = 799;
+    let basePrice = 399;
     const pl = plan.toLowerCase();
-    if (pl.includes('agency')) basePrice = 4999;
+    if (pl.includes('pro')) basePrice = 3499;
+    else if (pl.includes('growth')) basePrice = 1499;
+    else if (pl.includes('agency')) basePrice = 4999;
     else if (pl.includes('elite')) basePrice = 2199;
-    else basePrice = 799; // Starter plan
+    else basePrice = 399; // Starter plan
     
     let sum = basePrice + (isDmEnabled ? 399 : 0);
     let discountPercentage = 0;

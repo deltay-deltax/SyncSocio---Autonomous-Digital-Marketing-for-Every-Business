@@ -54,18 +54,25 @@ const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
     ? `\nNOTE: This customer commented on a post about "${convo.collected.product_interested}" and received the product info. Skip basic introductions — they already know what they want. Start directly where the conversation left off.\n`
     : '';
 
+  const targetAudiences = brandDoc.targetAudiences && brandDoc.targetAudiences.length > 0 ? brandDoc.targetAudiences.join(', ') : 'Not specified';
+  const locationStr = brandDoc.location && brandDoc.location.city ? `${brandDoc.location.city}, ${brandDoc.location.country}` : 'Not specified';
+
   return `You are Nexa, the AI Sales Assistant for ${brandName} on Instagram.
 You reply to DMs on behalf of ${brandName} in their brand voice: ${brandTone}.
 Your job: answer questions, qualify interest, negotiate within approved bounds, and close the sale.
 ${originNote}
 ═══════════ BRAND CONTEXT ═══════════
 BRAND: ${brandName}
-PRODUCTS/CATALOG:
-${catalogStr}
+BUSINESS CATEGORY: ${brandDoc.businessCategory || 'Not specified'}
+WEBSITE: ${brandDoc.website || 'Not provided'}
+LOCATION: ${locationStr}
+TARGET AUDIENCE: ${targetAudiences}
 USP: ${brandDoc.usp || ''}
 TONE: ${brandTone}
 APPROVED DISCOUNT RANGE: ${minDiscount}% – ${maxDiscount}% (NEVER exceed this without escalating)
 PAYMENT OPTIONS AVAILABLE: ${paymentOptionsStr}
+PRODUCTS/CATALOG:
+${catalogStr}
 
 ═══════════ CONVERSATION STATE ═══════════
 CURRENT STAGE: ${convo.stage}

@@ -12,6 +12,7 @@ import { Checkout } from '@/components/Checkout';
 
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 import Pricing from '@/components/Pricing';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type Screen = 'checklist' | 'instagram' | 'plan' | 'checkout' | 'activation';
@@ -104,6 +105,7 @@ const Setup = () => {
   const { toast } = useToast();
   const isRazorpayLoaded = useRazorpay();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const { currency } = useCurrency();
 
 
   useEffect(() => {
@@ -117,7 +119,8 @@ const Setup = () => {
   }, [location.search]);
   const [dmToggles, setDmToggles] = useState<Record<string, boolean>>({
     'Starter': localStorage.getItem('syncsocio_dm_automation') === 'true',
-    'Elite': localStorage.getItem('syncsocio_dm_automation') === 'true',
+    'Growth': localStorage.getItem('syncsocio_dm_automation') === 'true',
+    'Pro': localStorage.getItem('syncsocio_dm_automation') === 'true',
   });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [recommendedPlan, setRecommendedPlan] = useState<string | null>(null);
@@ -242,12 +245,12 @@ const Setup = () => {
     }
     // --- END BYPASS ---
 
-    const basePrice = planName === 'Agency' ? 4999 : planName === 'Elite' ? 1999 : planName === 'Starter' ? 799 : 399;
+    const basePrice = planName === 'Pro' ? (currency === 'USD' ? 45 : 3499) : planName === 'Growth' ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 5 : 399);
     let currentPrice = basePrice;
     
     if (appliedCoupon) {
       if (appliedCoupon.code === 'LAUNCH') {
-        currentPrice = planName === 'Agency' ? 4999 : planName === 'Elite' ? 1999 : planName === 'Starter' ? 799 : 399;
+        currentPrice = basePrice;
       } else {
         const discount = appliedCoupon.discountPercentage;
         currentPrice = Math.round(currentPrice * (1 - discount / 100));
@@ -278,11 +281,11 @@ const Setup = () => {
       if (freq === 'Once / wk' && !hasReels) {
         setRecommendedPlan('Starter');
       } else if (freq === '3-4x / wk' && !hasReels) {
-        setRecommendedPlan('Starter');
+        setRecommendedPlan('Growth');
       } else if (freq === 'Daily' || hasReels) {
-        setRecommendedPlan('Elite');
+        setRecommendedPlan('Pro');
       } else {
-        setRecommendedPlan('Elite');
+        setRecommendedPlan('Growth');
       }
     }
   }, []);
@@ -559,9 +562,8 @@ const Setup = () => {
           type="plan_purchase"
           planName={selectedPlan || ''}
           creditsAdded={
-            selectedPlan === 'Agency' ? 1800 :
-            selectedPlan === 'Elite' ? 700 :
-            selectedPlan === 'Starter' ? 200 : 80
+            selectedPlan === 'Pro' ? 1000 :
+            selectedPlan === 'Growth' ? 400 : 80
           }
           onSuccess={handleCheckoutSuccess}
           onBack={() => setScreen('plan')}

@@ -32,8 +32,9 @@ const topups = [
 ];
 
 const planPrices = {
-  Starter: { INR: 999, USD: 15 },
-  Elite: { INR: 3199, USD: 49 }
+  Starter: { INR: 399, USD: 5 },
+  Growth: { INR: 1499, USD: 19 },
+  Pro: { INR: 3499, USD: 45 }
 };
 
 export const CreditTopup = () => {
@@ -74,24 +75,25 @@ export const CreditTopup = () => {
     let creditsAdded = 0;
     let typeStr = '';
 
-    const isElite = currentPlan.toLowerCase().includes('elite');
+    const isPro = currentPlan.toLowerCase().includes('pro');
+    const isGrowth = currentPlan.toLowerCase().includes('growth');
 
     if (actionType === 'renew') {
-       amount = isElite ? planPrices.Elite[currency] : planPrices.Starter[currency];
+       amount = isPro ? planPrices.Pro[currency] : isGrowth ? planPrices.Growth[currency] : planPrices.Starter[currency];
        planStr = currentPlan;
-       creditsAdded = isElite ? 700 : 200;
+       creditsAdded = isPro ? 1000 : isGrowth ? 400 : 80;
        typeStr = 'plan_renewal';
      } else if (actionType === 'upgrade') {
-       amount = planPrices.Elite[currency]; // Full Elite Plan price
-       planStr = 'Elite';
-       creditsAdded = 700; // Full Elite Plan credits
+       amount = isPro ? planPrices.Pro[currency] : planPrices.Growth[currency];
+       planStr = isPro ? 'Pro' : 'Growth';
+       creditsAdded = isPro ? 1000 : 400;
        typeStr = 'plan_upgrade';
      }
 
     setShowExpiredModal(false);
     setCheckoutData({
       baseAmount: amount,
-      description: actionType === 'renew' ? `Renew ${planStr} Plan` : 'Upgrade to Elite Plan',
+      description: actionType === 'renew' ? `Renew ${planStr} Plan` : `Upgrade to ${planStr} Plan`,
       type: typeStr,
       planName: planStr,
       creditsAdded: creditsAdded
@@ -214,9 +216,10 @@ export const CreditTopup = () => {
             <div className="space-y-4">
               {(() => {
                 const plan = (profile?.userPlan || '').toLowerCase();
-                const isElite = plan.includes('elite');
+                const isPro = plan.includes('pro');
+                const isGrowth = plan.includes('growth');
 
-                if (!isElite) {
+                if (!isPro && !isGrowth) {
                   return (
                     <>
                       <Button 
@@ -231,18 +234,37 @@ export const CreditTopup = () => {
                         disabled={processingPlan}
                         className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg"
                       >
-                        {processingPlan ? 'Processing...' : `Upgrade to Elite (${symbol}${planPrices.Elite[currency]})`}
+                        {processingPlan ? 'Processing...' : `Upgrade to Growth (${symbol}${planPrices.Growth[currency]})`}
+                      </Button>
+                    </>
+                  );
+                } else if (isGrowth) {
+                  return (
+                    <>
+                      <Button 
+                        onClick={() => handlePlanAction('renew', profile?.userPlan || 'Growth')} 
+                        disabled={processingPlan}
+                        className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:brightness-110 shadow-lg"
+                      >
+                        {processingPlan ? 'Processing...' : `Renew Growth Plan (${symbol}${planPrices.Growth[currency]})`}
+                      </Button>
+                      <Button 
+                        onClick={() => handlePlanAction('upgrade', profile?.userPlan || 'Growth')} 
+                        disabled={processingPlan}
+                        className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg"
+                      >
+                        {processingPlan ? 'Processing...' : `Upgrade to Pro (${symbol}${planPrices.Pro[currency]})`}
                       </Button>
                     </>
                   );
                 } else {
                   return (
                     <Button 
-                      onClick={() => handlePlanAction('renew', profile?.userPlan || 'Elite')} 
+                      onClick={() => handlePlanAction('renew', profile?.userPlan || 'Pro')} 
                       disabled={processingPlan}
                       className="w-full h-14 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:brightness-110 shadow-lg"
                     >
-                      {processingPlan ? 'Processing...' : `Renew Elite Plan (${symbol}${planPrices.Elite[currency]})`}
+                      {processingPlan ? 'Processing...' : `Renew Pro Plan (${symbol}${planPrices.Pro[currency]})`}
                     </Button>
                   );
                 }

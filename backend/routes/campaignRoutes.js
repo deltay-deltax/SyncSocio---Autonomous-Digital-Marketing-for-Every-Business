@@ -9,13 +9,13 @@ import RequestedTemplate from '../models/RequestedTemplate.js';
 import { createNotification } from '../utils/notificationHelper.js';
 
 // ── Email Quota Helper ────────────────────────────────────────────────────────
-const EMAIL_QUOTAS = { starter: 500, elite: 2000 };
-
-function getPlanQuota(plan = '') {
-  const p = plan.toLowerCase();
-  if (p.includes('elite')) return EMAIL_QUOTAS.elite;
-  if (p.includes('starter') || p.includes('brand')) return EMAIL_QUOTAS.starter;
-  return 0; // Free / no plan
+const EMAIL_QUOTAS = { starter: 0, growth: 500, pro: 2000, agency: 5000 };
+function getPlanQuota(plan) {
+  const p = (plan || '').toLowerCase();
+  if (p.includes('agency')) return EMAIL_QUOTAS.agency;
+  if (p.includes('pro')) return EMAIL_QUOTAS.pro;
+  if (p.includes('growth')) return EMAIL_QUOTAS.growth;
+  return EMAIL_QUOTAS.starter;
 }
 
 async function checkAndResetQuota(user) {
@@ -166,13 +166,14 @@ router.post('/send', protect, async (req, res) => {
     // ── EMAIL QUOTA GUARD ────────────────────────────────────────────────────
     const sendingUser = await User.findById(req.user._id);
     await checkAndResetQuota(sendingUser);
+    const userPlan = (sendingUser.plan || '').toLowerCase();
+    if (!userPlan.includes('growth') && !userPlan.includes('pro') && !userPlan.includes('agency')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Upgrade to a Growth or Pro plan to send email campaigns.'
+        });
+      }
     const quota = getPlanQuota(sendingUser.plan);
-    if (quota === 0) {
-      return res.status(403).json({
-        code: 'NO_EMAIL_PLAN',
-        message: 'Upgrade to a Starter or Elite plan to send email campaigns.'
-      });
-    }
     const alreadySent = sendingUser.email_sends_this_month || 0;
     const toSend = recipients.length;
     if (alreadySent + toSend > quota) {

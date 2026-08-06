@@ -17,10 +17,10 @@ router.post('/', protect, async (req, res) => {
 
     if (type === 'video') {
       const userPlan = (req.user?.plan || '').toLowerCase();
-      const hasVideoAccess = userPlan.includes('elite') || userPlan.includes('agency');
+      const hasVideoAccess = userPlan.includes('pro') || userPlan.includes('growth');
       if (!hasVideoAccess) {
         return res.status(403).json({ 
-          error: 'Video generation (UGC Videos & Product Videos) is restricted to Elite and Agency plans. Please upgrade your plan.' 
+          error: 'Video generation (UGC Videos & Product Videos) is restricted to Pro and Growth plans. Please upgrade your plan.' 
         });
       }
     }

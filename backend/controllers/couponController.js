@@ -37,18 +37,27 @@ export const validateCoupon = async (req, res) => {
       }
       if (coupon.applicableOn && coupon.applicableOn.length > 0) {
         let itemMatched = false;
+        let isApplicable = false;
         if (purchaseType === 'topup' && coupon.applicableOn.includes('topup')) {
           itemMatched = true;
+          isApplicable = true;
         } else if (planName) {
           const lowerPlan = planName.toLowerCase();
           if (lowerPlan.includes('starter') && coupon.applicableOn.includes('starter')) {
-            itemMatched = true;
-          } else if (lowerPlan.includes('elite') && coupon.applicableOn.includes('elite')) {
-            itemMatched = true;
+            isApplicable = true;
+          } else if (lowerPlan.includes('pro') && coupon.applicableOn.includes('pro')) {
+            isApplicable = true;
+          } else if (lowerPlan.includes('growth') && coupon.applicableOn.includes('growth')) {
+            isApplicable = true;
+          }
+
+          if (!isApplicable) {
+            const allowedNames = coupon.applicableOn.map(a => a === 'topup' ? 'Credit Top Ups' : (a === 'starter' ? 'Starter Plans' : a === 'growth' ? 'Growth Plans' : 'Pro Plans')).join(', ');
+            return res.status(400).json({ message: `This coupon is only valid for: ${allowedNames}` });
           }
         }
         
-        if (!itemMatched) {
+        if (!itemMatched && !isApplicable) {
           const allowedNames = coupon.applicableOn.map(a => a === 'topup' ? 'Credit Top Ups' : (a === 'starter' ? 'Starter Plans' : 'Elite Plans')).join(', ');
           return res.status(400).json({ success: false, message: `This coupon is only valid for: ${allowedNames}` });
         }

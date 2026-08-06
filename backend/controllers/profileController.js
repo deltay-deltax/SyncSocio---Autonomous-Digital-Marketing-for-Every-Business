@@ -63,9 +63,11 @@ export const createOrUpdateProfile = async (req, res) => {
       const existingBrandsCount = await BrandProfile.countDocuments({ user: req.user._id });
       const userDoc = await User.findById(req.user._id);
       const planName = (userDoc?.plan || 'starter').toLowerCase();
+      const hasPro = planName.includes('pro');
+      const hasGrowth = planName.includes('growth');
       const hasAgency = planName.includes('agency');
-      const hasElite = planName.includes('elite');
-      const maxBrands = hasAgency ? 8 : hasElite ? 2 : 1;
+      
+      const maxBrands = hasAgency ? 8 : 1;
 
       if (existingBrandsCount >= maxBrands) {
         return res.status(403).json({ 
@@ -157,16 +159,15 @@ export const getProfile = async (req, res) => {
 
     // ── Plan-derived feature flags (single source of truth) ──────────────────
     const planLower = (user?.plan || '').toLowerCase();
-    const isElitePlan  = planLower.includes('elite');
+    const isGrowthPlan  = planLower.includes('growth');
+    const isProPlan     = planLower.includes('pro');
     const isAgencyPlan = planLower.includes('agency');
+    const hasDMAddon   = planLower.includes('+ dm automation');
 
-    // Nexa is included in Elite & Agency, or available via the DM add-on
-    const hasDMAddon = !!profile.DM_Automation_Service;
-    profileObj.dmAddonActive      = hasDMAddon;
-    profileObj.nexaIncluded       = isElitePlan || isAgencyPlan || hasDMAddon;
-
-    // Brand limits per plan
-    profileObj.brandLimit = isAgencyPlan ? 8 : isElitePlan ? 2 : 1;
+    // Nexa is included in Pro & Growth, or available via the DM add-on
+    profileObj.nexaIncluded       = isProPlan || isGrowthPlan || isAgencyPlan || hasDMAddon;
+    // Base profiles get 1 brand.
+    profileObj.brandLimit = isAgencyPlan ? 8 : 1;
 
     // Total brands this user owns (for UI enforcement)
     const totalBrands = await BrandProfile.countDocuments({ user: req.user._id });

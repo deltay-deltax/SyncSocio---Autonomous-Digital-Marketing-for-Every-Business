@@ -666,14 +666,14 @@ const DashboardStrategy = () => {
   const { toast } = useToast();
 
   const planName = (profile.userPlan || profile.selectedPlan || profile.plan || '').toLowerCase();
-  const isBasic = planName === 'basic';
-  const isStarter = planName === 'starter' || (!planName.includes('elite') && !planName.includes('agency'));
+  const isStarter = planName === 'starter' || (!planName.includes('growth') && !planName.includes('pro'));
+  const isGrowthOrAbove = planName.includes('growth') || planName.includes('pro');
 
   const checkLocked = (sId: string) => {
-    if (isBasic) {
-      return !['image', 'photoshoot', 'editor'].includes(sId);
+    if (isStarter) {
+      return ['clone', 'sprint', 'video', 'all_in_one'].includes(sId);
     }
-    return isStarter && (sId === 'video' || sId === 'all_in_one' || sId === 'sprint');
+    return false;
   };
 
   const sortedStudios = React.useMemo(() => {
@@ -683,7 +683,7 @@ const DashboardStrategy = () => {
       if (aLocked === bLocked) return 0;
       return aLocked ? 1 : -1;
     });
-  }, [isBasic, isStarter]);
+  }, [isStarter]);
 
   // ── Stage / Mode
   const [stage, setStage] = useState<'pick' | 'builder' | 'generating' | 'results'>(() => {
@@ -740,6 +740,11 @@ const DashboardStrategy = () => {
         setPreviewIndex(0);
       }
 
+      // Block Edit Media for queue/bulk generation modes
+      if (task.mode === 'sprint' || task.mode === 'all_in_one') {
+        setGenerated(posts.map((p: any) => ({ ...p, isEdited: true })));
+      }
+
       setCurrentTaskId(null);
     } else if (task.status === 'error') {
       setGenError(task.error || 'Something went wrong');
@@ -759,6 +764,11 @@ const DashboardStrategy = () => {
 
       if (viewingTask.mode !== 'all_in_one') {
         setMode(viewingTask.mode);
+      }
+
+      // Block Edit Media for queue/bulk generation modes
+      if (viewingTask.mode === 'sprint' || viewingTask.mode === 'all_in_one') {
+        setGenerated(posts.map((p: any) => ({ ...p, isEdited: true })));
       }
 
       if (viewingTask.mode === 'whatsapp' || viewingTask.mode === 'email') {
@@ -2068,7 +2078,7 @@ const DashboardStrategy = () => {
 
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
       let creditCost = 0;
-      const baseImageCost = profile?.selectedPlan?.includes('Agency') ? 8 : (profile?.selectedPlan?.includes('Elite HD') ? 10 : 5);
+      const baseImageCost = profile?.selectedPlan?.toLowerCase().includes('pro') ? 8 : 5;
       
       if (currentMode === 'video') {
         if (videoKind === 'ai-ugc') {
@@ -3172,7 +3182,7 @@ const DashboardStrategy = () => {
                       </div>
                     ) : (
                       <div className="flex gap-2">
-                        {!isBasic && mode !== 'edit_media' && !(previewPost as any).isEdited && ['image', 'carousel', 'video', 'ecomm'].includes(previewPost.type || previewPost.sectionType || '') ? (
+                        {mode !== 'edit_media' && !(previewPost as any).isEdited && ['image', 'carousel', 'video', 'ecomm'].includes(previewPost.type || previewPost.sectionType || '') ? (
                           <>
                             <button
                               onClick={() => setIsEditing(true)}

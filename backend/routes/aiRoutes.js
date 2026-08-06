@@ -98,9 +98,9 @@ router.post('/edit-product-image', async (req, res) => {
         if (!user) return res.status(404).json({ error: 'User not found' });
         
         const profile = await BrandProfile.findOne({ user: req.user._id }).lean();
-        const isEliteHD = profile && profile.selectedPlan && profile.selectedPlan.includes('Elite HD');
-        const isAgency = profile && profile.selectedPlan && profile.selectedPlan.includes('Agency');
-        const creditCost = isEdit ? 0 : (isAgency ? 8 : (isEliteHD ? 10 : 5));
+        const planName = (profile?.selectedPlan || '').toLowerCase();
+        const isPro = planName.includes('pro');
+        const creditCost = isEdit ? 0 : (isPro ? 8 : 5);
         
         if ((user.credits ?? 0) < creditCost) {
             return res.status(402).json({ error: `Insufficient credits. AI Editor requires ${creditCost} credits per generation.` });

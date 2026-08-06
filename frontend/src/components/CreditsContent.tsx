@@ -5,7 +5,7 @@ import {
   Image as ImageIcon, Video as VideoIcon, Layers, 
   CheckCircle2, ArrowRight, ShieldCheck 
 } from 'lucide-react';
-import { IMAGE_CREDITS_STARTER, IMAGE_CREDITS_ELITE_AGENCY, VIDEO_CREDITS, ALLINONE_CREDITS_STARTER, ALLINONE_CREDITS_ELITE_AGENCY, FREE_FEATURES } from '@/lib/creditsConfig';
+import { IMAGE_CREDITS_STARTER, IMAGE_CREDITS_PRO, VIDEO_CREDITS, ALLINONE_CREDITS_STARTER, ALLINONE_CREDITS_PRO, FREE_FEATURES } from '@/lib/creditsConfig';
 import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
@@ -21,13 +21,13 @@ const iconMap: Record<string, React.ComponentType<any>> = {
 };
 
 export const CreditsContent = () => {
-  const [activeTab, setActiveTab] = useState<'brand' | 'growth' | 'agency'>('brand');
+  const [activeTab, setActiveTab] = useState<'starter' | 'growth' | 'pro'>('starter');
 
   // Image & All-in-One credits differ by plan tier
-  const imageCredits = activeTab === 'brand' ? IMAGE_CREDITS_STARTER : IMAGE_CREDITS_ELITE_AGENCY;
-  const imgCreditPerGen = activeTab === 'brand' ? 5 : 10;
-  const allInOneCredits = activeTab === 'brand' ? ALLINONE_CREDITS_STARTER : ALLINONE_CREDITS_ELITE_AGENCY;
-  const dropCost = activeTab === 'brand' ? 140 : 240;
+  const imageCredits = activeTab === 'pro' ? IMAGE_CREDITS_PRO : IMAGE_CREDITS_STARTER;
+  const imgCreditPerGen = activeTab === 'pro' ? 8 : 5;
+  const allInOneCredits = activeTab === 'pro' ? ALLINONE_CREDITS_PRO : ALLINONE_CREDITS_STARTER;
+  const dropCost = activeTab === 'pro' ? 176 : 140;
 
   return (
     <div className="space-y-12">
@@ -52,15 +52,15 @@ export const CreditsContent = () => {
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">View credit costs by plan</p>
         <div className="flex p-1 rounded-2xl bg-muted/50 border border-border/40 max-w-md">
           <button
-            onClick={() => setActiveTab('brand')}
+            onClick={() => setActiveTab('starter')}
             className={cn(
               "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeTab === 'brand' 
+              activeTab === 'starter' 
                 ? "bg-card text-foreground shadow-sm border border-border/20" 
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Starter (200 Cr)
+            Starter (80 Cr)
           </button>
           <button
             onClick={() => setActiveTab('growth')}
@@ -71,32 +71,32 @@ export const CreditsContent = () => {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Elite (700 Cr)
+            Growth (400 Cr)
           </button>
           <button
-            onClick={() => setActiveTab('agency')}
+            onClick={() => setActiveTab('pro')}
             className={cn(
               "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeTab === 'agency' 
+              activeTab === 'pro' 
                 ? "bg-card text-foreground shadow-sm border border-border/20" 
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Agency (1,750 Cr)
+            Pro (1,000 Cr)
           </button>
         </div>
 
         {/* Per-plan note */}
         <div className={cn(
           "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] font-semibold",
-          activeTab === 'brand'
-            ? "bg-primary/10 text-primary"
-            : "bg-amber-500/10 text-amber-600"
+          activeTab === 'pro'
+            ? "bg-amber-500/10 text-amber-600"
+            : "bg-primary/10 text-primary"
         )}>
-          <span>{activeTab === 'brand' ? '⚡' : '🔥'}</span>
-          {activeTab === 'brand'
-            ? 'Starter: 5 credits per image / carousel slide generation'
-            : 'Elite & Agency: 10 credits per image / carousel slide generation'}
+          <span>{activeTab === 'pro' ? '🔥' : '⚡'}</span>
+          {activeTab === 'pro'
+            ? 'Pro: 8 credits per HD image / carousel slide generation'
+            : 'Starter & Growth: 5 credits per SD image / carousel slide generation'}
         </div>
       </div>
 
@@ -449,18 +449,18 @@ export const CreditsContent = () => {
           <div className="divide-y divide-border/40">
             <div className="grid grid-cols-3 p-4">
               <div className="font-bold text-foreground">Starter</div>
-              <div className="text-center font-mono font-bold text-primary">200 Credits</div>
+              <div className="text-center font-mono font-bold text-primary">80 Credits</div>
               <div className="text-right font-mono font-bold text-primary">5 cr</div>
             </div>
             <div className="grid grid-cols-3 p-4">
-              <div className="font-bold text-foreground">Elite</div>
-              <div className="text-center font-mono font-bold text-primary">700 Credits</div>
-              <div className="text-right font-mono font-bold text-primary">10 cr</div>
+              <div className="font-bold text-foreground">Growth</div>
+              <div className="text-center font-mono font-bold text-primary">400 Credits</div>
+              <div className="text-right font-mono font-bold text-primary">5 cr</div>
             </div>
             <div className="grid grid-cols-3 p-4">
-              <div className="font-bold text-foreground">Agency</div>
-              <div className="text-center font-mono font-bold text-primary">1,750 Credits</div>
-              <div className="text-right font-mono font-bold text-primary">10 cr</div>
+              <div className="font-bold text-foreground">Pro</div>
+              <div className="text-center font-mono font-bold text-primary">1,000 Credits</div>
+              <div className="text-right font-mono font-bold text-primary">8 cr</div>
             </div>
           </div>
         </div>

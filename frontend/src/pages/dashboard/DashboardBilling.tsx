@@ -8,111 +8,118 @@ import { Checkout } from "@/components/Checkout";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { ImageCompareDialog } from "@/components/ImageCompareDialog";
 
-const plans = [
+type Plan = {
+  name: string;
+  badge: string | null;
+  creditTag: string;
+  prices: {
+    INR: { basePrice: number; originalPrice: number; dmAddon: number };
+    USD: { basePrice: number; originalPrice: number; dmAddon: number };
+  };
+  period: string;
+  description: string;
+  features: string[];
+  lockedFeatures?: string[];
+  addons?: { name: string; prices: { INR: number; USD: number } }[];
+  popular: boolean;
+  cta: string;
+  isCustom?: boolean;
+  quality?: string;
+};
+
+const plans: Plan[] = [
   {
-    name: "Basic",
+    name: "Starter",
     badge: null,
     creditTag: "80 Credits",
     prices: {
-      INR: { basePrice: 399, originalPrice: 499, dmAddon: 0 },
-      USD: { basePrice: 5, originalPrice: 7, dmAddon: 0 }
+      INR: { basePrice: 399, originalPrice: 599, dmAddon: 0 },
+      USD: { basePrice: 5, originalPrice: 8, dmAddon: 0 }
     },
     period: "/month",
-    description: "For individuals wanting to explore AI content creation.",
+    description: "For first-time business owners ready to start creating AI content.",
     features: [
       "80 credits / month (16 AI images)",
-      "Soft copy image exports",
-      "Image generation mode",
-      "AI Editor mode",
+      "5 credits per image generation",
+      "SD quality image exports",
+      "Image, Carousel, Festival posts",
+      "Ecomm listing generator",
       "Photoshoot mode",
-      "No edit option in image",
+      "AI Editor ",
+      "1 brand profile",
+      "50 products catalog",
+      "Schedule up to 30 posts",
+      "Email support",
     ],
     addons: [],
     popular: false,
     cta: "Get Started",
   },
   {
-    name: "Starter",
-    badge: null,
-    creditTag: "200 Credits",
-    prices: {
-      INR: { basePrice: 799, originalPrice: 999, dmAddon: 399 },
-      USD: { basePrice: 11, originalPrice: 15, dmAddon: 5 }
-    },
-    period: "/month",
-    description: "For small businesses & creators getting started with AI content.",
-    features: [
-      "200 credits / month (45 AI images)",
-      "Soft copy image exports",
-      "All image features (except Video, Sprint, All-in-One)",
-      "1 active brand profile",
-      "Import up to 50 products",
-      "E-commerce listing generator",
-      "Festival calendar & planner",
-      "Queue up to 30 scheduled posts",
-      "Standard email support",
-    ],
-    addons: [
-      { name: "500 Email Campaign", prices: { INR: 59, USD: 1 } },
-      { name: "DM Automation", prices: { INR: 199, USD: 3 } },
-      { name: "Nexa AI Agent", prices: { INR: 199, USD: 3 } }
-    ],
-    popular: false,
-    cta: "Get Started",
-  },
-  {
-    name: "Elite",
+    name: "Growth",
     badge: "Most Popular",
-    creditTag: "700 Credits",
+    creditTag: "400 Credits",
     prices: {
-      INR: { basePrice: 1999, originalPrice: 3199, dmAddon: 399 },
-      USD: { basePrice: 29, originalPrice: 49, dmAddon: 5 }
+      INR: { basePrice: 1499, originalPrice: 2499, dmAddon: 0 },
+      USD: { basePrice: 19, originalPrice: 35, dmAddon: 0 }
     },
     period: "/month",
-    description: "For growing D2C brands ready to scale content & generate video.",
+    description: "For active D2C brands ready to automate content and close sales in DMs.",
     features: [
-      "700 credits / month", // Image count handled dynamically by toggle
-      "HD quality image exports",
-      "2 active brand profiles",
-      "Import up to 100 products",
-      "All-in-One Drop & AI Mode",
-      "UGC & Product Video generation",
-      "💬 DM Automation (included)",
-      "🤖 Nexa AI Sales Agent (included)",
+      "400 credits / month (80 AI images)",
+      "5 credits per image generation",
+      "SD quality image exports",
+      "All content formats unlocked",
+      "Clone Mode & Sprint (bulk gen)",
+      "Video & Reels (up to 8/mo)",
+      "All-in-One Drop mode",
+      "AI Editor ",
+      "1 brand profile",
+      "200 products catalog",
+      "Unlimited post scheduling",
+      "💬 DM Automation (IG + WA)",
+      "🤖 Nexa AI Sales Agent",
+      "Nexa: Razorpay + UPI payments",
+      "500 Email sends/month",
+      "WhatsApp Campaign (Meta self-paid)",
       "Best time to post analytics",
       "Priority WhatsApp support",
     ],
-    addons: [
-      { name: "2000 Email Campaign", prices: { INR: 149, USD: 2 } },
-    ],
+    addons: [],
     popular: true,
     cta: "Get Started",
   },
   {
-    name: "Agency",
+    name: "Pro",
     badge: "High Capacity",
-    creditTag: "1,800 Credits",
+    creditTag: "1,000 Credits",
     prices: {
-      INR: { basePrice: 4999, originalPrice: 6999, dmAddon: 399 },
-      USD: { basePrice: 79, originalPrice: 109, dmAddon: 5 }
+      INR: { basePrice: 3499, originalPrice: 4999, dmAddon: 0 },
+      USD: { basePrice: 45, originalPrice: 69, dmAddon: 0 }
     },
     period: "/month",
-    description: "For agencies & brand managers requiring top-tier capacity.",
+    description: "For power users and high-volume brands managing serious sales operations.",
     features: [
-      "1,800 credits / month (225 AI images)",
+      "1,000 credits / month (125 HD images)",
+      "8 credits per image generation",
       "HD quality image exports",
-      "8 active brand profiles",
-      "Import up to 500 products",
-      "Everything in Elite plan",
-      "UGC & Product Video generation",
-      "💬 DM Automation (included)",
-      "🤖 Nexa AI Sales Agent (included)",
-      "Dedicated Account Manager",
-      "24/7 Priority support",
+      "All content formats unlocked",
+      "Clone Mode & Sprint (bulk gen)",
+      "Video & Reels ",
+      "All-in-One Drop mode",
+      "AI Editor ",
+      "500 products catalog",
+      "Unlimited post scheduling",
+      "💬 DM Automation (IG + WA)",
+      "🤖 Nexa AI Sales Agent",
+      "Nexa: Unlimited conversations",
+      "Nexa: Razorpay + UPI + COD",
+      "2,000 Email sends/month",
+      "WhatsApp Campaign (Meta self-paid)",
+      "Best time to post analytics",
+      "Dedicated WhatsApp support",
     ],
-    addons: [
-      { name: "5000 Email Campaign", prices: { INR: 299, USD: 4 } },
-    ],
+    addons: [],
     popular: false,
     cta: "Get Started",
   }
@@ -154,18 +161,17 @@ const DashboardBilling = () => {
 
     const planPrices = planObj.prices[currency];
     const amount = planPrices.basePrice;
-    const creditsAdded = planName === 'Agency' ? 1750 : planName === 'Elite' ? 700 : 200;
+    const creditsAdded = planName.toLowerCase() === 'pro' ? 1000 : planName.toLowerCase() === 'growth' ? 400 : 80;
     
     const currentPlan = (profile?.selectedPlan || '').toLowerCase();
     const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand');
-    const isUpgrading = isStarter && (planName === 'Elite' || planName === 'Agency');
-    const finalPlanName = planName === 'Elite' ? `Elite ${eliteImageMode}` : planName;
+    const isUpgrading = isStarter && (planName.toLowerCase() === 'pro' || planName.toLowerCase() === 'growth');
     
     setCheckoutData({
       baseAmount: amount,
-      description: isUpgrading ? `Upgrade to ${finalPlanName} Plan` : `Purchase ${finalPlanName} Plan`,
+      description: isUpgrading ? `Upgrade to ${planName} Plan` : `Purchase ${planName} Plan`,
       type: isUpgrading ? 'plan_upgrade' : 'plan_purchase',
-      planName: finalPlanName,
+      planName: planName,
       creditsAdded: creditsAdded
     });
   };
@@ -209,7 +215,7 @@ const DashboardBilling = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-stretch">
         {plans.map((plan, i) => {
           const planPrices = plan.prices[currency];
           
@@ -223,10 +229,10 @@ const DashboardBilling = () => {
           const discountPercent = originalPrice ? Math.floor(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
           
           const currentPlan = (profile?.selectedPlan || '').toLowerCase();
-          const isStarter = currentPlan.includes('starter');
-          const isElite = currentPlan.includes('elite');
-          const isAgency = currentPlan.includes('agency');
-          const isCurrentPlan = (plan.name === 'Starter' && isStarter) || (plan.name === 'Elite' && isElite) || (plan.name === 'Agency' && isAgency);
+          const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand') || !currentPlan;
+          const isGrowth = currentPlan.includes('growth');
+          const isPro = currentPlan.includes('pro');
+          const isCurrentPlan = (plan.name === 'Starter' && isStarter) || (plan.name === 'Growth' && isGrowth) || (plan.name === 'Pro' && isPro);
 
           return (
             <motion.div
@@ -239,8 +245,6 @@ const DashboardBilling = () => {
                   ? "bg-emerald-500/5 text-foreground border-2 border-emerald-500 shadow-lg shadow-emerald-500/10"
                   : plan.popular
                   ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
-                  : plan.isCustom
-                  ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
                   : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
               }`}
             >
@@ -262,21 +266,6 @@ const DashboardBilling = () => {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-xl font-extrabold tracking-tight">{plan.name}</h3>
                   <div className="flex items-center gap-2">
-                    {plan.name === 'Elite' && (
-                      <div className="flex justify-center items-center gap-1 mr-1">
-                        <span className={`whitespace-nowrap text-[9px] font-bold uppercase ${eliteImageMode === 'SD' ? 'text-white' : 'text-white/60'}`}>SD</span>
-                        <button 
-                          onClick={() => setEliteImageMode(eliteImageMode === 'SD' ? 'HD' : 'SD')}
-                          className="relative inline-flex h-4 w-7 flex-shrink-0 items-center rounded-full bg-white/30 transition-colors focus:outline-none mx-0.5"
-                        >
-                          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${eliteImageMode === 'HD' ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-                        </button>
-                        <span className={`whitespace-nowrap text-[9px] font-bold uppercase ${eliteImageMode === 'HD' ? 'text-white' : 'text-white/60'}`}>HD</span>
-                        <button onClick={() => setShowCompareDialog(true)} className="ml-0.5 flex-shrink-0 text-white/80 hover:text-white transition-colors">
-                          <Info size={12} />
-                        </button>
-                      </div>
-                    )}
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
                       plan.popular
                         ? "bg-white/20 text-white backdrop-blur-sm"
@@ -295,7 +284,6 @@ const DashboardBilling = () => {
 
                 {/* Price Block */}
                 <div className="mb-6 pt-3 border-t border-border/20">
-                  {!plan.isCustom ? (
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-xs line-through font-semibold ${
@@ -318,25 +306,12 @@ const DashboardBilling = () => {
                         </span>
                       </div>
                     </div>
-                  ) : (
-                    <div className="py-1">
-                      <span className="text-3xl font-black tracking-tight">Talk to Us</span>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Bespoke pricing & volume</p>
-                    </div>
-                  )}
                 </div>
 
                 {/* Features */}
                 <ul className="space-y-2.5 mb-8">
                   {plan.features.map((feature) => {
                     let displayFeature = feature;
-                    if (plan.name === 'Elite') {
-                      if (feature === '700 credits / month') {
-                        displayFeature = eliteImageMode === 'SD' ? '700 credits / month (140 AI images)' : '700 credits / month (70 AI images)';
-                      } else if (feature === 'HD quality image exports') {
-                        displayFeature = eliteImageMode === 'SD' ? 'SD quality image' : 'HD quality image';
-                      }
-                    }
                     return (
                       <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
                         {feature === 'No edit option in image' ? (
@@ -418,8 +393,6 @@ const DashboardBilling = () => {
                       ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
                       : plan.popular
                       ? "bg-white text-primary hover:bg-white/90 hover:shadow-lg"
-                      : plan.isCustom
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
                       : "bg-primary text-primary-foreground hover:bg-primary/90"
                   }`}
                   size="lg"

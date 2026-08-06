@@ -17,10 +17,10 @@ export const startAsyncGeneration = async (req, res) => {
         const userPlan = (req.user?.plan || '').toLowerCase();
 
         if (isVideoRequest) {
-            const hasVideoAccess = userPlan.includes('elite') || userPlan.includes('agency');
+            const hasVideoAccess = userPlan.includes('pro') || userPlan.includes('growth');
             if (!hasVideoAccess) {
                 return res.status(403).json({ 
-                    error: 'Video generation (UGC Videos & Product Videos) is restricted to Elite and Agency plans. Please upgrade your plan to unlock AI video generation.' 
+                    error: 'Video generation (UGC Videos & Product Videos) is restricted to Pro and Growth plans. Please upgrade your plan to unlock AI video generation.' 
                 });
             }
         }

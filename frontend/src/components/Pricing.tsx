@@ -6,114 +6,140 @@ import { useNavigate, Link } from "react-router-dom";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { ImageCompareDialog } from "@/components/ImageCompareDialog";
 
-const plans = [
+type Plan = {
+  name: string;
+  badge: string | null;
+  creditTag: string;
+  prices: {
+    INR: { basePrice: number; originalPrice: number; dmAddon: number };
+    USD: { basePrice: number; originalPrice: number; dmAddon: number };
+  };
+  period: string;
+  description: string;
+  features: string[];
+  lockedFeatures: string[];
+  addons: { name: string; prices: { INR: number; USD: number } }[];
+  popular: boolean;
+  cta: string;
+  isCustom?: boolean;
+  quality: string;
+};
+
+const plans: Plan[] = [
   {
-    name: "Basic",
+    name: "Starter",
     badge: null,
     creditTag: "80 Credits",
+    quality: "SD Quality",
     prices: {
-      INR: { basePrice: 399, originalPrice: 499, dmAddon: 0 },
-      USD: { basePrice: 5, originalPrice: 7, dmAddon: 0 }
+      INR: { basePrice: 399, originalPrice: 599, dmAddon: 0 },
+      USD: { basePrice: 5, originalPrice: 8, dmAddon: 0 }
     },
     period: "/month",
-    description: "For individuals wanting to explore AI content creation.",
+    description: "For first-time business owners ready to start creating AI content.",
     features: [
       "80 credits / month (16 AI images)",
-      "Soft copy image exports",
-      "Image generation mode",
-      "AI Editor mode",
+      "5 credits per image generation",
+      "SD quality image exports",
+      "Image, Carousel, Festival posts",
+      "Ecomm listing generator",
       "Photoshoot mode",
-      "No edit option in image",
+      "AI Editor ",
+      "1 brand profile",
+      "50 products catalog",
+      "Schedule up to 30 posts",
+      "Email support",
+    ],
+    lockedFeatures: [
+      "Clone Mode",
+      "Sprint (bulk generation)",
+      "Video & Reels generation",
+      "All-in-One Drop mode",
+      "DM Automation",
+      "Nexa AI Sales Agent",
+      "Email Campaign",
+      "WhatsApp Campaign",
+      "Best time to post analytics",
     ],
     addons: [],
     popular: false,
     cta: "Get Started",
   },
   {
-    name: "Starter",
-    badge: null,
-    creditTag: "200 Credits",
-    prices: {
-      INR: { basePrice: 799, originalPrice: 999, dmAddon: 0 },
-      USD: { basePrice: 11, originalPrice: 15, dmAddon: 0 }
-    },
-    period: "/month",
-    description: "For small businesses & creators getting started with AI content.",
-    features: [
-      "200 credits / month (45 AI images)",
-      "Soft copy image exports",
-      "All image features (except Video, Sprint, All-in-One)",
-      "1 active brand profile",
-      "Import up to 50 products",
-      "E-commerce listing generator",
-      "Festival calendar & planner",
-      "Queue up to 30 scheduled posts",
-      "Standard email support",
-    ],
-    addons: [
-      { name: "500 Email Campaign", prices: { INR: 59, USD: 1 } },
-      { name: "DM Automation", prices: { INR: 199, USD: 3 } },
-      { name: "Nexa AI Agent", prices: { INR: 199, USD: 3 } }
-    ],
-    popular: false,
-    cta: "Get Started",
-  },
-  {
-    name: "Elite",
+    name: "Growth",
     badge: "Most Popular",
-    creditTag: "700 Credits",
+    creditTag: "400 Credits",
+    quality: "SD Quality",
     prices: {
-      INR: { basePrice: 1999, originalPrice: 3199, dmAddon: 0 },
-      USD: { basePrice: 29, originalPrice: 49, dmAddon: 0 }
+      INR: { basePrice: 1499, originalPrice: 2499, dmAddon: 0 },
+      USD: { basePrice: 19, originalPrice: 35, dmAddon: 0 }
     },
     period: "/month",
-    description: "For growing D2C brands ready to scale content & generate video.",
+    description: "For active D2C brands ready to automate content and close sales in DMs.",
     features: [
-      "700 credits / month", // Image count handled dynamically by toggle
-      "HD quality image exports",
-      "2 active brand profiles",
-      "Import up to 100 products",
-      "All-in-One Drop & AI Mode",
-      "UGC & Product Video generation",
-      "💬 DM Automation (included)",
-      "🤖 Nexa AI Sales Agent (included)",
+      "400 credits / month (80 AI images)",
+      "5 credits per image generation",
+      "SD quality image exports",
+      "All content formats unlocked",
+      "Clone Mode & Sprint (bulk gen)",
+      "Video & Reels (up to 8/mo)",
+      "All-in-One Drop mode",
+      "AI Editor ",
+      "1 brand profile",
+      "200 products catalog",
+      "Unlimited post scheduling",
+      "💬 DM Automation (IG + WA)",
+      "🤖 Nexa AI Sales Agent",
+      "Nexa: Razorpay + UPI payments",
+      "500 Email sends/month",
+      "WhatsApp Campaign (Meta self-paid)",
       "Best time to post analytics",
       "Priority WhatsApp support",
     ],
-    addons: [
-      { name: "2000 Email Campaign", prices: { INR: 149, USD: 2 } },
+    lockedFeatures: [
+      "HD quality image exports",
+      "Multiple brand profiles",
     ],
+    addons: [],
     popular: true,
     cta: "Get Started",
   },
   {
-    name: "Agency",
+    name: "Pro",
     badge: "High Capacity",
-    creditTag: "1,800 Credits",
+    creditTag: "1,000 Credits",
+    quality: "HD Quality",
     prices: {
-      INR: { basePrice: 4999, originalPrice: 6999, dmAddon: 0 },
-      USD: { basePrice: 79, originalPrice: 109, dmAddon: 0 }
+      INR: { basePrice: 3499, originalPrice: 4999, dmAddon: 0 },
+      USD: { basePrice: 45, originalPrice: 69, dmAddon: 0 }
     },
     period: "/month",
-    description: "For agencies & brand managers requiring top-tier capacity.",
+    description: "For power users and high-volume brands managing serious sales operations.",
     features: [
-      "1,800 credits / month (225 AI images)",
+      "1,000 credits / month (125 HD images)",
+      "8 credits per image generation",
       "HD quality image exports",
-      "8 active brand profiles",
-      "Import up to 500 products",
-      "Everything in Elite plan",
-      "UGC & Product Video generation",
-      "💬 DM Automation (included)",
-      "🤖 Nexa AI Sales Agent (included)",
-      "Dedicated Account Manager",
-      "24/7 Priority support",
+      "All content formats unlocked",
+      "Clone Mode & Sprint (bulk gen)",
+      "Video & Reels ",
+      "All-in-One Drop mode",
+      "AI Editor ",
+      "500 products catalog",
+      "Unlimited post scheduling",
+      "💬 DM Automation (IG + WA)",
+      "🤖 Nexa AI Sales Agent",
+      "Nexa: Unlimited conversations",
+      "Nexa: Razorpay + UPI + COD",
+      "2,000 Email sends/month",
+      "WhatsApp Campaign (Meta self-paid)",
+      "Best time to post analytics",
+      "Dedicated WhatsApp support",
     ],
-    addons: [
-      { name: "5000 Email Campaign", prices: { INR: 299, USD: 4 } },
-    ],
+    lockedFeatures: [],
+    addons: [],
     popular: false,
     cta: "Get Started",
-  }
+  },
 ];
 
 const topups = [
@@ -203,10 +229,10 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-stretch">
           {plans.map((plan, i) => {
             const planPrices = plan.prices[currency];
-            
+
             const addonTotal = (plan.addons || []).reduce((sum, addon) => {
               const isSelected = (addonQuantities[plan.name]?.[addon.name] || 0) > 0;
               return sum + (isSelected ? addon.prices[currency as 'INR' | 'USD'] : 0);
@@ -223,17 +249,17 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: i * 0.08 }}
                 className={`relative rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${plan.popular
-                    ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
-                    : plan.isCustom
-                      ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
-                      : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
+                  ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
+                  : plan.isCustom
+                    ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
+                    : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
                   }`}
               >
                 {/* Top Badge */}
                 {plan.badge && (
                   <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md z-20 whitespace-nowrap ${plan.popular
-                      ? "bg-amber-400 text-slate-900"
-                      : "bg-primary text-primary-foreground"
+                    ? "bg-amber-400 text-slate-900"
+                    : "bg-primary text-primary-foreground"
                     }`}>
                     {plan.badge}
                   </div>
@@ -243,29 +269,12 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                   {/* Header & Title */}
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-extrabold tracking-tight">{plan.name}</h3>
-                    <div className="flex items-center gap-2">
-                      {plan.name === 'Elite' && (
-                        <div className="flex justify-center items-center gap-1 mr-1">
-                          <span className={`whitespace-nowrap text-[9px] font-bold uppercase ${eliteImageMode === 'SD' ? 'text-white' : 'text-white/60'}`}>SD</span>
-                          <button 
-                            onClick={() => setEliteImageMode(eliteImageMode === 'SD' ? 'HD' : 'SD')}
-                            className="relative inline-flex h-4 w-7 flex-shrink-0 items-center rounded-full bg-white/30 transition-colors focus:outline-none mx-0.5"
-                          >
-                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${eliteImageMode === 'HD' ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-                          </button>
-                          <span className={`whitespace-nowrap text-[9px] font-bold uppercase ${eliteImageMode === 'HD' ? 'text-white' : 'text-white/60'}`}>HD</span>
-                          <button onClick={() => setShowCompareDialog(true)} className="ml-0.5 flex-shrink-0 text-white/80 hover:text-white transition-colors">
-                            <Info size={12} />
-                          </button>
-                        </div>
-                      )}
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${plan.popular
-                          ? "bg-white/20 text-white backdrop-blur-sm"
-                          : "bg-primary/10 text-primary"
-                        }`}>
-                        {plan.creditTag}
-                      </span>
-                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${plan.popular
+                      ? "bg-white/20 text-white backdrop-blur-sm"
+                      : "bg-primary/10 text-primary"
+                      }`}>
+                      {plan.creditTag}
+                    </span>
                   </div>
 
                   {/* Subtitle / Description */}
@@ -305,32 +314,24 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                   </div>
 
                   {/* Feature List */}
-                  <ul className="space-y-2.5 mb-8">
-                    {plan.features.map((feature) => {
-                      let displayFeature = feature;
-                      if (plan.name === 'Elite') {
-                        if (feature === '700 credits / month') {
-                          displayFeature = eliteImageMode === 'SD' ? '700 credits / month (140 AI images)' : '700 credits / month (70 AI images)';
-                        } else if (feature === 'HD quality image exports') {
-                          displayFeature = eliteImageMode === 'SD' ? 'SD quality image' : 'HD quality image';
-                        }
-                      }
-                      return (
-                        <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
-                          {feature === 'No edit option in image' ? (
-                            <X size={15} className="shrink-0 mt-0.5 text-muted-foreground" />
-                          ) : (
-                            <Check size={15} className={`shrink-0 mt-0.5 ${plan.popular ? "text-white" : "text-primary"
-                              }`} />
-                          )}
-                          <span className={plan.popular ? "text-primary-foreground/95" : (feature === 'No edit option in image' ? "text-muted-foreground line-through" : "text-foreground/90")}>
-                            {displayFeature}
-                          </span>
-                        </li>
-                      );
-                    })}
-                    </ul>
-                  </div>
+                  <ul className="space-y-2.5 mb-4">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
+                        <Check size={15} className={`shrink-0 mt-0.5 ${plan.popular ? "text-white" : "text-primary"}`} />
+                        <span className={plan.popular ? "text-primary-foreground/95" : "text-foreground/90"}>
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                    {plan.lockedFeatures && plan.lockedFeatures.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
+                        <X size={15} className="shrink-0 mt-0.5 text-muted-foreground/50" />
+                        <span className={`line-through ${plan.popular ? "text-primary-foreground/40" : "text-muted-foreground/50"}`}>
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
 
                   {/* Add-ons */}
                   {plan.addons && plan.addons.length > 0 && (
@@ -345,37 +346,33 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                           const quantity = addonQuantities[plan.name]?.[addon.name] || 0;
                           const isSelected = quantity > 0;
                           return (
-                            <div 
-                              key={addon.name} 
+                            <div
+                              key={addon.name}
                               onClick={() => updateAddonQuantity(plan.name, addon.name, isSelected ? -1 : 1)}
-                              className={`flex items-center justify-between gap-4 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                                isSelected 
-                                  ? (plan.popular ? "border-white/40 bg-white/10 shadow-sm" : "border-primary/40 bg-primary/5 shadow-sm") 
-                                  : (plan.popular ? "border-white/10 hover:bg-white/5" : "border-border hover:bg-muted/50")
-                              }`}
+                              className={`flex items-center justify-between gap-4 p-2.5 rounded-xl border cursor-pointer transition-all ${isSelected
+                                ? (plan.popular ? "border-white/40 bg-white/10 shadow-sm" : "border-primary/40 bg-primary/5 shadow-sm")
+                                : (plan.popular ? "border-white/10 hover:bg-white/5" : "border-border hover:bg-muted/50")
+                                }`}
                             >
                               <div>
-                                <p className={`text-xs font-semibold ${
-                                  isSelected 
-                                    ? (plan.popular ? "text-white" : "text-primary") 
-                                    : (plan.popular ? "text-primary-foreground" : "text-foreground")
-                                }`}>
+                                <p className={`text-xs font-semibold ${isSelected
+                                  ? (plan.popular ? "text-white" : "text-primary")
+                                  : (plan.popular ? "text-primary-foreground" : "text-foreground")
+                                  }`}>
                                   {addon.name}
                                 </p>
-                                <p className={`text-[10px] ${
-                                  isSelected 
-                                    ? (plan.popular ? "text-white/80" : "text-primary/80") 
-                                    : (plan.popular ? "text-primary-foreground/70" : "text-muted-foreground")
-                                }`}>
+                                <p className={`text-[10px] ${isSelected
+                                  ? (plan.popular ? "text-white/80" : "text-primary/80")
+                                  : (plan.popular ? "text-primary-foreground/70" : "text-muted-foreground")
+                                  }`}>
                                   + {symbol}{addonPrice}/month
                                 </p>
                               </div>
                               <div className="flex items-center">
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors ${
-                                  isSelected 
-                                    ? (plan.popular ? "bg-white text-primary border-white" : "bg-primary text-primary-foreground border-primary") 
-                                    : (plan.popular ? "border-white/30 text-transparent" : "border-muted-foreground/30 text-transparent")
-                                }`}>
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors ${isSelected
+                                  ? (plan.popular ? "bg-white text-primary border-white" : "bg-primary text-primary-foreground border-primary")
+                                  : (plan.popular ? "border-white/30 text-transparent" : "border-muted-foreground/30 text-transparent")
+                                  }`}>
                                   <Check size={12} strokeWidth={3} />
                                 </div>
                               </div>
@@ -385,30 +382,22 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                       </div>
                     </div>
                   )}
-                  
-                  {/* CTA Button Pinned at Bottom */}
-                  <div className="pt-2">
+                </div>
+
+                {/* CTA Button Pinned at Bottom */}
+                <div className="pt-2">
                   <Button
                     onClick={() => handleSelectPlan(plan.name)}
                     className={`w-full py-6 rounded-2xl font-bold text-xs tracking-wide shadow-md transition-all ${plan.popular
-                        ? "bg-white text-primary hover:bg-white/90 hover:shadow-lg"
-                        : plan.isCustom
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "gradient-bg text-primary-foreground border-0 hover:opacity-95"
+                      ? "bg-white text-primary hover:bg-white/90 hover:shadow-lg"
+                      : plan.isCustom
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "gradient-bg text-primary-foreground border-0 hover:opacity-95"
                       }`}
                     size="lg"
                   >
                     {plan.cta}
                   </Button>
-                  
-                  {/* DM Automation Add-on Indicator */}
-                  {!plan.isCustom && planPrices.dmAddon > 0 && (
-                    <div className="mt-3 text-center">
-                      <p className={`text-[10px] font-medium ${plan.popular ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                        + Optional DM Automation Add-on: {symbol}{planPrices.dmAddon}/mo
-                      </p>
-                    </div>
-                  )}
                 </div>
               </motion.div>
             );
@@ -451,7 +440,7 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
                     <Button
                       variant="outline"
                       className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center"
-                      onClick={onWaitlistClick}
+                      onClick={() => onWaitlistClick()}
                     >
                       Buy Top-up
                     </Button>
