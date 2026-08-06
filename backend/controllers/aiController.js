@@ -48,7 +48,7 @@ export const startAsyncGeneration = async (req, res) => {
             });
             
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 };
 
@@ -67,7 +67,7 @@ export const getAsyncJobStatus = async (req, res) => {
         
         res.json(job);
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 };
 

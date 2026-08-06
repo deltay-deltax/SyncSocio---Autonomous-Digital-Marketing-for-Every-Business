@@ -7,6 +7,16 @@ import BrandProfile from '../models/BrandProfile.js';
 import User from '../models/User.js';
 import RequestedTemplate from '../models/RequestedTemplate.js';
 import { createNotification } from '../utils/notificationHelper.js';
+import { validate } from '../middleware/validate.js';
+import { idParamSchema } from '../validators/common.js';
+import {
+  createEmailListSchema,
+  createPhoneListSchema,
+  sendEmailCampaignSchema,
+  sendWhatsappCampaignSchema,
+  requestTemplateSchema,
+  updateTemplateSchema,
+} from '../validators/campaignSchemas.js';
 
 // ── Email Quota Helper ────────────────────────────────────────────────────────
 const EMAIL_QUOTAS = { starter: 0, growth: 500, pro: 2000, agency: 5000 };
@@ -42,7 +52,7 @@ router.get('/lists', protect, async (req, res) => {
 });
 
 // Save a new email list
-router.post('/lists', protect, async (req, res) => {
+router.post('/lists', protect, validate({ body: createEmailListSchema }), async (req, res) => {
   const { name, emails } = req.body;
   try {
     if (!name || !emails || !emails.length) {
@@ -91,7 +101,7 @@ router.get('/phone-lists', protect, async (req, res) => {
 });
 
 // Save a new phone list
-router.post('/phone-lists', protect, async (req, res) => {
+router.post('/phone-lists', protect, validate({ body: createPhoneListSchema }), async (req, res) => {
   const { name, phones } = req.body;
   try {
     if (!name || !phones || !phones.length) {
@@ -153,7 +163,7 @@ router.get('/email-quota', protect, async (req, res) => {
 });
 
 // Send email campaign
-router.post('/send', protect, async (req, res) => {
+router.post('/send', protect, validate({ body: sendEmailCampaignSchema }), async (req, res) => {
   const { recipients, subject, body, image } = req.body;
   try {
     if (!recipients || !recipients.length || !subject || !body) {
@@ -380,7 +390,7 @@ Rules:
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Send WhatsApp campaign
-router.post('/send-whatsapp', protect, async (req, res) => {
+router.post('/send-whatsapp', protect, validate({ body: sendWhatsappCampaignSchema }), async (req, res) => {
   const { recipients, body, image, subject, whatsappTemplateName, whatsappUrlParam } = req.body;
   try {
     if (!recipients || !recipients.length || !body) {
@@ -652,7 +662,7 @@ router.post('/send-whatsapp', protect, async (req, res) => {
 });
 // ── POST /api/campaigns/request-template ─────────────────────────────────────
 // Saves a custom WhatsApp template request to the database
-router.post('/request-template', protect, async (req, res) => {
+router.post('/request-template', protect, validate({ body: requestTemplateSchema }), async (req, res) => {
   try {
     const {
       templateName,
@@ -698,7 +708,7 @@ router.post('/request-template', protect, async (req, res) => {
 });
 // ── PUT /api/campaigns/request-template/:id ─────────────────────────────────
 // Updates an existing custom WhatsApp template request (e.g. updating a draft)
-router.put('/request-template/:id', protect, async (req, res) => {
+router.put('/request-template/:id', protect, validate({ params: idParamSchema, body: updateTemplateSchema }), async (req, res) => {
   try {
     const {
       templateName,
@@ -746,7 +756,7 @@ router.put('/request-template/:id', protect, async (req, res) => {
 
 // ── DELETE /api/campaigns/request-template/:id ──────────────────────────────
 // Deletes a custom WhatsApp template (only drafts or pending, not approved)
-router.delete('/request-template/:id', protect, async (req, res) => {
+router.delete('/request-template/:id', protect, validate({ params: idParamSchema }), async (req, res) => {
   try {
     const brand = await BrandProfile.findOne({ user: req.user._id });
     if (!brand) {

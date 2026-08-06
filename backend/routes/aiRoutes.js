@@ -6,22 +6,29 @@ import { generateCaptionsAndHashtags } from '../utils/contentCaptionService.js';
 import BrandProfile from '../models/BrandProfile.js';
 import User from '../models/User.js';
 import ApiLog from '../models/ApiLog.js';
+import { validate } from '../middleware/validate.js';
+import { 
+  generateStrategySchema, regenerateStrategySchema, deployStrategySchema, 
+  toggleHeartSchema, updateCalendarPostsSchema, generateAutopilotSchema, 
+  startAsyncGenerationSchema, getAsyncJobStatusParamsSchema,
+  logClientErrorSchema, scrapeProductSchema, planSchema, captionsSchema, editProductImageSchema
+} from '../validators/aiSchemas.js';
 
 const router = express.Router();
 
 router.use(protect);
 
-router.post('/generate', generateStrategy);
-router.post('/regenerate', regenerateStrategy);
-router.post('/deploy', deployStrategy);
-router.post('/heart', toggleHeart);
+router.post('/generate', validate({ body: generateStrategySchema }), generateStrategy);
+router.post('/regenerate', validate({ body: regenerateStrategySchema }), regenerateStrategy);
+router.post('/deploy', validate({ body: deployStrategySchema }), deployStrategy);
+router.post('/heart', validate({ body: toggleHeartSchema }), toggleHeart);
 router.get('/calendar', getCalendar);
-router.post('/update-posts', updateCalendarPosts);
-router.post('/autopilot', generateAutopilotCampaign);
-router.post('/start-generation', startAsyncGeneration);
-router.get('/job/:jobId', getAsyncJobStatus);
+router.post('/update-posts', validate({ body: updateCalendarPostsSchema }), updateCalendarPosts);
+router.post('/autopilot', validate({ body: generateAutopilotSchema }), generateAutopilotCampaign);
+router.post('/start-generation', validate({ body: startAsyncGenerationSchema }), startAsyncGeneration);
+router.get('/job/:jobId', validate({ params: getAsyncJobStatusParamsSchema }), getAsyncJobStatus);
 
-router.post('/log-client-error', async (req, res) => {
+router.post('/log-client-error', validate({ body: logClientErrorSchema }), async (req, res) => {
     try {
         const { provider, endpoint, errorMessage } = req.body;
         await ApiLog.create({
@@ -34,11 +41,11 @@ router.post('/log-client-error', async (req, res) => {
         });
         res.json({ success: true });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 
-router.post('/scrape-product', async (req, res) => {
+router.post('/scrape-product', validate({ body: scrapeProductSchema }), async (req, res) => {
     try {
         const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
@@ -65,31 +72,31 @@ router.post('/scrape-product', async (req, res) => {
         const data = await response.json();
         res.json(data);
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 
-router.post('/plan', async (req, res) => {
+router.post('/plan', validate({ body: planSchema }), async (req, res) => {
     try {
         const { mix } = req.body;
         const result = await generateContentPlan(req.user.id, mix);
         res.json(result);
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 
-router.post('/captions', async (req, res) => {
+router.post('/captions', validate({ body: captionsSchema }), async (req, res) => {
     try {
         const { posts } = req.body;
         const result = await generateCaptionsAndHashtags(req.user.id, posts);
         res.json(result);
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 
-router.post('/edit-product-image', async (req, res) => {
+router.post('/edit-product-image', validate({ body: editProductImageSchema }), async (req, res) => {
     try {
         const { ref_image, prod_image, prod_info, logo_image, instruction, aspectRatio, isEdit } = req.body;
         
@@ -157,7 +164,7 @@ router.post('/edit-product-image', async (req, res) => {
             credits: updatedUser.credits
         });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 export default router;
