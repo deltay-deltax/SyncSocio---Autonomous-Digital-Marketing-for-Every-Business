@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
+import { fileTypeFromBuffer } from 'file-type';
 
 /**
- * Decodes base64 data (or downloads http URL) and writes it to a temporary file in uploads/
+ * Decodes base64 data (or downloads http URL) and writes it to a temporary file in .tmp-uploads/
  * @param {string} base64Data - Base64 encoded file data or HTTP URL
  * @param {string} fileName - Destination file name
  * @returns {Promise<string|null>} Path to the created file
@@ -11,8 +12,8 @@ import axios from 'axios';
 export async function writeBase64ToFile(base64Data, fileName) {
   if (!base64Data) return null;
 
-  // Ensure uploads directory exists
-  const uploadDir = 'uploads';
+  // Ensure isolated uploads directory exists
+  const uploadDir = '.tmp-uploads';
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
@@ -25,21 +26,24 @@ export async function writeBase64ToFile(base64Data, fileName) {
 
   // Strip prefix like "data:image/jpeg;base64," if present
   let cleanBase64 = base64Data;
-  let extension = '.jpg'; // default
-
+  
   const matches = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
   if (matches && matches.length === 3) {
-    const mimeType = matches[1];
     cleanBase64 = matches[2];
-    
-    if (mimeType.includes('png')) extension = '.png';
-    else if (mimeType.includes('webp')) extension = '.webp';
-    else if (mimeType.includes('mp4')) extension = '.mp4';
-    else if (mimeType.includes('video')) extension = '.mp4';
   }
 
   try {
     const buffer = Buffer.from(cleanBase64, 'base64');
+    
+    // Content Validation
+    const type = await fileTypeFromBuffer(buffer);
+    if (!type || (!type.mime.startsWith('image/') && !type.mime.startsWith('video/'))) {
+      console.error('[tempWriter] Content validation failed for base64 data');
+      return null;
+    }
+    
+    const extension = '.' + type.ext; // Use actual determined extension
+
     const filePath = path.join(uploadDir, `${fileName}${extension}`);
     fs.writeFileSync(filePath, buffer);
     return path.resolve(filePath);

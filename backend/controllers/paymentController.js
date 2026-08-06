@@ -62,7 +62,7 @@ export const createOrder = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in createOrder:', error);
-    res.status(500).json({ message: 'Something went wrong', error: error.message });
+    res.status(500).json({ message: 'Something went wrong', error: 'An internal server error occurred.' });
   }
 };
 
@@ -230,7 +230,7 @@ export const verifyPayment = async (req, res) => {
     }
   } catch (error) {
     console.error('Error in verifyPayment:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
+    res.status(500).json({ message: 'Internal server error', error: 'An internal server error occurred.' });
   }
 };
 
@@ -240,7 +240,7 @@ export const getPaymentHistory = async (req, res) => {
     res.status(200).json({ success: true, transactions });
   } catch (error) {
     console.error('Error fetching payment history:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
+    res.status(500).json({ message: 'Internal server error', error: 'An internal server error occurred.' });
   }
 };
 
@@ -335,6 +335,6 @@ export const reportPaymentFailure = async (req, res) => {
     return res.status(200).json({ success: true, message: 'Failure recorded and notification dispatched.' });
   } catch (error) {
     console.error('Error reporting payment failure:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
+    res.status(500).json({ message: 'Internal server error', error: 'An internal server error occurred.' });
   }
 };

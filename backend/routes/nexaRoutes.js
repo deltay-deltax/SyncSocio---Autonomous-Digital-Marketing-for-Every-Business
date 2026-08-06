@@ -13,6 +13,9 @@ import BrandProfile from '../models/BrandProfile.js';
 import NexaConversation from '../models/NexaConversation.js';
 import { encryptField, verifyRazorpayWebhook, handleRazorpayPaid } from '../services/nexaPayment.js';
 import { uploadBase64ToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload.js';
+import { validate } from '../middleware/validate.js';
+import { idParamSchema } from '../validators/common.js';
+import { updateNexaSettingsSchema, listNexaConversationsSchema } from '../validators/nexaSchemas.js';
 import { sendStandardMessage } from '../controllers/instagramWebhookController.js';
 import { extractKnowledgeFromReply } from '../services/nexaKnowledgeService.js';
 
@@ -53,7 +56,7 @@ router.get('/settings', protect, async (req, res) => {
 });
 
 // ─── POST /api/nexa/settings ──────────────────────────────────────────────────
-router.post('/settings', protect, async (req, res) => {
+router.post('/settings', protect, validate({ body: updateNexaSettingsSchema }), async (req, res) => {
   try {
     const {
       nexa_enabled,
@@ -119,7 +122,7 @@ router.post('/settings', protect, async (req, res) => {
 });
 
 // ─── GET /api/nexa/conversations ─────────────────────────────────────────────
-router.get('/conversations', protect, async (req, res) => {
+router.get('/conversations', protect, validate({ query: listNexaConversationsSchema }), async (req, res) => {
   try {
     const brands = await BrandProfile.find({ user: req.user._id }).select('_id').lean();
     if (!brands.length) return res.status(404).json({ message: 'No brands found for user' });
@@ -151,7 +154,7 @@ router.get('/conversations', protect, async (req, res) => {
 });
 
 // ─── GET /api/nexa/conversations/:id ─────────────────────────────────────────
-router.get('/conversations/:id', protect, async (req, res) => {
+router.get('/conversations/:id', protect, validate({ params: idParamSchema }), async (req, res) => {
   try {
     const brands = await BrandProfile.find({ user: req.user._id }).select('_id').lean();
     const brandIds = brands.map(b => b._id);

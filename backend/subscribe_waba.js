@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 dotenv.config();
 
-const MONGO_URI = "mongodb://aaditya303gupta_db_user:9BYuNNvzSla0gSRo@ac-hagoozx-shard-00-00.lzjkbau.mongodb.net:27017,ac-hagoozx-shard-00-01.lzjkbau.mongodb.net:27017,ac-hagoozx-shard-00-02.lzjkbau.mongodb.net:27017/?ssl=true&replicaSet=atlas-5j7gs0-shard-0&authSource=admin&retryWrites=true&w=majority";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/syncsocio";
 
 const brandSchema = new mongoose.Schema({}, { strict: false });
 const BrandProfile = mongoose.model('BrandProfile', brandSchema);

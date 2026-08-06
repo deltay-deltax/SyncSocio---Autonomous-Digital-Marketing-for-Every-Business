@@ -7,7 +7,7 @@ export const getNotifications = async (req, res) => {
       .limit(50);
     res.json(notifications);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'An internal server error occurred.' });
   }
 };
 
@@ -21,7 +21,7 @@ export const markAsRead = async (req, res) => {
     if (!notification) return res.status(404).json({ message: 'Notification not found' });
     res.json(notification);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'An internal server error occurred.' });
   }
 };
 
@@ -33,7 +33,7 @@ export const markAllAsRead = async (req, res) => {
     );
     res.json({ message: 'All notifications marked as read' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'An internal server error occurred.' });
   }
 };
 
@@ -42,6 +42,6 @@ export const deleteNotification = async (req, res) => {
     await Notification.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
     res.json({ message: 'Notification deleted' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'An internal server error occurred.' });
   }
 };

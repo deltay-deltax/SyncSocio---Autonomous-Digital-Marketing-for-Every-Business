@@ -1,9 +1,10 @@
+require('dotenv').config();
 const axios = require('axios');
 const mongoose = require('mongoose');
 const FB_API_BASE = 'https://graph.facebook.com/v25.0';
 
 async function run() {
-  await mongoose.connect('mongodb://aaditya303gupta_db_user:9BYuNNvzSla0gSRo@ac-hagoozx-shard-00-00.lzjkbau.mongodb.net:27017,ac-hagoozx-shard-00-01.lzjkbau.mongodb.net:27017,ac-hagoozx-shard-00-02.lzjkbau.mongodb.net:27017/?ssl=true&replicaSet=atlas-5j7gs0-shard-0&authSource=admin&retryWrites=true&w=majority');
+  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/syncsocio');
   const BrandProfile = require('./models/BrandProfile.js').default;
   const profile = await BrandProfile.findOne({ instagramIsConnected: true }).lean();
   

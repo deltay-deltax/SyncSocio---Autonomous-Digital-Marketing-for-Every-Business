@@ -9,6 +9,7 @@ import appleSigninAuth from 'apple-signin-auth';
 import { sendLoginNotificationEmail, sendSignupNotificationEmail } from '../utils/sendWelcomeEmail.js';
 import { sendMetaCapiEvent } from '../services/metaConversionsAPI.js';
 import { createNotification } from '../utils/notificationHelper.js';
+import { clearAuthAttempts } from '../middleware/rateLimitMiddleware.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -211,6 +212,7 @@ export const login = async (req, res) => {
       `Successful login detected from a new session.`
     ).catch(err => console.error('Notification creation failed:', err));
 
+    clearAuthAttempts(email);
     res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -306,6 +308,7 @@ export const googleLogin = async (req, res) => {
       'Google Login',
       `Authenticated successfully via Google.`
     );
+    clearAuthAttempts(email);
     res.status(200).json({ user, token: generateToken(user._id) });
   } catch (error) {
     console.error('Google Auth Error:', error);
@@ -408,6 +411,7 @@ export const appleLogin = async (req, res) => {
         'Apple Login',
         `Authenticated successfully via Apple.`
       );
+      clearAuthAttempts(email);
       res.status(200).json({ user, token: generateToken(user._id) });
     }
   } catch (error) {

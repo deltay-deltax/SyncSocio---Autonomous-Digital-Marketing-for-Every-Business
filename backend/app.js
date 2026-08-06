@@ -36,6 +36,7 @@ import {
   verifyInstagramWebhook,
   seedWebhookCache,
 } from './controllers/instagramWebhookController.js';
+import { publicRateLimiter, authenticatedRateLimiter } from './middleware/rateLimitMiddleware.js';
 import { startPolling } from './services/commentPoller.js';
 
 // import { startStrategicPoller } from './utils/strategicPoller.js';
@@ -45,6 +46,9 @@ import { startInstagramScheduler } from './services/instagramScheduler.js';
 import { startNexaNudgeScheduler } from './services/nexaNudgeScheduler.js';
 
 const app = express();
+
+// Trust first proxy (Railway / Render) so req.ip reflects the real client IP
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({
@@ -71,14 +75,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ limit: '200mb', extended: true, parameterLimit: 200000 }));
 
-// Serve static uploads with public caching
-app.use('/uploads', express.static('uploads', {
-  maxAge: '1y',
-  immutable: true,
-  setHeaders: (res, path) => {
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  }
-}));
+// Static uploads serving has been removed for security (isolated storage).
 
 // Compatibility webhook routes. Meta setups often use "/webhook" directly;
 // keep these in sync with "/api/auth/instagram/webhook" routes.
@@ -86,38 +83,48 @@ app.get('/webhook', verifyInstagramWebhook);
 app.post('/webhook', receiveInstagramWebhook);
 
 // Routes
+// ── Auth routes (have their own strict rate limiters applied per-route) ──
 app.use('/api/auth', authRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/auth/instagram', instagramRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/instagram', instagramMetricsRoutes);
-app.use('/api/dm-flows', dmFlowRoutes);
-app.use('/api/promotions', adsRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/assets', assetRoutes);
-app.use('/api/strategy-assets', strategyAssetRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/campaigns', campaignRoutes);
-app.use('/api/campaigns', emailSetupRoutes);
-app.use('/api/credits', creditsRoutes);
+
+// ── Admin routes (no rate limiting — admin-only system) ──
 app.use('/api/admin', adminRoutes);
-app.use('/api/coupons', couponRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/site', siteRoutes);
-app.use('/api/leads', leadRoutes);
-app.use('/api/whatsapp', whatsappRoutes);
-app.use('/api/avatars', avatarRoutes);
 app.use('/api/admin/scraper', leadScraperRoutes);
-app.use('/api/nexa', nexaRoutes);
+
+// ── Public routes (moderate rate limiting) ──
+app.use('/api/waitlist', publicRateLimiter, waitlistRoutes);
+app.use('/api/analytics', publicRateLimiter, analyticsRoutes);
+app.use('/api/site', publicRateLimiter, siteRoutes);
+app.use('/api/leads', publicRateLimiter, leadRoutes);
+
+// ── Authenticated routes (loose rate limiting) ──
+app.use('/api/profile', authenticatedRateLimiter, profileRoutes);
+app.use('/api/dashboard', authenticatedRateLimiter, dashboardRoutes);
+app.use('/api/ai', authenticatedRateLimiter, aiRoutes);
+app.use('/api/posts', authenticatedRateLimiter, postRoutes);
+app.use('/api/instagram', authenticatedRateLimiter, instagramMetricsRoutes);
+app.use('/api/dm-flows', dmFlowRoutes);
+app.use('/api/promotions', authenticatedRateLimiter, adsRoutes);
+app.use('/api/notifications', authenticatedRateLimiter, notificationRoutes);
+app.use('/api/assets', assetRoutes);
+app.use('/api/strategy-assets', authenticatedRateLimiter, strategyAssetRoutes);
+app.use('/api/products', authenticatedRateLimiter, productRoutes);
+app.use('/api/campaigns', authenticatedRateLimiter, campaignRoutes);
+app.use('/api/campaigns', authenticatedRateLimiter, emailSetupRoutes);
+app.use('/api/credits', authenticatedRateLimiter, creditsRoutes);
+app.use('/api/coupons', authenticatedRateLimiter, couponRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/whatsapp', authenticatedRateLimiter, whatsappRoutes);
+app.use('/api/avatars', authenticatedRateLimiter, avatarRoutes);
+app.use('/api/nexa', authenticatedRateLimiter, nexaRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
   res.send('SyncSocio Backend is running');
 });
+
+import { errorHandler } from './middleware/errorHandler.js';
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5050;
 
