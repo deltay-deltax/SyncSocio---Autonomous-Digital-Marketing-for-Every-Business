@@ -4,7 +4,7 @@ import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import DMConversation from '../models/DMConversation.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
 import NexaConversation from '../models/NexaConversation.js';
-import { upsertNexaConversationFromDM, handleIncomingMessage as nexaHandleMessage } from '../services/nexaAgent.js';
+import { upsertNexaConversationFromDM, handleIncomingMessage as nexaHandleMessage, upsertNexaConversationFromComment } from '../services/nexaAgent.js';
 import { generateRazorpayLink, getNexaSettings } from '../services/nexaPayment.js';
 import {
   buildPublicCommentReplyText,
@@ -693,6 +693,23 @@ const processCommentEventForProfile = async (profile, event) => {
 
     await DMFlow.updateOne({ _id: flow._id }, { $inc: { 'stats.replied': 1 } });
 
+    // ── Nudge / Nexa integration for comment triggered DM ──
+    try {
+      const nexaSettings = getNexaSettings(profile);
+      if (nexaSettings?.nexa_enabled && result?.recipient_id) {
+        await upsertNexaConversationFromComment({
+          brandDoc: profile,
+          igUserId: result.recipient_id,
+          dmFlowId: flow._id,
+          productInterested: flow.keyword || null,
+          priceAgreed: null,
+        });
+        console.log(`[Nexa] Initialized AWAITING_FOLLOWUP state for comment trigger (recipient: ${result.recipient_id})`);
+      }
+    } catch (err) {
+      console.error('[Nexa] Failed to schedule nudge after comment flow:', err.message);
+    }
+
     console.log('Instagram private reply sent', {
       flowId: flow._id.toString(),
       commentId: event.commentId,
@@ -807,7 +824,7 @@ const buildMessagePayloadForNextMessage = (flow, messageObj, profile, options = 
   };
 };
 
-const sendStandardMessage = async ({ pageToken, igScopedId, messagePayload, pageId }) => {
+export const sendStandardMessage = async ({ pageToken, igScopedId, messagePayload, pageId }) => {
   return axios.post(
     `${FB_API_BASE}/${pageId}/messages`,
     {
@@ -880,6 +897,192 @@ const processMessageEventForProfile = async (profile, event) => {
 
   // Detect if this is an explicit DM Flow button click
   const isFlowPostback = event.isPostback && event.postbackPayload && String(event.postbackPayload).startsWith('FLOW_');
+
+  // ─── DM AUTOMATION FLOW PRIORITY (Overrides Nexa) ───
+const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.senderId });
+  if (pendingFollowUp && matchesFollowUpConfirmation(pendingFollowUp.flow, pendingFollowUp.pending, event.text)) {
+    const messages = pendingFollowUp.flow.messages || [];
+    let currentIndex = pendingFollowUp.pending.followUpMessageIndex;
+    let matchedMsg = messages[currentIndex];
+
+    if (matchedMsg && matchedMsg.conditional) {
+       const isFollowing = await checkUserFollows(profile, event.senderId);
+       matchedMsg = null;
+       for (let i = currentIndex; i < messages.length; i++) {
+           if (messages[i].conditional === 'if_following' && isFollowing) {
+               matchedMsg = messages[i]; break;
+           }
+           if (messages[i].conditional === 'if_not_following' && !isFollowing) {
+               matchedMsg = messages[i]; break;
+           }
+           if (!messages[i].conditional) {
+               matchedMsg = messages[i]; break;
+           }
+       }
+       if (!matchedMsg) matchedMsg = messages[currentIndex];
+    }
+
+    const messagePayload = buildMessagePayloadForNextMessage(
+      pendingFollowUp.flow,
+      matchedMsg,
+      profile,
+      { forcePrimaryLinkOnly: matchedMsg?.conditional === 'if_following' }
+    );
+    
+    if (!messagePayload) {
+      return false;
+    }
+
+    try {
+      const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
+      if (!pageToken) {
+        return false;
+      }
+
+      await sleep(1500);
+
+      await sendStandardMessage({
+        pageToken,
+        igScopedId: event.senderId,
+        messagePayload,
+        pageId: profile.instagramPageId,
+      });
+
+      await DMFlowFollowUp.updateOne(
+        { _id: pendingFollowUp.pending._id },
+        {
+          $set: {
+            status: 'completed',
+            respondedAt: new Date(),
+            completedAt: new Date(),
+          },
+        }
+      );
+
+      await DMFlow.updateOne({ _id: pendingFollowUp.flow._id }, { $inc: { 'stats.replied': 1 } });
+      
+      try {
+        const { default: NexaConversation } = await import('../models/NexaConversation.js');
+        await NexaConversation.updateOne(
+          { brand_id: profile._id, ig_user_id: event.senderId, stage: 'AWAITING_FOLLOWUP' },
+          { $set: { nudge_due_at: new Date(Date.now() + 8 * 60 * 1000) } }
+        );
+      } catch (e) {
+        console.error('[Nexa] Failed to reset nudge timer:', e.message);
+      }
+      return true;
+    } catch (err) {
+      console.error('Pending follow-up DM failed', err?.response?.data || err.message);
+      return false;
+    }
+  }
+  
+  const match = await findNextMessageForText(event.text, profile);
+  if (match && match.nextMessages.length > 0) {
+    const { flow, nextMessages, matchingMsgIndex } = match;
+    let targetMessage = nextMessages[0];
+    const previousMessage = flow.messages[matchingMsgIndex];
+
+    if (targetMessage && targetMessage.conditional) {
+       const isFollowing = await checkUserFollows(profile, event.senderId);
+       let foundMatchingSeqMsg = null;
+       
+       for (const msg of nextMessages) {
+           if (msg.conditional === 'if_following' && isFollowing) {
+               foundMatchingSeqMsg = msg; break;
+           }
+           if (msg.conditional === 'if_not_following' && !isFollowing) {
+               foundMatchingSeqMsg = msg; break;
+           }
+           if (!msg.conditional) {
+               foundMatchingSeqMsg = msg; break;
+           }
+       }
+       targetMessage = foundMatchingSeqMsg || previousMessage;
+    }
+
+    const messagePayload = buildMessagePayloadForNextMessage(flow, targetMessage, profile, {
+      forcePrimaryLinkOnly: targetMessage?.conditional === 'if_following'
+    });
+    
+    try {
+      const pageToken = await resolvePageToken(profile);
+      if (!pageToken) {
+          console.error('Standard DM failed: Could not resolve page token.');
+          return false;
+      }
+
+      await sleep(1500);
+
+      await sendStandardMessage({
+        pageToken,
+        igScopedId: event.senderId,
+        messagePayload,
+        pageId: profile.instagramPageId
+      });
+      
+      try {
+        const { default: NexaConversation } = await import('../models/NexaConversation.js');
+        await NexaConversation.updateOne(
+          { brand_id: profile._id, ig_user_id: event.senderId, stage: 'AWAITING_FOLLOWUP' },
+          { $set: { nudge_due_at: new Date(Date.now() + 8 * 60 * 1000) } }
+        );
+      } catch (e) {
+        console.error('[Nexa] Failed to reset nudge timer:', e.message);
+      }
+      return true;
+    } catch (err) {
+      console.error('Standard DM send failed', err?.response?.data || err.message);
+      return false;
+    }
+  }
+
+  // ─── DM KEYWORD FLOW MATCH ───────────────────────────────────────────
+  // Check if the incoming DM text matches a dm_keyword trigger flow
+  const dmKeywordMatch = await findBestFlowMatch({
+    userId: profile.user,
+    brandId: profile._id,
+    incomingText: event.text,
+    mediaId: '',
+    trigger: 'dm_keyword',
+  });
+
+  if (dmKeywordMatch.flow) {
+    console.log(`processMessage: Matched dm_keyword flow: ${dmKeywordMatch.flow._id} (score=${dmKeywordMatch.score})`);
+    const messagePayload = buildDmMessagePayload(dmKeywordMatch.flow, profile);
+    if (messagePayload) {
+      try {
+        const pageToken = await resolvePageToken(profile);
+        if (!pageToken) {
+          console.error('DM keyword flow: Could not resolve page token.');
+        } else {
+          await sleep(1500);
+          await sendStandardMessage({
+            pageToken,
+            igScopedId: event.senderId,
+            messagePayload,
+            pageId: profile.instagramPageId,
+          });
+          await DMFlow.updateOne({ _id: dmKeywordMatch.flow._id }, { $inc: { 'stats.triggered': 1, 'stats.replied': 1 } });
+          console.log(`processMessage: dm_keyword DM sent successfully to ${event.senderId}`);
+          
+      try {
+        const { default: NexaConversation } = await import('../models/NexaConversation.js');
+        await NexaConversation.updateOne(
+          { brand_id: profile._id, ig_user_id: event.senderId, stage: 'AWAITING_FOLLOWUP' },
+          { $set: { nudge_due_at: new Date(Date.now() + 8 * 60 * 1000) } }
+        );
+      } catch (e) {
+        console.error('[Nexa] Failed to reset nudge timer:', e.message);
+      }
+      return true;
+        }
+      } catch (err) {
+        console.error('DM keyword flow send failed', err?.response?.data || err.message);
+      }
+    }
+  }
+
 
   // ── Nexa rate-limit: 4s cooldown per sender to prevent GPT spam ──
   const nexaRateLimitKey = `${profile._id}:${event.senderId}`;
@@ -997,159 +1200,7 @@ const processMessageEventForProfile = async (profile, event) => {
     // Fall through to normal flow
   }
 
-  const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.senderId });
-  if (pendingFollowUp && matchesFollowUpConfirmation(pendingFollowUp.flow, pendingFollowUp.pending, event.text)) {
-    const messages = pendingFollowUp.flow.messages || [];
-    let currentIndex = pendingFollowUp.pending.followUpMessageIndex;
-    let matchedMsg = messages[currentIndex];
-
-    if (matchedMsg && matchedMsg.conditional) {
-       const isFollowing = await checkUserFollows(profile, event.senderId);
-       matchedMsg = null;
-       for (let i = currentIndex; i < messages.length; i++) {
-           if (messages[i].conditional === 'if_following' && isFollowing) {
-               matchedMsg = messages[i]; break;
-           }
-           if (messages[i].conditional === 'if_not_following' && !isFollowing) {
-               matchedMsg = messages[i]; break;
-           }
-           if (!messages[i].conditional) {
-               matchedMsg = messages[i]; break;
-           }
-       }
-       if (!matchedMsg) matchedMsg = messages[currentIndex];
-    }
-
-    const messagePayload = buildMessagePayloadForNextMessage(
-      pendingFollowUp.flow,
-      matchedMsg,
-      profile,
-      { forcePrimaryLinkOnly: matchedMsg?.conditional === 'if_following' }
-    );
-    
-    if (!messagePayload) {
-      return false;
-    }
-
-    try {
-      const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
-      if (!pageToken) {
-        return false;
-      }
-
-      await sleep(1500);
-
-      await sendStandardMessage({
-        pageToken,
-        igScopedId: event.senderId,
-        messagePayload,
-        pageId: profile.instagramPageId,
-      });
-
-      await DMFlowFollowUp.updateOne(
-        { _id: pendingFollowUp.pending._id },
-        {
-          $set: {
-            status: 'completed',
-            respondedAt: new Date(),
-            completedAt: new Date(),
-          },
-        }
-      );
-
-      await DMFlow.updateOne({ _id: pendingFollowUp.flow._id }, { $inc: { 'stats.replied': 1 } });
-      return true;
-    } catch (err) {
-      console.error('Pending follow-up DM failed', err?.response?.data || err.message);
-      return false;
-    }
-  }
   
-  const match = await findNextMessageForText(event.text, profile);
-  if (match && match.nextMessages.length > 0) {
-    const { flow, nextMessages, matchingMsgIndex } = match;
-    let targetMessage = nextMessages[0];
-    const previousMessage = flow.messages[matchingMsgIndex];
-
-    if (targetMessage && targetMessage.conditional) {
-       const isFollowing = await checkUserFollows(profile, event.senderId);
-       let foundMatchingSeqMsg = null;
-       
-       for (const msg of nextMessages) {
-           if (msg.conditional === 'if_following' && isFollowing) {
-               foundMatchingSeqMsg = msg; break;
-           }
-           if (msg.conditional === 'if_not_following' && !isFollowing) {
-               foundMatchingSeqMsg = msg; break;
-           }
-           if (!msg.conditional) {
-               foundMatchingSeqMsg = msg; break;
-           }
-       }
-       targetMessage = foundMatchingSeqMsg || previousMessage;
-    }
-
-    const messagePayload = buildMessagePayloadForNextMessage(flow, targetMessage, profile, {
-      forcePrimaryLinkOnly: targetMessage?.conditional === 'if_following'
-    });
-    
-    try {
-      const pageToken = await resolvePageToken(profile);
-      if (!pageToken) {
-          console.error('Standard DM failed: Could not resolve page token.');
-          return false;
-      }
-
-      await sleep(1500);
-
-      await sendStandardMessage({
-        pageToken,
-        igScopedId: event.senderId,
-        messagePayload,
-        pageId: profile.instagramPageId
-      });
-      return true;
-    } catch (err) {
-      console.error('Standard DM send failed', err?.response?.data || err.message);
-      return false;
-    }
-  }
-
-  // ─── DM KEYWORD FLOW MATCH ───────────────────────────────────────────
-  // Check if the incoming DM text matches a dm_keyword trigger flow
-  const dmKeywordMatch = await findBestFlowMatch({
-    userId: profile.user,
-    brandId: profile._id,
-    incomingText: event.text,
-    mediaId: '',
-    trigger: 'dm_keyword',
-  });
-
-  if (dmKeywordMatch.flow) {
-    console.log(`processMessage: Matched dm_keyword flow: ${dmKeywordMatch.flow._id} (score=${dmKeywordMatch.score})`);
-    const messagePayload = buildDmMessagePayload(dmKeywordMatch.flow, profile);
-    if (messagePayload) {
-      try {
-        const pageToken = await resolvePageToken(profile);
-        if (!pageToken) {
-          console.error('DM keyword flow: Could not resolve page token.');
-        } else {
-          await sleep(1500);
-          await sendStandardMessage({
-            pageToken,
-            igScopedId: event.senderId,
-            messagePayload,
-            pageId: profile.instagramPageId,
-          });
-          await DMFlow.updateOne({ _id: dmKeywordMatch.flow._id }, { $inc: { 'stats.triggered': 1, 'stats.replied': 1 } });
-          console.log(`processMessage: dm_keyword DM sent successfully to ${event.senderId}`);
-          return true;
-        }
-      } catch (err) {
-        console.error('DM keyword flow send failed', err?.response?.data || err.message);
-      }
-    }
-  }
 
 
   // ─── UNIVERSAL NEXA DM FALLBACK ──────────────────────────────────────────

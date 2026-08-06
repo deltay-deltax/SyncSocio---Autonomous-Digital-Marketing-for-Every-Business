@@ -124,6 +124,13 @@ const brandProfileSchema = new mongoose.Schema({
     bank_details:        { type: String, default: '' },      // bank details for manual payments
     min_discount:        { type: Number, default: 0 },       // % minimum Nexa can offer
     max_discount:        { type: Number, default: 10 },      // % maximum before escalating
+    business_context:    { type: String, default: '' },      // Free-text for store policies and info
+    knowledge_base: [{
+      question: String,
+      answer: String,
+      addedAt: { type: Date, default: Date.now },
+      autoLearned: { type: Boolean, default: false }
+    }]
   },
   automations: {
     storyMention: {

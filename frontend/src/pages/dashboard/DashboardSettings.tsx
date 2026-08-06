@@ -143,6 +143,7 @@ const DashboardSettings = () => {
     cod_enabled: false,
     min_discount: 0,
     max_discount: 10,
+    business_context: '',
   });
   const [activeBrandId, setActiveBrandId] = useState<string>('');
 
@@ -190,6 +191,7 @@ const DashboardSettings = () => {
             max_discount: data.settings.max_discount ?? 10,
             razorpay_key_id: data.settings.razorpay_key_id || '',
             razorpay_key_secret: data.settings.razorpay_key_secret || '',
+            business_context: data.settings.business_context || '',
           }));
         }
       } catch {}
@@ -1643,6 +1645,43 @@ const DashboardSettings = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Business Context & Knowledge Base */}
+                  <div className="space-y-4 pt-4 border-t border-border/40">
+                    <h3 className="text-sm font-bold flex items-center gap-2">
+                       Business Context & Store Policies
+                    </h3>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground">General information Nexa should know</label>
+                      <textarea 
+                        className="w-full h-32 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        placeholder="e.g. We ship worldwide in 3-5 days. No returns on sale items. We use eco-friendly packaging..."
+                        value={nexaForm.business_context}
+                        onChange={e => setNexaForm((p: any) => ({ ...p, business_context: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  {nexaSettings?.knowledge_base && nexaSettings.knowledge_base.length > 0 && (
+                    <div className="space-y-4 pt-4 border-t border-border/40">
+                      <h3 className="text-sm font-bold flex items-center gap-2">
+                         Auto-Learned Knowledge Base (FAQs)
+                      </h3>
+                      <p className="text-xs text-muted-foreground">These Q&A pairs were automatically learned by Nexa when you replied to escalated customer questions.</p>
+                      <div className="space-y-3">
+                        {nexaSettings.knowledge_base.map((kb: any, idx: number) => (
+                          <div key={idx} className="bg-muted/30 p-3 rounded-xl border border-border/50 text-sm">
+                            <p className="font-bold text-foreground mb-1">Q: {kb.question}</p>
+                            <p className="text-muted-foreground">A: {kb.answer}</p>
+                            <div className="text-[10px] text-muted-foreground mt-2 uppercase font-bold">
+                              {kb.autoLearned ? 'Auto-learned' : 'Manual entry'} • {new Date(kb.addedAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
 
                   {/* Save Button */}
                   <Button 
