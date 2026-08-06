@@ -17,8 +17,8 @@ const LANDING_FAQS = [
     a: "None at all. SyncSocio acts as your strategist, designer, and copywriter. It decides your posting frequency, suggests topic ideas, and automatically structures gorgeous ad layouts, captions, and script ideas for you.",
   },
   {
-    q: "Can I manage multiple brand profiles?",
-    a: "Yes. Our Starter plan supports 1 active brand profile, Elite plan supports up to 2 brand profiles, and Agency plan supports up to 10 brand profiles. Each brand has its own isolated Brand DNA, image upload library, and analytics dashboards.",
+    q: "How does the Nexa AI Sales Agent work?",
+    a: "Nexa acts as your 24/7 sales representative in Instagram DMs. It answers questions using your Brand DNA, qualifies leads, negotiates prices within your approved limits, and automatically sends payment links to close sales while you sleep.",
   },
   {
     q: "Do you offer a free trial?",
@@ -99,17 +99,7 @@ const FAQ = () => {
                       <div className="px-6 pb-6 pt-0">
                         <div className="h-px bg-border/40 mb-4" />
                         <p className="text-sm font-medium leading-relaxed text-muted-foreground">
-                          {i === 3 ? (
-                            <>
-                              Yes. Our Starter plan supports 1 active brand profile, Elite plan supports up to 2 brand profiles, and Agency plan supports up to 10 brand profiles. Each brand has its own{" "}
-                              <Link to="/signup" className="text-muted-foreground hover:text-muted-foreground cursor-default">
-                                isolated
-                              </Link>{" "}
-                              Brand DNA, image upload library, and analytics dashboards.
-                            </>
-                          ) : (
-                            item.a
-                          )}
+                          {item.a}
                         </p>
                       </div>
                     </motion.div>
