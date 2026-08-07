@@ -10,7 +10,7 @@ import { sendLoginNotificationEmail, sendSignupNotificationEmail } from '../util
 import { sendMetaCapiEvent } from '../services/metaConversionsAPI.js';
 import { createNotification } from '../utils/notificationHelper.js';
 import { clearAuthAttempts } from '../middleware/rateLimitMiddleware.js';
-
+import AdminNotification from '../models/AdminNotification.js';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const inferAuthProvider = (user) => {
@@ -247,6 +247,13 @@ export const googleLogin = async (req, res) => {
     if (!user) {
       user = await User.create({ name, email, googleId, isVerified: true, lastLogin: new Date() });
       isNewUser = true;
+
+      await AdminNotification.create({
+        type: 'new_user',
+        title: 'New Google Sign Up',
+        description: `New user signed up via Google: ${email}`,
+        metadata: { userId: user._id, email }
+      });
     } else {
       if (isSignup) {
         return res.status(400).json({ message: 'Already have an account? Try logging in either through email/password or Google sign-in.' });
@@ -342,6 +349,13 @@ export const appleLogin = async (req, res) => {
     if (!user) {
       user = await User.create({ name, email, appleId, isVerified: true, lastLogin: new Date() });
       isNewUser = true;
+
+      await AdminNotification.create({
+        type: 'new_user',
+        title: 'New Apple Sign Up',
+        description: `New user signed up via Apple: ${email}`,
+        metadata: { userId: user._id, email }
+      });
     } else {
       if (isSignup) {
         return res.status(400).json({ message: 'Already have an account? Try logging in either through email/password or Apple sign-in.' });
@@ -460,6 +474,14 @@ export const verifyOtp = async (req, res) => {
     user.otpExpiry = undefined;
     user.lastLogin = new Date();
     await user.save();
+
+    await AdminNotification.create({
+      type: 'new_user',
+      title: 'New User Verified',
+      description: `New user verified email: ${user.email}`,
+      metadata: { userId: user._id, email: user.email }
+    });
+
 
     // Send signup notification email asynchronously
     sendSignupNotificationEmail({
