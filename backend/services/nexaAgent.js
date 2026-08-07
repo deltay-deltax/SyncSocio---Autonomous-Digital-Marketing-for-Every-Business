@@ -273,8 +273,9 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   }
 
   // 5. Update conversation in DB
-  const newHistoryEntry = { role: 'user', text: incomingText, ts: new Date() };
-  const nexaHistoryEntry = { role: 'nexa', text: parsed.reply_text, ts: new Date() };
+  const safeText = (incomingText && String(incomingText).trim() !== '') ? incomingText : '[Attachment/Unsupported Message]';
+  const newHistoryEntry = { role: 'user', text: safeText, ts: new Date() };
+  const nexaHistoryEntry = { role: 'nexa', text: parsed.reply_text || '[No Reply]', ts: new Date() };
 
   const newStage = parsed.escalate_to_human ? 'ESCALATED' : (parsed.payment_verified_from_screenshot ? 'CLOSED' : finalStage);
 

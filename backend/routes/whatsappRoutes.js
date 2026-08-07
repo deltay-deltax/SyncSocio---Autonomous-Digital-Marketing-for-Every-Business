@@ -860,6 +860,15 @@ router.post('/webhook', async (req, res) => {
             } else if (message.type === 'image') {
               messageText = '[Image uploaded]';
               imageUrl = message.image?.url || null; // May require auth, but we try passing it
+            } else if (message.type === 'interactive') {
+              messageText = message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '[Interactive Message]';
+            } else {
+              messageText = `[${message.type} message received]`;
+            }
+
+            // Ensure messageText is never completely empty to prevent Mongoose validation errors
+            if (!messageText || messageText.trim() === '') {
+              messageText = '[Empty Message]';
             }
 
             // console.log(`[WhatsApp Webhook] Received message from ${senderId} to phone ID ${phoneNumberId}`);

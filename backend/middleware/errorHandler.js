@@ -2,6 +2,7 @@ export const errorHandler = (err, req, res, next) => {
   // 1. Log the full error server-side for debugging
   console.error('\n[Global Error Handler] Caught Error:');
   console.error(err);
+  import('fs').then(fs => fs.appendFileSync('error_log.txt', new Date().toISOString() + '\\n' + (err.stack || err.message) + '\\n\\n'));
 
   // 2. Determine status code
   const statusCode = err.statusCode || err.status || 500;
