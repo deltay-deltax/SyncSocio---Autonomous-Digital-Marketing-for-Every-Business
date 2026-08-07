@@ -30,7 +30,7 @@ export async function syncDefaultTemplates(profile, accessToken, sampleHandle = 
           { headers: { 'Authorization': `OAuth ${accessToken}`, 'file_offset': 0, 'Content-Type': 'image/png' } }
         );
         sharedSampleHandle = uploadRes.data?.h || null;
-        console.log(`[WhatsApp Templates] Uploaded shared sample image handle: ${sharedSampleHandle}`);
+        // console.log(`[WhatsApp Templates] Uploaded shared sample image handle: ${sharedSampleHandle}`);
       }
     } catch (uploadErr) {
       console.warn('[WhatsApp Templates] Could not upload shared sample image handle:', uploadErr?.response?.data || uploadErr.message);
@@ -148,7 +148,7 @@ export async function syncDefaultTemplates(profile, accessToken, sampleHandle = 
     ? profile.website
     : 'https://www.syncsocio.com';
 
-  console.log(`[WhatsApp Templates] Auto-submitting ${SYNCSOCIO_TEMPLATES.length} campaign templates for WABA ${profile.whatsappWABAId}...`);
+  // console.log(`[WhatsApp Templates] Auto-submitting ${SYNCSOCIO_TEMPLATES.length} campaign templates for WABA ${profile.whatsappWABAId}...`);
   let existingTemplatesMap = {};
   try {
     let nextUrl = `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates?fields=name,id&limit=100`;
@@ -224,7 +224,7 @@ export async function syncDefaultTemplates(profile, accessToken, sampleHandle = 
     } catch (e) {}
     await new Promise(r => setTimeout(r, 500));
   }
-  console.log(`[WhatsApp Templates] Batch submission complete.`);
+  // console.log(`[WhatsApp Templates] Batch submission complete.`);
 }
 
 // ── GET /api/whatsapp/config ─────────────────────────────────────────────────
@@ -271,7 +271,7 @@ router.post('/callback', protect, async (req, res) => {
 
       await profile.save();
 
-      console.log(`[WhatsApp Manual Config] Successfully updated WhatsApp for user ${req.user._id}. WABA: ${profile.whatsappWABAId}, Phone: ${profile.whatsappPhoneId}`);
+      // console.log(`[WhatsApp Manual Config] Successfully updated WhatsApp for user ${req.user._id}. WABA: ${profile.whatsappWABAId}, Phone: ${profile.whatsappPhoneId}`);
 
       return res.json({
         success: true,
@@ -352,7 +352,7 @@ router.post('/callback', protect, async (req, res) => {
     let resolvedPhoneNumber = '';
 
     try {
-      console.log('[WhatsApp OAuth] Resolving WABA ID via Meta debug_token...');
+      // console.log('[WhatsApp OAuth] Resolving WABA ID via Meta debug_token...');
       
       // 1. Inspect the user token using debug_token to get the WABA IDs shared with the app
       const debugRes = await axios.get('https://graph.facebook.com/v21.0/debug_token', {
@@ -368,7 +368,7 @@ router.post('/callback', protect, async (req, res) => {
       
       if (waMgmtScope && waMgmtScope.target_ids && waMgmtScope.target_ids.length > 0) {
         resolvedWabaId = waMgmtScope.target_ids[0];
-        console.log(`[WhatsApp OAuth] Resolved WABA ID via debug_token: ${resolvedWabaId}`);
+        // console.log(`[WhatsApp OAuth] Resolved WABA ID via debug_token: ${resolvedWabaId}`);
       }
 
       // NOTE: Do NOT resolve phone ID from waMsgScope.target_ids — Meta sometimes returns
@@ -377,13 +377,13 @@ router.post('/callback', protect, async (req, res) => {
 
       // 2. If debug_token didn't yield a WABA ID, fallback to businesses traversal
       if (!resolvedWabaId) {
-        console.log('[WhatsApp OAuth] debug_token fallback: Fetching associated businesses...');
+        // console.log('[WhatsApp OAuth] debug_token fallback: Fetching associated businesses...');
         const businessesRes = await axios.get('https://graph.facebook.com/v21.0/me/businesses', {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
 
         const businesses = businessesRes.data?.data || [];
-        console.log(`[WhatsApp OAuth] Found ${businesses.length} businesses.`);
+        // console.log(`[WhatsApp OAuth] Found ${businesses.length} businesses.`);
 
         const wabaIds = new Set();
         for (const biz of businesses) {
@@ -404,14 +404,14 @@ router.post('/callback', protect, async (req, res) => {
       // 3. Fetch phone numbers from WABA list — ALWAYS do this to get the real phone number and phone ID.
       // We can NOT rely on debug_token for phone ID because Meta returns the WABA ID there.
       if (resolvedWabaId) {
-        console.log(`[WhatsApp OAuth] Fetching phone numbers for WABA: ${resolvedWabaId}...`);
+        // console.log(`[WhatsApp OAuth] Fetching phone numbers for WABA: ${resolvedWabaId}...`);
         try {
           const phoneRes = await axios.get(`https://graph.facebook.com/v21.0/${resolvedWabaId}/phone_numbers`, {
             params: { fields: 'id,display_phone_number,verified_name,quality_rating,status' },
             headers: { Authorization: `Bearer ${accessToken}` }
           });
           const phoneData = phoneRes.data?.data || [];
-          console.log(`[WhatsApp OAuth] WABA phone list count: ${phoneData.length}`);
+          // console.log(`[WhatsApp OAuth] WABA phone list count: ${phoneData.length}`);
 
           // Always prefer a verified real number over a test number
           const realPhone = phoneData.find(p => p.display_phone_number && !p.display_phone_number.startsWith('+1 555'));
@@ -419,7 +419,7 @@ router.post('/callback', protect, async (req, res) => {
             // ALWAYS overwrite resolvedPhoneId with the correct one from the list
             resolvedPhoneId = realPhone.id;
             resolvedPhoneNumber = realPhone.display_phone_number;
-            console.log(`[WhatsApp OAuth] WABA list — real phone: ${resolvedPhoneNumber}, phoneId: ${resolvedPhoneId}`);
+            // console.log(`[WhatsApp OAuth] WABA list — real phone: ${resolvedPhoneNumber}, phoneId: ${resolvedPhoneId}`);
           } else if (phoneData.length > 0) {
             // Only test numbers found — use its ID but don't save the fake display number
             resolvedPhoneId = phoneData[0].id;
@@ -433,14 +433,14 @@ router.post('/callback', protect, async (req, res) => {
       // 5. Register the resolved phone number to enable messaging (Required for Embedded Signup)
       if (resolvedPhoneId) {
         try {
-          console.log(`[WhatsApp OAuth] Registering phone number ${resolvedPhoneId}...`);
+          // console.log(`[WhatsApp OAuth] Registering phone number ${resolvedPhoneId}...`);
           await axios.post(`https://graph.facebook.com/v25.0/${resolvedPhoneId}/register`, {
             messaging_product: 'whatsapp',
             pin: '123456' // Standard 6-digit PIN for WhatsApp 2FA
           }, {
             headers: { Authorization: `Bearer ${accessToken}` }
           });
-          console.log(`[WhatsApp OAuth] Phone number ${resolvedPhoneId} successfully registered!`);
+          // console.log(`[WhatsApp OAuth] Phone number ${resolvedPhoneId} successfully registered!`);
         } catch (regErr) {
           console.error(`[WhatsApp OAuth] Failed to register phone number (may already be registered or unverified):`, regErr?.response?.data || regErr.message);
         }
@@ -459,7 +459,7 @@ router.post('/callback', protect, async (req, res) => {
     } else {
       // Clear any previously saved stale test number so UI shows Phone ID instead
       profile.whatsappNumber = '';
-      console.log('[WhatsApp OAuth] No real phone number resolved. Cleared stale whatsappNumber from profile.');
+      // console.log('[WhatsApp OAuth] No real phone number resolved. Cleared stale whatsappNumber from profile.');
     }
 
     // Shared sample image handle — used for custom_campaign_image AND all syncsocio_* IMAGE headers
@@ -468,7 +468,7 @@ router.post('/callback', protect, async (req, res) => {
     // Auto-create general template upon connect
     if (profile.whatsappWABAId) {
       try {
-        console.log(`[WhatsApp Template] Auto-creating 'custom_campaign_image' template for WABA: ${profile.whatsappWABAId}...`);
+        // console.log(`[WhatsApp Template] Auto-creating 'custom_campaign_image' template for WABA: ${profile.whatsappWABAId}...`);
         
         const btnText = (profile.brandName ? `${profile.brandName} now` : 'Visit Website')
           .replace(/[^\w\s]/gi, '')
@@ -497,7 +497,7 @@ router.post('/callback', protect, async (req, res) => {
               { headers: { 'Authorization': `OAuth ${accessToken}`, 'file_offset': 0, 'Content-Type': 'image/png' } }
             );
             sampleHandle = uploadRes.data?.h || null;
-            console.log(`[WhatsApp Upload] Generated sample media handle: ${sampleHandle}`);
+            // console.log(`[WhatsApp Upload] Generated sample media handle: ${sampleHandle}`);
           }
         } catch (uploadErr) {
           console.warn('[WhatsApp Upload] Resumable upload failed, using fallback handle handling:', uploadErr?.response?.data || uploadErr.message);
@@ -556,7 +556,7 @@ router.post('/callback', protect, async (req, res) => {
               templatePayload,
               { headers: { Authorization: `Bearer ${accessToken}` } }
             );
-            console.log(`[WhatsApp Template] Successfully created template for WABA: ${profile.whatsappWABAId}`);
+            // console.log(`[WhatsApp Template] Successfully created template for WABA: ${profile.whatsappWABAId}`);
             primarySubmitted = true;
             break;
           } catch (tmplErr) {
@@ -571,7 +571,7 @@ router.post('/callback', protect, async (req, res) => {
             );
             
             if (isAlreadyExists) {
-              console.log(`[WhatsApp Template] Template 'custom_campaign_image' already exists.`);
+              // console.log(`[WhatsApp Template] Template 'custom_campaign_image' already exists.`);
               primarySubmitted = true;
               break;
             } else if (isTransient && errCode === 2 && attempt < 2) {
@@ -586,7 +586,7 @@ router.post('/callback', protect, async (req, res) => {
 
         if (!primarySubmitted) {
           // Fallback: Create text-only template if image header template failed
-          console.log(`[WhatsApp Template] Creating fallback text template 'custom_campaign_text'...`);
+          // console.log(`[WhatsApp Template] Creating fallback text template 'custom_campaign_text'...`);
           const fallbackPayload = {
             name: "custom_campaign_text",
             language: "en_US",
@@ -608,7 +608,7 @@ router.post('/callback', protect, async (req, res) => {
                 fallbackPayload,
                 { headers: { Authorization: `Bearer ${accessToken}` } }
               );
-              console.log(`[WhatsApp Template] Successfully created fallback template 'custom_campaign_text'.`);
+              // console.log(`[WhatsApp Template] Successfully created fallback template 'custom_campaign_text'.`);
               break;
             } catch (fbErr) {
               const errorDetail = fbErr?.response?.data?.error;
@@ -616,7 +616,7 @@ router.post('/callback', protect, async (req, res) => {
               const errCode = errorDetail?.code;
               
               if (errorDetail?.error_subcode === 2388040 || errorDetail?.error_subcode === 2388024 || (errorDetail?.message && errorDetail.message.toLowerCase().includes('already exists'))) {
-                 console.log(`[WhatsApp Template] Fallback template 'custom_campaign_text' already exists.`);
+                 // console.log(`[WhatsApp Template] Fallback template 'custom_campaign_text' already exists.`);
                  break;
               } else if (isTransient && errCode === 2 && attempt < 2) {
                  console.warn(`[WhatsApp Template] Transient error on custom_campaign_text, retrying in 2s...`);
@@ -648,13 +648,13 @@ router.post('/callback', protect, async (req, res) => {
           {},
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
-        console.log(`[WhatsApp OAuth] Successfully subscribed App to WABA: ${profile.whatsappWABAId}`);
+        // console.log(`[WhatsApp OAuth] Successfully subscribed App to WABA: ${profile.whatsappWABAId}`);
       } catch (subErr) {
         console.error(`[WhatsApp OAuth] Failed to subscribe App to WABA ${profile.whatsappWABAId}:`, subErr?.response?.data || subErr.message);
       }
     }
 
-    console.log(`[WhatsApp OAuth] Successfully connected WhatsApp. WABA: ${profile.whatsappWABAId}, Phone: ${profile.whatsappPhoneId}`);
+    // console.log(`[WhatsApp OAuth] Successfully connected WhatsApp. WABA: ${profile.whatsappWABAId}, Phone: ${profile.whatsappPhoneId}`);
 
     res.json({
       success: true,
@@ -825,10 +825,10 @@ router.get('/webhook', (req, res) => {
 
   if (mode && token) {
     if (mode === 'subscribe' && token === verify_token) {
-      console.log('[WhatsApp Webhook] Verification successful');
+      // console.log('[WhatsApp Webhook] Verification successful');
       return res.status(200).send(challenge);
     } else {
-      console.log('[WhatsApp Webhook] Verification failed - token mismatch');
+      // console.log('[WhatsApp Webhook] Verification failed - token mismatch');
       return res.sendStatus(403);
     }
   }
@@ -840,7 +840,7 @@ router.get('/webhook', (req, res) => {
 router.post('/webhook', async (req, res) => {
   const body = req.body;
   
-  console.log(`[WhatsApp Webhook] Incoming POST request. Body:`, JSON.stringify(body, null, 2));
+  // console.log(`[WhatsApp Webhook] Incoming POST request. Body:`, JSON.stringify(body, null, 2));
 
   if (body.object === 'whatsapp_business_account') {
     try {
@@ -862,13 +862,13 @@ router.post('/webhook', async (req, res) => {
               imageUrl = message.image?.url || null; // May require auth, but we try passing it
             }
 
-            console.log(`[WhatsApp Webhook] Received message from ${senderId} to phone ID ${phoneNumberId}`);
+            // console.log(`[WhatsApp Webhook] Received message from ${senderId} to phone ID ${phoneNumberId}`);
 
             // Find the brand that owns this WhatsApp Phone ID
             const brandProfile = await BrandProfile.findOne({ whatsappPhoneId: phoneNumberId });
             
             if (!brandProfile || !brandProfile.nexa?.nexa_enabled || !brandProfile.whatsappAccessToken) {
-              console.log(`[WhatsApp Webhook] Ignored: Brand not found, Nexa disabled, or access token missing for phone ID ${phoneNumberId}`);
+              // console.log(`[WhatsApp Webhook] Ignored: Brand not found, Nexa disabled, or access token missing for phone ID ${phoneNumberId}`);
               continue;
             }
 
@@ -911,6 +911,33 @@ router.post('/webhook', async (req, res) => {
               }
             }
 
+            // Send Product Image if requested by Nexa
+            if (nexaResult?.productImageUrlToSend) {
+              try {
+                const productImgPayload = {
+                  messaging_product: 'whatsapp',
+                  recipient_type: 'individual',
+                  to: senderId,
+                  type: 'image',
+                  image: { link: nexaResult.productImageUrlToSend }
+                };
+
+                await axios.post(
+                  `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`,
+                  productImgPayload,
+                  {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${brandProfile.whatsappAccessToken}`,
+                    },
+                  }
+                );
+                // console.log(`[WhatsApp Webhook] Sent product image to ${senderId}`);
+              } catch (imgErr) {
+                console.error('[WhatsApp Nexa] Failed to send product image:', imgErr?.response?.data || imgErr.message);
+              }
+            }
+
             // Send Nexa's reply back to the user via Meta API
             if (finalReplyText) {
               const replyPayload = {
@@ -931,7 +958,7 @@ router.post('/webhook', async (req, res) => {
                   },
                 }
               );
-              console.log(`[WhatsApp Webhook] Sent reply to ${senderId}`);
+              // console.log(`[WhatsApp Webhook] Sent reply to ${senderId}`);
             }
 
             // If Nexa requests to send UPI QR code, send it as an image attachment
@@ -955,7 +982,7 @@ router.post('/webhook', async (req, res) => {
                     },
                   }
                 );
-                console.log(`[WhatsApp Webhook] Sent UPI QR to ${senderId}`);
+                // console.log(`[WhatsApp Webhook] Sent UPI QR to ${senderId}`);
               } catch (qrErr) {
                 console.error('[WhatsApp Nexa] Failed to send UPI QR:', qrErr.message);
               }

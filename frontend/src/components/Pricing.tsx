@@ -228,6 +228,31 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick }: PricingProps) => {
             </button>
             <span className={`text-sm font-semibold ${currency === 'USD' ? 'text-foreground' : 'text-muted-foreground'}`}>USD ($)</span>
           </div>
+
+          {/* Free Trial Option (Moved Above) */}
+          {onFreeTrialClick && (
+            <div className="flex justify-center mt-10 mb-2">
+              <Button
+                variant="outline"
+                onClick={onFreeTrialClick}
+                className="rounded-xl border-2 border-primary/30 hover:border-primary hover:bg-primary/5 hover:text-primary px-8 h-12 text-sm font-bold text-foreground transition-all flex items-center gap-2"
+              >
+                <Gift size={16} className="text-primary group-hover:text-primary" />
+                Continue with Free Trial (3 Free Creatives)
+              </Button>
+            </div>
+          )}
+
+          {/* Credits Explained Link (Moved Above) */}
+          <div className="flex flex-col items-center justify-center mt-3 mb-10">
+            <Link
+              to="/credits"
+              className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 hover:underline cursor-pointer group"
+            >
+              <HelpCircle size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
+              Credits explained
+            </Link>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-stretch">
@@ -403,30 +428,6 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick }: PricingProps) => {
               </motion.div>
             );
           })}
-        </div>
-        {/* Free Trial Option */}
-        {onFreeTrialClick && (
-          <div className="flex justify-center mt-12 mb-4">
-            <Button
-              variant="outline"
-              onClick={onFreeTrialClick}
-              className="rounded-xl border-2 border-primary/30 hover:border-primary hover:bg-primary/5 px-8 h-12 text-sm font-bold text-foreground transition-all flex items-center gap-2"
-            >
-              <Gift size={16} className="text-primary" />
-              Continue with Free Trial (3 Free Creatives)
-            </Button>
-          </div>
-        )}
-
-        {/* Credits Explained Link */}
-        <div className="flex flex-col items-center justify-center mt-6 mb-2">
-          <Link
-            to="/credits"
-            className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 hover:underline cursor-pointer group"
-          >
-            <HelpCircle size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
-            Credits explained
-          </Link>
         </div>
 
         {/* Credit Topups */}

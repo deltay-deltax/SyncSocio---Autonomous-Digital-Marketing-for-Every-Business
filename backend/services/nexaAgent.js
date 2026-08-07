@@ -94,7 +94,7 @@ ${collectedStr}
 1. GREETING: Warm, brief. Ask what they're interested in if unclear. Never jump to price questions.
 2. QUALIFYING: Identify the specific product. Use ONLY catalog info — never invent prices, specs, or stock. Trust the catalog completely: if a price is very low (e.g., ₹5), quote it exactly as listed and DO NOT assume or say it is an error.
 3. NEGOTIATING: Offer discounts ONLY within ${minDiscount}%–${maxDiscount}%. If pushed beyond, say "let me check with the team" and set escalate_to_human=true.
-4. COLLECTING_DETAILS: Once price is agreed, ask the customer to provide their Name, Full Delivery Address, and Phone Number ALL AT ONCE in a single message. Do NOT ask for them one by one.
+4. COLLECTING_DETAILS: Once price is agreed, ask the customer to provide their Name, Full Delivery Address, and Phone Number ALL AT ONCE in a single message. Do NOT ask for them one by one. CRITICAL: Validate that the phone number contains at least 10 digits and the address looks like a real physical address (not just random letters like "ABCD"). If the provided details look fake, incomplete, or invalid, politely ask them to provide a valid 10-digit phone number and complete delivery address before moving to CONFIRMING.
 5. CONFIRMING: Read back everything. Ask payment preference from: ${paymentOptionsStr}
    - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL. Remain in CONFIRMING until the payment is successfully completed.
    - If UPI: provide the UPI ID from context. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot. ${nexaSettings?.upi_qr_code_url ? 'ALWAYS set send_upi_qr=true so the customer receives the QR image automatically.' : ''} Remain in CONFIRMING until they share a valid payment screenshot.
@@ -134,7 +134,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   const recentUserMessages = (convo.conversation_history || []).filter(h => h.role === 'user' && new Date(h.ts) > tenMinsAgo);
   
   if (recentUserMessages.length >= 40) {
-    console.log(`[Nexa Circuit Breaker] Triggered for ${convo.ig_user_id}. Too many messages in 10 mins.`);
+    // console.log(`[Nexa Circuit Breaker] Triggered for ${convo.ig_user_id}. Too many messages in 10 mins.`);
     await NexaConversation.updateOne({ _id: convo._id }, { stage: 'ESCALATED', escalate_to_human: true });
     return {
       replyText: "I'm pausing our chat for now as we've exchanged many messages quickly. A human agent will connect with you shortly! 🙏",
@@ -295,7 +295,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
       payment: {},
       escalate_to_human: !!parsed.escalate_to_human,
     });
-    console.log(`[Nexa] Forked new conversation ${newConvo._id} because customer wanted a new order from CLOSED stage.`);
+    // console.log(`[Nexa] Forked new conversation ${newConvo._id} because customer wanted a new order from CLOSED stage.`);
   } else {
     const updateData = {
       $set: {
@@ -370,7 +370,7 @@ export const upsertNexaConversationFromComment = async ({
 
       doc.escalate_to_human = false;
       await doc.save();
-      console.log(`[Nexa] Re-opened conversation ${doc._id} for IG user ${igUserId} from comment`);
+      // console.log(`[Nexa] Re-opened conversation ${doc._id} for IG user ${igUserId} from comment`);
     } else {
       // Just update product catalog and nudge if it's still active
       doc.product_catalog_snapshot = productCatalog;
@@ -393,7 +393,7 @@ export const upsertNexaConversationFromComment = async ({
       'collected.price_agreed': priceAgreed || null,
       conversation_history: [],
     });
-    console.log(`[Nexa] Conversation ${doc._id} created for IG user ${igUserId}`);
+    // console.log(`[Nexa] Conversation ${doc._id} created for IG user ${igUserId}`);
   }
 
   return doc;
@@ -430,7 +430,7 @@ export const upsertNexaConversationFromDM = async ({
         product_catalog_snapshot: productCatalog,
         conversation_history: [],
       });
-      console.log(`[Nexa] Conversation ${doc._id} created from direct DM (previous was CLOSED and stale) for IG user ${igUserId}`);
+      // console.log(`[Nexa] Conversation ${doc._id} created from direct DM (previous was CLOSED and stale) for IG user ${igUserId}`);
     } else if (['ESCALATED'].includes(doc.stage)) {
       // Re-open conversation
       doc.stage = 'GREETING';
@@ -452,7 +452,7 @@ export const upsertNexaConversationFromDM = async ({
 
       doc.escalate_to_human = false;
       await doc.save();
-      console.log(`[Nexa] Re-opened conversation ${doc._id} from direct DM for IG user ${igUserId}`);
+      // console.log(`[Nexa] Re-opened conversation ${doc._id} from direct DM for IG user ${igUserId}`);
     } else {
       doc.product_catalog_snapshot = productCatalog;
       await doc.save();
@@ -469,7 +469,7 @@ export const upsertNexaConversationFromDM = async ({
       product_catalog_snapshot: productCatalog,
       conversation_history: [],
     });
-    console.log(`[Nexa] Conversation ${doc._id} created from direct DM for IG user ${igUserId}`);
+    // console.log(`[Nexa] Conversation ${doc._id} created from direct DM for IG user ${igUserId}`);
   }
 
   return doc;

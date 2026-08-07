@@ -52,10 +52,10 @@ try:
     from saas_agents.saas_profiles import is_saas_brand
     from saas_agents.saas_image_agent import generate_saas_strategy_images
     _SAAS_AGENT_AVAILABLE = True
-    print("[Main] ✅ SaaS agents loaded successfully")
+    # print("[Main] ✅ SaaS agents loaded successfully")
 except ImportError as _saas_err:
     _SAAS_AGENT_AVAILABLE = False
-    print(f"[Main] ⚠️ SaaS agents not available: {_saas_err}")
+    # print(f"[Main] ⚠️ SaaS agents not available: {_saas_err}")
     def is_saas_brand(cat): return False
     def generate_saas_strategy_images(*args, **kwargs): raise ValueError("SaaS agents not loaded")
 
@@ -105,7 +105,7 @@ async def log_api_call(provider: str, endpoint: str, cost_in_cents: float = 0.5,
             doc["user"] = ObjectId(str(user_id))
         await apilogs_collection.insert_one(doc)
     except Exception as e:
-        print(f"[ApiLog] ⚠️ Failed to log API call: {e}")
+        # print(f"[ApiLog] ⚠️ Failed to log API call: {e}")
 
 @app.get("/")
 def read_root():
@@ -187,7 +187,7 @@ class HTMLMetadataExtractor(HTMLParser):
                         if best_candidate and not best_candidate.startswith("data:"):
                             best_srcset_src = best_candidate
                 except Exception as parse_err:
-                    print(f"[WEBSITE SCANNER] [PARSER-WARN] Failed parsing srcset '{srcset}': {parse_err}")
+                    # print(f"[WEBSITE SCANNER] [PARSER-WARN] Failed parsing srcset '{srcset}': {parse_err}")
 
             if data_src and not data_src.startswith("data:"):
                 target_src = data_src
@@ -261,8 +261,8 @@ class HTMLMetadataExtractor(HTMLParser):
                 seen_logo.add(src)
                 unique_logos.append(l)
 
-        print(f"[WEBSITE SCANNER] [IMG-EXTRACT] Total unique high-quality images gathered for prompt: {len(formatted_images)}")
-        print(f"[WEBSITE SCANNER] [LOGO-EXTRACT] Total unique logo candidates gathered: {len(unique_logos)}")
+        # print(f"[WEBSITE SCANNER] [IMG-EXTRACT] Total unique high-quality images gathered for prompt: {len(formatted_images)}")
+        # print(f"[WEBSITE SCANNER] [LOGO-EXTRACT] Total unique logo candidates gathered: {len(unique_logos)}")
         return {
             "title": self.title.strip(),
             "meta_description": self.meta_desc.strip(),
@@ -292,10 +292,10 @@ def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = ""):
 
 def download_image_as_base64(url: str) -> str:
     if not url or not url.startswith("http"):
-        print(f"[WEBSITE SCANNER] [DOWNLOAD] ⚠️ Skipping invalid or non-http image URL: {url}")
+        # print(f"[WEBSITE SCANNER] [DOWNLOAD] ⚠️ Skipping invalid or non-http image URL: {url}")
         return ""
     try:
-        print(f"[WEBSITE SCANNER] [DOWNLOAD] 📥 Starting download of: {url}")
+        # print(f"[WEBSITE SCANNER] [DOWNLOAD] 📥 Starting download of: {url}")
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
@@ -303,7 +303,7 @@ def download_image_as_base64(url: str) -> str:
             "Referer": url
         }
         res = requests.get(url, headers=headers, timeout=10, verify=False)
-        print(f"[WEBSITE SCANNER] [DOWNLOAD] Response Status: {res.status_code}, Length: {len(res.content)} bytes")
+        # print(f"[WEBSITE SCANNER] [DOWNLOAD] Response Status: {res.status_code}, Length: {len(res.content)} bytes")
         if res.status_code == 200:
             import base64
             content_type = res.headers.get("Content-Type", "image/jpeg")
@@ -319,12 +319,12 @@ def download_image_as_base64(url: str) -> str:
             elif "svg" in content_type:
                 content_type = "image/svg+xml"
             encoded = base64.b64encode(res.content).decode("utf-8")
-            print(f"[WEBSITE SCANNER] [DOWNLOAD] ✅ Successfully base64-encoded. Content type: {content_type}")
+            # print(f"[WEBSITE SCANNER] [DOWNLOAD] ✅ Successfully base64-encoded. Content type: {content_type}")
             return f"data:{content_type};base64,{encoded}"
         else:
-            print(f"[WEBSITE SCANNER] [DOWNLOAD] ❌ Failed, HTTP status code: {res.status_code}")
+            # print(f"[WEBSITE SCANNER] [DOWNLOAD] ❌ Failed, HTTP status code: {res.status_code}")
     except Exception as e:
-        print(f"[WEBSITE SCANNER] [DOWNLOAD] ⚠️ Failed to download image {url}: {e}")
+        # print(f"[WEBSITE SCANNER] [DOWNLOAD] ⚠️ Failed to download image {url}: {e}")
     return ""
 
 class ScrapeRequest(BaseModel):
@@ -351,7 +351,7 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         if forwarded_for:
             client_ip = forwarded_for.split(",")[0].strip()
             
-        print("🔥 [TESTING] Firing Meta CAPI Event: URLDropped (Python Backend)")
+        # print("🔥 [TESTING] Firing Meta CAPI Event: URLDropped (Python Backend)")
         send_meta_capi_event(
             event_name="URLDropped",
             event_id=payload.metaEventId,
@@ -425,19 +425,19 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         color_counts = Counter([c.upper() for c in hex_colors])
         top_colors = [c for c, _ in color_counts.most_common(15)]
 
-        print("\n" + "="*80)
-        print(f"[WEBSITE SCANNER] [START] Initiating scan for URL: {url}")
-        print(f"[WEBSITE SCANNER] [TITLE] Extracted Title: {extracted['title']}")
-        print(f"[WEBSITE SCANNER] [META] Extracted Meta Description: {extracted['meta_description']}")
-        print(f"[WEBSITE SCANNER] [LOGOS] Extracted Unique Logo Candidates: {len(extracted['logo_candidates'])}")
-        print(f"[WEBSITE SCANNER] [FONTS] Extracted Typography Candidates: {typography_candidates}")
-        print(f"[WEBSITE SCANNER] [COLORS] Extracted Hex Colors: {top_colors}")
-        print(f"[WEBSITE SCANNER] [IMAGES] Extracted Unique Image URLs Count: {len(extracted['images'])}")
-        print(f"[WEBSITE SCANNER] [TEXT] Raw text character length: {len(extracted['body_text'])}")
-        print("="*80 + "\n")
+        # print("\n" + "="*80)
+        # print(f"[WEBSITE SCANNER] [START] Initiating scan for URL: {url}")
+        # print(f"[WEBSITE SCANNER] [TITLE] Extracted Title: {extracted['title']}")
+        # print(f"[WEBSITE SCANNER] [META] Extracted Meta Description: {extracted['meta_description']}")
+        # print(f"[WEBSITE SCANNER] [LOGOS] Extracted Unique Logo Candidates: {len(extracted['logo_candidates'])}")
+        # print(f"[WEBSITE SCANNER] [FONTS] Extracted Typography Candidates: {typography_candidates}")
+        # print(f"[WEBSITE SCANNER] [COLORS] Extracted Hex Colors: {top_colors}")
+        # print(f"[WEBSITE SCANNER] [IMAGES] Extracted Unique Image URLs Count: {len(extracted['images'])}")
+        # print(f"[WEBSITE SCANNER] [TEXT] Raw text character length: {len(extracted['body_text'])}")
+        # print("="*80 + "\n")
             
     except Exception as scrape_err:
-        print(f"[WEBSITE SCANNER] [WARNING] Scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis...")
+        # print(f"[WEBSITE SCANNER] [WARNING] Scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis...")
         is_fallback = True
         
         # Build inferred title from domain
@@ -514,18 +514,18 @@ JSON Structure:
             images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
             user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\n{logo_info_str}\n\nDetected typography candidates:\n{typo_info_str}\n\nDetected colors:\n{color_info_str}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
         
-        print("\n" + "="*80)
-        print("[WEBSITE SCANNER] [PROMPT] PROMPT BEING SENT TO GPT:")
-        print(f"System Prompt:\n{system_prompt}\n")
-        print(f"User Prompt:\n{user_prompt}")
-        print("="*80 + "\n")
+        # print("\n" + "="*80)
+        # print("[WEBSITE SCANNER] [PROMPT] PROMPT BEING SENT TO GPT:")
+        # print(f"System Prompt:\n{system_prompt}\n")
+        # print(f"User Prompt:\n{user_prompt}")
+        # print("="*80 + "\n")
         
         gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt)
         
-        print("\n" + "="*80)
-        print("[WEBSITE SCANNER] [IN] GPT RESPONSE RECEIVED:")
-        print(gpt_response_text)
-        print("="*80 + "\n")
+        # print("\n" + "="*80)
+        # print("[WEBSITE SCANNER] [IN] GPT RESPONSE RECEIVED:")
+        # print(gpt_response_text)
+        # print("="*80 + "\n")
         
         import json
         scraped_data = json.loads(gpt_response_text)
@@ -533,16 +533,16 @@ JSON Structure:
         
         # Keep logo image URL as is to avoid local storage quota issues
         logo_url = scraped_data.get("logo", "")
-        print(f"[WEBSITE SCANNER] [LOGO] Scraped Logo URL: {logo_url or 'None'}")
+        # print(f"[WEBSITE SCANNER] [LOGO] Scraped Logo URL: {logo_url or 'None'}")
 
         # Convert matched product image URLs to base64 strings
         products = scraped_data.get("products", [])
         if len(products) > 50:
-            print(f"[WEBSITE SCANNER] [PRODUCTS] Truncating products from {len(products)} to max 50 limit.")
+            # print(f"[WEBSITE SCANNER] [PRODUCTS] Truncating products from {len(products)} to max 50 limit.")
             products = products[:50]
             scraped_data["products"] = products
             
-        print(f"[WEBSITE SCANNER] [PRODUCTS] Skipping base64 conversion for {len(products)} products to save storage quota...")
+        # print(f"[WEBSITE SCANNER] [PRODUCTS] Skipping base64 conversion for {len(products)} products to save storage quota...")
         
         # Normalize price / offerPrice on every product (strip currency symbols, fix swaps)
         scraped_data["products"] = [normalize_product_prices(p) for p in products]
@@ -550,7 +550,7 @@ JSON Structure:
         return scraped_data
         
     except Exception as gpt_err:
-        print(f"GPT extraction error for {url}: {gpt_err}")
+        # print(f"GPT extraction error for {url}: {gpt_err}")
         raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
 
 def _parse_price_num(val):
@@ -699,13 +699,13 @@ async def api_scrape_single_product(payload: ScrapeRequest):
             if "logo_candidates" not in extracted:
                 extracted["logo_candidates"] = []
             extracted["logo_candidates"].append({"src": injected_logo, "alt": injected_alt, "source": "injected-fallback"})
-            print(f"[SCRAPER] Injected fallback logo candidate: {injected_logo} for URL {url}")
+            # print(f"[SCRAPER] Injected fallback logo candidate: {injected_logo} for URL {url}")
         
         if not extracted["body_text"].strip():
             raise Exception("No readable text content found on the webpage.")
             
     except Exception as scrape_err:
-        print(f"[SCRAPER] Single product scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis fallback...")
+        # print(f"[SCRAPER] Single product scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis fallback...")
         is_fallback = True
         
         # Parse host/path to infer service details
@@ -813,7 +813,7 @@ JSON Structure:
         return scraped_data
         
     except Exception as gpt_err:
-        print(f"GPT extraction error for single product {url}: {gpt_err}")
+        # print(f"GPT extraction error for single product {url}: {gpt_err}")
         raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
 
 
@@ -823,7 +823,7 @@ async def api_analyze_mix(userId: str = Query(...), durationWeeks: int = Query(1
     Returns an optimized content mix based on the brand's profile from MongoDB.
     """
     try:
-        print(f"DEBUG: Analyzing mix for user {userId}")
+        # print(f"DEBUG: Analyzing mix for user {userId}")
         # Fetch brand profile (searching by either profile ID or user ID for robustness)
         brand_doc = await db["brandprofiles"].find_one({
             "$or": [
@@ -833,10 +833,10 @@ async def api_analyze_mix(userId: str = Query(...), durationWeeks: int = Query(1
         })
         
         if not brand_doc:
-            print(f"DEBUG: Brand profile NOT FOUND for user {userId}")
+            # print(f"DEBUG: Brand profile NOT FOUND for user {userId}")
             raise HTTPException(status_code=404, detail="Brand profile not found")
         
-        print(f"DEBUG: Brand profile found for {brand_doc.get('brandName')}")
+        # print(f"DEBUG: Brand profile found for {brand_doc.get('brandName')}")
 
         brand_info = {
             "brandName": brand_doc.get("brandName", "Unknown"),
@@ -850,18 +850,18 @@ async def api_analyze_mix(userId: str = Query(...), durationWeeks: int = Query(1
             "durationWeeks": durationWeeks
         }
         
-        print("DEBUG: Calling analyze_brand_mix agent...")
+        # print("DEBUG: Calling analyze_brand_mix agent...")
         result = analyze_brand_mix(brand_info)
-        print(f"DEBUG: Agent Response: {result}")
+        # print(f"DEBUG: Agent Response: {result}")
         return result
     except Exception as e:
-        print(f"ERROR in /analyze-mix: {str(e)}")
+        # print(f"ERROR in /analyze-mix: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate-strategy")
 async def api_generate_strategy(brand_info: BrandInfo):
     try:
-        print(f"DEBUG: Generating strategy for ID: {brand_info.userId}")
+        # print(f"DEBUG: Generating strategy for ID: {brand_info.userId}")
         # 1. Fetch the full brand data from MongoDB (searching by either profile ID or user ID)
         brand_doc = await brand_collection.find_one({
             "$or": [
@@ -879,7 +879,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
         if not brand_doc:
             raise HTTPException(status_code=404, detail=f"Brand profile not found for ID: {brand_info.userId}")
             
-        print(f"Generating strategy for: {brand_doc.get('brandName')}")
+        # print(f"Generating strategy for: {brand_doc.get('brandName')}")
         
         # Construct the context for the agent
         full_brand_profile = {
@@ -929,7 +929,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
         try:
             calendar = process_calendar_for_dm_flows(calendar, full_brand_profile)
         except Exception as dm_err:
-            print(f"[DM-AGENT] Non-critical error (strategy still valid): {dm_err}")
+            # print(f"[DM-AGENT] Non-critical error (strategy still valid): {dm_err}")
 
         # 4. Save generated DM flows to MongoDB
         dm_flows_created = []
@@ -958,9 +958,9 @@ async def api_generate_strategy(brand_info: BrandInfo):
                     insert_result = await dm_flows_collection.insert_one(dm_flow_doc)
                     dm_flow["_id"] = str(insert_result.inserted_id)
                     dm_flows_created.append(dm_flow)
-                    print(f"[DM-AGENT] 💾 Saved draft DM flow: {dm_flow.get('name')} (ID: {dm_flow['_id']})")
+                    # print(f"[DM-AGENT] 💾 Saved draft DM flow: {dm_flow.get('name')} (ID: {dm_flow['_id']})")
                 except Exception as save_err:
-                    print(f"[DM-AGENT] ⚠️ Failed to save DM flow: {save_err}")
+                    # print(f"[DM-AGENT] ⚠️ Failed to save DM flow: {save_err}")
 
         # 5. Save calendar to MongoDB
         calendar_entry = {
@@ -974,7 +974,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
         await calendar_collection.insert_one(calendar_entry)
         
         await log_api_call("GEMINI", "/generate-strategy", cost_in_cents=2.0, user_id=brand_info.userId)
-        print(f"[DM-AGENT] 🎉 Strategy complete: {len(calendar)} posts, {len(dm_flows_created)} DM flows")
+        # print(f"[DM-AGENT] 🎉 Strategy complete: {len(calendar)} posts, {len(dm_flows_created)} DM flows")
         
         return {
             "userId": brand_info.userId,
@@ -983,7 +983,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
         }
     except Exception as e:
         await log_api_call("GEMINI", "/generate-strategy", cost_in_cents=0, is_error=True, error_message=str(e), user_id=brand_info.userId if 'brand_info' in locals() else None)
-        print(f"Error in strategy generation: {str(e)}")
+        # print(f"Error in strategy generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/regenerate-strategy")
@@ -992,7 +992,7 @@ async def api_regenerate_strategy(brand_info: BrandInfo):
     Regenerates ONLY the rejected posts while preserving the overall schedule format.
     """
     try:
-        print(f"DEBUG: Regenerating {len(brand_info.rejectedItems or [])} items for user {brand_info.userId}")
+        # print(f"DEBUG: Regenerating {len(brand_info.rejectedItems or [])} items for user {brand_info.userId}")
         
         full_brand_profile = {
             "userId": brand_info.userId,
@@ -1040,7 +1040,7 @@ async def api_regenerate_strategy(brand_info: BrandInfo):
         return {"content_calendar": calendar}
         
     except Exception as e:
-        print(f"DEBUG: Exception in regenerate strategy: {e}")
+        # print(f"DEBUG: Exception in regenerate strategy: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate-plan")
@@ -1049,7 +1049,7 @@ async def api_generate_plan(payload: Dict[str, Any]):
     try:
         brand_data = payload.get('brand_info', payload)
         brand_name = brand_data.get('brandName', 'Unknown')
-        print(f"DEBUG: Generating 7-day plan for {brand_name}")
+        # print(f"DEBUG: Generating 7-day plan for {brand_name}")
         result = generate_weekly_plan(payload)
         await log_api_call("GEMINI", "/generate-plan", cost_in_cents=1.0, user_id=user_id)
         return {
@@ -1059,7 +1059,7 @@ async def api_generate_plan(payload: Dict[str, Any]):
         }
     except Exception as e:
         await log_api_call("GEMINI", "/generate-plan", cost_in_cents=0, is_error=True, error_message=str(e), user_id=user_id)
-        print(f"Error in plan generation: {str(e)}")
+        # print(f"Error in plan generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate-captions")
@@ -1067,7 +1067,7 @@ async def api_generate_captions(payload: Dict[str, Any]):
     user_id = payload.get('userId')
     try:
         brand_name = payload.get('brandName', 'Unknown')
-        print(f"DEBUG: Generating captions for {brand_name}")
+        # print(f"DEBUG: Generating captions for {brand_name}")
         result = generate_captions_and_hashtags(payload)
         await log_api_call("GEMINI", "/generate-captions", cost_in_cents=1.0, user_id=user_id)
         return {
@@ -1077,7 +1077,7 @@ async def api_generate_captions(payload: Dict[str, Any]):
         }
     except Exception as e:
         await log_api_call("GEMINI", "/generate-captions", cost_in_cents=0, is_error=True, error_message=str(e), user_id=user_id)
-        print(f"Error in caption generation: {str(e)}")
+        # print(f"Error in caption generation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/validate-post")
@@ -1162,7 +1162,7 @@ async def api_validate_post(
             "mediaPaths": media_paths
         }
     except Exception as e:
-        print(f"Validate Post Error: {str(e)}")
+        # print(f"Validate Post Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1175,7 +1175,7 @@ async def api_smart_schedule(request: Request):
         result = optimize_schedule(payload)
         return {"schedule": result}
     except Exception as e:
-        print(f"Smart Schedule Error: {str(e)}")
+        # print(f"Smart Schedule Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1234,7 +1234,7 @@ async def api_schedule_post(analysis_id: str, request: Request):
                 if 20 < diff_mins < (75 * 24 * 60):
                     is_future_scheduled = True
             except Exception as pe:
-                print(f"[PUBLISHER DEBUG] Error comparing datetime: {pe}")
+                # print(f"[PUBLISHER DEBUG] Error comparing datetime: {pe}")
 
         if result.get("error"):
             status = "failed"
@@ -1376,7 +1376,7 @@ async def api_direct_publish(
 
         return {"status": status, "error": result.get("error", "")}
     except Exception as e:
-        print(f"Direct Publish Error: {str(e)}")
+        # print(f"Direct Publish Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1504,7 +1504,7 @@ Example of what TO DO: "A bright office. A person typing. The text 'UPGRADE NOW'
             
         return refined_prompt
     except Exception as e:
-        print(f"Refiner Agent Error: {str(e)}")
+        # print(f"Refiner Agent Error: {str(e)}")
         return user_desc # Fallback to original description
 
 @app.post("/generate-visuals")
@@ -1567,7 +1567,7 @@ async def api_generate_visuals(request: VisualGenRequest):
             category=refiner_category
         )
         
-        print(f"\n--- REFINED IMAGE PROMPT ---\n{refined_prompt}\n--------------------------\n")
+        # print(f"\n--- REFINED IMAGE PROMPT ---\n{refined_prompt}\n--------------------------\n")
         
         type_str = ""
         result = None
@@ -1575,7 +1575,7 @@ async def api_generate_visuals(request: VisualGenRequest):
         if request.format == "Static Image":
             # Use FAL.ai gpt-image-2 for static images.
             # gpt-image-2 follows natural language directly — no camera rigs, no negative prompts.
-            print("Using FAL.ai gpt-image-2 for Static Image generation...")
+            # print("Using FAL.ai gpt-image-2 for Static Image generation...")
 
             # Resolve brand fields for the structured prompt
             _bd = brand_doc if (request.userId and brand_doc) else {}
@@ -1645,12 +1645,12 @@ Clean, premium, minimal. No random props. No clutter.
 Not a stock photo. Not AI-looking.
 """.strip()
 
-            print(f"\n--- GPT-IMAGE-2 STATIC PROMPT ---\n{static_prompt}\n---------------------------------\n")
+            # print(f"\n--- GPT-IMAGE-2 STATIC PROMPT ---\n{static_prompt}\n---------------------------------\n")
             result = generate_fal_image_flux(static_prompt, image=request.image, quality=img_quality)
             type_str = "image"
         elif request.format == "Carousel":
             # Use FAL.ai Ideogram for carousel slides (image-to-image based on user product image)
-            print("Using FAL.ai Ideogram for Carousel generation...")
+            # print("Using FAL.ai Ideogram for Carousel generation...")
             # Dynamic slide count — respects user selection (3, 5, 7, etc.)
             count = request.slides if request.slides else 3
             
@@ -1742,11 +1742,11 @@ Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
                 if isinstance(sp, dict):
                     features_product = sp.get("features_product", True)
                 
-                print("\n" + "="*80)
-                print(f"[CAROUSEL GENERATOR] Endpoint Slide {i+1} Prompt:")
-                print(ideogram_prompt)
-                print(f"Features Product: {features_product}")
-                print("="*80 + "\n")
+                # print("\n" + "="*80)
+                # print(f"[CAROUSEL GENERATOR] Endpoint Slide {i+1} Prompt:")
+                # print(ideogram_prompt)
+                # print(f"Features Product: {features_product}")
+                # print("="*80 + "\n")
                 
                 slides_results.append({
                     "prompt": ideogram_prompt,
@@ -1765,7 +1765,7 @@ Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
             type_str = "carousel"
         elif request.format == "Reel":
             # Use Google Veo 3.1 Fast for video generation
-            print("Using Google Veo 3.1 Fast for Reel generation...")
+            # print("Using Google Veo 3.1 Fast for Reel generation...")
             result = generate_veo_video(
                 prompt=refined_prompt,
                 image=request.image,
@@ -1783,7 +1783,7 @@ Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
         }
             
     except Exception as e:
-        print(f"Visual Generation Error: {str(e)}")
+        # print(f"Visual Generation Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1797,7 +1797,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
     and calls FAL.ai (gpt-image-2 / Ideogram / Minimax) accordingly.
     """
     try:
-        print(f"\n[StrategyImages] 📥 Request: userId={request.userId} layout={request.layout} count={request.count}")
+        # print(f"\n[StrategyImages] 📥 Request: userId={request.userId} layout={request.layout} count={request.count}")
 
         # 1. Fetch brand profile from MongoDB
         brand_doc = None
@@ -1817,7 +1817,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
         if not brand_doc:
             raise HTTPException(status_code=404, detail="Brand profile not found")
 
-        print(f"[StrategyImages] ✅ Brand found: {brand_doc.get('brandName')} | platform={request.platform or 'N/A'}")
+        # print(f"[StrategyImages] ✅ Brand found: {brand_doc.get('brandName')} | platform={request.platform or 'N/A'}")
 
         # If Nepal target, force language to English or Nepali
         location = brand_doc.get("location")
@@ -1846,7 +1846,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                     ),
                 )
 
-            print(f"[StrategyImages] 🤖 SaaS mode active for '{brand_doc.get('brandName')}' [{business_category}]")
+            # print(f"[StrategyImages] 🤖 SaaS mode active for '{brand_doc.get('brandName')}' [{business_category}]")
 
 
             import asyncio
@@ -1929,16 +1929,16 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 "createdAt": datetime.now(timezone.utc)
             }
             await apilogs_collection.insert_one(apilog_doc)
-            print(f"[StrategyImages] 💰 Logged API cost: {cost_in_cents} cents for {len(posts)} posts")
+            # print(f"[StrategyImages] 💰 Logged API cost: {cost_in_cents} cents for {len(posts)} posts")
         except Exception as log_err:
-            print(f"[StrategyImages] ⚠️ Failed to log API cost: {log_err}")
+            # print(f"[StrategyImages] ⚠️ Failed to log API cost: {log_err}")
 
         return {"status": "success", "posts": posts, "count": len(posts)}
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[StrategyImages] ❌ Error: {e}")
+        # print(f"[StrategyImages] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1954,7 +1954,7 @@ async def api_audit_performance(input_data: AuditorInput):
         result = await auditor.audit_and_align(input_data)
         return result
     except Exception as e:
-        print(f"Audit Route Error: {str(e)}")
+        # print(f"Audit Route Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1968,11 +1968,11 @@ async def ads_recommendations(request: Request):
         if not brand_profile:
             return {"error": "Missing brand_profile"}
         
-        print(f"DEBUG: Analyzing {len(posts)} posts for ad recommendations...")
+        # print(f"DEBUG: Analyzing {len(posts)} posts for ad recommendations...")
         recommendations = get_ads_recommendations(brand_profile, posts)
         return {"recommendations": recommendations}
     except Exception as e:
-        print(f"Ads Agent Route Error: {str(e)}")
+        # print(f"Ads Agent Route Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -2047,11 +2047,11 @@ async def api_generate_ugc_script(request: UGCScriptRequest):
             content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
 
         script = content.strip().strip('"').strip("'")
-        print(f"[UGCScript] ✅ Generated: {script[:80]}...")
+        # print(f"[UGCScript] ✅ Generated: {script[:80]}...")
         return {"status": "success", "script": script}
 
     except Exception as e:
-        print(f"[UGCScript] ❌ Error: {e}")
+        # print(f"[UGCScript] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/refine-campaign-copy")
@@ -2075,7 +2075,7 @@ async def api_refine_campaign_copy(request: RefineCopyRequest):
         )
         return {"status": "success", "data": result}
     except Exception as e:
-        print(f"❌ Error refining copy: {e}")
+        # print(f"❌ Error refining copy: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/edit-strategy-media")
@@ -2084,7 +2084,7 @@ async def api_edit_strategy_media(request: EditMediaRequest):
     Edits a generated image/video/carousel-slide using FAL engines.
     """
     try:
-        print(f"\n[EditMedia] 📥 Request: type={request.type} instruction='{request.instruction}'")
+        # print(f"\n[EditMedia] 📥 Request: type={request.type} instruction='{request.instruction}'")
 
         # Map aspect ratio to FAL's image size
         size_map = {
@@ -2118,7 +2118,7 @@ async def api_edit_strategy_media(request: EditMediaRequest):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[EditMedia] ❌ Error: {e}")
+        # print(f"[EditMedia] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/product-image-editor")
@@ -2127,7 +2127,7 @@ async def api_product_image_editor(request: ProductEditRequest):
     Edits a product image to match a reference image style using GPT-Image-2.
     """
     try:
-        print(f"\n[ProductEditor] 📥 Request received")
+        # print(f"\n[ProductEditor] 📥 Request received")
 
         import re
         import json
@@ -2198,12 +2198,12 @@ async def api_product_image_editor(request: ProductEditRequest):
         }
 
     except Exception as e:
-        print(f"[ProductEditor] ❌ Error: {e}")
+        # print(f"[ProductEditor] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 @app.post("/generate-autopilot")
 async def api_generate_autopilot(request: AutopilotRequest):
     try:
-        print(f"\n[Autopilot] 📥 Request: userId={request.userId} weeks={request.weeks} language={request.language}")
+        # print(f"\n[Autopilot] 📥 Request: userId={request.userId} weeks={request.weeks} language={request.language}")
         
         # 1. Fetch brand profile from MongoDB
         brand_doc = await brand_collection.find_one({
@@ -2248,7 +2248,7 @@ async def api_generate_autopilot(request: AutopilotRequest):
             "posts": campaign_posts
         }
     except Exception as e:
-        print(f"[Autopilot] ❌ Route error: {str(e)}")
+        # print(f"[Autopilot] ❌ Route error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 class AvatarRequest(BaseModel):
@@ -2299,7 +2299,7 @@ Photorealistic."""
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[AvatarGen] ❌ Error: {e}")
+        # print(f"[AvatarGen] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

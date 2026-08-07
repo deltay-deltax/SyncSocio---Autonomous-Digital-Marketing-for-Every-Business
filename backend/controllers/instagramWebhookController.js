@@ -38,7 +38,7 @@ const setClickTrackingBaseUrlFromRequest = (req) => {
 
 const buildTrackedButtonUrl = ({ flowId, buttonId, targetUrl }) => {
   const base = normalizeBaseUrl(clickTrackingBaseUrl);
-  console.log(`[WEBHOOK] buildTrackedButtonUrl: clickTrackingBaseUrl='${clickTrackingBaseUrl}', base='${base}'`);
+  // console.log(`[WEBHOOK] buildTrackedButtonUrl: clickTrackingBaseUrl='${clickTrackingBaseUrl}', base='${base}'`);
   if (!base || !safeTrim(targetUrl)) {
     return targetUrl;
   }
@@ -341,7 +341,7 @@ export const seedWebhookCache = async () => {
     for (const doc of recentFollowUps) {
       if (doc.commentId) processedMentionMediaIds.add(doc.commentId);
     }
-    console.log(`[WEBHOOK CACHE] Seeded ${recentFollowUps.length} comment IDs from DB into mention/comment dedup cache.`);
+    // console.log(`[WEBHOOK CACHE] Seeded ${recentFollowUps.length} comment IDs from DB into mention/comment dedup cache.`);
   } catch (e) {
     console.error('[WEBHOOK CACHE] Seed failed (non-fatal):', e.message);
   }
@@ -350,7 +350,7 @@ export const seedWebhookCache = async () => {
 const resolvePageToken = async (profile) => {
   if (profile.instagramPageAccessToken) return profile.instagramPageAccessToken;
 
-  console.log('[WEBHOOK] Page token missing, fetching on the fly...');
+  // console.log('[WEBHOOK] Page token missing, fetching on the fly...');
   try {
     const res = await axios.get(`${FB_API_BASE}/me/accounts`, {
       params: { fields: 'id,access_token', access_token: profile.instagramAccessToken },
@@ -376,7 +376,7 @@ const checkUserFollows = async (profile, senderId) => {
   const cacheKey = `${profile._id}:${senderId}`;
   const cached = followStatusCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < 5_000) {
-    console.log(`[WEBHOOK] Follow check cache hit: ${senderId} → ${cached.value}`);
+    // console.log(`[WEBHOOK] Follow check cache hit: ${senderId} → ${cached.value}`);
     return cached.value;
   }
 
@@ -400,7 +400,7 @@ const checkUserFollows = async (profile, senderId) => {
     });
 
     const isFollowing = res.data?.is_user_follow_business === true;
-    console.log(`[WEBHOOK] Follow check for ${senderId}: is_user_follow_business=${isFollowing}`);
+    // console.log(`[WEBHOOK] Follow check for ${senderId}: is_user_follow_business=${isFollowing}`);
 
     // Cache the result
     followStatusCache.set(cacheKey, { value: isFollowing, ts: Date.now() });
@@ -567,18 +567,18 @@ const sendPrivateReply = async ({ pageToken, commentId, messagePayload, pageId }
 };
 
 const processCommentEventForProfile = async (profile, event) => {
-  console.log(`processCommentEventForProfile: Starting for id="${event.commentId}", text="${event.text}", actor="${event.actorUsername}"`);
+  // console.log(`processCommentEventForProfile: Starting for id="${event.commentId}", text="${event.text}", actor="${event.actorUsername}"`);
 
   if (safeTrim(event.commentId)) {
     const alreadyProcessed = await DMFlowFollowUp.findOne({ commentId: event.commentId }).lean();
     if (alreadyProcessed) {
-      console.log(`Skipping: Comment ${event.commentId} already processed.`);
+      // console.log(`Skipping: Comment ${event.commentId} already processed.`);
       return false;
     }
   }
 
   if (!safeTrim(profile.instagramAccessToken)) {
-    console.log('Skipping: no instagramAccessToken on profile');
+    // console.log('Skipping: no instagramAccessToken on profile');
     return false;
   }
 
@@ -591,10 +591,10 @@ const processCommentEventForProfile = async (profile, event) => {
 
   const flow = matchResult.flow;
   if (!flow) {
-    console.log(`Skipping: No active DM flow matched for keyword="${event.text}" and mediaId="${event.mediaId}" (candidates=${matchResult.candidateCount})`);
+    // console.log(`Skipping: No active DM flow matched for keyword="${event.text}" and mediaId="${event.mediaId}" (candidates=${matchResult.candidateCount})`);
     return false;
   }
-  console.log(`Found matching flow: ${flow._id} (matchScore=${matchResult.score})`);
+  // console.log(`Found matching flow: ${flow._id} (matchScore=${matchResult.score})`);
 
   const publicReplyText = buildPublicCommentReplyTextFromTemplate(
     event.actorUsername,
@@ -611,7 +611,7 @@ const processCommentEventForProfile = async (profile, event) => {
   });
 
   if (!claim) {
-    console.log(`Skipping: Comment ${event.commentId} already processed.`);
+    // console.log(`Skipping: Comment ${event.commentId} already processed.`);
     return false;
   }
 
@@ -619,17 +619,17 @@ const processCommentEventForProfile = async (profile, event) => {
 
   const messagePayload = buildDmMessagePayload(flow, profile);
   if (!messagePayload) {
-    console.log('Skipping: message generated from flow was empty');
+    // console.log('Skipping: message generated from flow was empty');
     return false;
   }
   
-  console.log(`Sending message preview payload:`, JSON.stringify(messagePayload));
+  // console.log(`Sending message preview payload:`, JSON.stringify(messagePayload));
 
   try {
     // We MUST use the Page Access Token to send DMs. If not present in DB, fetch it on the fly
     let pageToken = profile.instagramPageAccessToken;
     if (!pageToken) {
-      console.log('Page Token missing in DB. Fetching on the fly for Page ID:', profile.instagramPageId);
+      // console.log('Page Token missing in DB. Fetching on the fly for Page ID:', profile.instagramPageId);
       const accountsRes = await axios.get(`${FB_API_BASE}/me/accounts`, {
         params: { fields: 'id,access_token', access_token: profile.instagramAccessToken }
       });
@@ -652,7 +652,7 @@ const processCommentEventForProfile = async (profile, event) => {
         publicReplyText,
       });
 
-      console.log('Instagram public comment reply sent', {
+      // console.log('Instagram public comment reply sent', {
         flowId: flow._id.toString(),
         commentId: event.commentId,
         actorUsername: event.actorUsername,
@@ -704,13 +704,13 @@ const processCommentEventForProfile = async (profile, event) => {
           productInterested: flow.keyword || null,
           priceAgreed: null,
         });
-        console.log(`[Nexa] Initialized AWAITING_FOLLOWUP state for comment trigger (recipient: ${result.recipient_id})`);
+        // console.log(`[Nexa] Initialized AWAITING_FOLLOWUP state for comment trigger (recipient: ${result.recipient_id})`);
       }
     } catch (err) {
       console.error('[Nexa] Failed to schedule nudge after comment flow:', err.message);
     }
 
-    console.log('Instagram private reply sent', {
+    // console.log('Instagram private reply sent', {
       flowId: flow._id.toString(),
       commentId: event.commentId,
       actorUsername: event.actorUsername,
@@ -791,7 +791,7 @@ const buildMessagePayloadForNextMessage = (flow, messageObj, profile, options = 
       }
       if (btn.type === 'url') {
         url = buildTrackedButtonUrl({ flowId: flow._id, buttonId: btn.id, targetUrl: url });
-        console.log(`[WEBHOOK] Built tracked URL for button: ${url}`);
+        // console.log(`[WEBHOOK] Built tracked URL for button: ${url}`);
       }
       return {
         type: 'web_url',
@@ -844,18 +844,18 @@ export const sendStandardMessage = async ({ pageToken, igScopedId, messagePayloa
 export { sendStandardMessage as sendStandardMessageExternal, resolvePageToken };
 
 const processMentionEventForProfile = async (profile, event) => {
-  console.log(`processMention: sender="${event.senderId}" mediaId="${event.mediaId}"`);
+  // console.log(`processMention: sender="${event.senderId}" mediaId="${event.mediaId}"`);
 
   const automations = profile.automations || {};
   if (!automations.storyMention?.active) {
-    console.log('processMention: storyMention automation is inactive. Skipping.');
+    // console.log('processMention: storyMention automation is inactive. Skipping.');
     return false;
   }
 
   // If senderId looks like a media ID (test event placeholder), skip DM but log success
   const isTestEvent = !event.senderId || event.senderId === event.mediaId;
   if (isTestEvent) {
-    console.log('processMention: ✅ Test event received — story mention automation is active and configured correctly. (No DM sent for test events)');
+    // console.log('processMention: ✅ Test event received — story mention automation is active and configured correctly. (No DM sent for test events)');
     return true;
   }
 
@@ -893,7 +893,7 @@ const processMentionEventForProfile = async (profile, event) => {
 };
 
 const processMessageEventForProfile = async (profile, event) => {
-  console.log(`processMsg: text="${event.text}", sender="${event.senderId}"`);
+  // console.log(`processMsg: text="${event.text}", sender="${event.senderId}"`);
 
   // Detect if this is an explicit DM Flow button click
   const isFlowPostback = event.isPostback && event.postbackPayload && String(event.postbackPayload).startsWith('FLOW_');
@@ -1048,7 +1048,7 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
   });
 
   if (dmKeywordMatch.flow) {
-    console.log(`processMessage: Matched dm_keyword flow: ${dmKeywordMatch.flow._id} (score=${dmKeywordMatch.score})`);
+    // console.log(`processMessage: Matched dm_keyword flow: ${dmKeywordMatch.flow._id} (score=${dmKeywordMatch.score})`);
     const messagePayload = buildDmMessagePayload(dmKeywordMatch.flow, profile);
     if (messagePayload) {
       try {
@@ -1064,7 +1064,7 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
             pageId: profile.instagramPageId,
           });
           await DMFlow.updateOne({ _id: dmKeywordMatch.flow._id }, { $inc: { 'stats.triggered': 1, 'stats.replied': 1 } });
-          console.log(`processMessage: dm_keyword DM sent successfully to ${event.senderId}`);
+          // console.log(`processMessage: dm_keyword DM sent successfully to ${event.senderId}`);
           
       try {
         const { default: NexaConversation } = await import('../models/NexaConversation.js');
@@ -1112,13 +1112,13 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
 
       if (nexaSettings?.nexa_enabled) {
         if (isFlowPostback) {
-          console.log(`[Nexa] Skipping Nexa routing for active convo because this is a DM flow button click.`);
+          // console.log(`[Nexa] Skipping Nexa routing for active convo because this is a DM flow button click.`);
         } else {
           if (isNexaRateLimited) {
-            console.log(`[Nexa] Rate-limited: Skipping GPT call for ${event.senderId} (last reply ${Date.now() - lastNexaReply}ms ago)`);
+            // console.log(`[Nexa] Rate-limited: Skipping GPT call for ${event.senderId} (last reply ${Date.now() - lastNexaReply}ms ago)`);
             return true;
           }
-          console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
+          // console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
         nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
         if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
 
@@ -1229,10 +1229,10 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
   const nexaSettings = getNexaSettings(freshBrand);
   if (nexaSettings?.nexa_enabled && !isFlowPostback) {
     if (isNexaRateLimited) {
-      console.log(`[Nexa] Rate-limited (fallback): Skipping GPT call for ${event.senderId}`);
+      // console.log(`[Nexa] Rate-limited (fallback): Skipping GPT call for ${event.senderId}`);
       return true;
     }
-    console.log(`[Nexa] Nexa is enabled for ${freshBrand.instagramUsername}. Seeding direct DM conversation for ${event.senderId}`);
+    // console.log(`[Nexa] Nexa is enabled for ${freshBrand.instagramUsername}. Seeding direct DM conversation for ${event.senderId}`);
     nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
     if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);
     
@@ -1353,7 +1353,7 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
     const automations = profile.automations || {};
     const isActive = automations.defaultReply?.active;
     
-    console.log(`processMessage: evaluating defaultReply for ${profile.instagramUsername}. active=${isActive}`);
+    // console.log(`processMessage: evaluating defaultReply for ${profile.instagramUsername}. active=${isActive}`);
     
     if (!isActive) {
       return false;
@@ -1368,14 +1368,14 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
     if (convo && convo.lastDefaultReplyAt) {
       const timeSinceLastReply = now.getTime() - convo.lastDefaultReplyAt.getTime();
       if (timeSinceLastReply < TWENTY_FOUR_HOURS_MS) {
-        console.log(`processMessage: Sent auto-reply recently (${Math.round(timeSinceLastReply/3600000)}h ago). Skipping to avoid spam.`);
+        // console.log(`processMessage: Sent auto-reply recently (${Math.round(timeSinceLastReply/3600000)}h ago). Skipping to avoid spam.`);
         return false;
       }
     }
 
     const pageToken = profile.instagramPageAccessToken || profile.instagramAccessToken;
     if (!pageToken) {
-      console.log('processMessage: No token found. Skipping.');
+      // console.log('processMessage: No token found. Skipping.');
       return false;
     }
 
@@ -1404,7 +1404,7 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
       );
     }
 
-    console.log('processMessage: Default auto-reply sent and timestamp updated.');
+    // console.log('processMessage: Default auto-reply sent and timestamp updated.');
     return true;
   } catch (err) {
     console.error('Auto-reply DM send failed', err?.response?.data || err.message);
@@ -1413,28 +1413,28 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
 };
 
 const processWebhookPayload = async (payload) => {
-  console.log('--- WEBHOOK PAYLOAD DEBUG ---', JSON.stringify(payload, null, 2));
+  // console.log('--- WEBHOOK PAYLOAD DEBUG ---', JSON.stringify(payload, null, 2));
   
   const entries = Array.isArray(payload?.entry) ? payload.entry : [];
 
   for (const entry of entries) {
-    console.log(`Processing entry ID: ${entry?.id}`);
+    // console.log(`Processing entry ID: ${entry?.id}`);
     let profiles = await findProfilesForEntry(entry?.id);
-    console.log(`Found ${profiles.length} profiles for entry ID ${entry?.id}`);
+    // console.log(`Found ${profiles.length} profiles for entry ID ${entry?.id}`);
     
     // Meta sends id:"0" for synthetic test events from the Webhooks dashboard.
     // In that case fall back to all connected profiles so the event is processed.
     if (profiles.length === 0 && String(entry?.id) === '0') {
-      console.log('Entry ID is "0" (Meta test event) — falling back to all connected profiles.');
+      // console.log('Entry ID is "0" (Meta test event) — falling back to all connected profiles.');
       profiles = await BrandProfile.find({
         instagramIsConnected: true,
         instagramAccessToken: { $exists: true, $ne: '' },
       }).select('user instagramAccessToken instagramPageAccessToken instagramBusinessAccountId instagramPageId instagramUsername automations').lean();
-      console.log(`Fallback found ${profiles.length} connected profiles.`);
+      // console.log(`Fallback found ${profiles.length} connected profiles.`);
     }
 
     if (profiles.length === 0) {
-      console.log('No matched profiles found in DB for this entry ID. Skipping.');
+      // console.log('No matched profiles found in DB for this entry ID. Skipping.');
       continue;
     }
 
@@ -1446,7 +1446,7 @@ const processWebhookPayload = async (payload) => {
     for (const event of commentEvents) {
       let handled = false;
       for (const profile of profiles) {
-        console.log(`Evaluating comment for profile ${profile.instagramUsername}:`, event);
+        // console.log(`Evaluating comment for profile ${profile.instagramUsername}:`, event);
         const didHandle = await processCommentEventForProfile(profile, event);
         if (didHandle) {
           handled = true;
@@ -1459,7 +1459,7 @@ const processWebhookPayload = async (payload) => {
     for (const event of messageEvents) {
       let handled = false;
       for (const profile of profiles) {
-        console.log(`Evaluating DM for profile ${profile.instagramUsername}:`, event);
+        // console.log(`Evaluating DM for profile ${profile.instagramUsername}:`, event);
         const didHandle = await processMessageEventForProfile(profile, event);
         if (didHandle) {
           handled = true;
@@ -1473,7 +1473,7 @@ const processWebhookPayload = async (payload) => {
     for (const event of mentionEvents) {
       let handled = false;
       for (const profile of profiles) {
-        console.log(`Evaluating Mention for profile ${profile.instagramUsername}:`, event);
+        // console.log(`Evaluating Mention for profile ${profile.instagramUsername}:`, event);
         const didHandle = await processMentionEventForProfile(profile, event);
         if (didHandle) {
           handled = true;
@@ -1490,7 +1490,7 @@ export const verifyInstagramWebhook = (req, res) => {
   const challenge = req.query['hub.challenge'];
   const verifyToken = getWebhookVerifyToken();
 
-  console.log('[IG WEBHOOK VERIFY] Incoming verification request', {
+  // console.log('[IG WEBHOOK VERIFY] Incoming verification request', {
     mode,
     hasToken: Boolean(token),
     hasChallenge: Boolean(challenge),
@@ -1502,7 +1502,7 @@ export const verifyInstagramWebhook = (req, res) => {
   }
 
   if (mode === 'subscribe' && token === verifyToken) {
-    console.log('[IG WEBHOOK VERIFY] Verification succeeded');
+    // console.log('[IG WEBHOOK VERIFY] Verification succeeded');
     return res.status(200).send(challenge || '');
   }
 
@@ -1519,7 +1519,7 @@ export const receiveInstagramWebhook = async (req, res) => {
   const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const payload = req.body || {};
 
-  console.log(`[IG WEBHOOK ${requestId}] Incoming webhook request`, {
+  // console.log(`[IG WEBHOOK ${requestId}] Incoming webhook request`, {
     path: req.originalUrl,
     method: req.method,
     contentType: req.headers['content-type'] || '',
@@ -1533,7 +1533,7 @@ export const receiveInstagramWebhook = async (req, res) => {
   setImmediate(async () => {
     try {
       await processWebhookPayload(payload);
-      console.log(`[IG WEBHOOK ${requestId}] Processing completed`);
+      // console.log(`[IG WEBHOOK ${requestId}] Processing completed`);
     } catch (error) {
       console.error(`[IG WEBHOOK ${requestId}] Processing error`, error);
     }
@@ -1564,11 +1564,11 @@ export const testWebhook = async (req, res) => {
   }
 
   const profile = profiles[0];
-  console.log('\n=== TEST WEBHOOK START ===');
-  console.log('Profile:', profile.instagramUsername, '| IG ID:', profile.instagramBusinessAccountId);
-  console.log('Has page token:', Boolean(profile.instagramPageAccessToken));
-  console.log('Has user token:', Boolean(profile.instagramAccessToken));
-  console.log('Comment text:', commentText);
+  // console.log('\n=== TEST WEBHOOK START ===');
+  // console.log('Profile:', profile.instagramUsername, '| IG ID:', profile.instagramBusinessAccountId);
+  // console.log('Has page token:', Boolean(profile.instagramPageAccessToken));
+  // console.log('Has user token:', Boolean(profile.instagramAccessToken));
+  // console.log('Comment text:', commentText);
 
   // Find matching flow
   const matchResult = await findBestFlowMatch({
@@ -1579,7 +1579,7 @@ export const testWebhook = async (req, res) => {
   });
 
   if (!matchResult.flow) {
-    console.log('No matching flow found. Candidates searched:', matchResult.candidateCount);
+    // console.log('No matching flow found. Candidates searched:', matchResult.candidateCount);
     return res.status(200).json({
       success: false,
       step: 'flow_match',
@@ -1587,7 +1587,7 @@ export const testWebhook = async (req, res) => {
     });
   }
 
-  console.log('Matched flow:', matchResult.flow._id, '| Score:', matchResult.score);
+  // console.log('Matched flow:', matchResult.flow._id, '| Score:', matchResult.score);
 
   const messagePayload = buildDmMessagePayload(matchResult.flow, profile);
   if (!messagePayload) {
@@ -1598,11 +1598,11 @@ export const testWebhook = async (req, res) => {
     });
   }
 
-  console.log('Message payload to send:', JSON.stringify(messagePayload, null, 2));
+  // console.log('Message payload to send:', JSON.stringify(messagePayload, null, 2));
 
   // If no real commentId provided, just do a dry run
   if (!commentId) {
-    console.log('=== DRY RUN (no commentId provided) ===');
+    // console.log('=== DRY RUN (no commentId provided) ===');
     return res.status(200).json({
       success: true,
       dryRun: true,
@@ -1643,7 +1643,7 @@ export const testWebhook = async (req, res) => {
         publicReplyText,
       });
 
-      console.log('=== PUBLIC COMMENT REPLY SENT ===', publicReplyResult);
+      // console.log('=== PUBLIC COMMENT REPLY SENT ===', publicReplyResult);
     } catch (publicReplyError) {
       console.error('=== PUBLIC COMMENT REPLY FAILED ===', publicReplyError?.response?.data || publicReplyError?.message);
     }
@@ -1668,7 +1668,7 @@ export const testWebhook = async (req, res) => {
       recipientId: result?.recipient_id,
     });
 
-    console.log('=== DM SENT SUCCESSFULLY ===', result);
+    // console.log('=== DM SENT SUCCESSFULLY ===', result);
     return res.status(200).json({
       success: true,
       dryRun: false,
