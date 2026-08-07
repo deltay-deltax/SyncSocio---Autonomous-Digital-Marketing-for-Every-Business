@@ -69,6 +69,7 @@ router.post('/settings', protect, validate({ body: updateNexaSettingsSchema }), 
       min_discount,
       max_discount,
       upi_qr_code_url,
+      business_context,
     } = req.body;
 
     const brand = await getActiveBrand(req);
@@ -84,6 +85,7 @@ router.post('/settings', protect, validate({ body: updateNexaSettingsSchema }), 
     if (bank_details !== undefined) nexaUpdate['nexa.bank_details'] = bank_details || '';
     if (min_discount !== undefined) nexaUpdate['nexa.min_discount'] = Number(min_discount) || 0;
     if (max_discount !== undefined) nexaUpdate['nexa.max_discount'] = Number(max_discount) || 10;
+    if (business_context !== undefined) nexaUpdate['nexa.business_context'] = business_context || '';
 
     // Only encrypt & update Razorpay keys if new values are provided (not masked placeholders)
     if (razorpay_key_id && !razorpay_key_id.startsWith('•')) {
