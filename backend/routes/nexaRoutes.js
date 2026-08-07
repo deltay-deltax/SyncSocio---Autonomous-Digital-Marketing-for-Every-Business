@@ -8,6 +8,7 @@
  */
 
 import express from 'express';
+import axios from 'axios';
 import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
 import NexaConversation from '../models/NexaConversation.js';
@@ -175,7 +176,7 @@ router.get('/conversations/:id', protect, validate({ params: idParamSchema }), a
 // ─── POST /api/nexa/conversations/:id/reply ─────────────────────────────────
 router.post('/conversations/:id/reply', protect, async (req, res) => {
   try {
-    const brands = await BrandProfile.find({ user: req.user._id }).select('_id instagramPageAccessToken instagramAccessToken instagramPageId nexa').lean();
+    const brands = await BrandProfile.find({ user: req.user._id }).select('_id instagramPageAccessToken instagramAccessToken instagramPageId whatsappAccessToken whatsappPhoneId nexa').lean();
     const brandIds = brands.map(b => b._id.toString());
     
     const convo = await NexaConversation.findById(req.params.id);
@@ -191,16 +192,36 @@ router.post('/conversations/:id/reply', protect, async (req, res) => {
 
     if (!replyText) return res.status(400).json({ message: 'Reply text is required' });
 
-    const pageToken = brandDoc.instagramPageAccessToken || brandDoc.instagramAccessToken;
-    if (!pageToken) return res.status(400).json({ message: 'Instagram not connected properly' });
+    if (convo.platform === 'whatsapp') {
+      const waToken = brandDoc.whatsappAccessToken;
+      const waPhoneId = brandDoc.whatsappPhoneId;
+      if (!waToken || !waPhoneId) {
+        return res.status(400).json({ message: 'WhatsApp not connected properly' });
+      }
 
-    // Send the manual reply to Instagram
-    await sendStandardMessage({
-      pageToken,
-      igScopedId: convo.ig_user_id,
-      messagePayload: { text: replyText },
-      pageId: brandDoc.instagramPageId,
-    });
+      await axios.post(
+        `https://graph.facebook.com/v25.0/${waPhoneId}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: convo.ig_user_id, // For WhatsApp, this holds the phone number
+          type: 'text',
+          text: { body: replyText }
+        },
+        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${waToken}` } }
+      );
+    } else {
+      const pageToken = brandDoc.instagramPageAccessToken || brandDoc.instagramAccessToken;
+      if (!pageToken) return res.status(400).json({ message: 'Instagram not connected properly' });
+
+      // Send the manual reply to Instagram
+      await sendStandardMessage({
+        pageToken,
+        igScopedId: convo.ig_user_id,
+        messagePayload: { text: replyText },
+        pageId: brandDoc.instagramPageId,
+      });
+    }
 
     // Save human reply to history
     convo.conversation_history.push({
