@@ -105,6 +105,7 @@ async def log_api_call(provider: str, endpoint: str, cost_in_cents: float = 0.5,
             doc["user"] = ObjectId(str(user_id))
         await apilogs_collection.insert_one(doc)
     except Exception as e:
+        pass
         # print(f"[ApiLog] ⚠️ Failed to log API call: {e}")
 
 @app.get("/")
@@ -187,6 +188,7 @@ class HTMLMetadataExtractor(HTMLParser):
                         if best_candidate and not best_candidate.startswith("data:"):
                             best_srcset_src = best_candidate
                 except Exception as parse_err:
+                    pass
                     # print(f"[WEBSITE SCANNER] [PARSER-WARN] Failed parsing srcset '{srcset}': {parse_err}")
 
             if data_src and not data_src.startswith("data:"):
@@ -322,8 +324,10 @@ def download_image_as_base64(url: str) -> str:
             # print(f"[WEBSITE SCANNER] [DOWNLOAD] ✅ Successfully base64-encoded. Content type: {content_type}")
             return f"data:{content_type};base64,{encoded}"
         else:
+            pass
             # print(f"[WEBSITE SCANNER] [DOWNLOAD] ❌ Failed, HTTP status code: {res.status_code}")
     except Exception as e:
+        pass
         # print(f"[WEBSITE SCANNER] [DOWNLOAD] ⚠️ Failed to download image {url}: {e}")
     return ""
 
@@ -437,6 +441,7 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         # print("="*80 + "\n")
             
     except Exception as scrape_err:
+        pass
         # print(f"[WEBSITE SCANNER] [WARNING] Scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis...")
         is_fallback = True
         
@@ -550,6 +555,7 @@ JSON Structure:
         return scraped_data
         
     except Exception as gpt_err:
+        pass
         # print(f"GPT extraction error for {url}: {gpt_err}")
         raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
 
@@ -705,6 +711,7 @@ async def api_scrape_single_product(payload: ScrapeRequest):
             raise Exception("No readable text content found on the webpage.")
             
     except Exception as scrape_err:
+        pass
         # print(f"[SCRAPER] Single product scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis fallback...")
         is_fallback = True
         
@@ -813,6 +820,7 @@ JSON Structure:
         return scraped_data
         
     except Exception as gpt_err:
+        pass
         # print(f"GPT extraction error for single product {url}: {gpt_err}")
         raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
 
@@ -855,6 +863,7 @@ async def api_analyze_mix(userId: str = Query(...), durationWeeks: int = Query(1
         # print(f"DEBUG: Agent Response: {result}")
         return result
     except Exception as e:
+        pass
         # print(f"ERROR in /analyze-mix: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -929,6 +938,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
         try:
             calendar = process_calendar_for_dm_flows(calendar, full_brand_profile)
         except Exception as dm_err:
+            pass
             # print(f"[DM-AGENT] Non-critical error (strategy still valid): {dm_err}")
 
         # 4. Save generated DM flows to MongoDB
@@ -960,6 +970,7 @@ async def api_generate_strategy(brand_info: BrandInfo):
                     dm_flows_created.append(dm_flow)
                     # print(f"[DM-AGENT] 💾 Saved draft DM flow: {dm_flow.get('name')} (ID: {dm_flow['_id']})")
                 except Exception as save_err:
+                    pass
                     # print(f"[DM-AGENT] ⚠️ Failed to save DM flow: {save_err}")
 
         # 5. Save calendar to MongoDB
@@ -1040,6 +1051,7 @@ async def api_regenerate_strategy(brand_info: BrandInfo):
         return {"content_calendar": calendar}
         
     except Exception as e:
+        pass
         # print(f"DEBUG: Exception in regenerate strategy: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1162,6 +1174,7 @@ async def api_validate_post(
             "mediaPaths": media_paths
         }
     except Exception as e:
+        pass
         # print(f"Validate Post Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1175,6 +1188,7 @@ async def api_smart_schedule(request: Request):
         result = optimize_schedule(payload)
         return {"schedule": result}
     except Exception as e:
+        pass
         # print(f"Smart Schedule Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1234,6 +1248,7 @@ async def api_schedule_post(analysis_id: str, request: Request):
                 if 20 < diff_mins < (75 * 24 * 60):
                     is_future_scheduled = True
             except Exception as pe:
+                pass
                 # print(f"[PUBLISHER DEBUG] Error comparing datetime: {pe}")
 
         if result.get("error"):
@@ -1376,6 +1391,7 @@ async def api_direct_publish(
 
         return {"status": status, "error": result.get("error", "")}
     except Exception as e:
+        pass
         # print(f"Direct Publish Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1504,6 +1520,7 @@ Example of what TO DO: "A bright office. A person typing. The text 'UPGRADE NOW'
             
         return refined_prompt
     except Exception as e:
+        pass
         # print(f"Refiner Agent Error: {str(e)}")
         return user_desc # Fallback to original description
 
@@ -1783,6 +1800,7 @@ Create a highly engaging ad creative carousel for slide {i + 1} {purpose}"""
         }
             
     except Exception as e:
+        pass
         # print(f"Visual Generation Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1931,6 +1949,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             await apilogs_collection.insert_one(apilog_doc)
             # print(f"[StrategyImages] 💰 Logged API cost: {cost_in_cents} cents for {len(posts)} posts")
         except Exception as log_err:
+            pass
             # print(f"[StrategyImages] ⚠️ Failed to log API cost: {log_err}")
 
         return {"status": "success", "posts": posts, "count": len(posts)}
@@ -1938,6 +1957,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
     except HTTPException:
         raise
     except Exception as e:
+        pass
         # print(f"[StrategyImages] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1954,6 +1974,7 @@ async def api_audit_performance(input_data: AuditorInput):
         result = await auditor.audit_and_align(input_data)
         return result
     except Exception as e:
+        pass
         # print(f"Audit Route Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1972,6 +1993,7 @@ async def ads_recommendations(request: Request):
         recommendations = get_ads_recommendations(brand_profile, posts)
         return {"recommendations": recommendations}
     except Exception as e:
+        pass
         # print(f"Ads Agent Route Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -2051,6 +2073,7 @@ async def api_generate_ugc_script(request: UGCScriptRequest):
         return {"status": "success", "script": script}
 
     except Exception as e:
+        pass
         # print(f"[UGCScript] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -2075,6 +2098,7 @@ async def api_refine_campaign_copy(request: RefineCopyRequest):
         )
         return {"status": "success", "data": result}
     except Exception as e:
+        pass
         # print(f"❌ Error refining copy: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -2118,6 +2142,7 @@ async def api_edit_strategy_media(request: EditMediaRequest):
     except HTTPException:
         raise
     except Exception as e:
+        pass
         # print(f"[EditMedia] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -2148,6 +2173,7 @@ async def api_product_image_editor(request: ProductEditRequest):
                 else:
                     img_quality = "low"
             except Exception:
+                pass
                 # If not JSON or fails, just truncate it
                 safe_brand_dna = request.brand_dna[:1000]
                 
@@ -2198,6 +2224,7 @@ async def api_product_image_editor(request: ProductEditRequest):
         }
 
     except Exception as e:
+        pass
         # print(f"[ProductEditor] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 @app.post("/generate-autopilot")
@@ -2248,6 +2275,7 @@ async def api_generate_autopilot(request: AutopilotRequest):
             "posts": campaign_posts
         }
     except Exception as e:
+        pass
         # print(f"[Autopilot] ❌ Route error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 

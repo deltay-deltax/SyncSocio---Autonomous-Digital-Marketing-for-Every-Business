@@ -652,7 +652,7 @@ const processCommentEventForProfile = async (profile, event) => {
         publicReplyText,
       });
 
-      // console.log('Instagram public comment reply sent', {
+      console.log('Instagram public comment reply sent', {
         flowId: flow._id.toString(),
         commentId: event.commentId,
         actorUsername: event.actorUsername,
@@ -710,7 +710,7 @@ const processCommentEventForProfile = async (profile, event) => {
       console.error('[Nexa] Failed to schedule nudge after comment flow:', err.message);
     }
 
-    // console.log('Instagram private reply sent', {
+    console.log('Instagram private reply sent', {
       flowId: flow._id.toString(),
       commentId: event.commentId,
       actorUsername: event.actorUsername,
@@ -1490,7 +1490,7 @@ export const verifyInstagramWebhook = (req, res) => {
   const challenge = req.query['hub.challenge'];
   const verifyToken = getWebhookVerifyToken();
 
-  // console.log('[IG WEBHOOK VERIFY] Incoming verification request', {
+  console.log('[IG WEBHOOK VERIFY] Incoming verification request', {
     mode,
     hasToken: Boolean(token),
     hasChallenge: Boolean(challenge),
@@ -1519,7 +1519,7 @@ export const receiveInstagramWebhook = async (req, res) => {
   const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const payload = req.body || {};
 
-  // console.log(`[IG WEBHOOK ${requestId}] Incoming webhook request`, {
+  console.log(`[IG WEBHOOK ${requestId}] Incoming webhook request`, {
     path: req.originalUrl,
     method: req.method,
     contentType: req.headers['content-type'] || '',
