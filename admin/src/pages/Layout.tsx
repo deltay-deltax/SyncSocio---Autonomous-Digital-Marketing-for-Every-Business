@@ -1,28 +1,95 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Ticket, LogOut, Briefcase, BarChart3, ReceiptText, Activity, ClipboardList, Menu, X, ShieldCheck, RotateCcw, CalendarClock, Image } from 'lucide-react';
+import { LayoutDashboard, Users, Ticket, LogOut, Briefcase, BarChart3, ReceiptText, Activity, ClipboardList, Menu, X, RotateCcw, CalendarClock, Image, MessageSquare, Package, Smartphone, Bell, Target } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
+import axios from 'axios';
 
-const NAV_ITEMS = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/users', icon: Users, label: 'Users' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/transactions', icon: ReceiptText, label: 'Transactions' },
-  { to: '/refunds', icon: RotateCcw, label: 'Refund History' },
-  { to: '/scheduled-posts', icon: CalendarClock, label: 'Scheduled Posts' },
-  { to: '/generations', icon: Image, label: 'Generations' },
-  { to: '/brands', icon: Briefcase, label: 'Brands' },
-  { to: '/coupons', icon: Ticket, label: 'Coupons' },
-  { to: '/system-health', icon: Activity, label: 'System Health' },
-  { to: '/waitlist', icon: ClipboardList, label: 'Waitlist' },
-  { to: '/testers', icon: ShieldCheck, label: 'Tester' },
-  { to: '/landing-gallery', icon: LayoutDashboard, label: 'Landing Gallery' },
-  { to: '/lead-generation', icon: ClipboardList, label: 'Lead Generation' },
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
+
+const NAV_SECTIONS = [
+  {
+    title: 'OVERVIEW',
+    items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+    ]
+  },
+  {
+    title: 'USERS & BRANDS',
+    items: [
+      { to: '/users', icon: Users, label: 'Users' },
+      { to: '/brands', icon: Briefcase, label: 'Brands' },
+    ]
+  },
+  {
+    title: 'COMMERCE',
+    items: [
+      { to: '/transactions', icon: ReceiptText, label: 'Transactions' },
+      { to: '/refunds', icon: RotateCcw, label: 'Refund History' },
+      { to: '/coupons', icon: Ticket, label: 'Coupons' },
+    ]
+  },
+  {
+    title: 'CONTENT',
+    items: [
+      { to: '/generations', icon: Image, label: 'Generations' },
+      { to: '/scheduled-posts', icon: CalendarClock, label: 'Scheduled Posts' },
+    ]
+  },
+  {
+    title: 'MESSAGING & SALES',
+    items: [
+      { to: '/whatsapp-templates', icon: Smartphone, label: 'WhatsApp Templates' },
+      { to: '/dm-automations', icon: MessageSquare, label: 'DM Automations' },
+      { to: '/nexa-conversations', icon: Target, label: 'Nexa Conversations' },
+    ]
+  },
+  {
+    title: 'CATALOG',
+    items: [
+      { to: '/products', icon: Package, label: 'Products' },
+    ]
+  },
+  {
+    title: 'GROWTH',
+    items: [
+      { to: '/lead-generation', icon: ClipboardList, label: 'Lead Generation' },
+      { to: '/leads-management', icon: ClipboardList, label: 'Leads CRM' },
+      { to: '/waitlist', icon: ClipboardList, label: 'Waitlist' },
+    ]
+  },
+  {
+    title: 'SYSTEM',
+    items: [
+      { to: '/system-health', icon: Activity, label: 'System Health' },
+      { to: '/campaigns', icon: Target, label: 'Campaigns Monitor' },
+      { to: '/landing-gallery', icon: LayoutDashboard, label: 'Landing Gallery' },
+    ]
+  }
 ];
 
 export default function Layout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        if (!token) return;
+        const res = await axios.get(`${API}/notifications/count`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success) setUnreadNotifications(res.data.unreadCount);
+      } catch (err) {
+        console.error('Failed to fetch notification count');
+      }
+    };
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
@@ -44,6 +111,21 @@ export default function Layout() {
         <button onClick={() => setSidebarOpen(true)} className="p-2 text-foreground">
           <Menu size={24} />
         </button>
+      </div>
+
+      {/* Top Header Navigation (Desktop) */}
+      <div className="hidden md:flex fixed top-0 right-0 left-56 h-16 bg-transparent z-20 items-center justify-end px-8 pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-4">
+          <button 
+            onClick={() => navigate('/notifications')}
+            className="relative p-2.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all hover-lift shadow-sm"
+          >
+            <Bell size={18} />
+            {unreadNotifications > 0 && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-card animate-pulse" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Overlay for mobile */}
@@ -87,23 +169,32 @@ export default function Layout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
-          {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={closeSidebar}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                  isActive
-                    ? 'bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20 shadow-sm'
-                    : 'text-muted-foreground hover:bg-white/5 hover:text-foreground hover-lift border border-transparent'
-                }`
-              }
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </NavLink>
+        <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-hide pb-20">
+          {NAV_SECTIONS.map((section, idx) => (
+            <div key={idx}>
+              <h3 className="px-4 text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-2">
+                {section.title}
+              </h3>
+              <div className="space-y-1">
+                {section.items.map(({ to, icon: Icon, label }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    onClick={closeSidebar}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                        isActive
+                          ? 'bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20 shadow-sm'
+                          : 'text-muted-foreground hover:bg-white/5 hover:text-foreground hover-lift border border-transparent'
+                      }`
+                    }
+                  >
+                    <Icon size={18} />
+                    <span>{label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 

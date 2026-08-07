@@ -8,12 +8,21 @@ interface BrandProfile {
     _id: string;
     email: string;
     name?: string;
+    plan?: string;
   } | null;
   brandName: string;
   businessCategory: string;
   DM_Automation_Service: boolean;
   createdAt: string;
   logo?: string;
+  instagramIsConnected?: boolean;
+  whatsappIsConnected?: boolean;
+  email_domain_verified?: boolean;
+  email_domain?: string;
+  nexa?: {
+    nexa_enabled: boolean;
+  };
+  neuralState?: string;
 }
 
 const getCategoryIcon = (category: string) => {
@@ -85,13 +94,44 @@ export default function Brands() {
               </div>
               
               <h3 className="text-lg font-bold text-slate-900 mb-1.5">{brand.brandName || 'Unnamed Brand'}</h3>
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mb-4">
                 {getCategoryIcon(brand.businessCategory)}
                 <span>{brand.businessCategory || 'No niche specified'}</span>
               </div>
+
+              {/* Connections & Badges */}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {/* Plan Badge */}
+                {brand.user?.plan && (
+                  <span className={`px-2 py-0.5 text-[10px] rounded-full font-bold uppercase ${
+                    brand.user.plan.toLowerCase() === 'pro' ? 'bg-violet-100 text-violet-700' :
+                    brand.user.plan.toLowerCase() === 'growth' ? 'bg-blue-100 text-blue-700' :
+                    'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {brand.user.plan}
+                  </span>
+                )}
+                {/* Nexa Agent Badge */}
+                {brand.nexa?.nexa_enabled && (
+                  <span className="px-2 py-0.5 text-[10px] rounded-full font-bold uppercase bg-indigo-100 text-indigo-700 flex items-center gap-1">
+                    🤖 Nexa {brand.neuralState ? `(${brand.neuralState})` : ''}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 text-[10px] font-medium mt-3">
+                <span className={`px-1.5 py-0.5 rounded border flex items-center gap-1 ${brand.instagramIsConnected ? 'bg-pink-50 text-pink-700 border-pink-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                  IG {brand.instagramIsConnected ? '✅' : '❌'}
+                </span>
+                <span className={`px-1.5 py-0.5 rounded border flex items-center gap-1 ${brand.whatsappIsConnected ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                  WA {brand.whatsappIsConnected ? '✅' : '❌'}
+                </span>
+                <span className={`px-1.5 py-0.5 rounded border flex items-center gap-1 ${brand.email_domain_verified ? 'bg-blue-50 text-blue-700 border-blue-200' : brand.email_domain ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                  Email {brand.email_domain_verified ? '✅' : brand.email_domain ? '⏳' : '❌'}
+                </span>
+              </div>
             </div>
             
-            <div className="mt-6 pt-4 border-t border-slate-100">
+            <div className="mt-4 pt-4 border-t border-slate-100">
               <p className="text-xs text-slate-400 font-medium mb-1.5">Owner</p>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-800">{brand.user?.email || 'Unknown User'}</span>

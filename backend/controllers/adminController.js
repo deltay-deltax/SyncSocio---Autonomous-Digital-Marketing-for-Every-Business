@@ -12,6 +12,9 @@ import MetaTester from '../models/MetaTester.js';
 import SiteSettings from '../models/SiteSettings.js';
 import Lead from '../models/Lead.js';
 import PostAnalysis from '../models/PostAnalysis.js';
+import RequestedTemplate from '../models/RequestedTemplate.js';
+import NexaConversation from '../models/NexaConversation.js';
+import Product from '../models/Product.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -223,6 +226,23 @@ export const getMetrics = async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
 
+    // Extra metrics for new Phase 4 dashboard cards
+    const whatsappConnectedBrands = await BrandProfile.countDocuments({ whatsappIsConnected: true });
+    const instagramConnectedBrands = await BrandProfile.countDocuments({ instagramIsConnected: true });
+    const nexaActiveConversations = await NexaConversation.countDocuments({ stage: { $nin: ['CLOSED', 'ESCALATED'] } });
+    const nexaClosedDeals = await NexaConversation.countDocuments({ stage: 'CLOSED' });
+    
+    // Revenue from Nexa Deals
+    const allClosedDeals = await NexaConversation.find({ stage: 'CLOSED' });
+    const nexaRevenue = allClosedDeals.reduce((sum, c) => {
+      return sum + (c.payment && c.payment.payment_status === 'paid' && c.payment.amount_paise ? (c.payment.amount_paise / 100) : 0);
+    }, 0);
+
+    const totalDMFlows = await DMFlow.countDocuments();
+    const activeDMFlows = await DMFlow.countDocuments({ isActive: true });
+    const totalProducts = await Product.countDocuments();
+    const pendingTemplates = await RequestedTemplate.countDocuments({ status: 'PENDING' });
+
     // Fetch last 5 transactions with user emails populated
     const recentTransactions = await Transaction.find()
       .populate('user', 'email name')
@@ -256,7 +276,16 @@ export const getMetrics = async (req, res) => {
         visitorsTotal,
         visitorUniqueSessions,
         visitorUniqueSessionsYesterday,
-        visitorsByDate
+        visitorsByDate,
+        whatsappConnectedBrands,
+        instagramConnectedBrands,
+        nexaActiveConversations,
+        nexaClosedDeals,
+        nexaRevenue,
+        totalDMFlows,
+        activeDMFlows,
+        totalProducts,
+        pendingTemplates
       }
     });
   } catch (error) {
@@ -840,7 +869,7 @@ export const deleteUserAccount = async (req, res) => {
 export const getAllBrands = async (req, res) => {
   try {
     const brands = await BrandProfile.find()
-      .populate('user', 'email name')
+      .populate('user', 'email name plan')
       .sort({ createdAt: -1 });
     return res.status(200).json({ success: true, brands });
   } catch (error) {
@@ -883,14 +912,10 @@ export const getRevenueAnalytics = async (req, res) => {
       { $sort: { '_id.year': 1, '_id.month': 1 } }
     ]);
 
-    // Plan distribution — Starter vs Elite (no free plan)
-    const brandCount = await User.countDocuments({
-      plan: { $regex: /brand|starter/i, $ne: null },
-      $and: [{ plan: { $ne: '' } }]
-    });
-    const growthCount = await User.countDocuments({
-      plan: { $regex: /elite/i }
-    });
+    // Plan distribution — Starter, Growth, Pro
+    const starterCount = await User.countDocuments({ plan: { $regex: /starter/i, $ne: null } });
+    const growthCount = await User.countDocuments({ plan: { $regex: /growth/i, $ne: null } });
+    const proCount = await User.countDocuments({ plan: { $regex: /pro/i, $ne: null } });
     const noPlanCount = await User.countDocuments({
       $or: [{ plan: '' }, { plan: null }]
     });
@@ -928,11 +953,21 @@ export const getRevenueAnalytics = async (req, res) => {
         revenueByMonth,
         signupsByMonth,
         planDistribution: [
-          { name: 'Starter (₹999)', value: brandCount, color: '#6366f1' },
-          { name: 'Elite (₹3199)', value: growthCount, color: '#8b5cf6' },
-          { name: 'No Plan', value: noPlanCount, color: '#374151' }
+          { name: 'Starter (₹399)', value: starterCount, color: '#10b981' },
+          { name: 'Growth (₹799)', value: growthCount, color: '#3b82f6' },
+          { name: 'Pro (₹1299)', value: proCount, color: '#8b5cf6' },
+          { name: 'No Plan', value: noPlanCount, color: '#64748b' }
         ],
-        topSpenders
+        topSpenders,
+        channelConnections: {
+          whatsapp: await BrandProfile.countDocuments({ whatsappIsConnected: true }),
+          instagram: await BrandProfile.countDocuments({ instagramIsConnected: true }),
+          email: await BrandProfile.countDocuments({ email_domain_verified: true })
+        },
+        creditConsumption: {
+          thisMonth: (await AgentActivity.aggregate([{ $match: { timestamp: { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } } }, { $group: { _id: null, total: { $sum: '$creditsUsed' } } }]))[0]?.total || 0,
+          lastMonth: (await AgentActivity.aggregate([{ $match: { timestamp: { $gte: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000), $lt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } } }, { $group: { _id: null, total: { $sum: '$creditsUsed' } } }]))[0]?.total || 0
+        }
       }
     });
   } catch (error) {
@@ -1108,7 +1143,13 @@ export const getSystemHealth = async (req, res) => {
         allTimeErrors,
         providerStats,
         recentErrors,
-        detailedLogs
+        detailedLogs,
+        backgroundServices: {
+          whatsappWebhooks: 'active',
+          emailSendGrid: 'active',
+          stripeWebhooks: 'active',
+          campaignScheduler: 'active'
+        }
       }
     });
   } catch (error) {
@@ -1391,7 +1432,337 @@ export const getGenerations = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching generations:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// --- WhatsApp Templates -----------------------------------------------------
+export const getWhatsAppTemplates = async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.status) query.status = req.query.status;
+
+    let templates = await RequestedTemplate.find(query)
+      .populate('user', 'name email')
+      .populate('brand', 'companyName')
+      .sort({ createdAt: -1 });
+
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      templates = templates.filter(t => 
+        searchRegex.test(t.templateName) || 
+        searchRegex.test(t.user?.email) || 
+        searchRegex.test(t.brand?.companyName)
+      );
+    }
+    res.json({ success: true, templates });
+  } catch (error) {
+    console.error('Error fetching WhatsApp templates:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+export const updateWhatsAppTemplateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, rejectionReason } = req.body;
+    const template = await RequestedTemplate.findByIdAndUpdate(
+      id,
+      { status, rejectionReason },
+      { new: true }
+    );
+    if (!template) return res.status(404).json({ success: false, message: 'Template not found' });
+    
+    // Create admin notification
+    import('../models/AdminNotification.js').then(m => {
+      m.default.create({
+        type: 'template_submitted',
+        title: `Template ${status}`,
+        description: `Template ${template.templateName} was marked as ${status}.`,
+        severity: status === 'REJECTED' ? 'warning' : 'info'
+      });
+    });
+
+    res.json({ success: true, template });
+  } catch (error) {
+    console.error('Error updating template status:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// --- Nexa Conversations -----------------------------------------------------
+export const getNexaConversations = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (req.query.stage) query.stage = req.query.stage;
+    if (req.query.platform) query.platform = req.query.platform;
+
+    // Optional text search
+    if (req.query.search) {
+      const regex = new RegExp(req.query.search, 'i');
+      query.$or = [
+        { customer_id: regex },
+        { customer_name: regex },
+        { 'collected_data.name': regex },
+        { 'collected_data.phone': regex }
+      ];
+    }
+
+    const conversations = await NexaConversation.find(query)
+      .populate('brandId', 'companyName user')
+      .populate('userId', 'email name')
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await NexaConversation.countDocuments(query);
+    res.json({ success: true, conversations, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+  } catch (error) {
+    console.error('Error fetching Nexa conversations:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+export const getNexaConversationDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const conversation = await NexaConversation.findById(id)
+      .populate('brandId', 'companyName')
+      .populate('userId', 'email name')
+      .populate('product_interested');
+      
+    if (!conversation) return res.status(404).json({ success: false, message: 'Conversation not found' });
+    res.json({ success: true, conversation });
+  } catch (error) {
+    console.error('Error fetching Nexa conversation detail:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+export const getNexaStats = async (req, res) => {
+  try {
+    const all = await NexaConversation.find({});
+    const stats = {
+      total: all.length,
+      qualifying: 0,
+      negotiating: 0,
+      collectingDetails: 0,
+      closed: 0,
+      escalated: 0,
+      totalRevenue: 0,
+    };
+    all.forEach(c => {
+      if (c.stage === 'QUALIFYING') stats.qualifying++;
+      else if (c.stage === 'NEGOTIATING') stats.negotiating++;
+      else if (c.stage === 'COLLECTING_DETAILS') stats.collectingDetails++;
+      else if (c.stage === 'CLOSED') {
+        stats.closed++;
+        if (c.payment && c.payment.payment_status === 'paid' && c.payment.amount_paise) {
+          stats.totalRevenue += (c.payment.amount_paise / 100);
+        }
+      }
+      else if (c.stage === 'ESCALATED') stats.escalated++;
+    });
+    stats.conversionRate = stats.total > 0 ? ((stats.closed / stats.total) * 100).toFixed(1) : 0;
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error fetching Nexa stats:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// --- DM Automations ---------------------------------------------------------
+export const getAllDMFlows = async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.active !== undefined) query.isActive = req.query.active === 'true';
+
+    let flows = await DMFlow.find(query)
+      .populate('user', 'email name')
+      .populate('brand', 'companyName')
+      .sort({ createdAt: -1 });
+
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      flows = flows.filter(f => 
+        searchRegex.test(f.name) || 
+        searchRegex.test(f.triggerKeyword) ||
+        searchRegex.test(f.user?.email) || 
+        searchRegex.test(f.brand?.companyName)
+      );
+    }
+    
+    // Calculate global stats
+    const stats = {
+      totalFlows: flows.length,
+      activeFlows: flows.filter(f => f.isActive).length,
+      totalTriggers: flows.reduce((acc, f) => acc + (f.metrics?.triggered || 0), 0),
+      totalConversions: flows.reduce((acc, f) => acc + (f.metrics?.conversions || 0), 0)
+    };
+
+    res.json({ success: true, flows, stats });
+  } catch (error) {
+    console.error('Error fetching DM flows:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// --- Products Catalog -------------------------------------------------------
+export const getAllProducts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (req.query.search) {
+      const regex = new RegExp(req.query.search, 'i');
+      query.$or = [{ name: regex }, { description: regex }];
+    }
+
+    const products = await Product.find(query)
+      .populate('user', 'email name')
+      .populate('brandId', 'companyName')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Product.countDocuments(query);
+    
+    // Stats for products
+    const allProducts = await Product.find();
+    const brandsWithProducts = new Set(allProducts.map(p => p.brandId?.toString())).size;
+    
+    const stats = {
+      totalProducts: allProducts.length,
+      brandsWithProducts,
+      avgProductsPerBrand: brandsWithProducts > 0 ? (allProducts.length / brandsWithProducts).toFixed(1) : 0
+    };
+
+    res.json({ success: true, products, stats, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// --- Campaigns Monitor ------------------------------------------------------
+export const getCampaignStats = async (req, res) => {
+  try {
+    // Basic stats via ApiLog
+    const emailLogs = await ApiLog.countDocuments({ 
+      $or: [ { endpoint: { $regex: /sendgrid/i } }, { endpoint: { $regex: /campaign/i } } ]
+    });
+    const whatsappLogs = await ApiLog.countDocuments({ endpoint: { $regex: /whatsapp/i } });
+    
+    // This month
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const emailsThisMonth = await ApiLog.countDocuments({ 
+      $or: [ { endpoint: { $regex: /sendgrid/i } }, { endpoint: { $regex: /campaign/i } } ],
+      createdAt: { $gte: monthStart }
+    });
+    
+    // Email domain statuses from BrandProfile
+    const brands = await BrandProfile.find({ email_domain: { $exists: true, $ne: '' } });
+    const emailDomainStatuses = brands.map(b => ({
+      brandName: b.companyName,
+      domain: b.email_domain,
+      status: b.email_domain_verified ? 'Verified' : 'Pending',
+    }));
+
+    // Quotas from Users
+    const usersWithEmail = await User.find({ email_sends_this_month: { $gt: 0 } }).select('email email_sends_this_month plan');
+    const quotas = usersWithEmail.map(u => ({
+      email: u.email,
+      sent: u.email_sends_this_month,
+      limit: u.plan === 'Pro' ? 2000 : (u.plan === 'Growth' ? 500 : 0)
+    }));
+
+    // Recent logs
+    const recentLogs = await ApiLog.find({ 
+      $or: [ { endpoint: { $regex: /sendgrid|campaign|whatsapp/i } } ]
+    }).populate('user', 'email').sort({ createdAt: -1 }).limit(10);
+
+    res.json({ 
+      success: true, 
+      stats: {
+        totalEmailsSent: emailLogs,
+        emailsSentThisMonth: emailsThisMonth,
+        whatsappCampaignsSent: whatsappLogs,
+        verifiedDomainsCount: emailDomainStatuses.filter(d => d.status === 'Verified').length
+      },
+      domainStatuses: emailDomainStatuses,
+      quotas,
+      recentLogs
+    });
+  } catch (error) {
+    console.error('Error fetching campaign stats:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// --- Admin Notifications -----------------------------------------------------
+import AdminNotification from '../models/AdminNotification.js';
+
+export const getNotifications = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const notifications = await AdminNotification.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const unreadCount = await AdminNotification.countDocuments({ isRead: false });
+    const total = await AdminNotification.countDocuments();
+
+    res.json({
+      success: true,
+      notifications,
+      unreadCount,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching admin notifications:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+export const markNotificationRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const notification = await AdminNotification.findByIdAndUpdate(
+      id,
+      { isRead: true },
+      { new: true }
+    );
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+    res.json({ success: true, notification });
+  } catch (error) {
+    console.error('Error marking notification read:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+export const markAllNotificationsRead = async (req, res) => {
+  try {
+    await AdminNotification.updateMany({ isRead: false }, { isRead: true });
+    res.json({ success: true, message: 'All notifications marked as read' });
+  } catch (error) {
+    console.error('Error marking all notifications read:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

@@ -6,6 +6,7 @@ import BrandProfile from '../models/BrandProfile.js';
 import Coupon from '../models/Coupon.js';
 import { sendInvoiceEmail, generatePDFBuffer, genInvoiceNo, fmtDate, resolvePack, sendPaymentFailedEmail } from '../utils/sendInvoiceEmail.js';
 import { sendMetaCapiEvent } from '../services/metaConversionsAPI.js';
+import AdminNotification from '../models/AdminNotification.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -180,6 +181,17 @@ export const verifyPayment = async (req, res) => {
             value: transaction.amount,
             currency: 'INR'
           });
+        }
+
+        try {
+          await AdminNotification.create({
+            type: 'payment',
+            title: 'Payment Received',
+            description: `Payment of ₹${transaction.amount} received from ${invoiceEmail} for ${transaction.type}`,
+            metadata: { userId: user._id, transactionId: transaction._id, amount: transaction.amount }
+          });
+        } catch (err) {
+          console.error('[Admin Notification] Failed to create payment notification:', err.message);
         }
 
         return res.status(200).json({
