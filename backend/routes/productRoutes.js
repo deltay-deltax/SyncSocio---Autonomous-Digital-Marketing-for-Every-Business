@@ -25,7 +25,7 @@ router.get('/', protect, async (req, res) => {
     const products = await Product.find(query).sort({ createdAt: -1 });
     res.json({ success: true, products });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
 
@@ -77,7 +77,7 @@ router.post('/', protect, async (req, res) => {
     });
     res.status(201).json({ success: true, product });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
 
@@ -108,7 +108,7 @@ router.put('/:id', protect, async (req, res) => {
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json({ success: true, product });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
 
@@ -126,7 +126,7 @@ router.delete('/', protect, async (req, res) => {
     await Product.deleteMany({ user: req.user._id });
     res.json({ success: true, message: 'All products deleted successfully' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
 
@@ -139,7 +139,7 @@ router.delete('/:id', protect, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
 

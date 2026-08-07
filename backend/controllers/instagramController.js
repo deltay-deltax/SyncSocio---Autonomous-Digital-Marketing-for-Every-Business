@@ -384,7 +384,7 @@ export const getAutomations = async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'An internal server error occurred.' });
   }
 };
 
@@ -412,6 +412,6 @@ export const updateAutomation = async (req, res) => {
     res.json({ success: true, data: profile.automations[type] });
   } catch (err) {
     console.error('[AUTOMATION] Update failed:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'An internal server error occurred.' });
   }
 };

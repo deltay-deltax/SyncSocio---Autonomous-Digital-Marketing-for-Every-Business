@@ -742,7 +742,7 @@ router.post('/sync-templates', protect, async (req, res) => {
     await syncDefaultTemplates(profile, profile.whatsappAccessToken, null);
     res.json({ success: true, message: 'Templates submitted successfully.' });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to sync templates.', error: err.message });
+    res.status(500).json({ message: 'Failed to sync templates.', error: 'An internal server error occurred.' });
   }
 });
 // ── POST /api/whatsapp/map-variables ─────────────────────────────────────────
@@ -810,7 +810,7 @@ Rules:
     res.json({ filledText, variables });
   } catch (err) {
     console.error('[WhatsApp MapVariables] Error:', err.message);
-    res.status(500).json({ message: 'Failed to map variables.', error: err.message });
+    res.status(500).json({ message: 'Failed to map variables.', error: 'An internal server error occurred.' });
   }
 });
 

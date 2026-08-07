@@ -16,6 +16,7 @@
 # Environment
 .env
 *.env
+*credentials*.json
 .env.local
 .env.development.local
 .env.test.local
@@ -36,6 +37,7 @@ desktop.ini
 *.log
 temp/
 uploads/
+.tmp-uploads/
 cloudinary_downloads/
 scratch/
 backend/scratch/

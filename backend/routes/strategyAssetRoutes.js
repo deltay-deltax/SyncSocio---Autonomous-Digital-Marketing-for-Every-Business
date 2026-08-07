@@ -103,7 +103,7 @@ router.post('/', protect, async (req, res) => {
     res.status(201).json({ success: true, creative });
   } catch (err) {
     console.error('[StrategyAssets] Save error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
 
@@ -128,7 +128,7 @@ router.get('/', protect, async (req, res) => {
     res.json({ success: true, creatives });
   } catch (err) {
     console.error('[StrategyAssets] List error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
 
@@ -157,7 +157,7 @@ router.delete('/:id', protect, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
 

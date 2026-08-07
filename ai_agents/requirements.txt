@@ -10,7 +10,7 @@ pytz
 python-multipart
 google-genai
 requests
-Pillow
+Pillow>=12.3.0
 moviepy
 numpy
 fal-client

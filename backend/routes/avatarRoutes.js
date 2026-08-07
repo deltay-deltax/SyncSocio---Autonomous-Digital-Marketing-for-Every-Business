@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
         const avatars = await Avatar.find({ isPublic: true }).sort({ createdAt: -1 });
         res.json(avatars);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 
@@ -56,7 +56,7 @@ router.post('/generate', async (req, res) => {
 
         res.status(201).json(newAvatar);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal server error occurred.' });
     }
 });
 

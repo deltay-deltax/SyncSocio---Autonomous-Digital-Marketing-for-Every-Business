@@ -1,4 +1,15 @@
 import express from 'express';
+import { validate } from '../middleware/validate.js';
+import { idParamSchema } from '../validators/common.js';
+import {
+  updateUserCreditsSchema,
+  updateUserPlanSchema,
+  updateUserDeepProfileSchema,
+  toggleBlockUserSchema,
+  sendManualEmailSchema,
+  deleteUserAccountSchema,
+  createCouponSchema,
+} from '../validators/adminSchemas.js';
 import {
   adminLogin,
   verifyAdmin,
@@ -55,16 +66,16 @@ router.use(verifyAdmin);
 
 // ─── Users ───────────────────────────────────────────────────────────────────
 router.get('/users', getAllUsers);
-router.put('/users/:id/credits', updateUserCredits);
-router.put('/users/:id/plan', updateUserPlan);
-router.put('/users/:id/block', toggleUserBlock);
-router.post('/users/:id/impersonate', impersonateUser);
-router.post('/users/:id/email', sendManualEmail);
-router.post('/users/:id/delete', deleteUserAccount);
+router.put('/users/:id/credits', validate({ params: idParamSchema, body: updateUserCreditsSchema }), updateUserCredits);
+router.put('/users/:id/plan', validate({ params: idParamSchema, body: updateUserPlanSchema }), updateUserPlan);
+router.put('/users/:id/block', validate({ params: idParamSchema, body: toggleBlockUserSchema }), toggleUserBlock);
+router.post('/users/:id/impersonate', validate({ params: idParamSchema }), impersonateUser);
+router.post('/users/:id/email', validate({ params: idParamSchema, body: sendManualEmailSchema }), sendManualEmail);
+router.post('/users/:id/delete', validate({ params: idParamSchema, body: deleteUserAccountSchema }), deleteUserAccount);
 
 // Deep User Details and Controls
-router.get('/users/:id/deep', getUserDeepDetails);
-router.put('/users/:id/profile', updateUserDeepProfile);
+router.get('/users/:id/deep', validate({ params: idParamSchema }), getUserDeepDetails);
+router.put('/users/:id/profile', validate({ params: idParamSchema, body: updateUserDeepProfileSchema }), updateUserDeepProfile);
 router.put('/users/:id/brand', updateUserBrandProfile);
 router.put('/users/:id/flows/:flowId', updateUserFlow);
 router.delete('/users/:id/flows/:flowId', deleteUserFlow);
@@ -73,8 +84,8 @@ router.delete('/users/:id/assets/:assetId', deleteUserAsset);
 
 // ─── Coupons ─────────────────────────────────────────────────────────────────
 router.get('/coupons', getAllCoupons);
-router.post('/coupons', createCoupon);
-router.delete('/coupons/:id', deleteCoupon);
+router.post('/coupons', validate({ body: createCouponSchema }), createCoupon);
+router.delete('/coupons/:id', validate({ params: idParamSchema }), deleteCoupon);
 router.patch('/coupons/:id/toggle', toggleCouponStatus);
 
 // ─── Brands ──────────────────────────────────────────────────────────────────
