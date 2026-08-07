@@ -1,5 +1,5 @@
 import express from 'express';
-import { signup, login, googleLogin, appleLogin, verifyOtp, resendOtp, forgotPassword, resetPassword, setPassword } from '../controllers/authController.js';
+import { signup, login, googleLogin, appleLogin, verifyOtp, resendOtp, forgotPassword, resetPassword, setPassword, startFreeTrial } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -13,6 +13,7 @@ router.post('/apple', appleLogin);
 router.post('/set-password', protect, setPassword);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:resetToken', resetPassword);
+router.post('/start-trial', protect, startFreeTrial);
 
 router.post('/logout', protect, (req, res) => {
     import('../utils/notificationHelper.js').then(m => {

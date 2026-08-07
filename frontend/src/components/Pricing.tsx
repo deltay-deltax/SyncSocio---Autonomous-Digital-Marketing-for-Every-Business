@@ -168,9 +168,10 @@ const topups = [
 
 interface PricingProps {
   onWaitlistClick: (planName?: string) => void;
+  onFreeTrialClick?: () => void;
 }
 
-const Pricing = ({ onWaitlistClick }: PricingProps) => {
+const Pricing = ({ onWaitlistClick, onFreeTrialClick }: PricingProps) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const navigate = useNavigate();
@@ -403,9 +404,22 @@ const Pricing = ({ onWaitlistClick }: PricingProps) => {
             );
           })}
         </div>
+        {/* Free Trial Option */}
+        {onFreeTrialClick && (
+          <div className="flex justify-center mt-12 mb-4">
+            <Button
+              variant="outline"
+              onClick={onFreeTrialClick}
+              className="rounded-xl border-2 border-primary/30 hover:border-primary hover:bg-primary/5 px-8 h-12 text-sm font-bold text-foreground transition-all flex items-center gap-2"
+            >
+              <Gift size={16} className="text-primary" />
+              Continue with Free Trial (3 Free Creatives)
+            </Button>
+          </div>
+        )}
 
         {/* Credits Explained Link */}
-        <div className="flex flex-col items-center justify-center mt-10 mb-2">
+        <div className="flex flex-col items-center justify-center mt-6 mb-2">
           <Link
             to="/credits"
             className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 hover:underline cursor-pointer group"

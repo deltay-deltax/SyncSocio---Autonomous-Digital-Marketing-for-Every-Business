@@ -1269,6 +1269,27 @@ const DashboardLayoutContent = () => {
         {/* PAGE CONTENT */}
         <section className="flex-1 overflow-y-auto px-4 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
           <div className="max-w-6xl mx-auto">
+            
+            {profile?.plan === 'Free Trial' && (
+              <div className="mb-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <Gift size={20} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Free Trial Active</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">You have {credits || 0} credits remaining. Upgrade to unlock all features.</p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => navigate('/dashboard/settings')} 
+                  className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shrink-0"
+                >
+                  Upgrade Plan
+                </Button>
+              </div>
+            )}
+
             <AnimatePresence>
               {showRelinkSuccess && (
                 <motion.div

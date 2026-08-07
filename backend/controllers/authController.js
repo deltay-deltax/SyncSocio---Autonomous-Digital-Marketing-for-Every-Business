@@ -12,6 +12,19 @@ import { createNotification } from '../utils/notificationHelper.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+const DISPOSABLE_EMAIL_DOMAINS = [
+  'mailinator.com', 'yopmail.com', 'temp-mail.org', 'guerrillamail.com', '10minutemail.com',
+  'sharklasers.com', 'grr.la', 'dispostable.com', 'throwawaymail.com', 'tempmail.com',
+  'temp-mail.com', 'fakeinbox.com', 'maildrop.cc', 'getairmail.com', 'tempmailaddress.com',
+  'nada.ltd', 'inboxkitten.com', 'tempmail.ninja', 'mailnesia.com', 'tempinbox.com'
+];
+
+const isDisposableEmail = (email) => {
+  if (!email) return false;
+  const domain = email.split('@')[1]?.toLowerCase();
+  return DISPOSABLE_EMAIL_DOMAINS.includes(domain);
+};
+
 const inferAuthProvider = (user) => {
   if (user?.googleId) return 'google';
   if (user?.appleId) return 'apple';
@@ -78,6 +91,10 @@ export const signup = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    if (isDisposableEmail(normalizedEmail)) {
+      return res.status(400).json({ message: 'Temporary or disposable email addresses are not allowed.' });
+    }
+
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     const isMetaReviewer = normalizedEmail === 'supportvelocitydm@gmail.com';
@@ -237,6 +254,10 @@ export const googleLogin = async (req, res) => {
       googleId = payload.sub;
     }
 
+    if (isDisposableEmail(email)) {
+      return res.status(400).json({ message: 'Temporary or disposable email addresses are not allowed.' });
+    }
+
     let user = await User.findOne({ email });
     if (user && user.isBlocked) {
       return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });
@@ -313,6 +334,63 @@ export const googleLogin = async (req, res) => {
   }
 };
 
+export const startFreeTrial = async (req, res) => {
+  const { deviceFingerprint } = req.body;
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.freeTrialUsed || user.plan === 'Free Trial') {
+      return res.status(400).json({ message: 'Free trial has already been used on this account.' });
+    }
+
+    if (!deviceFingerprint) {
+      return res.status(400).json({ message: 'Device verification failed.' });
+    }
+
+    // Check if another user already used this fingerprint
+    const existingFingerprint = await User.findOne({ deviceFingerprint });
+    if (existingFingerprint && existingFingerprint._id.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: 'Free trial has already been claimed on this device.' });
+    }
+
+    // Grant 15 credits and set plan
+    user.credits = (user.credits || 0) + 15;
+    user.plan = 'Free Trial';
+    user.freeTrialUsed = true;
+    user.deviceFingerprint = deviceFingerprint;
+    
+    // Ensure they have a brand profile so the dashboard doesn't break
+    let brand = await BrandProfile.findOne({ user: user._id });
+    if (!brand) {
+      brand = await BrandProfile.create({
+        user: user._id,
+        brandName: 'My Brand',
+        nexa: { nexa_enabled: false } // Force Nexa disabled on free trial
+      });
+      user.activeBrandId = brand._id;
+    } else {
+      // Disable Nexa for existing brand if they are just claiming trial now
+      brand.nexa = { ...brand.nexa, nexa_enabled: false };
+      await brand.save();
+    }
+
+    await user.save();
+
+    await createNotification(
+      user._id,
+      'success',
+      'Free Trial Started',
+      `You've received 15 free credits to generate AI creatives!`
+    );
+
+    res.status(200).json({ success: true, message: 'Free trial activated!', user });
+  } catch (error) {
+    console.error('Start Free Trial Error:', error);
+    res.status(500).json({ message: 'Failed to start free trial' });
+  }
+};
+
 export const appleLogin = async (req, res) => {
   const { idToken, name: providedName, plan, isSignup } = req.body;
   try {
@@ -331,6 +409,10 @@ export const appleLogin = async (req, res) => {
       appleId = payload.sub;
     }
     
+    if (isDisposableEmail(email)) {
+      return res.status(400).json({ message: 'Temporary or disposable email addresses are not allowed.' });
+    }
+
     let user = await User.findOne({ email });
     if (user && user.isBlocked) {
       return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });

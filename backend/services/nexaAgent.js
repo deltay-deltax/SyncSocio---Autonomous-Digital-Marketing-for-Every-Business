@@ -111,6 +111,7 @@ ${collectedStr}
 - If the customer asks something outside your knowledge: set escalate_to_human=true and new_stage="ESCALATED".
 - NEVER set payment_link_requested=true unless price_agreed is already finalized and > 0. If they ask to pay before agreeing on an order, politely ask them what they want to order first.
 - AD DISPUTE RULE: If a customer mentions seeing a different price in an advertisement, politely inform them that the ad might be outdated or for a different variant, and strictly enforce the current catalog price. DO NOT escalate just because they mention an ad.
+- PRODUCT IMAGES: If you are confirming a product order, or if the user asks to see a product, and the product in the catalog has an \`imageBase64\` URL, set \`product_image_url_to_send\` to that URL. Otherwise set it to null.
 
 ════ ═══════ OUTPUT FORMAT ═══════════
 Respond ONLY with valid JSON (no markdown, no backticks):
@@ -121,7 +122,8 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "payment_link_requested": false,
   "escalate_to_human": false,
   "send_upi_qr": false,
-  "payment_verified_from_screenshot": false
+  "payment_verified_from_screenshot": false,
+  "product_image_url_to_send": null
 }`;
 };
 
@@ -196,6 +198,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
       updated_collected_fields: {},
       payment_link_requested: false,
       escalate_to_human: false,
+      product_image_url_to_send: null,
     };
   }
 
@@ -317,6 +320,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
     paymentLinkRequested: !!parsed.payment_link_requested,
     escalate: !!parsed.escalate_to_human,
     sendUpiQr: !!parsed.send_upi_qr,
+    productImageUrlToSend: parsed.product_image_url_to_send || null,
     mergedCollected,
   };
 };
@@ -334,7 +338,7 @@ export const upsertNexaConversationFromComment = async ({
   // Fetch live product catalog for the brand
   let productCatalog = [];
   try {
-    productCatalog = await Product.find({ user: brandDoc.user }).select('name price offerPrice keyBenefit description').lean();
+    productCatalog = await Product.find({ user: brandDoc.user }).select('name price offerPrice keyBenefit description imageBase64').lean();
   } catch (e) {
     console.error('[Nexa] Failed to fetch products for catalog snapshot:', e.message);
   }
@@ -404,7 +408,7 @@ export const upsertNexaConversationFromDM = async ({
   // Fetch live product catalog for the brand
   let productCatalog = [];
   try {
-    productCatalog = await Product.find({ user: brandDoc.user }).select('name price offerPrice keyBenefit description').lean();
+    productCatalog = await Product.find({ user: brandDoc.user }).select('name price offerPrice keyBenefit description imageBase64').lean();
   } catch (e) {
     console.error('[Nexa] Failed to fetch products for catalog snapshot:', e.message);
   }

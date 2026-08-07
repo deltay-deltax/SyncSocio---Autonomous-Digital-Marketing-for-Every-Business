@@ -1162,6 +1162,26 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
         }
       }
 
+      // If Nexa requested to send a product image, send it before the text
+      if (result.productImageUrlToSend) {
+        try {
+          await sleep(500);
+          await sendStandardMessage({
+            pageToken,
+            igScopedId: event.senderId,
+            messagePayload: {
+              attachment: {
+                type: 'image',
+                payload: { url: result.productImageUrlToSend }
+              }
+            },
+            pageId: profile.instagramPageId,
+          });
+        } catch (imgErr) {
+          console.error('[Nexa] Failed to send product image attachment:', imgErr.message);
+        }
+      }
+
       // Send the Nexa reply text
       await sleep(1500);
       await sendStandardMessage({
@@ -1275,6 +1295,26 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
           console.error('[Nexa] Failed to generate Razorpay link:', payErr?.error?.description || payErr?.error?.message || payErr.message || payErr);
           replyText = replyText + '\n\n(Payment link generation failed — please contact us directly)';
           messagePayload = { text: replyText.slice(0, 1000) };
+        }
+      }
+
+      // If Nexa requested to send a product image, send it before the text
+      if (result.productImageUrlToSend) {
+        try {
+          await sleep(500);
+          await sendStandardMessage({
+            pageToken,
+            igScopedId: event.senderId,
+            messagePayload: {
+              attachment: {
+                type: 'image',
+                payload: { url: result.productImageUrlToSend }
+              }
+            },
+            pageId: profile.instagramPageId,
+          });
+        } catch (imgErr) {
+          console.error('[Nexa] Failed to send product image attachment:', imgErr.message);
         }
       }
 

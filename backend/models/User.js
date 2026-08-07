@@ -78,6 +78,14 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date
   },
+  deviceFingerprint: {
+    type: String,
+    required: false
+  },
+  freeTrialUsed: {
+    type: Boolean,
+    default: false
+  },
   // ── Email Campaign Quota ──────────────────────────────────────────────────
   email_sends_this_month: {
     type: Number,
