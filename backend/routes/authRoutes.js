@@ -1,5 +1,5 @@
 import express from 'express';
-import { signup, login, googleLogin, appleLogin, verifyOtp, resendOtp, forgotPassword, resetPassword, setPassword } from '../controllers/authController.js';
+import { signup, login, googleLogin, appleLogin, verifyOtp, resendOtp, forgotPassword, resetPassword, setPassword, startFreeTrial } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { authRateLimiter, authAccountRateLimiter } from '../middleware/rateLimitMiddleware.js';
 import { validate } from '../middleware/validate.js';
@@ -17,6 +17,7 @@ router.post('/apple', authRateLimiter, validate({ body: appleLoginSchema }), app
 router.post('/set-password', protect, validate({ body: setPasswordSchema }), setPassword);
 router.post('/forgotpassword', authRateLimiter, authAccountRateLimiter, validate({ body: forgotPasswordSchema }), forgotPassword);
 router.put('/resetpassword/:resetToken', authRateLimiter, validate({ params: resetPasswordParamsSchema, body: resetPasswordBodySchema }), resetPassword);
+router.post('/start-trial', protect, startFreeTrial);
 
 router.post('/logout', protect, (req, res) => {
     import('../utils/notificationHelper.js').then(m => {

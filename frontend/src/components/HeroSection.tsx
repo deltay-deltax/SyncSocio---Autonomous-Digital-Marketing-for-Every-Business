@@ -60,17 +60,15 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full"
             >
-              <Button
-                size="lg"
-                className="gradient-bg text-primary-foreground border-0 text-sm md:text-base px-6 py-5 md:px-8 md:py-6 hover-lift w-fit"
-                onClick={() => {
-                  trackMetaEvent('Lead', { content_name: 'Hero Free Creatives Click' });
-                  onWaitlistClick();
-                }}
-              >
-                Claim 3 Free Creatives
-                <ArrowRight size={18} className="ml-2" />
-              </Button>
+              <Link to="/signup" onClick={() => trackMetaEvent('Lead', { content_name: 'Hero Free Creatives Click' })}>
+                <Button
+                  size="lg"
+                  className="gradient-bg text-primary-foreground border-0 text-sm md:text-base px-6 py-5 md:px-8 md:py-6 hover-lift w-fit"
+                >
+                  Claim 3 Free Creatives
+                  <ArrowRight size={18} className="ml-2" />
+                </Button>
+              </Link>
               <Link to="/signup" className="sm:hidden flex justify-center">
                 <Button variant="outline" size="lg" className="text-sm px-6 py-5 hover-lift bg-background/50 backdrop-blur-sm">
                   Sign up

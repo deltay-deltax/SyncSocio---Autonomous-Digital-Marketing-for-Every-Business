@@ -18,7 +18,7 @@ const LANDING_FAQS = [
   },
   {
     q: "How does the Nexa AI Sales Agent work?",
-    a: "Nexa acts as your 24/7 sales representative in Instagram DMs. It answers questions using your Brand DNA, qualifies leads, negotiates prices within your approved limits, and automatically sends payment links to close sales while you sleep.",
+    a: "Nexa acts as your 24/7 sales representative in Instagram DMs and WhatsApp. It answers questions using your Brand DNA, qualifies leads, negotiates prices within your approved limits, and automatically sends payment links to close sales while you sleep.",
   },
   {
     q: "Do you offer a free trial?",

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Sparkles, Check, ArrowRight, X } from "lucide-react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
@@ -9,6 +10,7 @@ type Intent = "creatives" | "demo";
 
 export default function FreeCreativesSection() {
   const [intent, setIntent] = useState<Intent | null>(null);
+  const navigate = useNavigate();
 
   return (
     <section id="free-creatives" className="relative py-16 md:py-24 overflow-hidden border-t border-border/40">
@@ -39,7 +41,7 @@ export default function FreeCreativesSection() {
             <button
               onClick={() => {
                 trackMetaEvent('Lead', { content_name: 'Free Creatives Click' });
-                setIntent("creatives");
+                navigate("/signup");
               }}
               className="group inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/25"
             >

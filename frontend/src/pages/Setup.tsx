@@ -13,6 +13,7 @@ import { Checkout } from '@/components/Checkout';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 import Pricing from '@/components/Pricing';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import fpPromise from '@fingerprintjs/fingerprintjs';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type Screen = 'checklist' | 'instagram' | 'plan' | 'checkout' | 'activation';
@@ -231,6 +232,40 @@ const Setup = () => {
     } catch (err: any) {
       console.error('❌ Setup: Connection Error:', err);
       setError(getFriendlyErrorMessage(err));
+    }
+  };
+
+  const handleStartFreeTrial = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('User not authenticated');
+
+      const fp = await fpPromise.load();
+      const result = await fp.get();
+      const visitorId = result.visitorId;
+
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const res = await fetch(`${API_BASE}/auth/start-trial`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ deviceFingerprint: visitorId })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to start free trial');
+      }
+
+      toast({ title: 'Free Trial Activated!', description: 'You have received 15 free credits.' });
+      localStorage.setItem('syncsocio_setup_done', 'true');
+      navigate('/dashboard/feed');
+    } catch (err: any) {
+      console.error('Failed to start free trial:', err);
+      setError(getFriendlyErrorMessage(err));
+      toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     }
   };
 
@@ -544,7 +579,10 @@ const Setup = () => {
     return (
       <Wrapper maxW="max-w-7xl" screenKey={screen}>
         <div className="-mt-16">
-          <Pricing onWaitlistClick={(planName) => proceedToCheckout(planName || 'Starter')} />
+          <Pricing 
+            onWaitlistClick={(planName) => proceedToCheckout(planName || 'Starter')} 
+            onFreeTrialClick={handleStartFreeTrial}
+          />
         </div>
       </Wrapper>
     );

@@ -1,0 +1,11 @@
+2026-08-07T17:49:10.158Z\nTypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at file:///D:/Major_Project/backend/middleware/validate.js:17:21
+    at Layer.handleRequest (D:\Major_Project\backend\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Major_Project\backend\node_modules\router\lib\route.js:157:13)
+    at protect (file:///D:/Major_Project/backend/middleware/authMiddleware.js:39:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\n2026-08-07T17:49:40.563Z\nTypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at file:///D:/Major_Project/backend/middleware/validate.js:17:21
+    at Layer.handleRequest (D:\Major_Project\backend\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Major_Project\backend\node_modules\router\lib\route.js:157:13)
+    at protect (file:///D:/Major_Project/backend/middleware/authMiddleware.js:39:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\n

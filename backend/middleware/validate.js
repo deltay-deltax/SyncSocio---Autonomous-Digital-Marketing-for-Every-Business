@@ -14,7 +14,9 @@ export const validate = (schemas) => (req, res, next) => {
           message: issue.message,
         })));
       } else {
-        req[source] = result.data; // Replace with parsed/coerced values
+        // req[source] might have only a getter (like req.query in some Express versions/middlewares), 
+        // so we merge the parsed values instead of replacing the entire object
+        Object.assign(req[source], result.data);
       }
     }
   }

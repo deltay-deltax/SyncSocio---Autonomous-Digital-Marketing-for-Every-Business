@@ -8,6 +8,7 @@
  */
 
 import express from 'express';
+import axios from 'axios';
 import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
 import NexaConversation from '../models/NexaConversation.js';
@@ -16,6 +17,8 @@ import { uploadBase64ToCloudinary, deleteFromCloudinary } from '../utils/cloudin
 import { validate } from '../middleware/validate.js';
 import { idParamSchema } from '../validators/common.js';
 import { updateNexaSettingsSchema, listNexaConversationsSchema } from '../validators/nexaSchemas.js';
+import { sendStandardMessage } from '../controllers/instagramWebhookController.js';
+import { extractKnowledgeFromReply } from '../services/nexaKnowledgeService.js';
 
 const router = express.Router();
 
@@ -66,6 +69,7 @@ router.post('/settings', protect, validate({ body: updateNexaSettingsSchema }), 
       min_discount,
       max_discount,
       upi_qr_code_url,
+      business_context,
     } = req.body;
 
     const brand = await getActiveBrand(req);
@@ -81,6 +85,7 @@ router.post('/settings', protect, validate({ body: updateNexaSettingsSchema }), 
     if (bank_details !== undefined) nexaUpdate['nexa.bank_details'] = bank_details || '';
     if (min_discount !== undefined) nexaUpdate['nexa.min_discount'] = Number(min_discount) || 0;
     if (max_discount !== undefined) nexaUpdate['nexa.max_discount'] = Number(max_discount) || 10;
+    if (business_context !== undefined) nexaUpdate['nexa.business_context'] = business_context || '';
 
     // Only encrypt & update Razorpay keys if new values are provided (not masked placeholders)
     if (razorpay_key_id && !razorpay_key_id.startsWith('•')) {
@@ -167,6 +172,88 @@ router.get('/conversations/:id', protect, validate({ params: idParamSchema }), a
   } catch (err) {
     console.error('[NexaRoutes] GET conversation error:', err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ─── POST /api/nexa/conversations/:id/reply ─────────────────────────────────
+router.post('/conversations/:id/reply', protect, async (req, res) => {
+  try {
+    const brands = await BrandProfile.find({ user: req.user._id }).select('_id instagramPageAccessToken instagramAccessToken instagramPageId whatsappAccessToken whatsappPhoneId nexa').lean();
+    const brandIds = brands.map(b => b._id.toString());
+    
+    const convo = await NexaConversation.findById(req.params.id);
+    if (!convo) return res.status(404).json({ message: 'Conversation not found' });
+    
+    const brandStrId = convo.brand_id.toString();
+    if (!brandIds.includes(brandStrId)) {
+      return res.status(403).json({ message: 'Unauthorized access to this conversation' });
+    }
+
+    const brandDoc = brands.find(b => b._id.toString() === brandStrId);
+    const { replyText, learn } = req.body;
+
+    if (!replyText) return res.status(400).json({ message: 'Reply text is required' });
+
+    if (convo.platform === 'whatsapp') {
+      const waToken = brandDoc.whatsappAccessToken;
+      const waPhoneId = brandDoc.whatsappPhoneId;
+      if (!waToken || !waPhoneId) {
+        return res.status(400).json({ message: 'WhatsApp not connected properly' });
+      }
+
+      await axios.post(
+        `https://graph.facebook.com/v25.0/${waPhoneId}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: convo.ig_user_id, // For WhatsApp, this holds the phone number
+          type: 'text',
+          text: { body: replyText }
+        },
+        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${waToken}` } }
+      );
+    } else {
+      const pageToken = brandDoc.instagramPageAccessToken || brandDoc.instagramAccessToken;
+      if (!pageToken) return res.status(400).json({ message: 'Instagram not connected properly' });
+
+      // Send the manual reply to Instagram
+      await sendStandardMessage({
+        pageToken,
+        igScopedId: convo.ig_user_id,
+        messagePayload: { text: replyText },
+        pageId: brandDoc.instagramPageId,
+      });
+    }
+
+    // Save human reply to history
+    convo.conversation_history.push({
+      role: 'nexa', // Still recorded as the brand's persona
+      text: replyText,
+      timestamp: new Date()
+    });
+    
+    // Reset escalation
+    convo.escalate_to_human = false;
+    // Put back into active state (e.g., GREETING or QUALIFYING so AI takes over the next msg)
+    convo.stage = 'GREETING';
+    await convo.save();
+
+    // Auto-Learn Knowledge Base
+    if (learn) {
+      const extractedKnowledge = await extractKnowledgeFromReply(convo.conversation_history, replyText);
+      if (extractedKnowledge) {
+        await BrandProfile.updateOne(
+          { _id: brandDoc._id },
+          { $push: { 'nexa.knowledge_base': { ...extractedKnowledge, autoLearned: true, addedAt: new Date() } } }
+        );
+        console.log(`[NexaKnowledge] Auto-learned Q&A for brand ${brandDoc._id}:`, extractedKnowledge.question);
+      }
+    }
+
+    res.json({ success: true, message: 'Reply sent', convo });
+  } catch (err) {
+    console.error('[NexaRoutes] POST conversation reply error:', err);
+    res.status(500).json({ message: 'Server error sending reply' });
   }
 });
 

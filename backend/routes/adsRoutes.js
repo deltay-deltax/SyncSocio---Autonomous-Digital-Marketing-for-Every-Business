@@ -136,7 +136,28 @@ router.get('/recommendations', protect, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Ads Recommendations Error:', error.response?.data || error.message);
+        const fbError = error.response?.data?.error;
+        console.error('Ads Recommendations Error:', fbError || error.message);
+
+        if (fbError) {
+            if (
+                fbError.code === 190 || 
+                fbError.code === 100 || 
+                fbError.code === 10 ||  
+                fbError.message?.toLowerCase().includes('permission') ||
+                fbError.message?.toLowerCase().includes('does not exist') ||
+                fbError.type === 'GraphMethodException'
+            ) {
+                return res.status(401).json({
+                    message: 'Instagram connection expired or invalid. Please reconnect.',
+                    requiresReconnect: true,
+                    reason: 'token_expired',
+                    fbError
+                });
+            }
+            return res.status(400).json({ message: 'Instagram API error', details: fbError.message });
+        }
+
         await logActivity(req.user.id, 'Ads Agent', `ROI analysis failed: ${error.message}`, 'error');
         res.status(500).json({ message: 'Error generating ad recommendations' });
     }

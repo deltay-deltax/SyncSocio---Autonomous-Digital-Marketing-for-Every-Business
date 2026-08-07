@@ -444,9 +444,7 @@ const Onboarding = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full border border-dashed border-primary/[0.04] pointer-events-none" />
 
           <div className="flex items-center space-x-2.5 p-10 pb-0 relative z-10">
-            <div className="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-              <Zap size={18} fill="currentColor" />
-            </div>
+            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-9 h-9 object-contain shrink-0" />
             <h1 className="text-lg font-black tracking-tight text-foreground uppercase">SyncSocio</h1>
           </div>
 

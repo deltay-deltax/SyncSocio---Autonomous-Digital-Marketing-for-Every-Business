@@ -1,35 +1,41 @@
-require('dotenv').config();
-const axios = require('axios');
-const mongoose = require('mongoose');
-const FB_API_BASE = 'https://graph.facebook.com/v25.0';
+import dotenv from 'dotenv';
+dotenv.config();
 
-async function run() {
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/syncsocio');
-  const BrandProfile = require('./models/BrandProfile.js').default;
-  const profile = await BrandProfile.findOne({ instagramIsConnected: true }).lean();
+import mongoose from 'mongoose';
+import BrandProfile from './models/BrandProfile.js';
+import NexaConversation from './models/NexaConversation.js';
+
+async function test() {
+  await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/syncsocio');
   
-  if(!profile) { console.log('no profile'); return; }
-
-  const pageToken = profile.instagramPageAccessToken;
-  const pageId = profile.instagramPageId;
-
-  console.log('Fetching conversations for page', pageId);
   try {
-    const res = await axios.get(`${FB_API_BASE}/${pageId}/conversations`, {
-      params: { platform: 'instagram', access_token: pageToken }
-    });
-    console.log(JSON.stringify(res.data, null, 2));
+    const brands = await BrandProfile.find({}).select('_id').lean();
+    console.log('Brands found:', brands.length);
+
+    const brandIds = brands.map(b => b._id);
+    const page  = 1;
+    const limit = 50;
     
-    if(res.data.data && res.data.data.length > 0) {
-       const convId = res.data.data[0].id;
-       const msgRes = await axios.get(`${FB_API_BASE}/${convId}/messages`, {
-         params: { fields: 'id,message,from,created_time', access_token: pageToken }
-       });
-       console.log('Messages:', JSON.stringify(msgRes.data, null, 2));
-    }
-  } catch(e) {
-    console.error(e.response?.data || e.message);
+    const query = { brand_id: { $in: brandIds } };
+
+    const [conversations, total] = await Promise.all([
+      NexaConversation.find(query)
+        .select('ig_user_id platform stage origin collected payment escalate_to_human nudge_sent conversation_history createdAt updatedAt')
+        .sort({ updatedAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      NexaConversation.countDocuments(query),
+    ]);
+
+    console.log('Total Conversations:', total);
+    console.log('Conversations Fetched:', conversations.length);
+
+  } catch (err) {
+    console.error('Error fetching conversations:', err);
+  } finally {
+    await mongoose.disconnect();
   }
-  process.exit(0);
 }
-run();
+
+test();
