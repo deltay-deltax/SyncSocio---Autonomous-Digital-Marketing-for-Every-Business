@@ -5,7 +5,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { TrendingUp, Users, IndianRupee, Crown } from 'lucide-react';
+import { TrendingUp, Users, IndianRupee, Crown, Zap, MessageSquare, ImageIcon, Mail } from 'lucide-react';
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -40,6 +40,15 @@ interface AnalyticsData {
   signupsByMonth: MonthlySignups[];
   planDistribution: PlanDistribution[];
   topSpenders: TopSpender[];
+  channelConnections?: {
+    whatsapp: number;
+    instagram: number;
+    email: number;
+  };
+  creditConsumption?: {
+    thisMonth: number;
+    lastMonth: number;
+  };
 }
 
 // Custom tooltip for recharts
@@ -144,8 +153,8 @@ export default function Analytics() {
         {[
           { label: '6-Month Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'emerald', sub: 'Completed transactions', path: '/transactions', state: { statusFilter: 'completed' } },
           { label: 'New Signups', value: totalSignups, icon: Users, color: 'blue', sub: 'Last 6 months', path: '/users', state: {} },
-          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'violet', sub: '₹999/month', path: '/users', state: { planFilter: 'starter' } },
-          { label: 'Elite Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Elite'))?.value ?? 0, icon: Crown, color: 'amber', sub: '₹3199/month', path: '/users', state: { planFilter: 'elite' } },
+          { label: 'Starter Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Starter'))?.value ?? 0, icon: TrendingUp, color: 'emerald', sub: '₹399/month', path: '/users', state: { planFilter: 'starter' } },
+          { label: 'Pro Plan Users', value: data?.planDistribution?.find(p => p.name.includes('Pro'))?.value ?? 0, icon: Crown, color: 'violet', sub: '₹1299/month', path: '/users', state: { planFilter: 'pro' } },
         ].map((kpi) => (
           <div 
             key={kpi.label} 
@@ -153,15 +162,70 @@ export default function Analytics() {
             className={`glass-card border border-transparent rounded-2xl p-5 hover:border-${kpi.color}-500/30 transition-all cursor-pointer hover:bg-muted/10`}
           >
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
-              <div className={`p-2 bg-${kpi.color}-500/10 rounded-lg`}>
-                <kpi.icon className={`text-${kpi.color}-500`} size={16} />
-              </div>
+               <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
+               <div className={`p-2 bg-${kpi.color}-500/10 rounded-lg`}>
+                 <kpi.icon className={`text-${kpi.color}-500`} size={16} />
+               </div>
             </div>
             <p className="text-3xl font-extrabold text-foreground">{kpi.value}</p>
             <p className="text-xs text-muted-foreground mt-1">{kpi.sub}</p>
           </div>
         ))}
+      </div>
+      
+      {/* Platform Activity KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-foreground">Channel Connections</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Total brands connected to various channels</p>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-green-500/5 border border-green-500/10">
+              <MessageSquare className="text-green-500 mb-2" size={24} />
+              <p className="text-2xl font-bold text-foreground">{data?.channelConnections?.whatsapp || 0}</p>
+              <p className="text-xs font-medium text-muted-foreground">WhatsApp</p>
+            </div>
+            <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-pink-500/5 border border-pink-500/10">
+              <ImageIcon className="text-pink-500 mb-2" size={24} />
+              <p className="text-2xl font-bold text-foreground">{data?.channelConnections?.instagram || 0}</p>
+              <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+            </div>
+            <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+              <Mail className="text-blue-500 mb-2" size={24} />
+              <p className="text-2xl font-bold text-foreground">{data?.channelConnections?.email || 0}</p>
+              <p className="text-xs font-medium text-muted-foreground">Email</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-foreground">AI Credit Consumption</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Credits used for AI agents & generation (30d vs previous 30d)</p>
+          </div>
+          <div className="flex items-center gap-8 h-[112px]">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-muted-foreground mb-1">Last 30 Days</p>
+              <div className="flex items-end gap-3">
+                <p className="text-4xl font-extrabold text-foreground">{data?.creditConsumption?.thisMonth?.toLocaleString() || 0}</p>
+                <div className={`flex items-center gap-1 pb-1 text-sm font-semibold ${
+                  (data?.creditConsumption?.thisMonth || 0) >= (data?.creditConsumption?.lastMonth || 0)
+                    ? 'text-emerald-500' : 'text-rose-500'
+                }`}>
+                  {((data?.creditConsumption?.thisMonth || 0) >= (data?.creditConsumption?.lastMonth || 0)) ? <TrendingUp size={16} /> : <TrendingUp size={16} className="rotate-180" />}
+                  {data?.creditConsumption?.lastMonth ? (
+                    Math.abs(((data.creditConsumption.thisMonth - data.creditConsumption.lastMonth) / data.creditConsumption.lastMonth) * 100).toFixed(1) + '%'
+                  ) : '100%'}
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 pl-8 border-l border-border/50">
+              <p className="text-sm font-medium text-muted-foreground mb-1">Previous 30 Days</p>
+              <p className="text-3xl font-bold text-muted-foreground/70">{data?.creditConsumption?.lastMonth?.toLocaleString() || 0}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Revenue Area Chart */}
@@ -282,9 +346,13 @@ export default function Analytics() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`capitalize px-2 py-0.5 text-xs rounded-full font-medium ${
-                      spender.user?.plan?.toLowerCase().includes('elite') 
+                      spender.user?.plan?.toLowerCase().includes('pro') 
                         ? 'bg-violet-500/10 text-violet-400' 
-                        : 'bg-blue-500/10 text-blue-400'
+                        : spender.user?.plan?.toLowerCase().includes('growth')
+                        ? 'bg-blue-500/10 text-blue-400'
+                        : spender.user?.plan?.toLowerCase().includes('starter')
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'bg-slate-500/10 text-slate-400'
                     }`}>
                       {spender.user?.plan || 'No Plan'}
                     </span>

@@ -5,7 +5,8 @@ import {
   Users, UserCheck, Coins, IndianRupee, Tag, Ticket, ArrowUpRight,
   AlertTriangle, RefreshCw, X, Globe, Calendar, Search, ChevronLeft, ChevronRight,
   Zap, TrendingUp, CreditCard, ImageIcon, Clock, CheckCircle2,
-  Activity, BarChart2, ChevronDown, ShoppingCart, PieChart, Database, Info
+  Activity, BarChart2, ChevronDown, ShoppingCart, PieChart, Database, Info,
+  Bot, Package, MessageSquare
 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
@@ -49,6 +50,15 @@ interface Metrics {
   visitorUniqueSessions?: number;
   visitorUniqueSessionsYesterday?: number;
   visitorsByDate?: Array<{ _id: string; count: number }>;
+  whatsappConnectedBrands?: number;
+  instagramConnectedBrands?: number;
+  nexaActiveConversations?: number;
+  nexaClosedDeals?: number;
+  nexaRevenue?: number;
+  totalDMFlows?: number;
+  activeDMFlows?: number;
+  totalProducts?: number;
+  pendingTemplates?: number;
 }
 
 const Sparkline = ({ value, color }: { value: number; color: string }) => {
@@ -170,9 +180,9 @@ const fmt = (d: string) => {
 
 const PlanBadge = ({ plan }: { plan: string }) => {
   const lower = (plan || '').toLowerCase();
-  const cls = lower.includes('elite')
+  const cls = lower.includes('pro')
     ? 'bg-violet-500/10 text-violet-400 border-violet-500/20'
-    : lower.includes('pro') || lower.includes('growth')
+    : lower.includes('growth')
     ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
     : lower.includes('starter')
     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -392,6 +402,66 @@ export default function Dashboard() {
       borderHover: 'hover:border-cyan-500/30',
       onClick: () => setTrafficModal(true),
     },
+    {
+      label: 'WhatsApp Connected',
+      value: metrics?.whatsappConnectedBrands ?? 0,
+      sub: 'brands with WhatsApp',
+      icon: MessageSquare,
+      color: '#25d366',
+      sparkValue: metrics?.whatsappConnectedBrands ?? 0,
+      borderHover: 'hover:border-green-500/30',
+      onClick: () => navigate('/brands'),
+    },
+    {
+      label: 'Instagram Connected',
+      value: metrics?.instagramConnectedBrands ?? 0,
+      sub: 'brands with Instagram',
+      icon: ImageIcon,
+      color: '#e1306c',
+      sparkValue: metrics?.instagramConnectedBrands ?? 0,
+      borderHover: 'hover:border-pink-500/30',
+      onClick: () => navigate('/brands'),
+    },
+    {
+      label: 'Nexa Active Deals',
+      value: metrics?.nexaActiveConversations ?? 0,
+      sub: 'in sales pipeline',
+      icon: Bot,
+      color: '#8b5cf6',
+      sparkValue: metrics?.nexaActiveConversations ?? 0,
+      borderHover: 'hover:border-violet-500/30',
+      onClick: () => navigate('/nexa-conversations'),
+    },
+    {
+      label: 'Nexa Revenue',
+      value: `₹${(metrics?.nexaRevenue ?? 0).toLocaleString()}`,
+      sub: `${metrics?.nexaClosedDeals ?? 0} closed deals`,
+      icon: IndianRupee,
+      color: '#10b981',
+      sparkValue: metrics?.nexaRevenue ?? 0,
+      borderHover: 'hover:border-emerald-500/30',
+      onClick: () => navigate('/nexa-conversations'),
+    },
+    {
+      label: 'DM Automations',
+      value: `${metrics?.activeDMFlows ?? 0} / ${metrics?.totalDMFlows ?? 0}`,
+      sub: 'active flows',
+      icon: MessageSquare,
+      color: '#3b82f6',
+      sparkValue: metrics?.activeDMFlows ?? 0,
+      borderHover: 'hover:border-blue-500/30',
+      onClick: () => navigate('/dm-automations'),
+    },
+    {
+      label: 'Products',
+      value: metrics?.totalProducts ?? 0,
+      sub: 'across all brands',
+      icon: Package,
+      color: '#f59e0b',
+      sparkValue: metrics?.totalProducts ?? 0,
+      borderHover: 'hover:border-amber-500/30',
+      onClick: () => navigate('/products'),
+    },
   ];
 
   const alerts = [
@@ -399,9 +469,12 @@ export default function Dashboard() {
       ? { label: `${metrics.failedGenerations} failed API generations`, color: 'red', icon: AlertTriangle }
       : null,
     (metrics?.activeCoupons ?? 0) === 0
-      ? { label: 'No active coupons — create one to drive conversions', color: 'amber', icon: Ticket }
+      ? { label: 'No active coupons — create one to drive conversions', color: 'amber', icon: Ticket, link: null }
       : null,
-  ].filter(Boolean) as Array<{ label: string; color: string; icon: any }>;
+    (metrics?.pendingTemplates ?? 0) > 0
+      ? { label: `${metrics?.pendingTemplates} pending WhatsApp templates need review`, color: 'amber', icon: AlertTriangle, link: '/whatsapp-templates' }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; color: string; icon: any, link?: string | null }>;
 
 
   return (
@@ -439,7 +512,7 @@ export default function Dashboard() {
       {alerts.length > 0 && (
         <div className="space-y-2">
           {alerts.map((alert, i) => (
-            <div key={i} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
+            <div key={i} onClick={() => alert.link ? navigate(alert.link) : null} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${alert.link ? 'cursor-pointer hover:opacity-80' : ''} ${
               alert.color === 'red'
                 ? 'bg-red-500/5 border-red-500/20 text-red-400'
                 : 'bg-amber-500/5 border-amber-500/20 text-amber-400'
@@ -518,9 +591,13 @@ export default function Dashboard() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`capitalize px-2 py-0.5 text-xs rounded-full font-medium ${
-                      t.plan?.toLowerCase().includes('elite')
+                      t.plan?.toLowerCase().includes('pro')
                         ? 'bg-violet-500/10 text-violet-400'
-                        : 'bg-blue-500/10 text-blue-400'
+                        : t.plan?.toLowerCase().includes('growth')
+                        ? 'bg-blue-500/10 text-blue-400'
+                        : t.plan?.toLowerCase().includes('starter')
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'bg-slate-500/10 text-slate-400'
                     }`}>
                       {t.plan}
                     </span>
