@@ -41,23 +41,23 @@ router.get('/recommendations', protect, async (req, res) => {
         const accessToken = brandProfile.instagramAccessToken;
         const igId = brandProfile.instagramBusinessAccountId;
 
-        // 1. Fetch media from last 7 days
+        // 1. Fetch media from last 30 days
         const FB_API_VERSION = 'v19.0';
         const mediaUrl = `https://graph.facebook.com/${FB_API_VERSION}/${igId}/media`;
         const mediaRes = await axios.get(mediaUrl, {
             params: { 
                 fields: 'id,caption,media_type,timestamp,like_count,comments_count,media_url,thumbnail_url',
-                limit: 15, 
+                limit: 20, 
                 access_token: accessToken 
             }
         });
 
         const posts = mediaRes.data.data || [];
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        // Filter for last 7 days
-        const recentPosts = posts.filter(p => new Date(p.timestamp) >= sevenDaysAgo);
+        // Filter for last 30 days
+        const recentPosts = posts.filter(p => new Date(p.timestamp) >= thirtyDaysAgo);
 
         // 2. Fetch insights for each post
         const detailedPosts = await Promise.all(recentPosts.map(async (p) => {

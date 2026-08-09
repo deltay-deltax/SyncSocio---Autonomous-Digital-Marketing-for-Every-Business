@@ -22,7 +22,7 @@ const LANDING_FAQS = [
   },
   {
     q: "Do you offer a free trial?",
-    a: "We don't offer a standard free trial, but all of our plans are launched at a heavily discounted initial pricing tier. You can also purchase a credit top-up pack to test our AI generation tools without committing to a subscription.",
+    a: "Yes, we offer a free trial! You can sign up and test our AI generation tools without committing to a subscription.",
   },
   {
     q: "Does it work if I don't have a website?",

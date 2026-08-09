@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { EditorProvider, useEditor } from '@/contexts/EditorContext';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot, Gift } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -90,13 +90,13 @@ const DashboardLayoutContent = () => {
   const [outOfCreditsCost, setOutOfCreditsCost] = useState(0);
   const [creditsAnim, setCreditsAnim] = useState(false);
   const [brands, setBrands] = useState<any[]>([]);
-  
+
   // Downgrade choice state
   const [showDowngradeModal, setShowDowngradeModal] = useState(false);
   const [allowedMaxBrands, setAllowedMaxBrands] = useState(1);
   const [downgradeSelectedBrands, setDowngradeSelectedBrands] = useState<string[]>([]);
   const [isLocking, setIsLocking] = useState(false);
-  
+
   const { toast } = useToast();
 
   const [backgroundTasks, setBackgroundTasks] = useState<BgTask[]>(() => {
@@ -105,9 +105,9 @@ const DashboardLayoutContent = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         // If a task was running when the page was refreshed, the connection is lost.
-        return parsed.map((t: BgTask) => 
-          t.status === 'generating' 
-            ? { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" } 
+        return parsed.map((t: BgTask) =>
+          t.status === 'generating'
+            ? { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" }
             : t
         );
       }
@@ -128,7 +128,7 @@ const DashboardLayoutContent = () => {
           const processed = idbTasks.map((t: BgTask) => {
             if (t.status === 'generating') {
               hasInterrupted = true;
-               return { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
+              return { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
             }
             return t;
           });
@@ -156,19 +156,19 @@ const DashboardLayoutContent = () => {
       // Save lightweight metadata to localStorage for instant UI load
       const lightweightTasks = backgroundTasks.map(t => ({
         ...t,
-        posts: [] 
+        posts: []
       }));
       localStorage.setItem('syncsocio_bg_tasks', JSON.stringify(lightweightTasks));
-      
+
       // Save the heavy data (including base64 images) to IndexedDB
       saveTasksToIDB(backgroundTasks);
     } catch (err) {
       console.warn('Could not save background tasks:', err);
     }
-    
+
     // Prevent accidental reload if there's an active generation
     const hasActiveGeneration = backgroundTasks.some(t => t.status === 'generating');
-    
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasActiveGeneration) {
         e.preventDefault();
@@ -226,7 +226,7 @@ const DashboardLayoutContent = () => {
   const startBackgroundGeneration = async (payload: any, creditCost: number, creditReason: string, mode: any) => {
     const currentCreditsStr = localStorage.getItem('syncsocio_credits');
     const currentCredits = parseInt(currentCreditsStr || '0', 10);
-    
+
     if (creditCost > 0 && currentCredits < creditCost) {
       setOutOfCreditsCost(creditCost);
       setShowOutOfCreditsModal(true);
@@ -326,7 +326,7 @@ const DashboardLayoutContent = () => {
   const startBackgroundAllInOne = async (requests: any[], creditCost: number, creditReason: string) => {
     const currentCreditsStr = localStorage.getItem('syncsocio_credits');
     const currentCredits = parseInt(currentCreditsStr || '0', 10);
-    
+
     if (creditCost > 0 && currentCredits < creditCost) {
       setOutOfCreditsCost(creditCost);
       setShowOutOfCreditsModal(true);
@@ -441,7 +441,7 @@ const DashboardLayoutContent = () => {
       mode: 'clone',
       posts: [],
       error: null,
-      creditCost: 0, 
+      creditCost: 0,
       creditReason: '',
       createdAt: Date.now(),
     };
@@ -465,10 +465,10 @@ const DashboardLayoutContent = () => {
           const data = await response.json().catch(() => ({}));
           throw new Error(data.error || 'Failed to generate clone');
         }
-        
+
         const data = await response.json();
         const imageSrc = data.image ? (data.image.startsWith('data:') || data.image.startsWith('http') ? data.image : `data:image/jpeg;base64,${data.image}`) : null;
-        
+
         if (data.credits !== undefined) {
           localStorage.setItem('syncsocio_credits', String(data.credits));
           window.dispatchEvent(new StorageEvent('storage', {
@@ -607,7 +607,7 @@ const DashboardLayoutContent = () => {
       try {
         const token = localStorage.getItem('token');
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        
+
         // 1. Deduct Credits Upfront
         if (creditCost > 0) {
           const deductRes = await fetch(`${apiBase}/credits/deduct`, {
@@ -618,12 +618,12 @@ const DashboardLayoutContent = () => {
             },
             body: JSON.stringify({ amount: creditCost, reason: 'Sprint campaign generation' }),
           });
-          
+
           if (!deductRes.ok) {
             const errData = await deductRes.json().catch(() => ({}));
             throw new Error(errData.message || 'Insufficient credits for Sprint campaign');
           }
-          
+
           const credData = await deductRes.json();
           localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
           window.dispatchEvent(new StorageEvent('storage', {
@@ -656,7 +656,7 @@ const DashboardLayoutContent = () => {
         const data = await response.json();
         if (data.status === 'success') {
           const posts = data.posts || [];
-          
+
           // Credits already deducted upfront.
 
           setBackgroundTasks(prev => prev.map(t =>
@@ -672,7 +672,7 @@ const DashboardLayoutContent = () => {
         }
       } catch (err: any) {
         console.error('[BgAutopilot] failed:', err);
-        
+
         if (creditsDeducted && creditCost > 0) {
           try {
             const token = localStorage.getItem('token');
@@ -787,14 +787,14 @@ const DashboardLayoutContent = () => {
       try {
         const token = localStorage.getItem('token');
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        
+
         let userPlan = 'starter';
         const profileRes = await fetch(`${apiBase}/profile/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (profileRes.ok) {
-           const pData = await profileRes.json();
-           userPlan = (pData.userPlan || 'starter').toLowerCase();
+          const pData = await profileRes.json();
+          userPlan = (pData.userPlan || 'starter').toLowerCase();
         }
 
         const res = await fetch(`${apiBase}/profile/list`, {
@@ -808,11 +808,11 @@ const DashboardLayoutContent = () => {
           const hasAgency = userPlan.includes('agency');
           const hasElite = userPlan.includes('elite');
           const maxBrands = hasAgency ? 8 : hasElite ? 2 : 1;
-          
+
           const unlockedCount = fetchedBrands.filter((b: any) => !b.isLocked).length;
           if (unlockedCount > maxBrands) {
-             setAllowedMaxBrands(maxBrands);
-             setShowDowngradeModal(true);
+            setAllowedMaxBrands(maxBrands);
+            setShowDowngradeModal(true);
           }
         }
       } catch (err) {
@@ -833,7 +833,7 @@ const DashboardLayoutContent = () => {
         });
         return;
       }
-      
+
       const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
       const res = await fetch(`${apiBase}/profile/switch`, {
@@ -1224,10 +1224,10 @@ const DashboardLayoutContent = () => {
             {credits !== null && (
               <div
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${credits < 50
-                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
-                    : credits < 200
-                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
-                      : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700'
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
+                  : credits < 200
+                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                    : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700'
                   } ${creditsAnim ? 'scale-110' : 'scale-100'}`}
                 title={`${credits} credits remaining`}
               >
@@ -1269,7 +1269,7 @@ const DashboardLayoutContent = () => {
         {/* PAGE CONTENT */}
         <section className="flex-1 overflow-y-auto px-4 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
           <div className="max-w-6xl mx-auto">
-            
+
             {profile?.plan === 'Free Trial' && (
               <div className="mb-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -1281,8 +1281,8 @@ const DashboardLayoutContent = () => {
                     <p className="text-xs text-muted-foreground mt-0.5">You have {credits || 0} credits remaining. Upgrade to unlock all features.</p>
                   </div>
                 </div>
-                <Button 
-                  onClick={() => navigate('/dashboard/settings')} 
+                <Button
+                  onClick={() => navigate('/dashboard/settings')}
                   className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shrink-0"
                 >
                   Upgrade Plan
@@ -1433,21 +1433,21 @@ const DashboardLayoutContent = () => {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-background rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-border relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
-            
+
             <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6">
               <Lock size={32} className="text-amber-500" />
             </div>
-            
+
             <h2 className="text-2xl font-black tracking-tight mb-2">Downgrade Detected</h2>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-              Your current plan only allows <span className="font-bold text-foreground">{allowedMaxBrands} active brand profile(s)</span>, but you currently have {brands.length}. 
-              <br/><br/>
+              Your current plan only allows <span className="font-bold text-foreground">{allowedMaxBrands} active brand profile(s)</span>, but you currently have {brands.length}.
+              <br /><br />
               Please select the <span className="font-bold text-primary">{allowedMaxBrands} brand(s)</span> you want to keep active. The rest will be securely locked until you upgrade again.
             </p>
 
             <div className="space-y-3 mb-8 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
               {brands.map(b => (
-                <div 
+                <div
                   key={b._id}
                   onClick={() => {
                     if (downgradeSelectedBrands.includes(b._id)) {
@@ -1462,8 +1462,8 @@ const DashboardLayoutContent = () => {
                   }}
                   className={cn(
                     "p-4 rounded-2xl border-2 flex items-center gap-4 cursor-pointer transition-all",
-                    downgradeSelectedBrands.includes(b._id) 
-                      ? "border-primary bg-primary/5 shadow-sm" 
+                    downgradeSelectedBrands.includes(b._id)
+                      ? "border-primary bg-primary/5 shadow-sm"
                       : "border-border/50 hover:border-primary/30 bg-card"
                   )}
                 >
@@ -1481,8 +1481,8 @@ const DashboardLayoutContent = () => {
               ))}
             </div>
 
-            <Button 
-              className="w-full h-12 rounded-xl gradient-bg text-white font-bold tracking-wide" 
+            <Button
+              className="w-full h-12 rounded-xl gradient-bg text-white font-bold tracking-wide"
               onClick={handleDowngradeSelection}
               disabled={isLocking || downgradeSelectedBrands.length !== allowedMaxBrands}
             >
