@@ -71,6 +71,13 @@ export const schedulePost = async (req, res) => {
     const { id } = req.params;
     const { scheduledAt, platforms } = req.body;
     
+    // Ensure user cannot schedule past their plan expiration date
+    if (scheduledAt && req.user.planExpiresAt) {
+      if (new Date(scheduledAt) > new Date(req.user.planExpiresAt)) {
+        return res.status(400).json({ message: 'You cannot schedule posts beyond your current plan expiration date. Please renew or upgrade your plan to schedule further ahead.' });
+      }
+    }
+
     const post = await PostAnalysis.findById(id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
@@ -199,6 +206,13 @@ export const recommendSchedulePosts = async (req, res) => {
     const { postIds, startDate, endDate, platforms } = req.body;
     const userId = req.user._id;
 
+    // Ensure user cannot schedule past their plan expiration date
+    if (endDate && req.user.planExpiresAt) {
+      if (new Date(endDate) > new Date(req.user.planExpiresAt)) {
+        return res.status(400).json({ message: 'You cannot schedule posts beyond your current plan expiration date. Please adjust the end date or renew your plan.' });
+      }
+    }
+
     const BrandProfile = (await import('../models/BrandProfile.js')).default;
     const StrategyCreative = (await import('../models/StrategyCreative.js')).default;
 
@@ -295,6 +309,20 @@ export const smartSchedulePosts = async (req, res) => {
   try {
     const { postIds, startDate, endDate, platforms, schedules } = req.body;
     const userId = req.user._id;
+
+    // Ensure user cannot schedule past their plan expiration date
+    if (req.user.planExpiresAt) {
+      if (endDate && new Date(endDate) > new Date(req.user.planExpiresAt)) {
+        return res.status(400).json({ message: 'You cannot schedule posts beyond your current plan expiration date. Please adjust the end date or renew your plan.' });
+      }
+      if (schedules && schedules.length > 0) {
+        for (const s of schedules) {
+          if (new Date(s.scheduledAt) > new Date(req.user.planExpiresAt)) {
+            return res.status(400).json({ message: 'One or more posts are scheduled beyond your current plan expiration date.' });
+          }
+        }
+      }
+    }
 
     const BrandProfile = (await import('../models/BrandProfile.js')).default;
     const StrategyCreative = (await import('../models/StrategyCreative.js')).default;
