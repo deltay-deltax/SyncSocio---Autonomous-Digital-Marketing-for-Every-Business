@@ -1308,6 +1308,7 @@ const DashboardLayoutContent = () => {
                         <p className="text-sm font-bold">Account Relinked Successfully</p>
                         <p className="text-[10px] font-medium opacity-90 uppercase tracking-widest">Your Instagram operations are now synchronized</p>
                       </div>
+
                     </div>
                     <button onClick={() => setShowRelinkSuccess(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                       <X size={16} />
