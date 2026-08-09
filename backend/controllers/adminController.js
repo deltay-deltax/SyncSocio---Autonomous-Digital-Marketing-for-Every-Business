@@ -14,6 +14,7 @@ import Lead from '../models/Lead.js';
 import PostAnalysis from '../models/PostAnalysis.js';
 import RequestedTemplate from '../models/RequestedTemplate.js';
 import NexaConversation from '../models/NexaConversation.js';
+import SiteKnowledgeLead from '../models/SiteKnowledgeLead.js';
 import Product from '../models/Product.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
@@ -1571,6 +1572,41 @@ export const getNexaStats = async (req, res) => {
     res.json({ success: true, stats });
   } catch (error) {
     console.error('Error fetching Nexa stats:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+export const getNexaKnowledge = async (req, res) => {
+  try {
+    const leads = await SiteKnowledgeLead.find().sort({ createdAt: -1 });
+    res.json({ success: true, leads });
+  } catch (error) {
+    console.error('Error fetching Nexa knowledge leads:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+export const answerNexaKnowledge = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { answer } = req.body;
+    
+    if (!answer) {
+      return res.status(400).json({ success: false, message: 'Answer is required' });
+    }
+
+    const lead = await SiteKnowledgeLead.findByIdAndUpdate(
+      id,
+      { answer, status: 'answered', answeredAt: new Date() },
+      { new: true }
+    );
+
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    res.json({ success: true, lead });
+  } catch (error) {
+    console.error('Error answering Nexa knowledge lead:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

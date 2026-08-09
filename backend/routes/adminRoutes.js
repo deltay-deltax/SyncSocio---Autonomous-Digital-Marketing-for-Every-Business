@@ -59,6 +59,8 @@ import {
   getNexaConversations,
   getNexaConversationDetail,
   getNexaStats,
+  getNexaKnowledge,
+  answerNexaKnowledge,
   getAllDMFlows,
   getAllProducts,
   getCampaignStats,
@@ -154,6 +156,8 @@ router.put('/whatsapp-templates/:id/status', updateWhatsAppTemplateStatus);
 router.get('/nexa/conversations', getNexaConversations);
 router.get('/nexa/conversations/:id', getNexaConversationDetail);
 router.get('/nexa/stats', getNexaStats);
+router.get('/nexa/knowledge', getNexaKnowledge);
+router.post('/nexa/knowledge/:id/answer', answerNexaKnowledge);
 
 // ─── DM Automations ─────────────────────────
 router.get('/dm-flows', getAllDMFlows);
