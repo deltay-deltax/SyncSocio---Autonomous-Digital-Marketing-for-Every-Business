@@ -134,8 +134,16 @@ export const verifyPayment = async (req, res) => {
               brandProfile.selectedPlan = transaction.plan;
               brandProfile.isPaid = true;
             }
-            if (transaction.type === 'plan_upgrade' || transaction.type === 'dm_addon_purchase') {
+
+            const planNameLower = (brandProfile.selectedPlan || '').toLowerCase();
+            const isHighTier = planNameLower.includes('growth') || 
+                               planNameLower.includes('pro') || 
+                               planNameLower.includes('agency');
+
+            if (isHighTier || transaction.type === 'dm_addon_purchase') {
               brandProfile.DM_Automation_Service = true;
+            } else if (transaction.type !== 'dm_addon_purchase') {
+              brandProfile.DM_Automation_Service = false;
             }
             await brandProfile.save();
           }
