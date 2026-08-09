@@ -2,9 +2,7 @@ import OpenAI from 'openai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+
 
 /**
  * Extracts a generalized Q&A pair from a chat history and human reply.
@@ -15,6 +13,15 @@ const openai = new OpenAI({
 export const extractKnowledgeFromReply = async (conversationHistory, humanReply) => {
   try {
     if (!humanReply) return null;
+
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('[NexaKnowledgeService] Missing OPENAI_API_KEY, cannot extract knowledge.');
+      return null;
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     // Get the last 3-4 messages to give context to what the human is replying to
     const recentHistory = conversationHistory.slice(-4).map(msg => `${msg.role.toUpperCase()}: ${msg.text}`).join('\n');

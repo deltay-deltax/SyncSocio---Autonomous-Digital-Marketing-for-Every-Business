@@ -18,6 +18,7 @@ import Generations from './pages/Generations';
 import LeadGeneration from './pages/LeadGeneration';
 import WhatsAppTemplates from './pages/WhatsAppTemplates';
 import NexaConversations from './pages/NexaConversations';
+import NexaKnowledge from './pages/NexaKnowledge';
 import DMAutomations from './pages/DMAutomations';
 import Products from './pages/Products';
 import Campaigns from './pages/Campaigns';
@@ -55,6 +56,7 @@ function App() {
             <Route path="waitlist" element={<Waitlist />} />
             <Route path="whatsapp-templates" element={<WhatsAppTemplates />} />
             <Route path="nexa-conversations" element={<NexaConversations />} />
+            <Route path="nexa-knowledge" element={<NexaKnowledge />} />
             <Route path="dm-automations" element={<DMAutomations />} />
             <Route path="products" element={<Products />} />
             <Route path="campaigns" element={<Campaigns />} />
