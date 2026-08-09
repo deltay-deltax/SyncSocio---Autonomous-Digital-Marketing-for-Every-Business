@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import {
   Activity, AlertTriangle, Zap, TrendingUp, RefreshCw,
-  CheckCircle, XCircle, Clock, X, BarChart2, ChevronRight, Calendar, List
+  CheckCircle, XCircle, Clock, X, BarChart2, ChevronRight, Calendar, List,
+  Server, MessageSquare, Mail, CreditCard, CalendarCheck
 } from 'lucide-react';
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
@@ -36,6 +37,12 @@ interface HealthData {
   providerStats: Record<string, ProviderStat>;
   recentErrors: ApiLogItem[];
   detailedLogs?: ApiLogItem[];
+  backgroundServices?: {
+    whatsappWebhooks: string;
+    emailSendGrid: string;
+    stripeWebhooks: string;
+    campaignScheduler: string;
+  };
 }
 
 type CardType = 'api-calls' | 'errors' | 'cost' | 'all-time' | null;
@@ -518,6 +525,39 @@ export default function SystemHealth() {
             <p className="text-xs text-muted-foreground mt-0.5">
               Auto-refreshes every 30 seconds · Error rate in period: <strong>{health?.errorRate}%</strong>
             </p>
+          </div>
+        </div>
+
+        {/* Background Services */}
+        <div className="glass-card border border-transparent rounded-2xl p-6 shadow-sm">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-foreground">Background Services & Webhooks</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Status of critical external integrations and scheduled pollers.</p>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { id: 'whatsappWebhooks', label: 'WhatsApp Meta', icon: MessageSquare, status: health?.backgroundServices?.whatsappWebhooks || 'unknown' },
+              { id: 'emailSendGrid', label: 'SendGrid Mail', icon: Mail, status: health?.backgroundServices?.emailSendGrid || 'unknown' },
+              { id: 'stripeWebhooks', label: 'Stripe Billing', icon: CreditCard, status: health?.backgroundServices?.stripeWebhooks || 'unknown' },
+              { id: 'campaignScheduler', label: 'Campaign Scheduler', icon: CalendarCheck, status: health?.backgroundServices?.campaignScheduler || 'unknown' },
+            ].map((svc) => (
+              <div key={svc.id} className="rounded-xl border border-border bg-background/50 p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${svc.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-500'}`}>
+                    <svc.icon size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{svc.label}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{svc.status}</p>
+                  </div>
+                </div>
+                {svc.status === 'active' ? (
+                  <CheckCircle size={16} className="text-emerald-500" />
+                ) : (
+                  <RefreshCw size={16} className="text-slate-400 animate-spin" />
+                )}
+              </div>
+            ))}
           </div>
         </div>
 

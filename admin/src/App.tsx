@@ -11,12 +11,17 @@ import Transactions from './pages/Transactions';
 import SystemHealth from './pages/SystemHealth';
 import Waitlist from './pages/Waitlist';
 import Leads from './pages/Leads';
-import Testers from './pages/Testers';
 import LandingGallery from './pages/LandingGallery';
 import ScheduledPosts from './pages/ScheduledPosts';
 import AdminEntry from './pages/AdminEntry';
 import Generations from './pages/Generations';
 import LeadGeneration from './pages/LeadGeneration';
+import WhatsAppTemplates from './pages/WhatsAppTemplates';
+import NexaConversations from './pages/NexaConversations';
+import DMAutomations from './pages/DMAutomations';
+import Products from './pages/Products';
+import Campaigns from './pages/Campaigns';
+import AdminNotifications from './pages/AdminNotifications';
 import './App.css';
 
 // Protected Route for Admin
@@ -48,7 +53,12 @@ function App() {
             <Route path="refunds" element={<Transactions />} />
             <Route path="system-health" element={<SystemHealth />} />
             <Route path="waitlist" element={<Waitlist />} />
-            <Route path="testers" element={<Testers />} />
+            <Route path="whatsapp-templates" element={<WhatsAppTemplates />} />
+            <Route path="nexa-conversations" element={<NexaConversations />} />
+            <Route path="dm-automations" element={<DMAutomations />} />
+            <Route path="products" element={<Products />} />
+            <Route path="campaigns" element={<Campaigns />} />
+            <Route path="notifications" element={<AdminNotifications />} />
             <Route path="landing-gallery" element={<LandingGallery />} />
             <Route path="scheduled-posts" element={<ScheduledPosts />} />
             <Route path="generations" element={<Generations />} />

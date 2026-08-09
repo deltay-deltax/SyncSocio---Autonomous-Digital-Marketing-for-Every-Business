@@ -135,7 +135,7 @@ export default function Users() {
       if (res.data.success) {
         // Save the impersonation token and open the user dashboard in a new tab
         const impersonationToken = res.data.token;
-        const targetUrl = `http://localhost:5173/dashboard?impersonate=${impersonationToken}`;
+        const targetUrl = `${import.meta.env.VITE_APP_URL || 'https://syncsocio.com'}/dashboard?impersonate=${impersonationToken}`;
         window.open(targetUrl, '_blank');
       }
     } catch (err) {

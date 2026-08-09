@@ -54,6 +54,17 @@ import {
   updateLead,
   getScheduledPosts,
   getGenerations,
+  getWhatsAppTemplates,
+  updateWhatsAppTemplateStatus,
+  getNexaConversations,
+  getNexaConversationDetail,
+  getNexaStats,
+  getAllDMFlows,
+  getAllProducts,
+  getCampaignStats,
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -134,5 +145,28 @@ router.get('/scheduled-posts', getScheduledPosts);
 
 // ─── Generations ──────────────────────────────────────────────────────────────
 router.get('/generations', getGenerations);
+
+// ─── WhatsApp Templates ──────────────────────
+router.get('/whatsapp-templates', getWhatsAppTemplates);
+router.put('/whatsapp-templates/:id/status', updateWhatsAppTemplateStatus);
+
+// ─── Nexa Conversations ─────────────────────
+router.get('/nexa/conversations', getNexaConversations);
+router.get('/nexa/conversations/:id', getNexaConversationDetail);
+router.get('/nexa/stats', getNexaStats);
+
+// ─── DM Automations ─────────────────────────
+router.get('/dm-flows', getAllDMFlows);
+
+// ─── Products ────────────────────────────────
+router.get('/products', getAllProducts);
+
+// ─── Campaigns ───────────────────────────────
+router.get('/campaigns/stats', getCampaignStats);
+
+// ─── Admin Notifications ──────────────────────────────────────────────────────
+router.get('/notifications', getNotifications);
+router.put('/notifications/:id/read', markNotificationRead);
+router.put('/notifications/read-all', markAllNotificationsRead);
 
 export default router;
