@@ -586,7 +586,8 @@ const DashboardLayoutContent = () => {
   ) => {
     const taskId = `task_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const title = `Sprint campaign (${weeks} week${weeks > 1 ? 's' : ''})`;
-    const creditCost = weeks * 7 * 5;
+    const baseImageCost = profile?.selectedPlan?.toLowerCase().includes('pro') ? 8 : 5;
+    const creditCost = weeks * 7 * baseImageCost;
 
     const newTask: BgTask = {
       id: taskId,
