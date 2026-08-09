@@ -15,6 +15,7 @@ import FreeCreativesSection from "@/components/FreeCreativesSection";
 import { MarqueeDemo } from "@/components/ReviewMarquee";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import { useNavigate } from "react-router-dom";
+import { SiteChatbot } from "@/components/SiteChatbot";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -127,6 +128,8 @@ const Index = () => {
       
       {/* 9. Lead magnet CTA at the end */}
       <FreeCreativesSection />
+      
+      <SiteChatbot />
       
       <Footer />
     </div>

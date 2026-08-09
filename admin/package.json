@@ -16,7 +16,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "framer-motion": "^12.42.0",
-    "libphonenumber-js": "^1.13.8",
+    "libphonenumber-js": "^1.13.10",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

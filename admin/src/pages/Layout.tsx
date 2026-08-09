@@ -42,6 +42,7 @@ const NAV_SECTIONS = [
       { to: '/whatsapp-templates', icon: Smartphone, label: 'WhatsApp Templates' },
       { to: '/dm-automations', icon: MessageSquare, label: 'DM Automations' },
       { to: '/nexa-conversations', icon: Target, label: 'Nexa Conversations' },
+      { to: '/nexa-knowledge', icon: MessageSquare, label: 'Nexa Knowledge Base' },
     ]
   },
   {
