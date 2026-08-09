@@ -1317,7 +1317,6 @@ const DashboardLayoutContent = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-
             <Outlet context={{
               profile,
               setProfile,
