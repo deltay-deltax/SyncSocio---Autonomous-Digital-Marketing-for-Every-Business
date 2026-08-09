@@ -789,6 +789,13 @@ Rules:
 - If it's a body variable, make it engaging.
 - Output ONLY JSON.`;
 
+    console.log("🔥 Sending to WhatsApp LLM (Gemini):", {
+      idea,
+      templateName,
+      templateBody,
+      prompt
+    });
+    
     const geminiRes = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GOOGLE_API_KEY}`,
       {

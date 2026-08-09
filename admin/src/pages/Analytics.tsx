@@ -5,7 +5,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { TrendingUp, Users, IndianRupee, Crown, Zap, MessageSquare, ImageIcon, Mail } from 'lucide-react';
+import { TrendingUp, Users, IndianRupee, Crown, MessageSquare, ImageIcon, Mail } from 'lucide-react';
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

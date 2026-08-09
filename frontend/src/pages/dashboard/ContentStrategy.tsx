@@ -2123,6 +2123,7 @@ const DashboardStrategy = () => {
               if (bodyComponent && bodyComponent.text) templateBody = bodyComponent.text;
             }
 
+            console.log("🔥 WhatsApp Campaign Payload sent to backend:", { idea: finalIdea, templateBody, templateName: whatsappTemplateName });
             const mapRes = await fetch(`${NODE_BASE}/whatsapp/map-variables`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
