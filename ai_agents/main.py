@@ -1530,7 +1530,7 @@ async def api_generate_visuals(request: VisualGenRequest):
         # Step 0: Fetch Brand DNA and Industry Category from Brand Profile
         brand_dna = "A premium growth-focused brand."
         industry_category = "Lifestyle/Luxury"  # Default fallback
-        img_quality = "medium"
+        img_quality = "low"
         
         if request.userId:
             brand_doc = await db["brandprofiles"].find_one({
@@ -2158,7 +2158,7 @@ async def api_product_image_editor(request: ProductEditRequest):
         import json
         
         safe_brand_dna = ""
-        img_quality = "medium"
+        img_quality = "low"
         if request.brand_dna:
             try:
                 dna_dict = json.loads(request.brand_dna)
