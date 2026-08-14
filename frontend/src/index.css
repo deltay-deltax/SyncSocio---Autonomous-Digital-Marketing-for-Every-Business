@@ -118,6 +118,16 @@
     @apply bg-background text-foreground font-body antialiased;
   }
 
+  /* Prevent double-tap zoom on interactive elements (iOS) */
+  button,
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
   h1,
   h2,
   h3,
@@ -220,6 +230,35 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* ── Mobile Touch Utilities ─────────────────────────────────────── */
+
+  /* Safe-area padding for devices with notch/home bar */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pb-safe-4 {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+  .pb-safe-nav {
+    /* Reserve space for mobile bottom nav bar (64px) + device safe area */
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+  .bottom-safe {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Momentum scrolling on iOS */
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+
+  /* Minimum tap target sizes for mobile */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 

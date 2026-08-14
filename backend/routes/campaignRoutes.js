@@ -397,6 +397,16 @@ router.post('/send-whatsapp', protect, validate({ body: sendWhatsappCampaignSche
       return res.status(400).json({ message: 'Recipients and body are required' });
     }
 
+    const sendingUser = await User.findById(req.user._id);
+    const userPlan = (sendingUser?.plan || '').toLowerCase();
+    if (!userPlan.includes('growth') && !userPlan.includes('pro') && !userPlan.includes('agency')) {
+      return res.status(403).json({
+        code: 'NO_WHATSAPP_PLAN',
+        success: false,
+        message: 'Upgrade to a Growth or Pro plan to send WhatsApp campaigns.'
+      });
+    }
+
     const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
     const WHATSAPP_ACCESS_TOKEN = profile?.whatsappAccessToken?.trim() || process.env.WHATSAPP_ACCESS_TOKEN?.trim();
     const WHATSAPP_PHONE_NUMBER_ID = profile?.whatsappPhoneId?.trim() || process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();

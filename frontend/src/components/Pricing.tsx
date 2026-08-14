@@ -1,24 +1,24 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useState } from "react";
-import { Check, BotMessageSquare, HelpCircle, Gift, Info, X, Minus, Plus } from "lucide-react";
+import { Check, BotMessageSquare, HelpCircle, Gift, Info, X, Minus, Plus, Sparkles, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { ImageCompareDialog } from "@/components/ImageCompareDialog";
+import { cn } from "@/lib/utils";
 
 type Plan = {
   name: string;
   badge: string | null;
   creditTag: string;
   prices: {
-    INR: { basePrice: number; originalPrice: number; dmAddon: number };
-    USD: { basePrice: number; originalPrice: number; dmAddon: number };
+    INR: { basePrice: number; originalPrice: number };
+    USD: { basePrice: number; originalPrice: number };
   };
   period: string;
   description: string;
   features: string[];
   lockedFeatures: string[];
-  addons: { name: string; prices: { INR: number; USD: number } }[];
   popular: boolean;
   cta: string;
   isCustom?: boolean;
@@ -32,8 +32,8 @@ const plans: Plan[] = [
     creditTag: "80 Credits",
     quality: "SD Quality",
     prices: {
-      INR: { basePrice: 399, originalPrice: 599, dmAddon: 0 },
-      USD: { basePrice: 5, originalPrice: 8, dmAddon: 0 }
+      INR: { basePrice: 399, originalPrice: 599 },
+      USD: { basePrice: 5, originalPrice: 8 }
     },
     period: "/month",
     description: "For first-time business owners ready to start creating AI content.",
@@ -61,7 +61,6 @@ const plans: Plan[] = [
       "WhatsApp Campaign",
       "Best time to post analytics",
     ],
-    addons: [],
     popular: false,
     cta: "Get Started",
   },
@@ -71,8 +70,8 @@ const plans: Plan[] = [
     creditTag: "400 Credits",
     quality: "SD Quality",
     prices: {
-      INR: { basePrice: 1499, originalPrice: 2499, dmAddon: 0 },
-      USD: { basePrice: 19, originalPrice: 35, dmAddon: 0 }
+      INR: { basePrice: 1499, originalPrice: 2499 },
+      USD: { basePrice: 19, originalPrice: 35 }
     },
     period: "/month",
     description: "For active D2C brands ready to automate content and close sales in DMs.",
@@ -100,7 +99,6 @@ const plans: Plan[] = [
       "HD quality image exports",
       "Multiple brand profiles",
     ],
-    addons: [],
     popular: true,
     cta: "Get Started",
   },
@@ -110,8 +108,8 @@ const plans: Plan[] = [
     creditTag: "1,000 Credits",
     quality: "HD Quality",
     prices: {
-      INR: { basePrice: 3499, originalPrice: 4999, dmAddon: 0 },
-      USD: { basePrice: 45, originalPrice: 69, dmAddon: 0 }
+      INR: { basePrice: 3499, originalPrice: 4999 },
+      USD: { basePrice: 45, originalPrice: 69 }
     },
     period: "/month",
     description: "For power users and high-volume brands managing serious sales operations.",
@@ -136,7 +134,6 @@ const plans: Plan[] = [
       "Dedicated WhatsApp support",
     ],
     lockedFeatures: [],
-    addons: [],
     popular: false,
     cta: "Get Started",
   },
@@ -169,31 +166,17 @@ const topups = [
 interface PricingProps {
   onWaitlistClick: (planName?: string) => void;
   onFreeTrialClick?: () => void;
+  isTrialLoading?: boolean;
+  className?: string;
 }
 
-const Pricing = ({ onWaitlistClick, onFreeTrialClick }: PricingProps) => {
+const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, className }: PricingProps) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const navigate = useNavigate();
   const { currency, symbol, setCurrency } = useCurrency();
   const [eliteImageMode, setEliteImageMode] = useState<'SD' | 'HD'>('SD');
   const [showCompareDialog, setShowCompareDialog] = useState(false);
-  const [addonQuantities, setAddonQuantities] = useState<Record<string, Record<string, number>>>({});
-
-  const updateAddonQuantity = (planName: string, addonName: string, delta: number) => {
-    setAddonQuantities(prev => {
-      const current = prev[planName]?.[addonName] || 0;
-      const next = Math.max(0, current + delta);
-      return {
-        ...prev,
-        [planName]: {
-          ...prev[planName],
-          [addonName]: next
-        }
-      };
-    });
-  };
-
   const handleSelectPlan = (planName: string) => {
     if (planName === 'Custom') {
       window.location.href = "mailto:support@syncsocio.com?subject=Book%20a%20Custom%20Plan%20Inquiry";
@@ -203,13 +186,13 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick }: PricingProps) => {
   };
 
   return (
-    <section id="pricing" className="py-24 sm:py-32" ref={ref}>
-      <div className="container mx-auto px-6">
+    <section id="pricing" className={cn("py-16 sm:py-24 lg:py-32", className)} ref={ref}>
+      <div className="container mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16 relative"
+          className="text-center mb-12 sm:mb-16 relative"
         >
           <span className="text-sm font-semibold text-primary uppercase tracking-widest mb-4 block">
             Investment
@@ -229,43 +212,81 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick }: PricingProps) => {
             <span className={`text-sm font-semibold ${currency === 'USD' ? 'text-foreground' : 'text-muted-foreground'}`}>USD ($)</span>
           </div>
 
-          {/* Free Trial Option (Moved Above) */}
+          {/* Free Trial Option - High conversion, mobile-optimized card */}
           {onFreeTrialClick && (
-            <div className="flex justify-center mt-10 mb-2">
-              <Button
-                variant="outline"
-                onClick={onFreeTrialClick}
-                className="rounded-xl border-2 border-primary/30 hover:border-primary hover:bg-primary/5 hover:text-primary px-8 h-12 text-sm font-bold text-foreground transition-all flex items-center gap-2"
+            <div className="max-w-xl mx-auto mt-8 mb-2 px-1 sm:px-0">
+              <div
+                onClick={!isTrialLoading ? onFreeTrialClick : undefined}
+                role="button"
+                tabIndex={0}
+                className={cn(
+                  "group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/[0.08] via-card/80 to-primary/[0.03] p-4 sm:p-5 shadow-sm hover:shadow-xl hover:border-primary/60 transition-all duration-300 text-left cursor-pointer backdrop-blur-sm",
+                  isTrialLoading ? "opacity-75 pointer-events-none" : "hover:-translate-y-0.5 active:scale-[0.99]"
+                )}
               >
-                <Gift size={16} className="text-primary group-hover:text-primary" />
-                Continue with Free Trial (3 Free Creatives)
-              </Button>
+                {/* Ambient glow decoration */}
+                <div className="absolute top-0 right-0 -mr-10 -mt-10 w-36 h-36 rounded-full bg-primary/10 blur-2xl group-hover:bg-primary/20 transition-all duration-500 pointer-events-none" />
+                <div className="absolute bottom-0 left-1/4 w-24 h-24 rounded-full bg-blue-500/5 blur-xl pointer-events-none" />
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    {/* Icon container */}
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/15 border border-primary/25 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow-sm">
+                      {isTrialLoading ? (
+                        <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-primary group-hover:text-primary-foreground" />
+                      ) : (
+                        <Gift className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
+                      )}
+                    </div>
+
+                    {/* Text Details */}
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-sm sm:text-base font-extrabold text-foreground group-hover:text-primary transition-colors">
+                          Continue with Free Trial
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
+                          <Sparkles size={11} className="text-primary" />
+                          3 Free Creatives
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        15 credits included • No credit card required • Instant access
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* CTA Action */}
+                  <div className="flex items-center justify-end sm:shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                    <Button
+                      type="button"
+                      disabled={isTrialLoading}
+                      className="w-full sm:w-auto rounded-xl px-5 h-10 text-xs sm:text-sm font-bold shadow-md shadow-primary/20 group-hover:shadow-primary/30 flex items-center justify-center gap-1.5 transition-all pointer-events-none"
+                    >
+                      {isTrialLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                          <span>Activating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Start Free</span>
+                          <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
-
-          {/* Credits Explained Link (Moved Above) */}
-          <div className="flex flex-col items-center justify-center mt-3 mb-10">
-            <Link
-              to="/credits"
-              className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 hover:underline cursor-pointer group"
-            >
-              <HelpCircle size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
-              Credits explained
-            </Link>
-          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-stretch">
           {plans.map((plan, i) => {
             const planPrices = plan.prices[currency];
-
-            const addonTotal = (plan.addons || []).reduce((sum, addon) => {
-              const isSelected = (addonQuantities[plan.name]?.[addon.name] || 0) > 0;
-              return sum + (isSelected ? addon.prices[currency as 'INR' | 'USD'] : 0);
-            }, 0);
-
-            const currentPrice = planPrices.basePrice + addonTotal;
-            const originalPrice = planPrices.originalPrice ? planPrices.originalPrice + addonTotal : 0;
+            const currentPrice = planPrices.basePrice;
+            const originalPrice = planPrices.originalPrice || 0;
             const discountPercent = originalPrice ? Math.floor(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
 
             return (
@@ -358,56 +379,6 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick }: PricingProps) => {
                       </li>
                     ))}
                   </ul>
-
-                  {/* Add-ons */}
-                  {plan.addons && plan.addons.length > 0 && (
-                    <div className="mb-6 border-t border-border/20 pt-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>Add-ons</span>
-                        <div className={`flex-1 h-px ${plan.popular ? "bg-white/10" : "bg-border/40"}`}></div>
-                      </div>
-                      <div className="space-y-3">
-                        {plan.addons.map((addon) => {
-                          const addonPrice = addon.prices[currency as 'INR' | 'USD'];
-                          const quantity = addonQuantities[plan.name]?.[addon.name] || 0;
-                          const isSelected = quantity > 0;
-                          return (
-                            <div
-                              key={addon.name}
-                              onClick={() => updateAddonQuantity(plan.name, addon.name, isSelected ? -1 : 1)}
-                              className={`flex items-center justify-between gap-4 p-2.5 rounded-xl border cursor-pointer transition-all ${isSelected
-                                ? (plan.popular ? "border-white/40 bg-white/10 shadow-sm" : "border-primary/40 bg-primary/5 shadow-sm")
-                                : (plan.popular ? "border-white/10 hover:bg-white/5" : "border-border hover:bg-muted/50")
-                                }`}
-                            >
-                              <div>
-                                <p className={`text-xs font-semibold ${isSelected
-                                  ? (plan.popular ? "text-white" : "text-primary")
-                                  : (plan.popular ? "text-primary-foreground" : "text-foreground")
-                                  }`}>
-                                  {addon.name}
-                                </p>
-                                <p className={`text-[10px] ${isSelected
-                                  ? (plan.popular ? "text-white/80" : "text-primary/80")
-                                  : (plan.popular ? "text-primary-foreground/70" : "text-muted-foreground")
-                                  }`}>
-                                  + {symbol}{addonPrice}/month
-                                </p>
-                              </div>
-                              <div className="flex items-center">
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors ${isSelected
-                                  ? (plan.popular ? "bg-white text-primary border-white" : "bg-primary text-primary-foreground border-primary")
-                                  : (plan.popular ? "border-white/30 text-transparent" : "border-muted-foreground/30 text-transparent")
-                                  }`}>
-                                  <Check size={12} strokeWidth={3} />
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* CTA Button Pinned at Bottom */}
@@ -428,6 +399,17 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick }: PricingProps) => {
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Credits Explained Link (Moved Below All Plans) */}
+        <div className="flex flex-col items-center justify-center mt-8 sm:mt-10">
+          <Link
+            to="/credits"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/60 bg-card/60 backdrop-blur-sm text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 group shadow-sm"
+          >
+            <HelpCircle size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            <span>Credits explained</span>
+          </Link>
         </div>
 
         {/* Credit Topups */}

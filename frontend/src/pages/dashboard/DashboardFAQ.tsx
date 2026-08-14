@@ -81,7 +81,7 @@ const FAQS = [
   // ── Plans, Credits & Billing ──────────────────────────────────────────────
   {
     q: "How do credits work?",
-    a: "Credits are consumed each time you generate AI content — one image, one carousel, one video, or one caption batch each costs credits. The Starter plan comes with 200 credits/month, Elite comes with 700 credits/month, and Agency comes with 1,750 credits/month. If you run out, you can buy top-up packs of 100, 300, or 700 credits at any time.",
+    a: "Credits are consumed each time you generate AI content — one image, one carousel, one video, or one caption batch each costs credits. The Starter plan comes with 80 credits/month (16 AI images), Growth comes with 400 credits/month (80 AI images), and Pro comes with 1,000 credits/month (125 HD images). If you run out, you can buy top-up packs of 100, 300, or 700 credits at any time.",
   },
   {
     q: "Do unused credits roll over to the next month?",
@@ -89,11 +89,11 @@ const FAQS = [
   },
   {
     q: "Can I run multiple brands from one account?",
-    a: "Yes. Starter plan supports 1 brand profile, Elite supports up to 2 brand profiles, and Agency supports up to 10 brand profiles, each with its own Brand DNA, color palette, tone, and content schedule. Switch between them instantly from the dashboard sidebar.",
+    a: "Starter and Growth plans support 1 brand profile with its own Brand DNA, color palette, and tone. If you manage multiple brands or an agency, bespoke agency accounts support up to 8 brand profiles.",
   },
   {
     q: "Is there a free trial available?",
-    a: "We don't offer a time-limited trial — instead, every plan launches at a heavily discounted price so you get full access from day one. You can also buy a credit top-up pack and test generation without committing to a monthly plan.",
+    a: "Yes! We offer a Free Trial with 3 Free Creatives (15 credits) with no credit card required, so you can test our AI generation tools immediately.",
   },
   {
     q: "Is my content and data secure?",

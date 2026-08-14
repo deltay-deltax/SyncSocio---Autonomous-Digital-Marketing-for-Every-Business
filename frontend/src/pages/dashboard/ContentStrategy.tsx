@@ -619,7 +619,7 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void; i
           <div className="mt-auto pt-4">
             {isLocked ? (
               <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-amber-600">
-                <Lock size={12} /> Unlock with Elite
+                <Lock size={12} /> Unlock with Growth / Pro
               </span>
             ) : (
               <span
@@ -684,7 +684,7 @@ const DashboardStrategy = () => {
 
   const checkLocked = (sId: string) => {
     if (isStarter) {
-      return ['clone', 'sprint', 'video', 'all_in_one'].includes(sId);
+      return ['clone', 'sprint', 'video', 'all_in_one', 'whatsapp', 'email'].includes(sId);
     }
     return false;
   };
@@ -1066,7 +1066,11 @@ const DashboardStrategy = () => {
 
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
 
+  const isGrowth = planName.includes('growth');
+  const isPro = planName.includes('pro');
+  const isAgency = planName.includes('agency');
   const isElite = planName.includes('elite');
+  const hasGrowthOrPro = isGrowth || isPro || isElite || isAgency;
 
   React.useEffect(() => {
     if (mode) {
@@ -1075,19 +1079,24 @@ const DashboardStrategy = () => {
         setMode(null);
         setUpgradeModalReason('expired');
         setShowUpgradeModal(true);
-      } else if (mode === 'video' && !isElite) {
+      } else if (mode === 'video' && !hasGrowthOrPro) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason('video');
         setShowUpgradeModal(true);
-      } else if (['all_in_one'].includes(mode) && !isElite) {
+      } else if (['all_in_one'].includes(mode) && !hasGrowthOrPro) {
+        setStage('pick');
+        setMode(null);
+        setUpgradeModalReason(mode);
+        setShowUpgradeModal(true);
+      } else if (['whatsapp', 'email'].includes(mode) && !hasGrowthOrPro) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason(mode);
         setShowUpgradeModal(true);
       }
     }
-  }, [mode, isPlanExpired, isElite]);
+  }, [mode, isPlanExpired, hasGrowthOrPro]);
 
   const handleModeClick = (mId: Mode) => {
     if (checkLocked(mId)) {
@@ -1896,7 +1905,7 @@ const DashboardStrategy = () => {
         if (errData.code === 'NO_EMAIL_PLAN') {
           toast({
             title: '🔒 Plan required',
-            description: 'Upgrade to a Starter or Elite plan to send email campaigns.',
+            description: 'Upgrade to a Growth or Pro plan to send email campaigns.',
             variant: 'destructive'
           });
           setSendStatus('idle');
@@ -3278,21 +3287,29 @@ const DashboardStrategy = () => {
                 ? 'Plan Expired'
                 : upgradeModalReason === 'video'
                   ? 'Video Generation Locked 🔒'
-                  : 'Premium Feature Locked 🔒'}
+                  : upgradeModalReason === 'whatsapp'
+                    ? 'WhatsApp Campaign Locked 🔒'
+                    : upgradeModalReason === 'email'
+                      ? 'Email Campaign Locked 🔒'
+                      : 'Premium Feature Locked 🔒'}
             </h2>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               {upgradeModalReason === 'expired'
                 ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
                 : upgradeModalReason === 'video'
-                  ? 'AI Video Generation (UGC & Product Videos) is exclusive to Elite and Agency plans. Please upgrade to the Elite Plan to unlock AI video generation.'
-                  : `This is an Elite feature. Upgrade to the Elite Plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
+                  ? 'AI Video Generation (UGC & Product Videos) is included in Growth and Pro plans. Please upgrade your plan to unlock AI video generation.'
+                  : upgradeModalReason === 'whatsapp'
+                    ? 'WhatsApp Campaigns & Broadcasts are included in Growth and Pro plans. Please upgrade your plan to unlock WhatsApp campaigns.'
+                    : upgradeModalReason === 'email'
+                      ? 'Email Campaigns & Newsletters are included in Growth and Pro plans. Please upgrade your plan to unlock email campaigns.'
+                      : `This feature is included in Growth and Pro plans. Upgrade your plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
             </p>
 
             <Button
               onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}
               className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold shadow-lg"
             >
-              {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
+              {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade Plan'}
             </Button>
           </motion.div>
         </div>

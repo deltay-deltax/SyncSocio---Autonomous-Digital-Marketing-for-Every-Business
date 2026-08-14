@@ -198,41 +198,12 @@ const DashboardDMs = () => {
 
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
   const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+  const isGrowth = planName.includes('growth');
+  const isPro = planName.includes('pro');
   const isElite = planName.includes('elite');
   const isAgency = planName.includes('agency');
   const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-  const hasDMAutomationAccess = isElite || isAgency || profile?.dmAddonActive || isMetaReviewer;
-
-  const handleBuyAddon = () => {
-    setCheckoutData({
-      baseAmount: 299,
-      description: "DM Automation Add-on (Starter Plan)",
-      type: "dm_addon_purchase",
-      planName: "Starter",
-      creditsAdded: 0
-    });
-  };
-
-  const handleCheckoutSuccess = () => {
-    toast({ title: 'Add-on Activated', description: 'DM Automation is now active!' });
-    window.location.reload();
-  };
-
-  if (checkoutData) {
-    return (
-      <div className="max-w-xl mx-auto my-8">
-        <Checkout
-          baseAmount={checkoutData.baseAmount}
-          description={checkoutData.description}
-          type={checkoutData.type}
-          planName={checkoutData.planName}
-          creditsAdded={checkoutData.creditsAdded}
-          onSuccess={handleCheckoutSuccess}
-          onBack={() => setCheckoutData(null)}
-        />
-      </div>
-    );
-  }
+  const hasDMAutomationAccess = isGrowth || isPro || isElite || isAgency || profile?.dmAddonActive || isMetaReviewer;
 
   if (!hasDMAutomationAccess) {
     return (
@@ -245,13 +216,13 @@ const DashboardDMs = () => {
         <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
           {isPlanExpired 
             ? "Your subscription plan has expired. Please renew your plan to reactivate DM Automation."
-            : "DM Automation is a premium service. It is included by default in the Elite Plan, or can be added to the Starter Plan as an add-on for ₹299/mo."
+            : "DM Automation is included in the Growth (₹1,499/mo) and Pro (₹3,499/mo) plans. Upgrade your plan to automate your Instagram & WhatsApp direct messages 24/7."
           }
         </p>
         <div className="flex flex-col gap-3">
           {isPlanExpired ? (
             <Button 
-              onClick={() => navigate('/dashboard/buy-credits')} 
+              onClick={() => navigate('/dashboard/billing')} 
               className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90"
             >
               Renew Plan
@@ -259,17 +230,17 @@ const DashboardDMs = () => {
           ) : (
             <>
               <Button 
-                onClick={handleBuyAddon} 
-                className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90"
+                onClick={() => navigate('/dashboard/billing')} 
+                className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90 shadow-md"
               >
-                Buy DM Automation Add-on (₹299/mo)
+                Upgrade to Growth Plan (₹1,499/mo)
               </Button>
               <Button 
-                onClick={() => navigate('/dashboard/buy-credits')} 
+                onClick={() => navigate('/dashboard/billing')} 
                 variant="outline"
                 className="w-full h-11 rounded-xl border-border/70 text-foreground font-semibold"
               >
-                Upgrade to Elite Plan (₹2199/mo)
+                View All Plans
               </Button>
             </>
           )}
