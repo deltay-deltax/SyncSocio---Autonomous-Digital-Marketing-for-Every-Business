@@ -5,6 +5,7 @@ import {
 	resubscribeInstagramWebhooks,
 	getAutomations,
 	updateAutomation,
+	disconnectInstagram,
 } from '../controllers/instagramController.js';
 import { receiveInstagramWebhook, testWebhook, verifyInstagramWebhook } from '../controllers/instagramWebhookController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -19,6 +20,10 @@ router.get('/auth', protect, getInstagramAuthUrl);
 
 // Callback from Facebook - Public because Meta redirects here
 router.get('/callback', publicRateLimiter, instagramCallback);
+
+// Disconnect Instagram Account
+router.delete('/disconnect', protect, disconnectInstagram);
+router.post('/disconnect', protect, disconnectInstagram);
 
 // Re-subscribe webhook targets for already connected IG accounts
 router.post('/resubscribe-webhooks', protect, resubscribeInstagramWebhooks);

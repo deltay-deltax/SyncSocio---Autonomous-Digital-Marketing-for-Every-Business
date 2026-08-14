@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HexColorPicker } from "react-colorful";
-import { RefreshCw, Trash2, Pause, Power, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, AlertCircle, Copy, CheckCheck, ArrowRight, Shield, Inbox } from 'lucide-react';
+import { RefreshCw, Trash2, Pause, Power, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, AlertCircle, Copy, CheckCheck, ArrowRight, Shield, Inbox, Unlink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkout } from '@/components/Checkout';
@@ -271,6 +271,51 @@ const DashboardSettings = () => {
     } catch (err: any) {
       console.error('❌ Failed to get auth URL:', err);
       toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
+    }
+  };
+
+  const [disconnectingInstagram, setDisconnectingInstagram] = useState(false);
+
+  const handleInstagramDisconnect = async () => {
+    setDisconnectingInstagram(true);
+    try {
+      const token = localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const res = await fetch(`${apiBase}/auth/instagram/disconnect`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to disconnect Instagram');
+
+      const updatedProfile = {
+        ...profile,
+        instagramIsConnected: false,
+        instagramUsername: '',
+        instagramProfilePicture: '',
+        instagramBusinessAccountId: '',
+        instagramPageId: '',
+        instagramAccessToken: '',
+        instagramPageAccessToken: '',
+      };
+      setProfile(updatedProfile);
+      localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
+
+      toast({
+        title: 'Instagram Disconnected',
+        description: 'Your Instagram Business account has been unlinked.',
+      });
+    } catch (err: any) {
+      console.error('Failed to disconnect Instagram:', err);
+      toast({
+        title: 'Error',
+        description: getFriendlyErrorMessage(err),
+        variant: 'destructive'
+      });
+    } finally {
+      setDisconnectingInstagram(false);
     }
   };
 
@@ -1017,14 +1062,30 @@ const DashboardSettings = () => {
                           </div>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full sm:w-auto shrink-0 text-[10px] sm:text-xs h-10 rounded-xl font-black uppercase tracking-wider sm:tracking-widest border-border/50 px-5"
-                        onClick={handleInstagramConnect}
-                      >
-                        <RefreshCw size={14} className="mr-2 shrink-0" /> Reconnect
-                      </Button>
+                      <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0 w-full sm:w-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full sm:w-auto shrink-0 text-[10px] sm:text-xs h-10 rounded-xl font-black uppercase tracking-wider sm:tracking-widest border-border/50 px-4 sm:px-5 flex items-center justify-center"
+                          onClick={handleInstagramConnect}
+                        >
+                          <RefreshCw size={14} className="mr-2 shrink-0" /> Reconnect
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={disconnectingInstagram}
+                          className="w-full sm:w-auto shrink-0 text-[10px] sm:text-xs h-10 rounded-xl font-black uppercase tracking-wider sm:tracking-widest border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive px-4 sm:px-5 flex items-center justify-center"
+                          onClick={handleInstagramDisconnect}
+                        >
+                          {disconnectingInstagram ? (
+                            <RefreshCw size={14} className="mr-2 animate-spin shrink-0" />
+                          ) : (
+                            <Unlink size={14} className="mr-2 shrink-0" />
+                          )}
+                          {disconnectingInstagram ? 'Unlinking...' : 'Disconnect'}
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">

@@ -415,3 +415,42 @@ export const updateAutomation = async (req, res) => {
     res.status(500).json({ success: false, message: 'An internal server error occurred.' });
   }
 };
+
+/**
+ * DELETE /api/auth/instagram/disconnect
+ * POST /api/auth/instagram/disconnect
+ * Disconnects the Instagram account from the user's active brand profile.
+ */
+export const disconnectInstagram = async (req, res) => {
+  try {
+    const profile = await BrandProfile.findOne({
+      user: req.user._id,
+      ...(req.user.activeBrandId ? { _id: req.user.activeBrandId } : {})
+    }) || await BrandProfile.findOne({ user: req.user._id });
+
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Brand profile not found.' });
+    }
+
+    profile.instagramIsConnected = false;
+    profile.instagramAccessToken = '';
+    profile.instagramPageAccessToken = '';
+    profile.instagramBusinessAccountId = '';
+    profile.instagramPageId = '';
+    profile.instagramUsername = '';
+    profile.instagramProfilePicture = '';
+    await profile.save();
+
+    console.log(`[Instagram Disconnect] Disconnected Instagram for user: ${req.user._id}, brand: ${profile.brandName || profile._id}`);
+
+    res.json({
+      success: true,
+      message: 'Instagram account disconnected successfully.',
+      profile
+    });
+  } catch (err) {
+    console.error('[Instagram Disconnect] Error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to disconnect Instagram account.' });
+  }
+};
+
