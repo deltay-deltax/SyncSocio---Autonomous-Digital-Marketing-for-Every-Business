@@ -619,7 +619,7 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void; i
           <div className="mt-auto pt-4">
             {isLocked ? (
               <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-amber-600">
-                <Lock size={12} /> Unlock with Elite
+                <Lock size={12} /> Unlock with Growth / Pro
               </span>
             ) : (
               <span
@@ -684,7 +684,7 @@ const DashboardStrategy = () => {
 
   const checkLocked = (sId: string) => {
     if (isStarter) {
-      return ['clone', 'sprint', 'video', 'all_in_one'].includes(sId);
+      return ['clone', 'sprint', 'video', 'all_in_one', 'whatsapp', 'email'].includes(sId);
     }
     return false;
   };
@@ -912,7 +912,7 @@ const DashboardStrategy = () => {
   const [recipients, setRecipients] = useState<string[]>([]);
   const [newRecipient, setNewRecipient] = useState('');
   const [whatsappCountryCode, setWhatsappCountryCode] = useState('+91');
-  const [whatsappTemplateName, setWhatsappTemplateName] = useState('custom_campaign_image');
+  const [whatsappTemplateName, setWhatsappTemplateName] = useState('syncsocio_v4_shop');
   const [whatsappTemplates, setWhatsappTemplates] = useState<any[]>([]);
   const [whatsappTemplatesLoading, setWhatsappTemplatesLoading] = useState(false);
   const [requestedTemplates, setRequestedTemplates] = useState<any[]>([]);
@@ -1066,7 +1066,11 @@ const DashboardStrategy = () => {
 
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
 
+  const isGrowth = planName.includes('growth');
+  const isPro = planName.includes('pro');
+  const isAgency = planName.includes('agency');
   const isElite = planName.includes('elite');
+  const hasGrowthOrPro = isGrowth || isPro || isElite || isAgency;
 
   React.useEffect(() => {
     if (mode) {
@@ -1075,19 +1079,24 @@ const DashboardStrategy = () => {
         setMode(null);
         setUpgradeModalReason('expired');
         setShowUpgradeModal(true);
-      } else if (mode === 'video' && !isElite) {
+      } else if (mode === 'video' && !hasGrowthOrPro) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason('video');
         setShowUpgradeModal(true);
-      } else if (['all_in_one'].includes(mode) && !isElite) {
+      } else if (['all_in_one'].includes(mode) && !hasGrowthOrPro) {
+        setStage('pick');
+        setMode(null);
+        setUpgradeModalReason(mode);
+        setShowUpgradeModal(true);
+      } else if (['whatsapp', 'email'].includes(mode) && !hasGrowthOrPro) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason(mode);
         setShowUpgradeModal(true);
       }
     }
-  }, [mode, isPlanExpired, isElite]);
+  }, [mode, isPlanExpired, hasGrowthOrPro]);
 
   const handleModeClick = (mId: Mode) => {
     if (checkLocked(mId)) {
@@ -1896,7 +1905,7 @@ const DashboardStrategy = () => {
         if (errData.code === 'NO_EMAIL_PLAN') {
           toast({
             title: '🔒 Plan required',
-            description: 'Upgrade to a Starter or Elite plan to send email campaigns.',
+            description: 'Upgrade to a Growth or Pro plan to send email campaigns.',
             variant: 'destructive'
           });
           setSendStatus('idle');
@@ -2146,7 +2155,11 @@ const DashboardStrategy = () => {
             if (!mapRes.ok) throw new Error('Failed to map WhatsApp variables');
             const mapData = await mapRes.json();
             setCampaignVariables(mapData.variables);
-
+            
+            // Set subject from variable 1, body from the filled text
+            setCampaignSubject(mapData.variables?.['1'] || finalIdea);
+            setCampaignBody(mapData.filledText || mapData.variables?.['2'] || finalIdea);
+            
             // Format result like what the UI expects for social generation
             data = {
               status: 'success',
@@ -3278,21 +3291,29 @@ const DashboardStrategy = () => {
                 ? 'Plan Expired'
                 : upgradeModalReason === 'video'
                   ? 'Video Generation Locked 🔒'
-                  : 'Premium Feature Locked 🔒'}
+                  : upgradeModalReason === 'whatsapp'
+                    ? 'WhatsApp Campaign Locked 🔒'
+                    : upgradeModalReason === 'email'
+                      ? 'Email Campaign Locked 🔒'
+                      : 'Premium Feature Locked 🔒'}
             </h2>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               {upgradeModalReason === 'expired'
                 ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
                 : upgradeModalReason === 'video'
-                  ? 'AI Video Generation (UGC & Product Videos) is exclusive to Elite and Agency plans. Please upgrade to the Elite Plan to unlock AI video generation.'
-                  : `This is an Elite feature. Upgrade to the Elite Plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
+                  ? 'AI Video Generation (UGC & Product Videos) is included in Growth and Pro plans. Please upgrade your plan to unlock AI video generation.'
+                  : upgradeModalReason === 'whatsapp'
+                    ? 'WhatsApp Campaigns & Broadcasts are included in Growth and Pro plans. Please upgrade your plan to unlock WhatsApp campaigns.'
+                    : upgradeModalReason === 'email'
+                      ? 'Email Campaigns & Newsletters are included in Growth and Pro plans. Please upgrade your plan to unlock email campaigns.'
+                      : `This feature is included in Growth and Pro plans. Upgrade your plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
             </p>
 
             <Button
               onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}
               className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold shadow-lg"
             >
-              {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
+              {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade Plan'}
             </Button>
           </motion.div>
         </div>
@@ -4798,7 +4819,7 @@ const DashboardStrategy = () => {
                             value={t.name}
                             disabled={t.status !== 'APPROVED'}
                           >
-                            {t.name} ({t.status})
+                            {TEMPLATE_DISPLAY_NAMES[t.name] || t.name.replace(/_/g, ' ').replace(/syncsocio v[23] /i, '')} {t.status !== 'APPROVED' ? `(${t.status})` : '✓'}
                           </option>
                         ))
                       ) : (
@@ -5284,6 +5305,10 @@ interface CampaignResultsProps {
 }
 
 const WHATSAPP_BUTTON_LABELS: Record<string, string> = {
+  syncsocio_v4_shop: "Shop Now",
+  syncsocio_v4_offer: "Claim Offer",
+  syncsocio_v4_visit: "Visit Website",
+  syncsocio_v4_announce: "Learn More",
   syncsocio_promo_shop: "Shop Now",
   syncsocio_promo_claim: "Claim Offer",
   syncsocio_promo_visit: "Visit Website",
@@ -5300,24 +5325,40 @@ const WHATSAPP_BUTTON_LABELS: Record<string, string> = {
   syncsocio_interactive_poll: "Swish Now!",
 };
 
+// Professional display names for the template selector dropdown
+const TEMPLATE_DISPLAY_NAMES: Record<string, string> = {
+  syncsocio_v4_shop: 'Product Promotion — Shop Now',
+  syncsocio_v4_offer: 'Exclusive Offer — Claim Offer',
+  syncsocio_v4_visit: 'Brand Promotion — Visit Website',
+  syncsocio_v4_announce: 'Announcement — Learn More',
+  custom_campaign_image: 'Custom Image Campaign',
+  custom_campaign_text: 'Custom Text Campaign',
+};
+
 // Real template body text — exactly what the recipient sees on their WhatsApp.
-// {{1}} = campaign heading/subject, {{2}} = campaign body text
+// v3 templates: {{1}}=headline, {{2}}-{{5}}=flexible content blocks
 const WHATSAPP_TEMPLATE_BODIES: Record<string, string> = {
-  syncsocio_festival: '🎉 *{{1}}*\nThis festive season, we have something special for you:\n{{2}}\nOffer valid for a limited time. Powered by SyncSocio.',
-  syncsocio_promo_image: '🛍️ *{{1}}*\n{{2}}\nGrab it before it runs out. Powered by SyncSocio.',
-  syncsocio_promo_generic: '🔥 *{{1}}*\n{{2}}\nAct fast — limited availability. Powered by SyncSocio.',
-  syncsocio_promo_text: '💬 *{{1}}*\n{{2}}\nTap below to find out more. Powered by SyncSocio.',
-  syncsocio_promo_shop: '🛒 *{{1}}*\n{{2}}\nShop now before stocks run out. Powered by SyncSocio.',
-  syncsocio_promo_claim: '🎁 *{{1}}*\n{{2}}\nClaim it before it expires. Powered by SyncSocio.',
-  syncsocio_promo_visit: '📍 *{{1}}*\n{{2}}\nCome visit us — we would love to see you. Powered by SyncSocio.',
-  syncsocio_promo_book: '📅 *{{1}}*\n{{2}}\nSecure your spot now — slots are filling fast. Powered by SyncSocio.',
-  syncsocio_promo_order: '📦 *{{1}}*\n{{2}}\nThank you for shopping with us. Powered by SyncSocio.',
-  syncsocio_promo_learn: '📚 *{{1}}*\n{{2}}\nStart today and grow your skills. Powered by SyncSocio.',
-  syncsocio_promo_get: '⚡ *{{1}}*\n{{2}}\nDownload now — available for a limited time only. Powered by SyncSocio.',
-  syncsocio_promo_lead: '📋 *{{1}}*\n{{2}}\nFill the form and get your exclusive benefit. Powered by SyncSocio.',
-  syncsocio_interactive_poll: '🗳️ *{{1}}*\n{{2}}\nYour feedback helps us serve you better. Thank you! Powered by SyncSocio.',
-  custom_campaign_image: '*{{1}}*\n{{2}}\nPowered by SyncSocio.',
-  custom_campaign_text: '*{{1}}*\n{{2}}\nPowered by SyncSocio.',
+  // ── v3 Templates (New, Flexible, No Branding) ──
+  syncsocio_v4_shop: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nTap the button below to shop now.',
+  syncsocio_v4_offer: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nTap the button below to claim your offer.',
+  syncsocio_v4_visit: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nWe look forward to seeing you.',
+  syncsocio_v4_announce: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nThank you for your continued support.',
+  // ── Legacy Templates (kept for backward compatibility) ──
+  syncsocio_festival: '🎉 *{{1}}*\nThis festive season, we have something special for you:\n{{2}}\nOffer valid for a limited time.',
+  syncsocio_promo_image: '🛍️ *{{1}}*\n{{2}}\nGrab it before it runs out.',
+  syncsocio_promo_generic: '🔥 *{{1}}*\n{{2}}\nAct fast — limited availability.',
+  syncsocio_promo_text: '💬 *{{1}}*\n{{2}}\nTap below to find out more.',
+  syncsocio_promo_shop: '🛒 *{{1}}*\n{{2}}\nShop now before stocks run out.',
+  syncsocio_promo_claim: '🎁 *{{1}}*\n{{2}}\nClaim it before it expires.',
+  syncsocio_promo_visit: '📍 *{{1}}*\n{{2}}\nCome visit us — we would love to see you.',
+  syncsocio_promo_book: '📅 *{{1}}*\n{{2}}\nSecure your spot now — slots are filling fast.',
+  syncsocio_promo_order: '📦 *{{1}}*\n{{2}}\nThank you for shopping with us.',
+  syncsocio_promo_learn: '📚 *{{1}}*\n{{2}}\nStart today and grow your skills.',
+  syncsocio_promo_get: '⚡ *{{1}}*\n{{2}}\nDownload now — available for a limited time only.',
+  syncsocio_promo_lead: '📋 *{{1}}*\n{{2}}\nFill the form and get your exclusive benefit.',
+  syncsocio_interactive_poll: '🗳️ *{{1}}*\n{{2}}\nYour feedback helps us serve you better. Thank you!',
+  custom_campaign_image: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nTap the button below for more details.',
+  custom_campaign_text: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nTap the link below for more details.',
 };
 
 const COUNTRY_CODES = [
@@ -5681,11 +5722,16 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                       }
 
                       const headline = subject || `${brandName} Exclusive Offer`;
-                      const filled = tplBody
+                      let filled = tplBody
                         ? tplBody
-                          .replace(/\{\{1\}\}/g, headline)
-                          .replace(/\{\{2\}\}/g, body || '...')
+                            .replace(/\{\{1\}\}/g, headline)
+                            .replace(/\{\{2\}\}/g, body || '...')
+                            .replace(/\{\{3\}\}/g, '')
+                            .replace(/\{\{4\}\}/g, '')
+                            .replace(/\{\{5\}\}/g, '')
                         : `${headline}\n\n${body}`;
+                      // Clean up empty lines from unused variables
+                      filled = filled.replace(/\n{3,}/g, '\n\n').trim();
                       // Render bold *text* as <strong>
                       const parts = filled.split(/(\*[^*]+\*)/g);
                       return (

@@ -144,8 +144,8 @@ const AssetLibrary = () => {
 
   // Enforce scheduled posts limits based on plan
   const planName = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
-  const isElite = planName.includes('elite');
-  const scheduleLimit = isElite ? Infinity : 30;
+  const isUnlimitedSchedule = planName.includes('growth') || planName.includes('pro') || planName.includes('elite') || planName.includes('agency');
+  const scheduleLimit = isUnlimitedSchedule ? Infinity : 30;
 
   const [assets, setAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -158,7 +158,7 @@ const AssetLibrary = () => {
   }, [assets]);
 
   const validateScheduleLimit = (schedules: { scheduledAt: string }[]): boolean => {
-    if (isElite) return true;
+    if (isUnlimitedSchedule) return true;
 
     // Count how many are currently active in the queue
     const currentActiveCount = activeScheduledCount;
@@ -167,7 +167,7 @@ const AssetLibrary = () => {
     if (currentActiveCount + newSchedulesCount > 30) {
       toast({
         title: "Queue Limit Reached",
-        description: `Your Starter plan allows up to 30 scheduled posts in your active queue. You currently have ${currentActiveCount} scheduled, and you are trying to schedule ${newSchedulesCount} more. Please upgrade to the Elite plan for unlimited queue size.`,
+        description: `Your Starter plan allows up to 30 scheduled posts in your active queue. You currently have ${currentActiveCount} scheduled, and you are trying to schedule ${newSchedulesCount} more. Please upgrade to Growth or Pro plan for unlimited queue size.`,
         variant: "destructive"
       });
       return false;

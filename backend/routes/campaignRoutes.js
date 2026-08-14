@@ -332,6 +332,10 @@ async function refineCampaignCopy({ rawSubject, rawBody, profile, templateType }
     syncsocio_promo_get: 'freebie or lead magnet offer',
     syncsocio_promo_lead: 'lead generation or sign-up offer',
     syncsocio_interactive_poll: 'customer poll or feedback request',
+    syncsocio_v4_shop: 'product or shopping promotion',
+    syncsocio_v4_offer: 'exclusive offer or deal',
+    syncsocio_v4_visit: 'brand or website promotion',
+    syncsocio_v4_announce: 'announcement or update',
   };
   const campaignType = templateDescriptions[templateType] || 'marketing promotion';
 
@@ -354,14 +358,18 @@ Rewrite this as a crisp, professional WhatsApp marketing message tailored to thi
 Return ONLY a valid JSON object with exactly these two keys:
 {
   "headline": "<bold attention-grabbing headline, max 55 chars, no quotes, emojis OK>",
-  "body": "<sharp campaign body, max 160 chars, no line breaks, no sign-off like Best/Regards/Team, no mention of SyncSocio, no generic filler like 'Hey there' or 'Check out our latest release'>"
+  "body": "<sharp campaign body, max 160 chars, no line breaks, no sign-off like Best/Regards/Team, no generic filler like 'Hey there' or 'Check out our latest release'>"
 }
 
 Rules:
 - Match tone exactly: ${tone}
 - Be specific to ${industry} industry
 - Keep it punchy and action-oriented
+- Make it highly attractive and eye-catching like modern D2C brands (e.g., Swish, Comet)
 - Do NOT invent discounts or offers that were not in the original brief
+- ALWAYS correct any spelling or grammar mistakes in the original brief
+- Use emojis creatively and strategically! Place them at the end of impactful sentences or as bullet points. Do NOT spam them, but use them to make the message visually appealing.
+- You can use WhatsApp markdown to format text (e.g., *bold text* for emphasis on offers, dates, or key phrases)
 - Output ONLY the JSON, nothing else`;
 
   try {
@@ -395,6 +403,16 @@ router.post('/send-whatsapp', protect, validate({ body: sendWhatsappCampaignSche
   try {
     if (!recipients || !recipients.length || !body) {
       return res.status(400).json({ message: 'Recipients and body are required' });
+    }
+
+    const sendingUser = await User.findById(req.user._id);
+    const userPlan = (sendingUser?.plan || '').toLowerCase();
+    if (!userPlan.includes('growth') && !userPlan.includes('pro') && !userPlan.includes('agency')) {
+      return res.status(403).json({
+        code: 'NO_WHATSAPP_PLAN',
+        success: false,
+        message: 'Upgrade to a Growth or Pro plan to send WhatsApp campaigns.'
+      });
     }
 
     const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
@@ -484,13 +502,14 @@ router.post('/send-whatsapp', protect, validate({ body: sendWhatsappCampaignSche
 
     // ─── TEMPLATE CATEGORY ROUTING ───────────────────────────────────────────
     // Marketing templates (festival, promo_*): Use {{1}} = headline, {{2}} = body
-    const MARKETING_TWO_VAR_TEMPLATES = [
+    const MARKETING_MULTI_VAR_TEMPLATES = [
       'syncsocio_v2_festival',
       'syncsocio_v2_promo_image', 'syncsocio_v2_promo_video', 'syncsocio_v2_promo_generic',
       'syncsocio_v2_promo_lead',  'syncsocio_v2_interactive_poll',
       'syncsocio_v2_promo_shop',  'syncsocio_v2_promo_claim', 'syncsocio_v2_promo_visit',
       'syncsocio_v2_promo_book',  'syncsocio_v2_promo_order', 'syncsocio_v2_promo_learn',
       'syncsocio_v2_promo_get',   'syncsocio_v2_promo_text',
+      'syncsocio_v4_shop', 'syncsocio_v4_offer', 'syncsocio_v4_visit', 'syncsocio_v4_announce',
     ];
 
     // Templates that include an IMAGE header component
@@ -502,6 +521,7 @@ router.post('/send-whatsapp', protect, validate({ body: sendWhatsappCampaignSche
       'syncsocio_v2_promo_shop',  'syncsocio_v2_promo_claim', 'syncsocio_v2_promo_visit',
       'syncsocio_v2_promo_book',  'syncsocio_v2_promo_order', 'syncsocio_v2_promo_learn',
       'syncsocio_v2_promo_get',
+      'syncsocio_v4_shop', 'syncsocio_v4_offer', 'syncsocio_v4_visit',
     ];
 
     // Templates that include a dynamic URL button with {{1}}
@@ -513,10 +533,11 @@ router.post('/send-whatsapp', protect, validate({ body: sendWhatsappCampaignSche
       'syncsocio_v2_promo_shop',  'syncsocio_v2_promo_claim', 'syncsocio_v2_promo_visit',
       'syncsocio_v2_promo_book',  'syncsocio_v2_promo_order', 'syncsocio_v2_promo_learn',
       'syncsocio_v2_promo_get',   'syncsocio_v2_promo_text',
+      'syncsocio_v4_shop', 'syncsocio_v4_offer', 'syncsocio_v4_visit', 'syncsocio_v4_announce',
     ];
     // ─────────────────────────────────────────────────────────────────────────
 
-    const isTwoVarMarketing = MARKETING_TWO_VAR_TEMPLATES.includes(targetTemplate);
+    const isMultiVarMarketing = MARKETING_MULTI_VAR_TEMPLATES.includes(targetTemplate);
 
     const sendWithThrottle = async () => {
       for (let i = 0; i < recipients.length; i++) {
@@ -527,24 +548,51 @@ router.post('/send-whatsapp', protect, validate({ body: sendWhatsappCampaignSche
         // ── Build body parameters based on template type ──────────────────
         let bodyParams = [];
         if (req.body.whatsappVariables) {
-          // Dynamic BYO Templates: Map all variables directly
-          const numVars = Object.keys(req.body.whatsappVariables).length;
-          for (let v = 1; v <= numVars; v++) {
-            if (req.body.whatsappVariables[String(v)]) {
-              bodyParams.push({ type: 'text', text: String(req.body.whatsappVariables[String(v)]).substring(0, 1024) });
-            }
+          // Dynamic variable mapping from frontend/LLM
+          // Determine expected variable count based on template type
+          let numVars = Object.keys(req.body.whatsappVariables).length;
+          
+          // Override for known template types to ensure correct count
+          if (targetTemplate.startsWith('syncsocio_v4_') || targetTemplate === 'custom_campaign_image' || targetTemplate === 'custom_campaign_text') {
+            numVars = 3; // v4 and updated custom templates use 3 variables
+          } else if (MARKETING_MULTI_VAR_TEMPLATES.includes(targetTemplate) && !targetTemplate.startsWith('syncsocio_v4_')) {
+            numVars = 2; // Legacy v2 templates use 2 variables
           }
-        } else if (isTwoVarMarketing) {
-          // Marketing approved templates: {{1}} = bold headline, {{2}} = campaign copy body
-          bodyParams = [
-            { type: 'text', text: refinedSubject.substring(0, 60) },   // {{1}} headline — AI refined
-            { type: 'text', text: refinedBody.substring(0, 1024) },    // {{2}} body copy — AI refined
-          ];
+          
+          for (let v = 1; v <= numVars; v++) {
+            let textValue = req.body.whatsappVariables[String(v)];
+            if (!textValue || textValue.trim() === '') {
+              // Fallback: use refined copy for missing variables
+              if (v === 1) textValue = refinedSubject;
+              else if (v === 2) textValue = refinedBody;
+              else textValue = ' '; // Meta requires non-empty, single space as minimal
+            }
+            bodyParams.push({ type: 'text', text: String(textValue).replace(/[\t\r]+/g, ' ').trim().substring(0, 1024) });
+          }
+        } else if (isMultiVarMarketing) {
+          // Marketing templates: fill variables based on template structure
+          if (targetTemplate.startsWith('syncsocio_v4_') || targetTemplate === 'custom_campaign_image' || targetTemplate === 'custom_campaign_text') {
+            // v4 templates: 3 variables
+            bodyParams = [
+              { type: 'text', text: refinedSubject.substring(0, 60) },
+              { type: 'text', text: refinedBody.substring(0, 1024) },
+              { type: 'text', text: ' ' },
+            ];
+          } else {
+            // Legacy v2 templates: 2 variables
+            bodyParams = [
+              { type: 'text', text: refinedSubject.substring(0, 60) },
+              { type: 'text', text: refinedBody.substring(0, 1024) },
+            ];
+          }
         } else {
-          // Legacy custom templates (custom_campaign_image / custom_campaign_text) — single {{1}}
-          const combinedMessage = `${refinedSubject}\n\n${refinedBody}`;
+          // Custom templates (custom_campaign_image / custom_campaign_text) — 5 variables
           bodyParams = [
-            { type: 'text', text: combinedMessage.substring(0, 1024) },
+            { type: 'text', text: refinedSubject.substring(0, 60) },
+            { type: 'text', text: refinedBody.substring(0, 1024) },
+            { type: 'text', text: ' ' },
+            { type: 'text', text: ' ' },
+            { type: 'text', text: ' ' },
           ];
         }
 

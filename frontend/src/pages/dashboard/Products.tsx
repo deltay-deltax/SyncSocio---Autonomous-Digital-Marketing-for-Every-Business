@@ -225,19 +225,19 @@ const ProductForm: React.FC<{
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl overflow-hidden"
+        className="w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border/50">
+        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-border/50 shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-foreground">
+            <h2 className="text-base sm:text-lg font-bold text-foreground">
               {isSaas
                 ? (initial?._id ? 'Edit Service/Feature' : 'Add Service/Feature')
                 : (initial?._id ? 'Edit Product' : 'Add Product')
@@ -247,37 +247,38 @@ const ProductForm: React.FC<{
               {isSaas ? 'Fill in your service details' : 'Fill in your product details'}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted transition">
-            <X size={18} className="text-muted-foreground" />
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted transition text-muted-foreground">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 scrollbar-thin">
           {/* Autofill from Link */}
           {!initial?._id && (
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-2">
+            <div className="p-3.5 sm:p-4 bg-primary/5 border border-primary/20 rounded-2xl mb-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-1.5">
                 <Sparkles size={12}/> Auto-fill with AI
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <input
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
-                  placeholder={isSaas ? "Paste service or feature URL (e.g. AWS EC2, S3)..." : "Paste product URL..."}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder={isSaas ? "Paste service/feature URL..." : "Paste product URL..."}
+                  className="flex-1 min-w-0 px-3.5 sm:px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 <Button 
+                  type="button"
                   onClick={handleAutofill} 
                   disabled={!link.trim() || scraping}
-                  className="rounded-xl px-4 bg-primary text-primary-foreground"
+                  className="rounded-xl px-4 shrink-0 bg-primary text-primary-foreground font-bold text-xs h-10"
                 >
                   {scraping ? <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin" /> : 'Scrape'}
                 </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground/75 mt-2 flex items-center gap-1">
+              <div className="text-[10px] text-muted-foreground/80 mt-2 flex items-start gap-1.5 leading-tight">
                 <span className="text-amber-500 font-bold shrink-0">⚠️ Note:</span>
                 <span>AI agents may make mistakes while scraping. Please verify scraped details before saving.</span>
-              </p>
+              </div>
             </div>
           )}
 
@@ -434,17 +435,17 @@ const ProductForm: React.FC<{
         </div>
 
         {/* Footer */}
-        <div className="p-6 pt-0 flex gap-3">
-          <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
+        <div className="p-4 sm:p-6 border-t border-border/50 bg-card flex gap-3 shrink-0">
+          <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl h-11 text-xs sm:text-sm font-semibold">Cancel</Button>
           <Button
             onClick={handleSave}
             disabled={!form.name.trim() || saving}
-            className="flex-1 rounded-xl bg-primary"
+            className="flex-1 rounded-xl bg-primary h-11 text-xs sm:text-sm font-bold shadow-md"
           >
             {saving ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <><Check size={14} className="mr-1.5" /> {isSaas ? 'Save Service' : 'Save Product'}</>
+              <><Check size={15} className="mr-1.5" /> {isSaas ? 'Save Service' : 'Save Product'}</>
             )}
           </Button>
         </div>
@@ -458,8 +459,8 @@ const Products = () => {
   const { userId, cacheKey, isSaas, productLimit } = React.useMemo(() => {
     const p = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
     const planName = (p.userPlan || p.selectedPlan || p.plan || '').toLowerCase();
-    const isAgency = planName.includes('agency');
-    const isElite = planName.includes('elite');
+    const isPro = planName.includes('pro') || planName.includes('agency');
+    const isGrowth = planName.includes('growth') || planName.includes('elite');
     const SAAS_CATS = [
       'Mobile Apps',
       'IT & Technical Tools',
@@ -480,7 +481,7 @@ const Products = () => {
       userId:   uid,
       cacheKey: `${CACHE_KEY}_${uid}`,
       isSaas:   SAAS_CATS.includes(p.businessCategory || ''),
-      productLimit: isAgency ? 500 : isElite ? 100 : 50,
+      productLimit: isPro ? 500 : isGrowth ? 200 : 50,
     };
   }, []);
 
@@ -582,10 +583,10 @@ const Products = () => {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 mb-3">
-            <Package size={12} className="text-violet-500" />
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 sm:mb-8">
+        <div className="flex-1 min-w-0">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 mb-2.5">
+            <Package size={12} className="text-violet-500 shrink-0" />
             <span className="text-[11px] font-semibold text-violet-500">
               {isSaas ? "Service & Feature Catalog" : "Product Catalog"}
             </span>
@@ -593,14 +594,14 @@ const Products = () => {
           <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-tight">
             {isSaas ? "Services & Features" : "Products"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
             {isSaas 
               ? "Add your services & features — SyncSocio will use them to generate targeted ad creatives." 
               : "Add your products — SyncSocio will use them to generate targeted ad creatives."}
           </p>
-          <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-500 text-[11px] font-medium leading-normal shadow-sm">
-            <span className="text-amber-500 font-black uppercase tracking-wider shrink-0">⚠️ Important Notice:</span>
-            <span>AI agents may make mistakes while parsing or scraping details. Please verify the information yourself.</span>
+          <div className="mt-3 flex items-start gap-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 text-xs leading-relaxed shadow-sm w-full">
+            <span className="text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider text-[11px] shrink-0 mt-0.5">⚠️ Notice:</span>
+            <span className="flex-1">AI agents may make mistakes while parsing or scraping details. Please verify the information yourself.</span>
           </div>
         </div>
         <Button
@@ -615,7 +616,7 @@ const Products = () => {
             }
             setEditing(null); setShowForm(true); 
           }}
-          className="rounded-2xl bg-primary gap-2 shadow-lg shadow-primary/20"
+          className="w-full sm:w-auto shrink-0 rounded-2xl bg-primary gap-2 shadow-lg shadow-primary/20 h-11 px-5 text-xs sm:text-sm font-bold"
         >
           <Plus size={16} /> {isSaas ? "Add Service/Feature" : "Add Product"}
         </Button>
@@ -692,42 +693,46 @@ const Products = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ delay: i * 0.04 }}
-              className="group bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all"
+              className="group bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all flex flex-col justify-between"
             >
               {/* Product image */}
               <div 
                 onClick={() => {
                   if (p.imageBase64) setPreviewUrl(imgSrc(p.imageBase64));
                 }}
-                className={cn("relative h-44 bg-muted overflow-hidden", p.imageBase64 && "cursor-zoom-in")}
+                className={cn("relative h-44 bg-muted/40 overflow-hidden", p.imageBase64 && "cursor-zoom-in")}
               >
                 {p.imageBase64 ? (
-                  <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-3" />
+                  <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-3 transition-transform duration-300 group-hover:scale-105" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Package size={40} className="text-muted-foreground/20" />
                   </div>
                 )}
 
-                {/* Action buttons hover */}
-                <div className="absolute top-2.5 right-2.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition">
+                {/* Action buttons (Always visible on mobile/touch screens, sleek hover on desktop) */}
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10 opacity-100 sm:opacity-90 sm:hover:opacity-100 transition-all duration-200">
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditing(p);
                       setShowForm(true);
                     }}
-                    className="w-8 h-8 rounded-xl bg-white/80 backdrop-blur text-foreground hover:bg-white transition flex items-center justify-center shadow-sm"
+                    className="w-8 h-8 rounded-xl bg-white/95 dark:bg-card/95 backdrop-blur-md text-foreground hover:text-primary hover:bg-white dark:hover:bg-card hover:scale-110 active:scale-95 transition-all flex items-center justify-center shadow-md border border-border/50"
+                    title={isSaas ? "Edit Service" : "Edit Product"}
                   >
                     <Edit2 size={13} />
                   </button>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (p._id) handleDelete(p._id);
                     }}
                     disabled={deleting === p._id}
-                    className="w-8 h-8 rounded-xl bg-white/80 backdrop-blur text-destructive hover:bg-white transition flex items-center justify-center shadow-sm"
+                    className="w-8 h-8 rounded-xl bg-white/95 dark:bg-card/95 backdrop-blur-md text-destructive hover:bg-destructive/10 hover:scale-110 active:scale-95 transition-all flex items-center justify-center shadow-md border border-border/50"
+                    title={isSaas ? "Delete Service" : "Delete Product"}
                   >
                     {deleting === p._id ? (
                       <div className="w-3.5 h-3.5 border-2 border-destructive border-t-transparent rounded-full animate-spin" />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { EditorProvider, useEditor } from '@/contexts/EditorContext';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot, Gift } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot, Gift, LogOut, CreditCard } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -100,6 +100,17 @@ const DashboardLayoutContent = () => {
   const [isLocking, setIsLocking] = useState(false);
 
   const { toast } = useToast();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showSignoutModal, setShowSignoutModal] = useState(false);
+  const profileMenuRef = React.useRef<HTMLDivElement>(null);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('syncsocio_profile');
+    localStorage.removeItem('syncsocio_setup_done');
+    localStorage.removeItem('syncsocio_credits');
+    window.location.href = '/login';
+  };
 
   const [backgroundTasks, setBackgroundTasks] = useState<BgTask[]>(() => {
     try {
@@ -1093,10 +1104,12 @@ const DashboardLayoutContent = () => {
 
               const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
               const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+              const isGrowth = planName.includes('growth');
+              const isPro = planName.includes('pro');
               const isElite = planName.includes('elite');
               const isAgency = planName.includes('agency');
               const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-              const hasDMAutomationAccess = profile?.dmAddonActive || profile?.DM_Automation_Service || isMetaReviewer;
+              const hasDMAutomationAccess = isGrowth || isPro || isElite || isAgency || profile?.dmAddonActive || profile?.DM_Automation_Service || isMetaReviewer;
               const isLocked = item.label === 'DM Automation' && !hasDMAutomationAccess;
 
 
@@ -1171,7 +1184,7 @@ const DashboardLayoutContent = () => {
 
       <main className="flex-1 lg:ml-64 flex flex-col min-w-0 overflow-hidden">
         {/* HEADER */}
-        <header className="h-16 border-b border-border/50 bg-white/50 backdrop-blur-sm px-6 flex items-center justify-between relative z-30 shrink-0">
+        <header className="h-14 sm:h-16 border-b border-border/50 bg-white/50 backdrop-blur-sm px-3 sm:px-6 flex items-center justify-between relative z-30 shrink-0">
           {showRelinkSuccess && (
             <motion.div
               initial={{ y: -50, opacity: 0 }}
@@ -1217,16 +1230,16 @@ const DashboardLayoutContent = () => {
 
             <button
               onClick={() => navigate('/dashboard/buy-credits')}
-              className="flex items-center gap-1.5 sm:gap-2 bg-primary/5 border border-primary/10 p-2 sm:px-3 sm:py-1.5 rounded-full mr-1 sm:mr-2 hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-1 sm:gap-2 bg-primary/5 border border-primary/10 p-2 sm:px-3 sm:py-1.5 rounded-full mr-1 sm:mr-2 hover:bg-primary/10 transition-all duration-200 cursor-pointer"
             >
               <Coins size={14} className="text-primary" />
-              <span className="hidden sm:inline text-[10px] font-black text-primary uppercase tracking-widest">Buy Credit</span>
+              <span className="hidden sm:inline text-[10px] font-black text-primary uppercase tracking-widest">Buy</span>
             </button>
 
             {/* ── Credits Badge ──────────────────────────────── */}
             {credits !== null && (
               <div
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${credits < 50
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${credits < 50
                   ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
                   : credits < 200
                     ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
@@ -1240,7 +1253,7 @@ const DashboardLayoutContent = () => {
                     }`}
                 />
                 <span className="text-[10px] font-black uppercase tracking-widest">
-                  {credits.toLocaleString()} <span className="hidden sm:inline opacity-60 font-bold normal-case tracking-normal">credits</span>
+                  {credits.toLocaleString()} <span className="hidden sm:inline opacity-60 font-bold normal-case tracking-normal">cr</span>
                 </span>
               </div>
             )}
@@ -1257,20 +1270,125 @@ const DashboardLayoutContent = () => {
 
             <div className="h-8 w-px bg-border/50 mx-2" />
 
-            <button onClick={() => navigate('/dashboard/settings')}>
-              <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-primary/20 ring-offset-1 shadow-sm hover:ring-primary/60 transition-all">
-                {(profile?.logo || profile?.instagramProfilePicture) ? (
-                  <img src={profile.logo || profile.instagramProfilePicture} alt={brandName} className="object-contain p-0.5 w-full h-full bg-white" />
-                ) : (
-                  <AvatarFallback className="gradient-bg text-white text-[10px] font-black">{initials}</AvatarFallback>
+            {/* ── User Profile Dropdown ───────────────────────── */}
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                onClick={() => setShowProfileMenu(prev => !prev)}
+                className="flex items-center gap-1.5 focus:outline-none"
+                aria-label="User Account Menu"
+              >
+                <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-primary/20 ring-offset-1 shadow-sm hover:ring-primary/60 transition-all">
+                  {(profile?.logo || profile?.instagramProfilePicture) ? (
+                    <img src={profile.logo || profile.instagramProfilePicture} alt={brandName} className="object-contain p-0.5 w-full h-full bg-white" />
+                  ) : (
+                    <AvatarFallback className="gradient-bg text-white text-[10px] font-black">{initials}</AvatarFallback>
+                  )}
+                </Avatar>
+              </button>
+
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowProfileMenu(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-64 rounded-2xl bg-card border border-border/70 shadow-2xl z-50 overflow-hidden"
+                    >
+                      {/* User / Brand Summary */}
+                      <div className="p-4 bg-muted/30 border-b border-border/50">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-10 h-10 ring-1 ring-border shadow-inner bg-white shrink-0">
+                            {(profile?.logo || profile?.instagramProfilePicture) ? (
+                              <img src={profile.logo || profile.instagramProfilePicture} alt={brandName} className="object-contain p-0.5 w-full h-full" />
+                            ) : (
+                              <AvatarFallback className="gradient-bg text-white text-xs font-black">{initials}</AvatarFallback>
+                            )}
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-foreground truncate">{brandName}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{profile?.userEmail || profile?.email || 'Active Account'}</p>
+                            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                              {profile?.plan || profile?.userPlan || 'Active Plan'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Navigation list */}
+                      <div className="p-1.5 space-y-0.5">
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/dashboard/settings');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+                        >
+                          <Settings size={14} className="text-muted-foreground" />
+                          <span>Settings & Profile</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/dashboard/settings?tab=Plan%20%26%20Billing');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+                        >
+                          <CreditCard size={14} className="text-muted-foreground" />
+                          <span>Plan & Billing</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/dashboard/buy-credits');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+                        >
+                          <Coins size={14} className="text-muted-foreground" />
+                          <span>Top-up Credits</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/dashboard/faq');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+                        >
+                          <HelpCircle size={14} className="text-muted-foreground" />
+                          <span>Help & FAQs</span>
+                        </button>
+                      </div>
+
+                      <div className="p-1.5 border-t border-border/50 bg-muted/10">
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowSignoutModal(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 transition-colors text-left"
+                        >
+                          <LogOut size={14} className="text-destructive" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
                 )}
-              </Avatar>
-            </button>
+              </AnimatePresence>
+            </div>
           </div>
         </header>
 
         {/* PAGE CONTENT */}
-        <section className="flex-1 overflow-y-auto px-4 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
+        <section className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide scroll-touch relative">
           <div className="max-w-6xl mx-auto">
 
             {profile?.plan === 'Free Trial' && (
@@ -1339,7 +1457,33 @@ const DashboardLayoutContent = () => {
         </section>
       </main>
 
-
+      {/* MOBILE BOTTOM NAV BAR */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-border/50 flex items-stretch pb-safe" style={{ minHeight: '60px' }}>
+        {[
+          { label: 'Home', icon: Home, path: '/dashboard', end: true },
+          { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy', end: false },
+          { label: 'Feed', icon: Rss, path: '/dashboard/feed', end: false },
+          { label: 'DMs', icon: MessageSquare, path: '/dashboard/dms', end: false },
+          { label: 'Settings', icon: Settings, path: '/dashboard/settings', end: false },
+        ].map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.end}
+            className={({ isActive }) => cn(
+              'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[9px] font-black uppercase tracking-widest transition-colors active:opacity-70',
+              isActive ? 'text-primary' : 'text-muted-foreground/60'
+            )}
+          >
+            {({ isActive }) => (
+              <>
+                <item.icon size={20} className={cn('transition-colors', isActive ? 'text-primary' : 'text-muted-foreground/40')} />
+                <span>{item.label}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
 
       {/* NOTIFICATION OVERLAY */}
       <AnimatePresence>
@@ -1357,7 +1501,7 @@ const DashboardLayoutContent = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl z-[70] border-l border-border/50 flex flex-col"
+              className="fixed top-0 right-0 bottom-0 w-full sm:max-w-[400px] bg-white shadow-2xl z-[70] border-l border-border/50 flex flex-col"
             >
               {/* Notif content... */}
               <div className="p-8 border-b border-border/50 flex items-center justify-between">
@@ -1514,6 +1658,45 @@ const DashboardLayoutContent = () => {
       )}
       {/* Tier 1 AI Support Agent Widget */}
       <SiteChatbot hideWhatsApp={true} />
+      {/* ── SIGN OUT CONFIRMATION MODAL ───────────────────── */}
+      <AnimatePresence>
+        {showSignoutModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-sm bg-card border border-border/80 rounded-3xl p-6 shadow-2xl text-center space-y-4"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+                <LogOut size={26} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Sign out of SyncSocio?</h3>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  You will be safely logged out of your session on <span className="font-semibold text-foreground">{brandName}</span>. You can sign back in anytime.
+                </p>
+              </div>
+              <div className="flex gap-2.5 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSignoutModal(false)}
+                  className="flex-1 rounded-xl h-10 text-xs font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSignOut}
+                  variant="destructive"
+                  className="flex-1 rounded-xl h-10 text-xs font-bold shadow-md shadow-destructive/20"
+                >
+                  Sign Out
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

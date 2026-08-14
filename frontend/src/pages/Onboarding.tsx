@@ -425,12 +425,12 @@ const Onboarding = () => {
   const progressPercent = (step / (totalSteps - 1)) * 100;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-8 transition-colors duration-500 overflow-hidden relative scrollbar-hide">
+    <div className="min-h-screen bg-background flex items-start justify-center p-2 sm:p-4 md:p-8 transition-colors duration-500 overflow-y-auto scroll-touch relative">
       {/* Ambient background blobs */}
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-primary/[0.03] blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-primary/[0.04] blur-[80px] pointer-events-none" />
 
-      <div className="bg-card rounded-[2rem] shadow-[0_25px_80px_-20px_hsl(221_83%_53%/0.1),0_0_0_1px_hsl(220_15%_90%/0.8)] w-full max-w-[1080px] flex flex-col md:flex-row overflow-hidden min-h-[660px] max-h-[92vh] relative z-10 transition-all duration-500">
+      <div className="bg-card rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_25px_80px_-20px_hsl(221_83%_53%/0.1),0_0_0_1px_hsl(220_15%_90%/0.8)] w-full max-w-[1080px] flex flex-col md:flex-row overflow-hidden relative z-10 transition-all duration-500 my-2 sm:my-4">
 
         {/* Left Panel */}
         <div className="w-full md:w-5/12 hidden md:flex flex-col justify-between overflow-hidden relative" style={{ background: 'linear-gradient(180deg, hsl(214 100% 97%) 0%, hsl(221 83% 53% / 0.06) 100%)' }}>
@@ -483,13 +483,13 @@ const Onboarding = () => {
             </div>
           )}
 
-          <div className="flex justify-between items-center px-8 md:px-12 pt-8 md:pt-10 pb-0 z-10">
+          <div className="flex justify-between items-center px-4 sm:px-8 md:px-12 pt-5 sm:pt-8 md:pt-10 pb-0 z-10">
             {step > 0 && step < 12 ? (
-              <button onClick={handleBack} className="flex items-center text-[11px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-[0.2em] group hover:gap-1">
+              <button onClick={handleBack} className="flex items-center text-[11px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-[0.2em] group hover:gap-1 min-h-[44px] pr-3">
                 <ChevronLeft size={14} className="mr-1 group-hover:-translate-x-0.5 transition-transform" /> BACK
               </button>
             ) : (
-              <Link to="/" className="md:hidden flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-foreground">
+              <Link to="/" className="md:hidden flex items-center gap-2 font-display text-xl font-bold tracking-tight text-foreground">
                 <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-6 h-6 object-contain shrink-0" />
                 <span>SyncSocio</span>
               </Link>
@@ -497,9 +497,9 @@ const Onboarding = () => {
 
             <div className="hidden md:block"></div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {step < 12 && (
-                <div className="flex items-center text-[11px] font-black text-primary px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
+                <div className="flex items-center text-[11px] font-black text-primary px-2.5 sm:px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
                   <Sparkles size={11} className="mr-1.5" /> {step === 0 ? "Auto Scan" : `Step ${step}`}
                   {step > 0 && <span className="text-muted-foreground/50 ml-1">/ {totalSteps - 1}</span>}
                 </div>
@@ -512,14 +512,14 @@ const Onboarding = () => {
                   localStorage.removeItem('syncsocio_setup_done');
                   window.location.href = '/login';
                 }}
-                className="flex items-center text-[10px] font-black text-muted-foreground hover:text-destructive transition-all uppercase tracking-widest group px-3 py-1.5 rounded-full hover:bg-destructive/10"
+                className="flex items-center text-[10px] font-black text-muted-foreground hover:text-destructive transition-all uppercase tracking-widest group px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-destructive/10 min-h-[36px]"
               >
-                <LogOut size={12} className="mr-1.5" /> SIGN OUT
+                <LogOut size={12} className="mr-1 sm:mr-1.5" /> <span className="hidden xs:inline">SIGN OUT</span>
               </button>
             </div>
           </div>
 
-          <div className="flex-grow overflow-y-auto px-8 md:px-12 pb-16">
+          <div className="flex-grow overflow-y-auto scroll-touch px-4 sm:px-8 md:px-12 pb-8 sm:pb-16">
             <div className="max-w-[420px] mx-auto w-full flex flex-col mt-6">
 
               {/* Step 0: Website Scan */}
@@ -712,7 +712,7 @@ const Onboarding = () => {
               {/* Step 1: Identity */}
               {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                  <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Identity</h2>
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Identity</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic leading-relaxed">Let's start with your brand's digital entity.</p>
 
                   <div className="space-y-6">
@@ -736,7 +736,7 @@ const Onboarding = () => {
 
                     <div>
                       <label className="block text-xs font-black text-muted-foreground uppercase tracking-widest mb-3 px-1">Business Category</label>
-                      <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="grid grid-cols-2 gap-2">
                         {[
                           { id: 'Baby & Kids', icon: Heart },
                           { id: 'Food & Beverage', icon: Utensils },
@@ -794,7 +794,7 @@ const Onboarding = () => {
               {/* Step 2: Vision */}
               {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                  <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">The Vision</h2>
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">The Vision</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">What is our primary directive?</p>
 
                   <div className="space-y-6">
@@ -1006,7 +1006,7 @@ const Onboarding = () => {
               {/* Step 6: Psychology */}
               {step === 6 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                  <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Psychology</h2>
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Psychology</h2>
                   <p className="text-muted-foreground text-base mb-8 font-medium italic">What is the problem we are solving?</p>
 
                   <div className="space-y-6">
