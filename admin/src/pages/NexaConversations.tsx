@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Bot, MessageCircle, AlertTriangle, PhoneCall, CheckCircle, IndianRupee, FileText, Search, X } from 'lucide-react';
+import { Bot, AlertTriangle, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';

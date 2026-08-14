@@ -1,5 +1,6 @@
 import express from 'express';
 import SiteSettings from '../models/SiteSettings.js';
+import { handleChat } from '../controllers/siteChatController.js';
 
 const router = express.Router();
 
@@ -15,5 +16,7 @@ router.get('/settings', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server Error' });
   }
 });
+
+router.post('/chatbot', handleChat);
 
 export default router;

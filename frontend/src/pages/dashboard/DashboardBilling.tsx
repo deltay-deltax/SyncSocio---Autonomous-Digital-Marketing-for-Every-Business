@@ -13,14 +13,13 @@ type Plan = {
   badge: string | null;
   creditTag: string;
   prices: {
-    INR: { basePrice: number; originalPrice: number; dmAddon: number };
-    USD: { basePrice: number; originalPrice: number; dmAddon: number };
+    INR: { basePrice: number; originalPrice: number };
+    USD: { basePrice: number; originalPrice: number };
   };
   period: string;
   description: string;
   features: string[];
   lockedFeatures?: string[];
-  addons?: { name: string; prices: { INR: number; USD: number } }[];
   popular: boolean;
   cta: string;
   isCustom?: boolean;
@@ -33,8 +32,8 @@ const plans: Plan[] = [
     badge: null,
     creditTag: "80 Credits",
     prices: {
-      INR: { basePrice: 399, originalPrice: 599, dmAddon: 0 },
-      USD: { basePrice: 5, originalPrice: 8, dmAddon: 0 }
+      INR: { basePrice: 399, originalPrice: 599 },
+      USD: { basePrice: 5, originalPrice: 8 }
     },
     period: "/month",
     description: "For first-time business owners ready to start creating AI content.",
@@ -51,7 +50,17 @@ const plans: Plan[] = [
       "Schedule up to 30 posts",
       "Email support",
     ],
-    addons: [],
+    lockedFeatures: [
+      "Clone Mode",
+      "Sprint (bulk generation)",
+      "Video & Reels generation",
+      "All-in-One Drop mode",
+      "DM Automation",
+      "Nexa AI Sales Agent",
+      "Email Campaign",
+      "WhatsApp Campaign",
+      "Best time to post analytics",
+    ],
     popular: false,
     cta: "Get Started",
   },
@@ -60,8 +69,8 @@ const plans: Plan[] = [
     badge: "Most Popular",
     creditTag: "400 Credits",
     prices: {
-      INR: { basePrice: 1499, originalPrice: 2499, dmAddon: 0 },
-      USD: { basePrice: 19, originalPrice: 35, dmAddon: 0 }
+      INR: { basePrice: 1499, originalPrice: 2499 },
+      USD: { basePrice: 19, originalPrice: 35 }
     },
     period: "/month",
     description: "For active D2C brands ready to automate content and close sales in DMs.",
@@ -85,7 +94,10 @@ const plans: Plan[] = [
       "Best time to post analytics",
       "Priority WhatsApp support",
     ],
-    addons: [],
+    lockedFeatures: [
+      "HD quality image exports",
+      "Multiple brand profiles",
+    ],
     popular: true,
     cta: "Get Started",
   },
@@ -94,8 +106,8 @@ const plans: Plan[] = [
     badge: "High Capacity",
     creditTag: "1,000 Credits",
     prices: {
-      INR: { basePrice: 3499, originalPrice: 4999, dmAddon: 0 },
-      USD: { basePrice: 45, originalPrice: 69, dmAddon: 0 }
+      INR: { basePrice: 3499, originalPrice: 4999 },
+      USD: { basePrice: 45, originalPrice: 69 }
     },
     period: "/month",
     description: "For power users and high-volume brands managing serious sales operations.",
@@ -119,7 +131,6 @@ const plans: Plan[] = [
       "Best time to post analytics",
       "Dedicated WhatsApp support",
     ],
-    addons: [],
     popular: false,
     cta: "Get Started",
   }
@@ -132,23 +143,7 @@ const DashboardBilling = () => {
   const { currency, symbol, setCurrency } = useCurrency();
 
   const [checkoutData, setCheckoutData] = useState<any>(null);
-  const [eliteImageMode, setEliteImageMode] = useState<'SD' | 'HD'>('SD');
   const [showCompareDialog, setShowCompareDialog] = useState(false);
-  const [addonQuantities, setAddonQuantities] = useState<Record<string, Record<string, number>>>({});
-
-  const updateAddonQuantity = (planName: string, addonName: string, delta: number) => {
-    setAddonQuantities(prev => {
-      const current = prev[planName]?.[addonName] || 0;
-      const next = Math.max(0, current + delta);
-      return {
-        ...prev,
-        [planName]: {
-          ...prev[planName],
-          [addonName]: next
-        }
-      };
-    });
-  };
 
   const handleSelectPlan = (planName: string) => {
     if (planName === 'Custom') {
@@ -199,8 +194,8 @@ const DashboardBilling = () => {
         <h2 className="text-3xl font-bold mb-3">
           Choose how active your agent is
         </h2>
-        <p className="text-muted-foreground mb-6">
-          Upgrade or downgrade anytime
+        <p className="text-muted-foreground max-w-xl mx-auto text-sm">
+          Upgrade or change your plan at any time. Scale seamlessly as your brand grows.
         </p>
 
         <div className="flex justify-center items-center gap-2 mt-6">
@@ -215,24 +210,15 @@ const DashboardBilling = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
         {plans.map((plan, i) => {
           const planPrices = plan.prices[currency];
-          
-          const addonTotal = (plan.addons || []).reduce((sum, addon) => {
-            const isSelected = (addonQuantities[plan.name]?.[addon.name] || 0) > 0;
-            return sum + (isSelected ? addon.prices[currency as 'INR' | 'USD'] : 0);
-          }, 0);
-
-          const currentPrice = planPrices.basePrice + addonTotal;
-          const originalPrice = planPrices.originalPrice ? planPrices.originalPrice + addonTotal : 0;
+          const currentPrice = planPrices.basePrice;
+          const originalPrice = planPrices.originalPrice;
           const discountPercent = originalPrice ? Math.floor(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
           
-          const currentPlan = (profile?.selectedPlan || '').toLowerCase();
-          const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand') || !currentPlan;
-          const isGrowth = currentPlan.includes('growth');
-          const isPro = currentPlan.includes('pro');
-          const isCurrentPlan = (plan.name === 'Starter' && isStarter) || (plan.name === 'Growth' && isGrowth) || (plan.name === 'Pro' && isPro);
+          const currentPlanLower = (profile?.selectedPlan || '').toLowerCase();
+          const isCurrentPlan = currentPlanLower.includes(plan.name.toLowerCase());
 
           return (
             <motion.div
@@ -244,11 +230,10 @@ const DashboardBilling = () => {
                 isCurrentPlan
                   ? "bg-emerald-500/5 text-foreground border-2 border-emerald-500 shadow-lg shadow-emerald-500/10"
                   : plan.popular
-                  ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
+                  ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 md:scale-[1.02] z-10"
                   : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
               }`}
             >
-              {/* Top Badges */}
               {isCurrentPlan ? (
                 <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white shadow-md z-20">
                   ✓ Current Plan
@@ -262,7 +247,6 @@ const DashboardBilling = () => {
               ) : null}
 
               <div>
-                {/* Title & Credit Tag */}
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-xl font-extrabold tracking-tight">{plan.name}</h3>
                   <div className="flex items-center gap-2">
@@ -282,7 +266,6 @@ const DashboardBilling = () => {
                   {plan.description}
                 </p>
 
-                {/* Price Block */}
                 <div className="mb-6 pt-3 border-t border-border/20">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -308,80 +291,28 @@ const DashboardBilling = () => {
                     </div>
                 </div>
 
-                {/* Features */}
                 <ul className="space-y-2.5 mb-8">
                   {plan.features.map((feature) => {
-                    let displayFeature = feature;
                     return (
                       <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
-                        {feature === 'No edit option in image' ? (
-                          <X size={15} className="shrink-0 mt-0.5 text-muted-foreground" />
-                        ) : (
-                          <Check size={15} className={`shrink-0 mt-0.5 ${
-                            plan.popular ? "text-white" : "text-primary"
-                          }`} />
-                        )}
-                        <span className={plan.popular ? "text-primary-foreground/95" : (feature === 'No edit option in image' ? "text-muted-foreground line-through" : "text-foreground/90")}>
-                          {displayFeature}
+                        <Check size={15} className={`shrink-0 mt-0.5 ${
+                          plan.popular ? "text-white" : "text-primary"
+                        }`} />
+                        <span className={plan.popular ? "text-primary-foreground/95" : "text-foreground/90"}>
+                          {feature}
                         </span>
                       </li>
                     );
                   })}
+                  {plan.lockedFeatures && plan.lockedFeatures.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
+                      <X size={15} className="shrink-0 mt-0.5 text-muted-foreground/50" />
+                      <span className={`line-through ${plan.popular ? "text-primary-foreground/40" : "text-muted-foreground/50"}`}>
+                        {feature}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
-
-                {/* Add-ons */}
-                {plan.addons && plan.addons.length > 0 && (
-                  <div className="mb-6 border-t border-border/20 pt-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"}`}>Add-ons</span>
-                      <div className={`flex-1 h-px ${plan.popular ? "bg-white/10" : "bg-border/40"}`}></div>
-                    </div>
-                    <div className="space-y-3">
-                      {plan.addons.map((addon) => {
-                        const addonPrice = addon.prices[currency as 'INR' | 'USD'];
-                        const quantity = addonQuantities[plan.name]?.[addon.name] || 0;
-                        const isSelected = quantity > 0;
-                        return (
-                          <div 
-                            key={addon.name} 
-                            onClick={() => updateAddonQuantity(plan.name, addon.name, isSelected ? -1 : 1)}
-                            className={`flex items-center justify-between gap-4 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                              isSelected 
-                                ? (plan.popular ? "border-white/40 bg-white/10 shadow-sm" : "border-primary/40 bg-primary/5 shadow-sm") 
-                                : (plan.popular ? "border-white/10 hover:bg-white/5" : "border-border hover:bg-muted/50")
-                            }`}
-                          >
-                            <div>
-                              <p className={`text-xs font-semibold ${
-                                isSelected 
-                                  ? (plan.popular ? "text-white" : "text-primary") 
-                                  : (plan.popular ? "text-primary-foreground" : "text-foreground")
-                              }`}>
-                                {addon.name}
-                              </p>
-                              <p className={`text-[10px] ${
-                                isSelected 
-                                  ? (plan.popular ? "text-white/80" : "text-primary/80") 
-                                  : (plan.popular ? "text-primary-foreground/70" : "text-muted-foreground")
-                              }`}>
-                                + {symbol}{addonPrice}/month
-                              </p>
-                            </div>
-                            <div className="flex items-center">
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors ${
-                                isSelected 
-                                  ? (plan.popular ? "bg-white text-primary border-white" : "bg-primary text-primary-foreground border-primary") 
-                                  : (plan.popular ? "border-white/30 text-transparent" : "border-muted-foreground/30 text-transparent")
-                              }`}>
-                                <Check size={12} strokeWidth={3} />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
               
               <div className="pt-2">

@@ -3,7 +3,7 @@ import {
   Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import ConnectInstagramFallback from '@/components/ConnectInstagramFallback';
 import { Checkout } from '@/components/Checkout';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const DashboardNexa = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { profile } = (useOutletContext<any>() || { 
     profile: JSON.parse(localStorage.getItem('syncsocio_profile') || 'null') 
   });
@@ -19,12 +20,14 @@ const DashboardNexa = () => {
   const [checkoutData, setCheckoutData] = useState<any>(null);
 
   const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+  const isGrowth = planName.includes('growth');
+  const isPro = planName.includes('pro');
   const isElite = planName.includes('elite');
   const isAgency = planName.includes('agency');
   const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-  // nexaIncluded is computed server-side — Elite & Agency get Nexa free; Starter+ need the add-on
-  const hasNexaAccess = profile?.nexaIncluded || isElite || isAgency || profile?.dmAddonActive || isMetaReviewer;
-  const brandLimit = profile?.brandLimit ?? (isAgency ? 8 : isElite ? 2 : 1);
+  // Nexa is included in Growth & Pro plans
+  const hasNexaAccess = profile?.nexaIncluded || isGrowth || isPro || isElite || isAgency || isMetaReviewer;
+  const brandLimit = profile?.brandLimit ?? (isAgency ? 8 : 1);
   const totalBrands = profile?.totalBrands ?? 1;
   const isInstagramConnected = !!profile?.instagramIsConnected && !!profile?.instagramBusinessAccountId && !!profile?.instagramAccessToken;
 
@@ -60,21 +63,6 @@ const DashboardNexa = () => {
     })();
   }, []);
 
-  const handleBuyAddon = () => {
-    setCheckoutData({
-      baseAmount: 299,
-      description: "DM Automation Add-on (Starter Plan)",
-      type: "dm_addon_purchase",
-      planName: "Starter",
-      creditsAdded: 0
-    });
-  };
-
-  const handleCheckoutSuccess = () => {
-    toast({ title: 'Add-on Activated', description: 'DM Automation is now active!' });
-    window.location.reload();
-  };
-
   const handleReply = async () => {
     if (!replyText.trim() || !selectedLeadId) return;
     setReplying(true);
@@ -98,22 +86,6 @@ const DashboardNexa = () => {
     setReplying(false);
   };
 
-  if (checkoutData) {
-    return (
-      <div className="max-w-xl mx-auto my-8">
-        <Checkout
-          baseAmount={checkoutData.baseAmount}
-          description={checkoutData.description}
-          type={checkoutData.type}
-          planName={checkoutData.planName}
-          creditsAdded={checkoutData.creditsAdded}
-          onSuccess={handleCheckoutSuccess}
-          onBack={() => setCheckoutData(null)}
-        />
-      </div>
-    );
-  }
-
   if (profile && !profile.instagramIsConnected) {
     return (
       <ConnectInstagramFallback 
@@ -129,20 +101,28 @@ const DashboardNexa = () => {
         <div className="w-16 h-16 bg-violet-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Bot size={32} className="text-violet-500" />
         </div>
-        <h2 className="text-xl font-bold mb-2">Nexa AI Agent</h2>
-        <p className="text-sm text-muted-foreground mb-2">
-          Your AI-powered Instagram sales closer. Turns DMs into confirmed orders — 24/7.
+        <h2 className="text-xl font-bold mb-2">Nexa AI Sales Agent Locked</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          Your AI-powered sales closer. Turns DMs into confirmed orders — 24/7.
         </p>
-        <p className="text-xs text-muted-foreground/70 mb-8">
-          Included in <span className="font-bold text-violet-500">Elite</span> &amp; <span className="font-bold text-violet-500">Agency</span> plans, or available as an add-on for ₹199/month.
+        <p className="text-xs text-muted-foreground/80 mb-6">
+          Included in <span className="font-bold text-violet-500">Growth (₹1,499/mo)</span> &amp; <span className="font-bold text-violet-500">Pro (₹3,499/mo)</span> plans.
         </p>
-        {isElite || isAgency ? (
-          <p className="text-sm text-emerald-500 font-bold">✓ Included in your plan — enable it in Settings → Nexa AI Setup</p>
-        ) : (
-          <Button onClick={handleBuyAddon} className="w-full bg-violet-600 hover:bg-violet-700">
-            Add Nexa Agent — ₹199/month
+        <div className="flex flex-col gap-3">
+          <Button 
+            onClick={() => navigate('/dashboard/billing')} 
+            className="w-full h-11 rounded-xl bg-violet-600 hover:bg-violet-700 font-bold text-white shadow-md"
+          >
+            Upgrade to Growth Plan (₹1,499/mo)
           </Button>
-        )}
+          <Button 
+            onClick={() => navigate('/dashboard/billing')} 
+            variant="outline"
+            className="w-full h-11 rounded-xl border-border/70 text-foreground font-semibold"
+          >
+            View All Plans
+          </Button>
+        </div>
       </div>
     );
   }

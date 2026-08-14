@@ -180,7 +180,7 @@ const Setup = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true') {
       if (localStorage.getItem('syncsocio_setup_done') === 'true') {
-        navigate('/dashboard/feed');
+        navigate('/dashboard');
       } else {
         setScreen('plan');
       }
@@ -235,7 +235,11 @@ const Setup = () => {
     }
   };
 
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
+
   const handleStartFreeTrial = async () => {
+    if (isStartingTrial) return;
+    setIsStartingTrial(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('User not authenticated');
@@ -261,11 +265,13 @@ const Setup = () => {
 
       toast({ title: 'Free Trial Activated!', description: 'You have received 15 free credits.' });
       localStorage.setItem('syncsocio_setup_done', 'true');
-      navigate('/dashboard/feed');
+      navigate('/dashboard');
     } catch (err: any) {
       console.error('Failed to start free trial:', err);
       setError(getFriendlyErrorMessage(err));
       toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
+    } finally {
+      setIsStartingTrial(false);
     }
   };
 
@@ -556,7 +562,7 @@ const Setup = () => {
             variant="ghost"
             onClick={() => {
               if (localStorage.getItem('syncsocio_setup_done') === 'true') {
-                navigate('/dashboard/feed');
+                navigate('/dashboard');
               } else {
                 setScreen('plan');
               }
@@ -578,10 +584,11 @@ const Setup = () => {
   if (screen === 'plan') {
     return (
       <Wrapper maxW="max-w-7xl" screenKey={screen}>
-        <div className="-mt-16">
+        <div className="-mt-12 sm:-mt-16">
           <Pricing 
             onWaitlistClick={(planName) => proceedToCheckout(planName || 'Starter')} 
             onFreeTrialClick={handleStartFreeTrial}
+            isTrialLoading={isStartingTrial}
           />
         </div>
       </Wrapper>

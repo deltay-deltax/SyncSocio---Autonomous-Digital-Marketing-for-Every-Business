@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MessageSquare, Search, Zap, MousePointerClick, MessageCircle, BarChart3 } from 'lucide-react';
+import { MessageSquare, Search, Zap, MousePointerClick, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
 
 export default function DMAutomations() {
   const [flows, setFlows] = useState<any[]>([]);

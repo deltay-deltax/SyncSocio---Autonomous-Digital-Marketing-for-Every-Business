@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HexColorPicker } from "react-colorful";
-import { RefreshCw, Trash2, Pause, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, AlertCircle, Copy, CheckCheck, ArrowRight, Shield, Inbox } from 'lucide-react';
+import { RefreshCw, Trash2, Pause, Power, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, AlertCircle, Copy, CheckCheck, ArrowRight, Shield, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkout } from '@/components/Checkout';
@@ -251,6 +251,29 @@ const DashboardSettings = () => {
     }
   };
 
+  const handleInstagramConnect = async () => {
+    console.log('🔄 Connect Instagram clicked. Fetching auth URL...');
+    try {
+      const token = localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      console.log('🚀 Auth Response:', data);
+      if (data.url) {
+        console.log('➡️ Redirecting to:', data.url);
+        window.location.href = data.url;
+      } else {
+        console.error('❌ No URL returned in auth response');
+        toast({ title: 'Error', description: data.message || 'Failed to get authorization URL', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      console.error('❌ Failed to get auth URL:', err);
+      toast({ title: 'Error', description: getFriendlyErrorMessage(err), variant: 'destructive' });
+    }
+  };
+
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tabParam = searchParams.get('tab');
@@ -369,7 +392,9 @@ const DashboardSettings = () => {
       let scrapedProducts = scraped.products || [];
       const p = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
       const planName = (p.userPlan || p.selectedPlan || '').toLowerCase();
-      const productLimit = planName.includes('elite') ? 100 : 50;
+      const isPro = planName.includes('pro') || planName.includes('agency');
+      const isGrowth = planName.includes('growth') || planName.includes('elite');
+      const productLimit = isPro ? 500 : isGrowth ? 200 : 50;
       
       if (scrapedProducts.length > productLimit) {
         scrapedProducts = scrapedProducts.slice(0, productLimit);
@@ -676,14 +701,14 @@ const DashboardSettings = () => {
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sub nav */}
-        <div className="lg:w-48 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+        <div className="lg:w-48 shrink-0 flex lg:flex-col gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-hide scroll-touch -mx-3 px-3 lg:mx-0 lg:px-0">
           {settingsTabs.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                'text-xs font-medium px-3 py-2.5 rounded-xl text-left whitespace-nowrap transition-colors',
-                activeTab === tab ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                'text-xs font-semibold px-3 py-2.5 rounded-xl text-left whitespace-nowrap transition-colors min-h-[40px] flex-shrink-0',
+                activeTab === tab ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
               {tab}
@@ -964,28 +989,28 @@ const DashboardSettings = () => {
 
           {activeTab === 'Connected Accounts' && (
             <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="p-8 pb-2">
+              <CardHeader className="p-5 sm:p-8 pb-2 sm:pb-3">
                 <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Connected Accounts</CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">Manage external social media platform connections.</p>
               </CardHeader>
-              <CardContent className="p-8 space-y-5">
+              <CardContent className="p-4 sm:p-8 space-y-5">
                 <div className="space-y-4">
                   {/* Instagram Connection */}
                   {profile.instagramIsConnected ? (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
-                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
-                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden"
+                      <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0 w-full">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden"
                           style={{
                             background: profile.instagramProfilePicture ? 'none' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)'
                           }}>
                           {profile.instagramProfilePicture ? (
                             <img src={profile.instagramProfilePicture} className="w-full h-full object-cover" />
                           ) : (
-                            <InstagramIcon size={28} className="text-white" />
+                            <InstagramIcon size={26} className="text-white" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-black text-foreground truncate">@{profile.instagramUsername}</p>
+                          <p className="text-sm sm:text-base font-black text-foreground truncate">@{profile.instagramUsername}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest truncate">Active Connection</span>
@@ -995,39 +1020,20 @@ const DashboardSettings = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full sm:w-auto shrink-0 text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
-                        onClick={async () => {
-                          console.log('🔄 Relink Instagram clicked. Fetching auth URL...');
-                          try {
-                            const token = localStorage.getItem('token');
-                            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                            const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, {
-                              headers: { 'Authorization': `Bearer ${token}` }
-                            });
-                            const data = await res.json();
-                            console.log('🚀 Auth Response:', data);
-                            if (data.url) {
-                              console.log('➡️ Redirecting to:', data.url);
-                              window.location.href = data.url;
-                            } else {
-                              console.error('❌ No URL returned in auth response');
-                            }
-                          } catch (err) {
-                            console.error('❌ Failed to get auth URL:', err);
-                          }
-                        }}
+                        className="w-full sm:w-auto shrink-0 text-[10px] sm:text-xs h-10 rounded-xl font-black uppercase tracking-wider sm:tracking-widest border-border/50 px-5"
+                        onClick={handleInstagramConnect}
                       >
                         <RefreshCw size={14} className="mr-2 shrink-0" /> Reconnect
                       </Button>
                     </div>
                   ) : (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-muted/10 border border-dashed border-border/70 hover:bg-muted/20 transition-all">
-                      <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
-                        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
-                          <InstagramIcon size={28} className="text-muted-foreground" />
+                      <div className="flex items-center gap-3.5 sm:gap-4 flex-1 min-w-0 w-full">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-muted-foreground/10">
+                          <InstagramIcon size={26} className="text-muted-foreground" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-black text-foreground truncate">Instagram Business Account</p>
+                          <p className="text-sm sm:text-base font-black text-foreground leading-snug">Instagram Business Account</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <div className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest truncate">Not Connected</span>
@@ -1036,8 +1042,8 @@ const DashboardSettings = () => {
                       </div>
                       <Button
                         size="sm"
-                        className="w-full sm:w-auto shrink-0 gradient-bg text-white text-[10px] h-10 rounded-xl font-black uppercase tracking-widest px-6"
-                        onClick={() => window.location.href = '/setup'}
+                        className="w-full sm:w-auto shrink-0 gradient-bg text-white text-[10px] sm:text-xs h-10 rounded-xl font-black uppercase tracking-wider sm:tracking-widest px-6 shadow-sm"
+                        onClick={handleInstagramConnect}
                       >
                         Connect
                       </Button>
@@ -1479,9 +1485,10 @@ const DashboardSettings = () => {
                   <CardTitle className="text-sm font-black uppercase tracking-widest text-violet-600">Nexa AI Settings</CardTitle>
                   <p className="text-xs text-muted-foreground mt-1">Configure your AI sales closer's payment bounds and negotiation strategies.</p>
                 </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Agent Status</span>
+                <div className="flex flex-col sm:items-end">
+                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5">Agent Status</span>
                   <button
+                    type="button"
                     onClick={async () => {
                       const newVal = !nexaForm.nexa_enabled;
                       setNexaForm((p: any) => ({ ...p, nexa_enabled: newVal }));
@@ -1491,14 +1498,23 @@ const DashboardSettings = () => {
                           method: 'POST', headers: getAuthHeaders(true),
                           body: JSON.stringify({ nexa_enabled: newVal }),
                         });
-                        toast({ title: newVal ? 'Nexa Activated' : 'Nexa Paused' });
+                        toast({ title: newVal ? '⚡ Nexa Agent Activated (Online)' : '⏸️ Nexa Agent Paused (Offline)' });
                       } catch {}
                     }}
-                    className="mt-1"
+                    className={cn(
+                      "flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-bold transition-all shadow-sm active:scale-95",
+                      nexaForm.nexa_enabled
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                        : "bg-muted/80 border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                    title={nexaForm.nexa_enabled ? "Click to pause Nexa agent" : "Click to activate Nexa agent"}
                   >
-                    {nexaForm.nexa_enabled 
-                      ? <CheckCircle2 size={32} className="text-emerald-500 hover:text-emerald-600 transition-colors" />
-                      : <Pause size={32} className="text-muted-foreground hover:text-foreground transition-colors" />}
+                    <span className={cn(
+                      "w-2 h-2 rounded-full",
+                      nexaForm.nexa_enabled ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"
+                    )} />
+                    <Power size={13} className={nexaForm.nexa_enabled ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"} />
+                    <span>{nexaForm.nexa_enabled ? "Active (Online)" : "Paused (Offline)"}</span>
                   </button>
                 </div>
               </CardHeader>
@@ -1530,23 +1546,23 @@ const DashboardSettings = () => {
                             className="text-xs bg-muted/30"
                           />
                           {activeBrandId && (
-                            <div className="mt-4 p-3 bg-muted/20 border border-border/40 rounded-xl space-y-1">
+                            <div className="mt-4 p-3.5 bg-muted/20 border border-border/40 rounded-xl space-y-1.5">
                               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Razorpay Webhook URL</label>
-                              <div className="flex items-center gap-2">
-                                <code className="text-[10px] bg-background px-2 py-1 rounded text-primary flex-1 overflow-x-auto whitespace-nowrap">
+                              <div className="flex items-center gap-2 bg-background border border-border/50 rounded-lg p-1 pl-2.5">
+                                <code className="text-[10px] text-primary flex-1 min-w-0 truncate select-all">
                                   https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/{activeBrandId}
                                 </code>
                                 <Button 
                                   variant="ghost" 
                                   size="sm" 
-                                  className="h-6 px-2 text-[10px]"
+                                  className="h-7 px-2.5 text-[11px] font-bold shrink-0 text-primary hover:bg-primary/10"
                                   onClick={() => {
                                     const url = `https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/${activeBrandId}`;
                                     navigator.clipboard.writeText(url);
                                     toast({ title: 'Webhook URL Copied!' });
                                   }}
                                 >
-                                  Copy
+                                  <Copy size={11} className="mr-1" /> Copy
                                 </Button>
                               </div>
                               <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
@@ -2048,24 +2064,31 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
 
           {/* Step progress */}
           {!useGeneric && (
-            <div className="flex items-center gap-2 mt-4">
+            <div className="flex items-center gap-1.5 flex-wrap mt-4">
               {stepLabels.map((label, i) => {
                 const sNum = i + 1;
                 const isActive = step === sNum;
                 const isDone = step > sNum;
                 return (
-                  <div key={label} className="flex items-center gap-2">
+                  <div key={label} className="flex items-center gap-1.5">
                     <div className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all',
-                      isDone ? 'bg-emerald-500/15 text-emerald-600' :
-                      isActive ? 'bg-primary/15 text-primary' :
-                      'bg-muted text-muted-foreground'
+                      'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all shrink-0',
+                      isDone ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' :
+                      isActive ? 'bg-primary/15 text-primary border border-primary/30 ring-1 ring-primary/20' :
+                      'bg-muted/80 text-muted-foreground border border-border/50'
                     )}>
-                      {isDone ? <CheckCheck size={12} /> : <span className="w-3 h-3 rounded-full border-2 border-current inline-block" />}
-                      {label}
+                      <span className={cn(
+                        'w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-extrabold shrink-0',
+                        isDone ? 'bg-emerald-500 text-white' :
+                        isActive ? 'bg-primary text-white' :
+                        'bg-muted-foreground/20 text-muted-foreground'
+                      )}>
+                        {isDone ? <CheckCheck size={10} /> : sNum}
+                      </span>
+                      <span className="whitespace-nowrap">{label}</span>
                     </div>
                     {i < stepLabels.length - 1 && (
-                      <div className={cn('h-px w-6 rounded-full', step > sNum ? 'bg-emerald-400' : 'bg-border')} />
+                      <div className={cn('h-px w-3 sm:w-5 shrink-0 rounded-full', step > sNum ? 'bg-emerald-400' : 'bg-border')} />
                     )}
                   </div>
                 );
@@ -2771,21 +2794,21 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
       <div className="flex flex-col gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
         
         {/* Billing Warning */}
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-400">
-          <AlertCircle size={20} className="shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <span className="font-bold block mb-1">Meta Billing Requirement</span>
+        <div className="flex items-start gap-3 p-3.5 sm:p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-400">
+          <AlertCircle size={18} className="shrink-0 mt-0.5" />
+          <div className="text-xs sm:text-sm">
+            <span className="font-bold block mb-0.5">Meta Billing Requirement</span>
             Meta requires a valid Credit/Debit card on file in your WhatsApp Business Manager to send campaigns, even for free tiers. If no card is added, your messages will silently fail to deliver.
           </div>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-4 w-full">
-            <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-tr from-[#128C7E] to-[#25D366] border border-green-500/30">
-              <WhatsAppIcon size={24} className="text-white" />
+        <div className="flex flex-col gap-5 sm:gap-6">
+          <div className="flex items-center gap-3.5 sm:gap-4 w-full">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-gradient-to-tr from-[#128C7E] to-[#25D366] border border-green-500/30">
+              <WhatsAppIcon size={24} className="text-white shrink-0" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-base font-black text-foreground truncate">
+              <p className="text-sm sm:text-base font-black text-foreground break-words leading-snug">
                 {profile.whatsappNumber
                   ? profile.whatsappNumber
                   : profile.whatsappPhoneId
@@ -2804,21 +2827,21 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
               )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 w-full">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full">
             <Button
               onClick={handleSyncTemplates}
               variant="outline"
               size="sm"
-              className="flex-1 sm:flex-none text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5 bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+              className="text-[9px] sm:text-[10px] h-9 sm:h-10 rounded-xl font-bold uppercase tracking-wider border-border/50 px-2 sm:px-4 bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 flex items-center justify-center"
             >
-              <RefreshCw size={14} className="mr-2 shrink-0" />
-              Resync Templates
+              <RefreshCw size={13} className="mr-1.5 shrink-0" />
+              <span>Resync Templates</span>
             </Button>
             <Button
               onClick={() => setShowManualForm(!showManualForm)}
               variant="outline"
               size="sm"
-              className="flex-1 sm:flex-none text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+              className="text-[9px] sm:text-[10px] h-9 sm:h-10 rounded-xl font-bold uppercase tracking-wider border-border/50 px-2 sm:px-4 flex items-center justify-center"
             >
               {showManualForm ? 'Hide Settings' : 'Configure Manually'}
             </Button>
@@ -2827,17 +2850,17 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
               disabled={loading}
               variant="outline"
               size="sm"
-              className="flex-1 sm:flex-none text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-border/50 px-5"
+              className="text-[9px] sm:text-[10px] h-9 sm:h-10 rounded-xl font-bold uppercase tracking-wider border-border/50 px-2 sm:px-4 flex items-center justify-center"
             >
-              {loading ? <RefreshCw size={14} className="mr-2 animate-spin shrink-0" /> : <RefreshCw size={14} className="mr-2 shrink-0" />}
-              Reconnect
+              {loading ? <RefreshCw size={13} className="mr-1.5 animate-spin shrink-0" /> : <RefreshCw size={13} className="mr-1.5 shrink-0" />}
+              <span>Reconnect</span>
             </Button>
             <Button
               onClick={handleDisconnect}
               disabled={disconnecting}
               variant="outline"
               size="sm"
-              className="flex-1 sm:flex-none text-[10px] h-10 rounded-xl font-black uppercase tracking-widest border-destructive/30 text-destructive hover:bg-destructive/10 px-5"
+              className="text-[9px] sm:text-[10px] h-9 sm:h-10 rounded-xl font-bold uppercase tracking-wider border-destructive/30 text-destructive hover:bg-destructive/10 px-2 sm:px-4 flex items-center justify-center"
             >
               {disconnecting ? 'Unlinking...' : 'Disconnect'}
             </Button>
@@ -2890,32 +2913,32 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-[#128C7E]/5 to-[#25D366]/5 border border-dashed border-green-500/30 hover:border-green-500/50 transition-all">
-      <div className="flex items-start gap-4">
-        <div className="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-gradient-to-tr from-[#128C7E]/20 to-[#25D366]/20 border border-green-500/20">
-          <WhatsAppIcon size={28} className="text-green-600" />
+      <div className="flex items-start gap-3.5 sm:gap-4">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden bg-gradient-to-tr from-[#128C7E]/20 to-[#25D366]/20 border border-green-500/20">
+          <WhatsAppIcon size={24} className="text-green-600 shrink-0" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-base font-black text-foreground truncate">WhatsApp Business API</p>
+          <p className="text-sm sm:text-base font-black text-foreground leading-snug">WhatsApp Business API</p>
           <div className="flex items-center gap-2 mt-0.5">
             <div className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Not Connected</span>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
             Connect your WhatsApp Business number to send bulk campaign blasts, promotional messages, and automated replies directly from SyncSocio.
           </p>
         </div>
       </div>
 
       {/* Permissions list */}
-      <div className="flex flex-col gap-1.5 pl-1">
+      <div className="flex flex-col gap-2 pl-0.5 py-1">
         {[
           'Send WhatsApp campaign blasts to your contacts',
           'Upload and attach creative images to messages',
           'Manage message templates via WABA',
         ].map((perm, i) => (
-          <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-            <CheckCircle2 size={13} className="text-green-500 shrink-0" />
-            {perm}
+          <div key={i} className="flex items-start sm:items-center gap-2 text-xs text-muted-foreground">
+            <CheckCircle2 size={14} className="text-green-500 shrink-0 mt-0.5 sm:mt-0" />
+            <span className="leading-tight">{perm}</span>
           </div>
         ))}
       </div>
@@ -2923,17 +2946,17 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
       <Button
         onClick={launchEmbeddedSignup}
         disabled={loading}
-        className="w-full sm:w-auto h-11 rounded-xl text-xs font-black uppercase tracking-widest px-6 text-white shadow-lg"
+        className="w-full sm:w-auto h-11 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest px-4 sm:px-6 text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
         style={{ background: 'linear-gradient(135deg, #128C7E, #25D366)' }}
       >
         {loading ? (
-          <RefreshCw size={15} className="mr-2 animate-spin" />
+          <RefreshCw size={15} className="animate-spin shrink-0" />
         ) : (
-          <WhatsAppIcon size={16} className="mr-2" />
+          <WhatsAppIcon size={16} className="shrink-0" />
         )}
-        {loading ? 'Connecting...' : 'Connect WhatsApp Business'}
+        <span>{loading ? 'Connecting...' : 'Connect WhatsApp Business'}</span>
       </Button>
-      <p className="text-[10px] text-muted-foreground text-center">
+      <p className="text-[10px] text-muted-foreground text-center leading-normal">
         A secure Meta popup will appear. Select your WhatsApp Business number and grant permissions.
       </p>
     </div>

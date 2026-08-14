@@ -30,22 +30,21 @@ export default function FreeCreativesSection() {
             <Sparkles className="w-3 h-3" /> Limited offer
           </div>
           <h2 className="mt-5 text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
-            Get <span className="text-primary">3 free creatives</span><br /> crafted for your brand.
+            Start your <span className="text-primary">free trial</span><br /> or book a demo.
           </h2>
           <p className="mt-5 text-lg text-muted-foreground">
-            Share your brand, pick a vibe, and our AI studio ships 3 scroll-stopping creatives
-            to your inbox — free, no card required.
+            Experience the power of our AI studio yourself with a free trial, or book a demo to see how we can craft scroll-stopping creatives for your brand.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => {
-                trackMetaEvent('Lead', { content_name: 'Free Creatives Click' });
+                trackMetaEvent('Lead', { content_name: 'Free Trial Click' });
                 navigate("/signup");
               }}
               className="group inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/25"
             >
-              Claim 3 Free Creatives
+              Start Free Trial
              
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { EditorProvider, useEditor } from '@/contexts/EditorContext';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot, Gift, LogOut, CreditCard } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -90,14 +90,25 @@ const DashboardLayoutContent = () => {
   const [outOfCreditsCost, setOutOfCreditsCost] = useState(0);
   const [creditsAnim, setCreditsAnim] = useState(false);
   const [brands, setBrands] = useState<any[]>([]);
-  
+
   // Downgrade choice state
   const [showDowngradeModal, setShowDowngradeModal] = useState(false);
   const [allowedMaxBrands, setAllowedMaxBrands] = useState(1);
   const [downgradeSelectedBrands, setDowngradeSelectedBrands] = useState<string[]>([]);
   const [isLocking, setIsLocking] = useState(false);
-  
+
   const { toast } = useToast();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showSignoutModal, setShowSignoutModal] = useState(false);
+  const profileMenuRef = React.useRef<HTMLDivElement>(null);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('syncsocio_profile');
+    localStorage.removeItem('syncsocio_setup_done');
+    localStorage.removeItem('syncsocio_credits');
+    window.location.href = '/login';
+  };
 
   const [backgroundTasks, setBackgroundTasks] = useState<BgTask[]>(() => {
     try {
@@ -105,9 +116,9 @@ const DashboardLayoutContent = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         // If a task was running when the page was refreshed, the connection is lost.
-        return parsed.map((t: BgTask) => 
-          t.status === 'generating' 
-            ? { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" } 
+        return parsed.map((t: BgTask) =>
+          t.status === 'generating'
+            ? { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" }
             : t
         );
       }
@@ -128,7 +139,7 @@ const DashboardLayoutContent = () => {
           const processed = idbTasks.map((t: BgTask) => {
             if (t.status === 'generating') {
               hasInterrupted = true;
-               return { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
+              return { ...t, status: 'error' as const, error: "Looks like the page refreshed. Don't worry, your assets should still arrive in the Asset Library shortly!" };
             }
             return t;
           });
@@ -156,19 +167,19 @@ const DashboardLayoutContent = () => {
       // Save lightweight metadata to localStorage for instant UI load
       const lightweightTasks = backgroundTasks.map(t => ({
         ...t,
-        posts: [] 
+        posts: []
       }));
       localStorage.setItem('syncsocio_bg_tasks', JSON.stringify(lightweightTasks));
-      
+
       // Save the heavy data (including base64 images) to IndexedDB
       saveTasksToIDB(backgroundTasks);
     } catch (err) {
       console.warn('Could not save background tasks:', err);
     }
-    
+
     // Prevent accidental reload if there's an active generation
     const hasActiveGeneration = backgroundTasks.some(t => t.status === 'generating');
-    
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasActiveGeneration) {
         e.preventDefault();
@@ -226,7 +237,7 @@ const DashboardLayoutContent = () => {
   const startBackgroundGeneration = async (payload: any, creditCost: number, creditReason: string, mode: any) => {
     const currentCreditsStr = localStorage.getItem('syncsocio_credits');
     const currentCredits = parseInt(currentCreditsStr || '0', 10);
-    
+
     if (creditCost > 0 && currentCredits < creditCost) {
       setOutOfCreditsCost(creditCost);
       setShowOutOfCreditsModal(true);
@@ -326,7 +337,7 @@ const DashboardLayoutContent = () => {
   const startBackgroundAllInOne = async (requests: any[], creditCost: number, creditReason: string) => {
     const currentCreditsStr = localStorage.getItem('syncsocio_credits');
     const currentCredits = parseInt(currentCreditsStr || '0', 10);
-    
+
     if (creditCost > 0 && currentCredits < creditCost) {
       setOutOfCreditsCost(creditCost);
       setShowOutOfCreditsModal(true);
@@ -441,7 +452,7 @@ const DashboardLayoutContent = () => {
       mode: 'clone',
       posts: [],
       error: null,
-      creditCost: 0, 
+      creditCost: 0,
       creditReason: '',
       createdAt: Date.now(),
     };
@@ -465,10 +476,10 @@ const DashboardLayoutContent = () => {
           const data = await response.json().catch(() => ({}));
           throw new Error(data.error || 'Failed to generate clone');
         }
-        
+
         const data = await response.json();
         const imageSrc = data.image ? (data.image.startsWith('data:') || data.image.startsWith('http') ? data.image : `data:image/jpeg;base64,${data.image}`) : null;
-        
+
         if (data.credits !== undefined) {
           localStorage.setItem('syncsocio_credits', String(data.credits));
           window.dispatchEvent(new StorageEvent('storage', {
@@ -608,7 +619,7 @@ const DashboardLayoutContent = () => {
       try {
         const token = localStorage.getItem('token');
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        
+
         // 1. Deduct Credits Upfront
         if (creditCost > 0) {
           const deductRes = await fetch(`${apiBase}/credits/deduct`, {
@@ -619,12 +630,12 @@ const DashboardLayoutContent = () => {
             },
             body: JSON.stringify({ amount: creditCost, reason: 'Sprint campaign generation' }),
           });
-          
+
           if (!deductRes.ok) {
             const errData = await deductRes.json().catch(() => ({}));
             throw new Error(errData.message || 'Insufficient credits for Sprint campaign');
           }
-          
+
           const credData = await deductRes.json();
           localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
           window.dispatchEvent(new StorageEvent('storage', {
@@ -657,7 +668,7 @@ const DashboardLayoutContent = () => {
         const data = await response.json();
         if (data.status === 'success') {
           const posts = data.posts || [];
-          
+
           // Credits already deducted upfront.
 
           setBackgroundTasks(prev => prev.map(t =>
@@ -673,7 +684,7 @@ const DashboardLayoutContent = () => {
         }
       } catch (err: any) {
         console.error('[BgAutopilot] failed:', err);
-        
+
         if (creditsDeducted && creditCost > 0) {
           try {
             const token = localStorage.getItem('token');
@@ -788,14 +799,14 @@ const DashboardLayoutContent = () => {
       try {
         const token = localStorage.getItem('token');
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        
+
         let userPlan = 'starter';
         const profileRes = await fetch(`${apiBase}/profile/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (profileRes.ok) {
-           const pData = await profileRes.json();
-           userPlan = (pData.userPlan || 'starter').toLowerCase();
+          const pData = await profileRes.json();
+          userPlan = (pData.userPlan || 'starter').toLowerCase();
         }
 
         const res = await fetch(`${apiBase}/profile/list`, {
@@ -809,11 +820,11 @@ const DashboardLayoutContent = () => {
           const hasAgency = userPlan.includes('agency');
           const hasElite = userPlan.includes('elite');
           const maxBrands = hasAgency ? 8 : hasElite ? 2 : 1;
-          
+
           const unlockedCount = fetchedBrands.filter((b: any) => !b.isLocked).length;
           if (unlockedCount > maxBrands) {
-             setAllowedMaxBrands(maxBrands);
-             setShowDowngradeModal(true);
+            setAllowedMaxBrands(maxBrands);
+            setShowDowngradeModal(true);
           }
         }
       } catch (err) {
@@ -834,7 +845,7 @@ const DashboardLayoutContent = () => {
         });
         return;
       }
-      
+
       const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
       const res = await fetch(`${apiBase}/profile/switch`, {
@@ -1091,10 +1102,12 @@ const DashboardLayoutContent = () => {
 
               const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
               const planName = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+              const isGrowth = planName.includes('growth');
+              const isPro = planName.includes('pro');
               const isElite = planName.includes('elite');
               const isAgency = planName.includes('agency');
               const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-              const hasDMAutomationAccess = profile?.dmAddonActive || profile?.DM_Automation_Service || isMetaReviewer;
+              const hasDMAutomationAccess = isGrowth || isPro || isElite || isAgency || profile?.dmAddonActive || profile?.DM_Automation_Service || isMetaReviewer;
               const isLocked = item.label === 'DM Automation' && !hasDMAutomationAccess;
 
 
@@ -1169,7 +1182,7 @@ const DashboardLayoutContent = () => {
 
       <main className="flex-1 lg:ml-64 flex flex-col min-w-0 overflow-hidden">
         {/* HEADER */}
-        <header className="h-16 border-b border-border/50 bg-white/50 backdrop-blur-sm px-6 flex items-center justify-between relative z-30 shrink-0">
+        <header className="h-14 sm:h-16 border-b border-border/50 bg-white/50 backdrop-blur-sm px-3 sm:px-6 flex items-center justify-between relative z-30 shrink-0">
           {showRelinkSuccess && (
             <motion.div
               initial={{ y: -50, opacity: 0 }}
@@ -1215,20 +1228,20 @@ const DashboardLayoutContent = () => {
 
             <button
               onClick={() => navigate('/dashboard/buy-credits')}
-              className="flex items-center gap-1.5 sm:gap-2 bg-primary/5 border border-primary/10 p-2 sm:px-3 sm:py-1.5 rounded-full mr-1 sm:mr-2 hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-1 sm:gap-2 bg-primary/5 border border-primary/10 p-2 sm:px-3 sm:py-1.5 rounded-full mr-1 sm:mr-2 hover:bg-primary/10 transition-all duration-200 cursor-pointer"
             >
               <Coins size={14} className="text-primary" />
-              <span className="hidden sm:inline text-[10px] font-black text-primary uppercase tracking-widest">Buy Credit</span>
+              <span className="hidden sm:inline text-[10px] font-black text-primary uppercase tracking-widest">Buy</span>
             </button>
 
             {/* ── Credits Badge ──────────────────────────────── */}
             {credits !== null && (
               <div
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${credits < 50
-                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
-                    : credits < 200
-                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
-                      : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700'
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${credits < 50
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
+                  : credits < 200
+                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                    : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700'
                   } ${creditsAnim ? 'scale-110' : 'scale-100'}`}
                 title={`${credits} credits remaining`}
               >
@@ -1238,7 +1251,7 @@ const DashboardLayoutContent = () => {
                     }`}
                 />
                 <span className="text-[10px] font-black uppercase tracking-widest">
-                  {credits.toLocaleString()} <span className="hidden sm:inline opacity-60 font-bold normal-case tracking-normal">credits</span>
+                  {credits.toLocaleString()} <span className="hidden sm:inline opacity-60 font-bold normal-case tracking-normal">cr</span>
                 </span>
               </div>
             )}
@@ -1255,22 +1268,127 @@ const DashboardLayoutContent = () => {
 
             <div className="h-8 w-px bg-border/50 mx-2" />
 
-            <button onClick={() => navigate('/dashboard/settings')}>
-              <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-primary/20 ring-offset-1 shadow-sm hover:ring-primary/60 transition-all">
-                {(profile?.logo || profile?.instagramProfilePicture) ? (
-                  <img src={profile.logo || profile.instagramProfilePicture} alt={brandName} className="object-contain p-0.5 w-full h-full bg-white" />
-                ) : (
-                  <AvatarFallback className="gradient-bg text-white text-[10px] font-black">{initials}</AvatarFallback>
+            {/* ── User Profile Dropdown ───────────────────────── */}
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                onClick={() => setShowProfileMenu(prev => !prev)}
+                className="flex items-center gap-1.5 focus:outline-none"
+                aria-label="User Account Menu"
+              >
+                <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-primary/20 ring-offset-1 shadow-sm hover:ring-primary/60 transition-all">
+                  {(profile?.logo || profile?.instagramProfilePicture) ? (
+                    <img src={profile.logo || profile.instagramProfilePicture} alt={brandName} className="object-contain p-0.5 w-full h-full bg-white" />
+                  ) : (
+                    <AvatarFallback className="gradient-bg text-white text-[10px] font-black">{initials}</AvatarFallback>
+                  )}
+                </Avatar>
+              </button>
+
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowProfileMenu(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-64 rounded-2xl bg-card border border-border/70 shadow-2xl z-50 overflow-hidden"
+                    >
+                      {/* User / Brand Summary */}
+                      <div className="p-4 bg-muted/30 border-b border-border/50">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-10 h-10 ring-1 ring-border shadow-inner bg-white shrink-0">
+                            {(profile?.logo || profile?.instagramProfilePicture) ? (
+                              <img src={profile.logo || profile.instagramProfilePicture} alt={brandName} className="object-contain p-0.5 w-full h-full" />
+                            ) : (
+                              <AvatarFallback className="gradient-bg text-white text-xs font-black">{initials}</AvatarFallback>
+                            )}
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-foreground truncate">{brandName}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{profile?.userEmail || profile?.email || 'Active Account'}</p>
+                            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                              {profile?.plan || profile?.userPlan || 'Active Plan'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Navigation list */}
+                      <div className="p-1.5 space-y-0.5">
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/dashboard/settings');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+                        >
+                          <Settings size={14} className="text-muted-foreground" />
+                          <span>Settings & Profile</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/dashboard/settings?tab=Plan%20%26%20Billing');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+                        >
+                          <CreditCard size={14} className="text-muted-foreground" />
+                          <span>Plan & Billing</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/dashboard/buy-credits');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+                        >
+                          <Coins size={14} className="text-muted-foreground" />
+                          <span>Top-up Credits</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/dashboard/faq');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+                        >
+                          <HelpCircle size={14} className="text-muted-foreground" />
+                          <span>Help & FAQs</span>
+                        </button>
+                      </div>
+
+                      <div className="p-1.5 border-t border-border/50 bg-muted/10">
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowSignoutModal(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 transition-colors text-left"
+                        >
+                          <LogOut size={14} className="text-destructive" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
                 )}
-              </Avatar>
-            </button>
+              </AnimatePresence>
+            </div>
           </div>
         </header>
 
         {/* PAGE CONTENT */}
-        <section className="flex-1 overflow-y-auto px-4 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide relative">
+        <section className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide scroll-touch relative">
           <div className="max-w-6xl mx-auto">
-            
+
             {profile?.plan === 'Free Trial' && (
               <div className="mb-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -1282,8 +1400,8 @@ const DashboardLayoutContent = () => {
                     <p className="text-xs text-muted-foreground mt-0.5">You have {credits || 0} credits remaining. Upgrade to unlock all features.</p>
                   </div>
                 </div>
-                <Button 
-                  onClick={() => navigate('/dashboard/settings')} 
+                <Button
+                  onClick={() => navigate('/dashboard/settings')}
                   className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shrink-0"
                 >
                   Upgrade Plan
@@ -1308,6 +1426,7 @@ const DashboardLayoutContent = () => {
                         <p className="text-sm font-bold">Account Relinked Successfully</p>
                         <p className="text-[10px] font-medium opacity-90 uppercase tracking-widest">Your Instagram operations are now synchronized</p>
                       </div>
+
                     </div>
                     <button onClick={() => setShowRelinkSuccess(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                       <X size={16} />
@@ -1316,7 +1435,6 @@ const DashboardLayoutContent = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-
             <Outlet context={{
               profile,
               setProfile,
@@ -1337,7 +1455,33 @@ const DashboardLayoutContent = () => {
         </section>
       </main>
 
-
+      {/* MOBILE BOTTOM NAV BAR */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-border/50 flex items-stretch pb-safe" style={{ minHeight: '60px' }}>
+        {[
+          { label: 'Home', icon: Home, path: '/dashboard', end: true },
+          { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy', end: false },
+          { label: 'Feed', icon: Rss, path: '/dashboard/feed', end: false },
+          { label: 'DMs', icon: MessageSquare, path: '/dashboard/dms', end: false },
+          { label: 'Settings', icon: Settings, path: '/dashboard/settings', end: false },
+        ].map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.end}
+            className={({ isActive }) => cn(
+              'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[9px] font-black uppercase tracking-widest transition-colors active:opacity-70',
+              isActive ? 'text-primary' : 'text-muted-foreground/60'
+            )}
+          >
+            {({ isActive }) => (
+              <>
+                <item.icon size={20} className={cn('transition-colors', isActive ? 'text-primary' : 'text-muted-foreground/40')} />
+                <span>{item.label}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
 
       {/* NOTIFICATION OVERLAY */}
       <AnimatePresence>
@@ -1355,7 +1499,7 @@ const DashboardLayoutContent = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl z-[70] border-l border-border/50 flex flex-col"
+              className="fixed top-0 right-0 bottom-0 w-full sm:max-w-[400px] bg-white shadow-2xl z-[70] border-l border-border/50 flex flex-col"
             >
               {/* Notif content... */}
               <div className="p-8 border-b border-border/50 flex items-center justify-between">
@@ -1434,21 +1578,21 @@ const DashboardLayoutContent = () => {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-background rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-border relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
-            
+
             <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6">
               <Lock size={32} className="text-amber-500" />
             </div>
-            
+
             <h2 className="text-2xl font-black tracking-tight mb-2">Downgrade Detected</h2>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-              Your current plan only allows <span className="font-bold text-foreground">{allowedMaxBrands} active brand profile(s)</span>, but you currently have {brands.length}. 
-              <br/><br/>
+              Your current plan only allows <span className="font-bold text-foreground">{allowedMaxBrands} active brand profile(s)</span>, but you currently have {brands.length}.
+              <br /><br />
               Please select the <span className="font-bold text-primary">{allowedMaxBrands} brand(s)</span> you want to keep active. The rest will be securely locked until you upgrade again.
             </p>
 
             <div className="space-y-3 mb-8 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
               {brands.map(b => (
-                <div 
+                <div
                   key={b._id}
                   onClick={() => {
                     if (downgradeSelectedBrands.includes(b._id)) {
@@ -1463,8 +1607,8 @@ const DashboardLayoutContent = () => {
                   }}
                   className={cn(
                     "p-4 rounded-2xl border-2 flex items-center gap-4 cursor-pointer transition-all",
-                    downgradeSelectedBrands.includes(b._id) 
-                      ? "border-primary bg-primary/5 shadow-sm" 
+                    downgradeSelectedBrands.includes(b._id)
+                      ? "border-primary bg-primary/5 shadow-sm"
                       : "border-border/50 hover:border-primary/30 bg-card"
                   )}
                 >
@@ -1482,8 +1626,8 @@ const DashboardLayoutContent = () => {
               ))}
             </div>
 
-            <Button 
-              className="w-full h-12 rounded-xl gradient-bg text-white font-bold tracking-wide" 
+            <Button
+              className="w-full h-12 rounded-xl gradient-bg text-white font-bold tracking-wide"
               onClick={handleDowngradeSelection}
               disabled={isLocking || downgradeSelectedBrands.length !== allowedMaxBrands}
             >
@@ -1510,6 +1654,45 @@ const DashboardLayoutContent = () => {
           </div>
         </div>
       )}
+      {/* ── SIGN OUT CONFIRMATION MODAL ───────────────────── */}
+      <AnimatePresence>
+        {showSignoutModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-sm bg-card border border-border/80 rounded-3xl p-6 shadow-2xl text-center space-y-4"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+                <LogOut size={26} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Sign out of SyncSocio?</h3>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  You will be safely logged out of your session on <span className="font-semibold text-foreground">{brandName}</span>. You can sign back in anytime.
+                </p>
+              </div>
+              <div className="flex gap-2.5 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSignoutModal(false)}
+                  className="flex-1 rounded-xl h-10 text-xs font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSignOut}
+                  variant="destructive"
+                  className="flex-1 rounded-xl h-10 text-xs font-bold shadow-md shadow-destructive/20"
+                >
+                  Sign Out
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

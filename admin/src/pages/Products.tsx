@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Package, Search, Grid, List, Tag, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';

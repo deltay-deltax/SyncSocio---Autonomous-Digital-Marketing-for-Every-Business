@@ -374,7 +374,7 @@ Rules:
 
   try {
     const geminiRes = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GOOGLE_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 300, responseMimeType: 'application/json' }
@@ -403,6 +403,16 @@ router.post('/send-whatsapp', protect, validate({ body: sendWhatsappCampaignSche
   try {
     if (!recipients || !recipients.length || !body) {
       return res.status(400).json({ message: 'Recipients and body are required' });
+    }
+
+    const sendingUser = await User.findById(req.user._id);
+    const userPlan = (sendingUser?.plan || '').toLowerCase();
+    if (!userPlan.includes('growth') && !userPlan.includes('pro') && !userPlan.includes('agency')) {
+      return res.status(403).json({
+        code: 'NO_WHATSAPP_PLAN',
+        success: false,
+        message: 'Upgrade to a Growth or Pro plan to send WhatsApp campaigns.'
+      });
     }
 
     const profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });

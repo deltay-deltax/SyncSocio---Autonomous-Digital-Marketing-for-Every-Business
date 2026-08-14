@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye, Zap, Paintbrush,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye, Zap, Paintbrush, Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -306,6 +306,7 @@ type Studio = {
   id: string;
   title: string;
   subtitle: string;
+  description?: string;
   icon: React.ElementType;
   iconTint: string;
   iconBg: string;
@@ -324,6 +325,7 @@ const STUDIOS: Studio[] = [
     id: "clone",
     title: "Clone Mode",
     subtitle: "Clone a winning template",
+    description: "Instantly recreate successful ad templates with your own products using advanced AI.",
     icon: Copy,
     iconTint: "text-purple-600",
     iconBg: "bg-purple-100",
@@ -341,6 +343,7 @@ const STUDIOS: Studio[] = [
     id: "sprint",
     title: "Sprint",
     subtitle: "A/B test winning creatives",
+    description: "Automatically run A/B tests on multiple ad variations to find the best performing creative.",
     icon: Zap,
     iconTint: "text-amber-600",
     iconBg: "bg-amber-100",
@@ -358,6 +361,7 @@ const STUDIOS: Studio[] = [
     id: "all_in_one",
     title: "All In One",
     subtitle: "Generate a complete marketing pack",
+    description: "Generate a full suite of marketing assets including static posts, videos, and carousel slides in one go.",
     icon: Wand2,
     iconTint: "text-indigo-600",
     iconBg: "bg-indigo-100",
@@ -375,6 +379,7 @@ const STUDIOS: Studio[] = [
     id: "image",
     title: "Image",
     subtitle: "Single static post",
+    description: "Create a polished, single-frame static image tailored for social media feeds.",
     icon: ImageIcon,
     iconTint: "text-blue-600",
     iconBg: "bg-blue-100",
@@ -391,6 +396,7 @@ const STUDIOS: Studio[] = [
     id: "carousel",
     title: "Carousel",
     subtitle: "Multi-slide swipe storytelling",
+    description: "Design engaging multi-slide swipeable posts ideal for tips, guides, and storytelling.",
     icon: Layers,
     iconTint: "text-violet-600",
     iconBg: "bg-violet-100",
@@ -407,6 +413,7 @@ const STUDIOS: Studio[] = [
     id: "video",
     title: "Video",
     subtitle: "Reel / motion post",
+    description: "Generate dynamic motion posts and AI-driven UGC style reels for maximum engagement.",
     icon: Video,
     iconTint: "text-emerald-600",
     iconBg: "bg-emerald-100",
@@ -423,6 +430,7 @@ const STUDIOS: Studio[] = [
     id: "ecomm",
     title: "E-Comm Listing",
     subtitle: "Marketplace-ready creative",
+    description: "Produce clean, professional marketplace-ready creatives optimized for e-commerce platforms.",
     icon: ShoppingBag,
     iconTint: "text-orange-600",
     iconBg: "bg-orange-100",
@@ -439,6 +447,7 @@ const STUDIOS: Studio[] = [
     id: "festival",
     title: "Festival",
     subtitle: "Calendar-led campaigns",
+    description: "Quickly generate themed campaigns aligned with upcoming calendar events and holidays.",
     icon: PartyPopper,
     iconTint: "text-pink-600",
     iconBg: "bg-pink-100",
@@ -455,24 +464,25 @@ const STUDIOS: Studio[] = [
     id: "whatsapp",
     title: "WhatsApp Campaign",
     subtitle: "Broadcast messages to your list",
+    description: "Design and broadcast promotional messages or reminders directly to your WhatsApp list.",
     icon: MessageSquare,
     iconTint: "text-emerald-600",
     iconBg: "bg-emerald-100",
     tags: [
       { label: "Promotion", tint: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
       { label: "Offer", tint: "bg-orange-50 text-orange-700 ring-orange-100" },
-      { label: "Reminder", tint: "bg-pink-50 text-pink-700 ring-pink-100" },
+
     ],
     cta: { label: "Create Campaign", tint: "text-emerald-600" },
     to: "/dashboard?mode=whatsapp",
     image: "/assets/Creatives_icon/studio-whatsapp.png",
     hoverBorder: "hover:border-emerald-400 hover:ring-1 hover:ring-emerald-400",
   },
-
   {
     id: "email",
     title: "Email Campaign",
     subtitle: "Newsletter & promo blast",
+    description: "Create visually appealing newsletters and promotional blasts for your email subscribers.",
     icon: Mail,
     iconTint: "text-violet-600",
     iconBg: "bg-violet-100",
@@ -489,6 +499,7 @@ const STUDIOS: Studio[] = [
     id: "photoshoot",
     title: "Photoshoot",
     subtitle: "Pure product photography, no text",
+    description: "Generate high-quality, pure product photography without any text overlays.",
     icon: Camera,
     iconTint: "text-fuchsia-600",
     iconBg: "bg-fuchsia-100",
@@ -505,6 +516,7 @@ const STUDIOS: Studio[] = [
     id: "editor",
     title: "AI Editor",
     subtitle: "Magic tools & photo retouch",
+    description: "Access powerful magic tools to seamlessly retouch and enhance your existing photos.",
     icon: Paintbrush,
     iconTint: "text-cyan-600",
     iconBg: "bg-cyan-100",
@@ -532,18 +544,14 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void; i
       <button
         onClick={() => onPick(s.id as Mode)}
         className={cn(
-          "group relative flex flex-col w-full h-full min-h-[210px] text-left overflow-hidden rounded-3xl border bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant",
+          "group relative flex flex-col w-full h-full min-h-[230px] text-left overflow-hidden rounded-3xl border bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant",
           s.featured
             ? "border-transparent bg-gradient-to-br from-indigo-50/60 via-white to-white"
             : "border-transparent",
           s.hoverBorder
         )}
       >
-        {isLocked ? (
-          <div className="absolute top-4 right-4 z-20 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center gap-1">
-            <Lock size={10} /> Elite Feature
-          </div>
-        ) : s.badge ? (
+        {s.badge ? (
           <div className={cn("absolute top-4 right-4 z-20 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm", s.badge.tint)}>
             {s.badge.label}
           </div>
@@ -581,9 +589,14 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void; i
               </div>
             )}
           </div>
-          <h3 className="mt-3 font-display text-base font-black tracking-tight text-foreground leading-tight line-clamp-2">
-            {s.title}
-          </h3>
+          <div className="mt-3 flex items-start gap-1.5 pr-2">
+            <h3 className="font-display text-base font-black tracking-tight text-foreground leading-tight line-clamp-2">
+              {s.title}
+            </h3>
+            <div title={s.description || s.subtitle} className="mt-[2px] shrink-0 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" onClick={(e) => e.stopPropagation()}>
+              <Info size={14} />
+            </div>
+          </div>
           <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
             {s.subtitle}
           </p>
@@ -606,7 +619,7 @@ const StudioCard: React.FC<{ s: Studio; i: number; onPick: (id: Mode) => void; i
           <div className="mt-auto pt-4">
             {isLocked ? (
               <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-amber-600">
-                <Lock size={12} /> Unlock with Elite
+                <Lock size={12} /> Unlock with Growth / Pro
               </span>
             ) : (
               <span
@@ -671,7 +684,7 @@ const DashboardStrategy = () => {
 
   const checkLocked = (sId: string) => {
     if (isStarter) {
-      return ['clone', 'sprint', 'video', 'all_in_one'].includes(sId);
+      return ['clone', 'sprint', 'video', 'all_in_one', 'whatsapp', 'email'].includes(sId);
     }
     return false;
   };
@@ -1053,7 +1066,11 @@ const DashboardStrategy = () => {
 
   const isPlanExpired = profile?.userPlanExpiresAt ? new Date(profile.userPlanExpiresAt) < new Date() : false;
 
+  const isGrowth = planName.includes('growth');
+  const isPro = planName.includes('pro');
+  const isAgency = planName.includes('agency');
   const isElite = planName.includes('elite');
+  const hasGrowthOrPro = isGrowth || isPro || isElite || isAgency;
 
   React.useEffect(() => {
     if (mode) {
@@ -1062,19 +1079,24 @@ const DashboardStrategy = () => {
         setMode(null);
         setUpgradeModalReason('expired');
         setShowUpgradeModal(true);
-      } else if (mode === 'video' && !isElite) {
+      } else if (mode === 'video' && !hasGrowthOrPro) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason('video');
         setShowUpgradeModal(true);
-      } else if (['all_in_one'].includes(mode) && !isElite) {
+      } else if (['all_in_one'].includes(mode) && !hasGrowthOrPro) {
+        setStage('pick');
+        setMode(null);
+        setUpgradeModalReason(mode);
+        setShowUpgradeModal(true);
+      } else if (['whatsapp', 'email'].includes(mode) && !hasGrowthOrPro) {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason(mode);
         setShowUpgradeModal(true);
       }
     }
-  }, [mode, isPlanExpired, isElite]);
+  }, [mode, isPlanExpired, hasGrowthOrPro]);
 
   const handleModeClick = (mId: Mode) => {
     if (checkLocked(mId)) {
@@ -1883,7 +1905,7 @@ const DashboardStrategy = () => {
         if (errData.code === 'NO_EMAIL_PLAN') {
           toast({
             title: '🔒 Plan required',
-            description: 'Upgrade to a Starter or Elite plan to send email campaigns.',
+            description: 'Upgrade to a Growth or Pro plan to send email campaigns.',
             variant: 'destructive'
           });
           setSendStatus('idle');
@@ -2079,7 +2101,7 @@ const DashboardStrategy = () => {
       // ── Credit cost — calculated upfront, deducted ONLY after success ──
       let creditCost = 0;
       const baseImageCost = profile?.selectedPlan?.toLowerCase().includes('pro') ? 8 : 5;
-      
+
       if (currentMode === 'video') {
         if (videoKind === 'ai-ugc') {
           if (videoResolution === '720p') {
@@ -2123,6 +2145,7 @@ const DashboardStrategy = () => {
               if (bodyComponent && bodyComponent.text) templateBody = bodyComponent.text;
             }
 
+            console.log("🔥 WhatsApp Campaign Payload sent to backend:", { idea: finalIdea, templateBody, templateName: whatsappTemplateName });
             const mapRes = await fetch(`${NODE_BASE}/whatsapp/map-variables`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -3264,25 +3287,33 @@ const DashboardStrategy = () => {
             </div>
 
             <h2 className="text-xl font-bold mb-2">
-              {upgradeModalReason === 'expired' 
-                ? 'Plan Expired' 
-                : upgradeModalReason === 'video' 
-                ? 'Video Generation Locked 🔒' 
-                : 'Premium Feature Locked 🔒'}
+              {upgradeModalReason === 'expired'
+                ? 'Plan Expired'
+                : upgradeModalReason === 'video'
+                  ? 'Video Generation Locked 🔒'
+                  : upgradeModalReason === 'whatsapp'
+                    ? 'WhatsApp Campaign Locked 🔒'
+                    : upgradeModalReason === 'email'
+                      ? 'Email Campaign Locked 🔒'
+                      : 'Premium Feature Locked 🔒'}
             </h2>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               {upgradeModalReason === 'expired'
                 ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
                 : upgradeModalReason === 'video'
-                ? 'AI Video Generation (UGC & Product Videos) is exclusive to Elite and Agency plans. Please upgrade to the Elite Plan to unlock AI video generation.'
-                : `This is an Elite feature. Upgrade to the Elite Plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
+                  ? 'AI Video Generation (UGC & Product Videos) is included in Growth and Pro plans. Please upgrade your plan to unlock AI video generation.'
+                  : upgradeModalReason === 'whatsapp'
+                    ? 'WhatsApp Campaigns & Broadcasts are included in Growth and Pro plans. Please upgrade your plan to unlock WhatsApp campaigns.'
+                    : upgradeModalReason === 'email'
+                      ? 'Email Campaigns & Newsletters are included in Growth and Pro plans. Please upgrade your plan to unlock email campaigns.'
+                      : `This feature is included in Growth and Pro plans. Upgrade your plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
             </p>
 
             <Button
               onClick={() => { setShowUpgradeModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}
               className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold shadow-lg"
             >
-              {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade to Elite'}
+              {upgradeModalReason === 'expired' ? 'Renew Plan' : 'Upgrade Plan'}
             </Button>
           </motion.div>
         </div>
@@ -3455,7 +3486,7 @@ const DashboardStrategy = () => {
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide border bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border-emerald-400/30 text-emerald-600 dark:text-emerald-400 shadow-sm">
                       <Sparkles size={11} className="text-emerald-500" />
                       <span>
-                        {videoKind === 'ai-ugc' 
+                        {videoKind === 'ai-ugc'
                           ? (videoDuration === 8 ? 80 : videoDuration === 12 ? 120 : 150)
                           : (videoDuration === 5 ? 50 : 80)} Credits
                       </span>
@@ -3489,7 +3520,7 @@ const DashboardStrategy = () => {
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide border bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-blue-500/10 border-violet-400/30 text-violet-600 dark:text-violet-400 shadow-sm">
                       <Sparkles size={11} className="text-violet-500" />
                       <span>
-                        {videoKind === 'ai-ugc' 
+                        {videoKind === 'ai-ugc'
                           ? (videoDuration === 8 ? 100 : videoDuration === 12 ? 140 : 170)
                           : (videoDuration === 5 ? 70 : 100)} Credits
                       </span>
@@ -4051,7 +4082,7 @@ const DashboardStrategy = () => {
                   }
                   label={mode === 'video' && videoKind === 'img2video' ? 'Video instructions' : undefined}
                 />
-                
+
                 {(mode === 'image' || mode === 'carousel') && (
                   <section className="mb-6">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
@@ -4744,7 +4775,7 @@ const DashboardStrategy = () => {
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
                 WhatsApp Template Settings
               </p>
-              
+
               <div className="flex items-start gap-3 p-4 mb-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-400">
                 <AlertCircle size={20} className="shrink-0 mt-0.5" />
                 <div className="text-sm">
@@ -4767,7 +4798,7 @@ const DashboardStrategy = () => {
                     className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
                     <option value="request_template" className="font-bold text-primary">+ Request a Template</option>
-                    
+
                     {requestedTemplates.length > 0 && (
                       <optgroup label="My Templates">
                         {requestedTemplates.map(t => (
@@ -4777,14 +4808,14 @@ const DashboardStrategy = () => {
                         ))}
                       </optgroup>
                     )}
-                    
+
                     <optgroup label="Meta Approved Templates">
                       {whatsappTemplatesLoading ? (
                         <option disabled>Loading templates...</option>
                       ) : whatsappTemplates.length > 0 ? (
                         whatsappTemplates.map((t: any) => (
-                          <option 
-                            key={t.name} 
+                          <option
+                            key={t.name}
                             value={t.name}
                             disabled={t.status !== 'APPROVED'}
                           >
@@ -5630,12 +5661,12 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                 <div className="absolute left-1/2 -translate-x-1/2 top-2 w-[85px] h-[24px] bg-black rounded-full z-20"></div>
                 <div className="flex items-center gap-1">
                   <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 9V6H2.5V9H1ZM4 9V4.5H5.5V9H4ZM7 9V2.5H8.5V9H7ZM10 9V0H11.5V9H10Z" fill="black"/>
+                    <path d="M1 9V6H2.5V9H1ZM4 9V4.5H5.5V9H4ZM7 9V2.5H8.5V9H7ZM10 9V0H11.5V9H10Z" fill="black" />
                   </svg>
                   <svg width="18" height="10" viewBox="0 0 18 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="0.5" y="1.5" width="14" height="7" rx="2" stroke="black"/>
-                    <rect x="2" y="3" width="11" height="4" rx="1" fill="black"/>
-                    <path d="M15.5 4C16.3284 4 17 4.67157 17 5.5C17 6.32843 16.3284 7 15.5 7V4Z" fill="black"/>
+                    <rect x="0.5" y="1.5" width="14" height="7" rx="2" stroke="black" />
+                    <rect x="2" y="3" width="11" height="4" rx="1" fill="black" />
+                    <path d="M15.5 4C16.3284 4 17 4.67157 17 5.5C17 6.32843 16.3284 7 15.5 7V4Z" fill="black" />
                   </svg>
                 </div>
               </div>
@@ -5671,7 +5702,7 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                   {image && (
                     <img src={image} className="w-full object-cover aspect-[16/10]" />
                   )}
-                <div className="p-3.5 pb-2.5">
+                  <div className="p-3.5 pb-2.5">
                     {/* Show the REAL template text with variables filled in */}
                     {(() => {
                       let tplBody = WHATSAPP_TEMPLATE_BODIES[whatsappTemplateName || ''];
@@ -5718,39 +5749,39 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                           <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-gray-400">
                             {time}
                           </div>
-                        <a
-                          href="#"
-                          className="flex items-center justify-center gap-1.5 py-2.5 bg-white border-t border-gray-100 text-[12px] font-bold text-[#007AFF] hover:bg-gray-50 active:bg-gray-100 transition-colors w-full"
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <ExternalLink size={12} className="text-[#007AFF]" />
-                          <span>{buttonLabel}</span>
-                        </a>
+                          <a
+                            href="#"
+                            className="flex items-center justify-center gap-1.5 py-2.5 bg-white border-t border-gray-100 text-[12px] font-bold text-[#007AFF] hover:bg-gray-50 active:bg-gray-100 transition-colors w-full"
+                            onClick={(e) => e.preventDefault()}
+                          >
+                            <ExternalLink size={12} className="text-[#007AFF]" />
+                            <span>{buttonLabel}</span>
+                          </a>
                         </>
                       );
                     })()}
-                </div>
-              </div>
-
-              {/* iOS WhatsApp Input Bar */}
-              <div className="bg-[#F6F6F6] px-3 py-2 flex items-center gap-2 border-t border-gray-200">
-                <Smile size={20} className="text-gray-500" />
-                <div className="flex-1 bg-white border border-gray-300 rounded-full px-3 py-1.5 text-[13px] text-gray-400 flex items-center justify-between">
-                  <span>Message</span>
-                  <div className="flex items-center gap-2">
-                    <Paperclip size={16} className="text-gray-400" />
                   </div>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-[#128C7E] flex items-center justify-center text-white shrink-0">
-                  <Mic size={15} />
+
+                {/* iOS WhatsApp Input Bar */}
+                <div className="bg-[#F6F6F6] px-3 py-2 flex items-center gap-2 border-t border-gray-200">
+                  <Smile size={20} className="text-gray-500" />
+                  <div className="flex-1 bg-white border border-gray-300 rounded-full px-3 py-1.5 text-[13px] text-gray-400 flex items-center justify-between">
+                    <span>Message</span>
+                    <div className="flex items-center gap-2">
+                      <Paperclip size={16} className="text-gray-400" />
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-[#128C7E] flex items-center justify-center text-white shrink-0">
+                    <Mic size={15} />
+                  </div>
+                </div>
+
+                {/* Home Indicator */}
+                <div className="bg-[#F6F6F6] pb-2 pt-1 flex justify-center">
+                  <div className="w-1/3 h-1 bg-black rounded-full opacity-80"></div>
                 </div>
               </div>
-
-              {/* Home Indicator */}
-              <div className="bg-[#F6F6F6] pb-2 pt-1 flex justify-center">
-                <div className="w-1/3 h-1 bg-black rounded-full opacity-80"></div>
-              </div>
-            </div>
             </div>
           ) : (
             /* Email mockup */

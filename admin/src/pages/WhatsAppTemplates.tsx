@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MessageSquare, Search, Filter, CheckCircle, XCircle, Clock, Eye, AlertCircle } from 'lucide-react';
+import { MessageSquare, Search, CheckCircle, XCircle, Clock, Eye, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 

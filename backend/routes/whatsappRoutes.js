@@ -744,8 +744,15 @@ Rules:
 9. Do NOT include sign-offs like "Best", "Regards", "Team".
 10. Output ONLY valid JSON, nothing else.`;
 
+    console.log("🔥 Sending to WhatsApp LLM (Gemini):", {
+      idea,
+      templateName,
+      templateBody,
+      prompt
+    });
+    
     const geminiRes = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GOOGLE_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 300, responseMimeType: 'application/json' }
