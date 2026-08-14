@@ -27,6 +27,9 @@ const nexaConversationSchema = new mongoose.Schema(
     // Slot-fill state
     collected: {
       customer_name:      { type: String, default: null },
+      email:              { type: String, default: null },
+      company_name:       { type: String, default: null },
+      use_case:           { type: String, default: null },
       product_interested: { type: String, default: null },
       price_agreed:       { type: Number, default: null },
       quantity:           { type: Number, default: null },

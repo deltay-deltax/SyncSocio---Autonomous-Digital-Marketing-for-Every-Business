@@ -136,13 +136,19 @@ export const handleRazorpayPaid = async (body) => {
     // Notify brand owner
     try {
       const { createNotification } = await import('../utils/notificationHelper.js');
-      const collected = convo.collected;
+      const brand = await BrandProfile.findById(convo.brand_id);
+      const isSaas = ['saas', 'software', 'tech', 'digital', 'agency', 'b2b', 'app', 'platform', 'services', 'service'].some(kw => (brand?.businessCategory || '').toLowerCase().includes(kw)) || (!collected?.delivery_address && !!collected?.email);
+
+      const contactSummary = isSaas || collected?.email
+        ? `Email: ${collected?.email || 'N/A'} | Phone: ${collected?.phone_number || 'N/A'}`
+        : `Address: ${collected?.delivery_address || 'N/A'} | Phone: ${collected?.phone_number || 'N/A'}`;
+
       await createNotification(
         convo.user,
         'success',
-        '💰 Nexa: Order Paid!',
+        '💰 Nexa: Order / Subscription Paid!',
         `${collected?.customer_name || 'A customer'} just paid for ${collected?.product_interested || 'an order'} ✅ ` +
-        `Amount: ₹${collected?.price_agreed || '?'} | Address: ${collected?.delivery_address || 'N/A'} | Phone: ${collected?.phone_number || 'N/A'}`
+        `Amount: ₹${collected?.price_agreed || '?'} | ${contactSummary}`
       );
     } catch (e) {
       console.error('[NexaPayment] Failed to send notification for paid order:', e.message);
@@ -152,7 +158,13 @@ export const handleRazorpayPaid = async (body) => {
     try {
       const brand = await BrandProfile.findById(convo.brand_id);
       if (brand) {
-        const textMsg = `🎉 Payment received! Thank you so much for your order.\n\nYour payment of ₹${convo.collected?.price_agreed} for ${convo.collected?.product_interested} is confirmed. Our team will process this right away!\n\n📦 Order Details:\nItem: ${convo.collected?.product_interested || 'N/A'} (x${convo.collected?.quantity || 1})\nName: ${convo.collected?.customer_name || 'N/A'}\nAddress: ${convo.collected?.delivery_address || 'N/A'}\nPhone: ${convo.collected?.phone_number || 'N/A'}`;
+        const isSaas = ['saas', 'software', 'tech', 'digital', 'agency', 'b2b', 'app', 'platform', 'services', 'service'].some(kw => (brand.businessCategory || '').toLowerCase().includes(kw)) || (!convo.collected?.delivery_address && !!convo.collected?.email);
+        
+        const detailsBlock = isSaas || convo.collected?.email
+          ? `Plan / Item: ${convo.collected?.product_interested || 'N/A'}\nName: ${convo.collected?.customer_name || 'N/A'}\nEmail: ${convo.collected?.email || 'N/A'}\nPhone: ${convo.collected?.phone_number || 'N/A'}${convo.collected?.company_name ? `\nCompany: ${convo.collected.company_name}` : ''}`
+          : `Item: ${convo.collected?.product_interested || 'N/A'} (x${convo.collected?.quantity || 1})\nName: ${convo.collected?.customer_name || 'N/A'}\nAddress: ${convo.collected?.delivery_address || 'N/A'}\nPhone: ${convo.collected?.phone_number || 'N/A'}`;
+
+        const textMsg = `🎉 Payment received! Thank you so much for your order.\n\nYour payment of ₹${convo.collected?.price_agreed} for ${convo.collected?.product_interested} is confirmed. Our team will process this right away!\n\n📋 Order Details:\n${detailsBlock}`;
 
         if (convo.platform === 'whatsapp') {
           if (brand.whatsappAccessToken && brand.whatsappPhoneId) {
