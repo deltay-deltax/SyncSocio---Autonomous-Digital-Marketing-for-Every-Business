@@ -14,6 +14,7 @@ import { BackgroundGenerationsPopover } from '@/components/BackgroundGenerations
 import { useToast } from '@/hooks/use-toast';
 import { saveTasksToIDB, loadTasksFromIDB } from '@/lib/idb';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+import { SiteChatbot } from '@/components/SiteChatbot';
 
 const navGroups = [
   {
@@ -45,6 +46,7 @@ const navGroups = [
     items: [
       { label: 'History', icon: Clock, path: '/dashboard/history' },
       { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
+      { label: 'Help & Support', icon: HelpCircle, path: '/dashboard/support' },
       { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
     ]
   }
@@ -1654,6 +1656,8 @@ const DashboardLayoutContent = () => {
           </div>
         </div>
       )}
+      {/* Tier 1 AI Support Agent Widget */}
+      <SiteChatbot hideWhatsApp={true} />
       {/* ── SIGN OUT CONFIRMATION MODAL ───────────────────── */}
       <AnimatePresence>
         {showSignoutModal && (

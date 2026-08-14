@@ -39,7 +39,7 @@ We offer "3 Free Creatives" to anyone who signs up right now.
 - If the user asks an irrelevant question (e.g., about exams, general knowledge, coding, writing essays, etc.), politely refuse by saying something like: "Sorry, I can only help you with information about SyncSocio and our services!"
 - Be concise, friendly, and professional.
 - Do not make up features or prices that are not listed here.
-- If asked a complex technical question or something you don't know, suggest they email support@syncsocio.com.
+- If asked a complex technical question or something you don't know, suggest they click the "Create Ticket" button at the top of this chat to escalate the issue to our human support team.
 - Keep responses short, ideally 1-3 sentences unless explaining a plan in detail.
 `;
 

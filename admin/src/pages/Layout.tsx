@@ -19,6 +19,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/users', icon: Users, label: 'Users' },
       { to: '/brands', icon: Briefcase, label: 'Brands' },
+      { to: '/support-tickets', icon: ClipboardList, label: 'Support Tickets' },
     ]
   },
   {

@@ -40,6 +40,7 @@ import Products from './pages/dashboard/Products';
 import CreditsExplainer from './pages/CreditsExplainer';
 import CreditTopup from './pages/dashboard/CreditTopup';
 import DashboardBilling from './pages/dashboard/DashboardBilling';
+import { Support } from './pages/dashboard/Support';
 import { Toaster } from './components/ui/toaster';
 import { CurrencyProvider } from './contexts/CurrencyContext';
 
@@ -124,6 +125,7 @@ function App() {
               <Route path="credits" element={<CreditsExplainer />} />
               <Route path="buy-credits" element={<CreditTopup />} />
               <Route path="billing" element={<DashboardBilling />} />
+              <Route path="support" element={<Support />} />
               <Route path="editor" element={<EditorPage />} />
               <Route path="autopilot" element={<AutopilotPage />} />
               <Route path="clone" element={<CloneMode />} />
