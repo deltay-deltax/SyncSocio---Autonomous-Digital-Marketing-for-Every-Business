@@ -39,108 +39,36 @@ export async function syncDefaultTemplates(profile, accessToken, sampleHandle = 
 
   const SYNCSOCIO_TEMPLATES = [
     {
-      name: 'syncsocio_v2_festival',
-      bodyText: '🎉 *{{1}}*\nThis festive season, we have something special for you:\n{{2}}\nOffer valid for a limited time. Powered by SyncSocio.',
-      example: ['Happy Diwali — Exclusive Offer!', 'Celebrate with 20% OFF on all products today only!'],
-      hasImageHeader: true,
-      hasUrlButton: true,
-      btnText: 'Claim Offer',
-    },
-    {
-      name: 'syncsocio_v2_abandoned',
-      bodyText: 'Hi *{{1}}*,\nYou left something behind! 🛒\n{{2}}\nComplete your purchase now before it runs out of stock. Powered by SyncSocio.',
-      example: ['John', 'Your favorite red sneakers are waiting in your cart.'],
-      hasImageHeader: true,
-      hasUrlButton: true,
-      btnText: 'Complete Purchase',
-    },
-    {
-      name: 'syncsocio_v2_launch',
-      bodyText: '🚀 *{{1}}*\nWe are thrilled to announce:\n{{2}}\nBe the first to check it out! Powered by SyncSocio.',
-      example: ['New Collection Live!', 'Our Summer 2024 Collection just dropped featuring 50+ new styles.'],
-      hasImageHeader: true,
-      hasUrlButton: true,
-      btnText: 'Shop New Arrivals',
-    },
-    {
-      name: 'syncsocio_v2_promo_visit',
-      bodyText: 'Hey there,\n*{{1}}*\n{{2}}\nBest, Team Powered by SyncSocio.',
-      example: ['Check out our latest release!', 'We just added 20+ new items to our store. Grab them before they are gone.'],
+      name: 'syncsocio_v4_shop',
+      bodyText: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nTap the button below to shop now.',
+      example: ['Summer Sale — Up to 50% OFF', 'Refresh your wardrobe with our latest summer collection.', 'Use code SUMMER50 for extra 10% off. Free delivery on orders above ₹1,499.'],
       hasImageHeader: true,
       hasUrlButton: true,
       btnText: 'Shop Now',
     },
     {
-      name: 'syncsocio_v2_welcome',
-      bodyText: 'Welcome to *{{1}}*!\n{{2}}\nWe are so glad to have you with us. Powered by SyncSocio.',
-      example: ['SyncSocio VIP Club', 'Enjoy 10% off your first order with code WELCOME10.'],
+      name: 'syncsocio_v4_offer',
+      bodyText: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nTap the button below to claim your offer.',
+      example: ['Exclusive Members-Only Offer', 'As a valued customer, here is something special just for you.', 'Flat 500 OFF on your next purchase above 2,000. Apply code VIP500 at checkout.'],
       hasImageHeader: true,
       hasUrlButton: true,
-      btnText: 'Start Shopping',
+      btnText: 'Claim Offer',
     },
     {
-      name: 'syncsocio_v2_feedback',
-      bodyText: 'Hi *{{1}}*,\nWe hope you are enjoying your recent experience with us.\n{{2}}\nYour feedback means the world to us! Powered by SyncSocio.',
-      example: ['Sarah', 'Could you take 1 minute to leave us a review?'],
+      name: 'syncsocio_v4_visit',
+      bodyText: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nWe look forward to seeing you.',
+      example: ['Discover What Is New at Our Store', 'We have exciting new arrivals waiting for you.', 'Visit us today and experience the difference. Open Monday to Saturday, 10 AM to 9 PM.'],
+      hasImageHeader: true,
+      hasUrlButton: true,
+      btnText: 'Visit Website',
+    },
+    {
+      name: 'syncsocio_v4_announce',
+      bodyText: 'Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nThank you for your continued support.',
+      example: ['Important Update for Our Customers', 'We have upgraded our delivery process for a faster experience.', 'All orders now ship within 24 hours. Track your orders in real-time through our app.'],
       hasImageHeader: false,
       hasUrlButton: true,
-      btnText: 'Leave a Review',
-    },
-    {
-      name: 'syncsocio_v2_update',
-      bodyText: '🔔 *{{1}}*\n{{2}}\nStay tuned for more updates! Powered by SyncSocio.',
-      example: ['Important Account Update', 'We have updated our Terms of Service effective next month.'],
-      hasImageHeader: false,
-      hasUrlButton: true,
-      btnText: 'Read More',
-    },
-    {
-      name: 'syncsocio_v2_reengagement',
-      bodyText: 'We miss you, *{{1}}*!\n{{2}}\nCome back and see what is new. Powered by SyncSocio.',
-      example: ['Alex', 'It has been a while! Here is a special 15% discount just for you.'],
-      hasImageHeader: true,
-      hasUrlButton: true,
-      btnText: 'See What is New',
-    },
-    {
-      name: 'syncsocio_v2_exclusive_vip',
-      bodyText: '🌟 *{{1}}*\nAs a valued member, here is your exclusive perk:\n{{2}}\nPowered by SyncSocio.',
-      example: ['VIP Early Access', 'Shop the Black Friday sale 24 hours before anyone else.'],
-      hasImageHeader: true,
-      hasUrlButton: true,
-      btnText: 'Access VIP Sale',
-    },
-    {
-      name: 'syncsocio_v2_newsletter',
-      bodyText: '📰 *{{1}}*\nHere is what is happening this month:\n{{2}}\nThanks for being part of our community. Powered by SyncSocio.',
-      example: ['Monthly Wrap-Up', 'Read about our new features, community highlights, and upcoming events.'],
-      hasImageHeader: true,
-      hasUrlButton: true,
-      btnText: 'Read Newsletter',
-    },
-    {
-      name: 'syncsocio_v2_webinar_invite',
-      bodyText: '📅 *{{1}}*\nJoin our upcoming session:\n{{2}}\nSeats are limited, reserve yours today! Powered by SyncSocio.',
-      example: ['Masterclass: Growth Marketing', 'Learn top strategies from industry experts this Thursday at 2 PM.'],
-      hasImageHeader: true,
-      hasUrlButton: true,
-      btnText: 'Register Now',
-    },
-    {
-      name: 'syncsocio_v2_lead_magnet',
-      bodyText: 'Here is your requested resource, *{{1}}*!\n{{2}}\nWe hope you find it valuable. Powered by SyncSocio.',
-      example: ['Alex', 'Your free PDF guide to Social Media Automation is ready to download.'],
-      hasImageHeader: false,
-      hasUrlButton: true,
-      btnText: 'Download Guide',
-    },
-    {
-      name: 'syncsocio_v2_interactive_poll',
-      bodyText: '🗳️ *{{1}}*\n{{2}}\nYour feedback helps us serve you better. Thank you for participating! Powered by SyncSocio.',
-      example: ['Quick Poll for You', 'Tell us what you think — your opinion shapes what we build next for you!'],
-      hasImageHeader: false,
-      hasUrlButton: true,
-      btnText: 'Vote Now',
+      btnText: 'Learn More',
     },
   ];
 
@@ -151,14 +79,14 @@ export async function syncDefaultTemplates(profile, accessToken, sampleHandle = 
   // console.log(`[WhatsApp Templates] Auto-submitting ${SYNCSOCIO_TEMPLATES.length} campaign templates for WABA ${profile.whatsappWABAId}...`);
   let existingTemplatesMap = {};
   try {
-    let nextUrl = `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates?fields=name,id&limit=100`;
+    let nextUrl = `https://graph.facebook.com/v21.0/${profile.whatsappWABAId}/message_templates?fields=name,id,status&limit=100`;
     while (nextUrl) {
       const existingRes = await axios.get(nextUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
       const templatesList = existingRes.data?.data || [];
       templatesList.forEach(t => {
-        existingTemplatesMap[t.name] = t.id;
+        existingTemplatesMap[t.name] = { id: t.id, status: t.status };
       });
       nextUrl = existingRes.data?.paging?.next || null;
     }
@@ -194,17 +122,19 @@ export async function syncDefaultTemplates(profile, accessToken, sampleHandle = 
         });
       }
       
-      const existingTemplateId = existingTemplatesMap[tmpl.name];
+      const existingTemplate = existingTemplatesMap[tmpl.name];
 
-      if (existingTemplateId) {
-        // Edit existing template
-        await axios.post(
-          `https://graph.facebook.com/v21.0/${existingTemplateId}`,
-          { components },
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        ).catch(e => {
-          console.error(`[WhatsApp Templates] Failed to edit ${tmpl.name}:`, e?.response?.data || e.message);
-        });
+      if (existingTemplate) {
+        // Edit existing template only if it was rejected
+        if (existingTemplate.status === 'REJECTED') {
+          await axios.post(
+            `https://graph.facebook.com/v21.0/${existingTemplate.id}`,
+            { components },
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          ).catch(e => {
+            console.error(`[WhatsApp Templates] Failed to edit ${tmpl.name}:`, e?.response?.data || e.message);
+          });
+        }
       } else {
         // Create new template
         await axios.post(
@@ -503,16 +433,16 @@ router.post('/callback', protect, async (req, res) => {
           console.warn('[WhatsApp Upload] Resumable upload failed, using fallback handle handling:', uploadErr?.response?.data || uploadErr.message);
         }
 
-        const templateComponents = [
-          {
-            type: "BODY",
-            text: "Hey! Check this out 👇\n\n{{1}}\n\nPowered by SyncSocio",
-            example: {
-              body_text: [
-                ["Check out our exclusive Diwali offer on MuscleBlaze supplements! Get 20% OFF today."]
-              ]
-            }
-          },
+          const templateComponents = [
+            {
+              type: "BODY",
+              text: "Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nTap the button below for more details.",
+              example: {
+                body_text: [
+                  ["Summer Collection Now Live", "Check out our brand new arrivals.", "Exclusive styles at unbeatable prices. Free shipping on all orders."]
+                ]
+              }
+            },
           {
             type: "FOOTER",
             text: "T&C apply. Reply STOP to unsubscribe."
@@ -594,8 +524,8 @@ router.post('/callback', protect, async (req, res) => {
             components: [
               {
                 type: "BODY",
-                text: "Hey! We wanted to share this with you 👇\n\n{{1}}\n\nClick the link below to view it. Powered by SyncSocio",
-                example: { body_text: [["Check out our exclusive Diwali offer on MuscleBlaze supplements!"]] }
+                text: "Hello!\n\n*{{1}}*\n\n{{2}}\n\n{{3}}\n\nTap the link below for more details.",
+                example: { body_text: [["Important Announcement", "We have an exciting update to share with you.", "Stay tuned for more details and visit our website to learn more."]] }
               },
               { type: "FOOTER", text: "T&C apply. Reply STOP to unsubscribe." }
             ]
@@ -749,9 +679,11 @@ router.post('/sync-templates', protect, async (req, res) => {
 // Uses Gemini to auto-map user instructions to template variables
 router.post('/map-variables', protect, async (req, res) => {
   const { idea, templateBody, templateName } = req.body;
-  if (!idea || !templateBody) {
-    return res.status(400).json({ message: 'Idea and templateBody are required.' });
+  if (!templateBody) {
+    return res.status(400).json({ message: 'templateBody is required.' });
   }
+
+  const campaignIdea = idea || 'a general promotion';
 
   try {
     const profile = await BrandProfile.findOne({
@@ -761,33 +693,56 @@ router.post('/map-variables', protect, async (req, res) => {
 
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
     if (!GOOGLE_API_KEY) {
-      // Fallback if no AI
-      const fallbackMsg = idea.substring(0, 1024);
-      return res.json({ filledText: templateBody.replace(/\{\{1\}\}/g, 'Offer').replace(/\{\{2\}\}/g, fallbackMsg), variables: { '1': 'Offer', '2': fallbackMsg } });
+      const fallbackMsg = campaignIdea.substring(0, 1024);
+      let filledText = templateBody;
+      const variables = {};
+      // Detect how many variables the template has
+      const varMatches = templateBody.match(/\{\{\d+\}\}/g) || [];
+      const varCount = new Set(varMatches.map(m => m.replace(/[{}]/g, ''))).size;
+      
+      for (let v = 1; v <= varCount; v++) {
+        if (v === 1) variables[String(v)] = fallbackMsg;
+        else variables[String(v)] = ' ';
+        filledText = filledText.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), variables[String(v)]);
+      }
+      // Clean up empty lines from unused variables
+      filledText = filledText.replace(/\n{3,}/g, '\n\n').trim();
+      return res.json({ filledText, variables });
     }
 
     const industry = profile?.businessCategory || 'Retail';
     const tone = profile?.brandTone || 'professional and engaging';
     
-    const prompt = `You are an expert WhatsApp marketing copywriter for ${industry} brands.
+    // Count how many variables the template actually needs
+    const varCount = (templateBody.match(/\{\{\d+\}\}/g) || []).length;
+    
+    const prompt = `You are an expert WhatsApp marketing copywriter. Your job is to fill template variables for a campaign message.
 
+Brand: ${profile?.brandName || 'the brand'}
+Industry: ${profile?.businessCategory || 'Retail'}
 Brand Tone: ${tone}
+Target Audience: ${(profile?.targetAudiences || []).join(', ') || 'customers'}
+Brand Keywords: ${profile?.brandKeywords || ''}
+USP: ${profile?.usp || ''}
 
-The user wants to send a WhatsApp campaign about: "${idea}"
+The user wants to send a WhatsApp campaign about: "${campaignIdea}"
 
-The chosen WhatsApp template is:
-"${templateBody}"
+The template has ${varCount} variables ({{1}} through {{${varCount}}}).
+Template structure: "${templateBody}"
 
-This template contains variables like {{1}}, {{2}}, etc.
-Your job is to generate the best text to fill in these variables based on the user's campaign idea.
-Ensure the filled template reads naturally and fits the brand tone.
+Generate the best content for each variable. Return a JSON object with keys "1" through "${varCount}".
 
-Return a valid JSON object where keys are the variable numbers (e.g., "1", "2") and values are the text to insert.
 Rules:
-- Keep text for variables short enough to fit WhatsApp limits.
-- If it's a headline variable (usually {{1}} if it's a short intro), keep it under 60 chars.
-- If it's a body variable, make it engaging.
-- Output ONLY JSON.`;
+1. ALWAYS correct any spelling or grammar mistakes in the user's idea (e.g. "ofer" → "offer", "raksha bandhan" → "Raksha Bandhan").
+2. Adapt the copy to match the brand's industry, tone, and audience — do NOT write generic filler.
+3. Make it highly attractive and eye-catching like modern D2C brands (e.g., Swish, Comet). 
+4. Use emojis creatively and strategically! Place them at the end of impactful sentences, or use them as bullet points (e.g., 🛵, 💯, 🤘, 💸, ‼️). Do NOT spam them, but use them to make the message visually appealing.
+5. You can use WhatsApp markdown inside the variables to format text (e.g., *bold text* for emphasis on offers, dates, or key phrases). 
+6. Variable {{1}} is always the main headline — keep it under 50 characters, attention-grabbing, specific to the campaign.
+7. Variable {{2}} onwards should expand the message with distinct pieces of information (main offer, details, bullet points, urgency).
+8. Do NOT include "Powered by SyncSocio" or any platform branding.
+9. Do NOT include sign-offs like "Best", "Regards", "Team".
+10. Output ONLY valid JSON, nothing else.`;
 
     const geminiRes = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GOOGLE_API_KEY}`,
