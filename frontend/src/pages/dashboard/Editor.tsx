@@ -49,6 +49,7 @@ export default function EditorPage() {
     result,
     setResult,
     loading,
+    freeEditUsed,
     handleGenerate
   } = useEditor();
 
