@@ -23,6 +23,7 @@ import DMAutomations from './pages/DMAutomations';
 import Products from './pages/Products';
 import Campaigns from './pages/Campaigns';
 import AdminNotifications from './pages/AdminNotifications';
+import SupportTickets from './pages/SupportTickets';
 import './App.css';
 
 // Protected Route for Admin
@@ -61,6 +62,7 @@ function App() {
             <Route path="products" element={<Products />} />
             <Route path="campaigns" element={<Campaigns />} />
             <Route path="notifications" element={<AdminNotifications />} />
+            <Route path="support-tickets" element={<SupportTickets />} />
             <Route path="landing-gallery" element={<LandingGallery />} />
             <Route path="scheduled-posts" element={<ScheduledPosts />} />
             <Route path="generations" element={<Generations />} />

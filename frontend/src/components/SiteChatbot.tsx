@@ -8,7 +8,11 @@ interface ChatMessage {
   content: string;
 }
 
-export const SiteChatbot = () => {
+interface SiteChatbotProps {
+  hideWhatsApp?: boolean;
+}
+
+export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
   const [isOpen, setIsOpen] = useState(false);
   
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -81,6 +85,37 @@ export const SiteChatbot = () => {
     }
   };
 
+  const handleEscalate = async () => {
+    try {
+      setIsLoading(true);
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+      const transcript = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+      
+      const res = await fetch(`${API_BASE}/support/tickets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          subject: 'Escalated from AI Support Agent',
+          message: transcript
+        })
+      });
+
+      if (res.ok) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "I've created a support ticket for you! A human agent will review our chat and get back to you shortly." }]);
+      } else {
+        throw new Error('Failed to create ticket');
+      }
+    } catch (error) {
+      console.error(error);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I failed to create a ticket automatically. Please go to the Help & Support page to create one manually.' }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -97,7 +132,7 @@ export const SiteChatbot = () => {
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
       >
-        {!isOpen && (
+        {!isOpen && !hideWhatsApp && (
           <a
             href="https://wa.me/918971742263?text=hii"
             target="_blank"
@@ -141,9 +176,19 @@ export const SiteChatbot = () => {
                   <p className="text-xs text-white/80">Ask me anything!</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleEscalate} 
+                  disabled={isLoading || messages.length < 2}
+                  className="text-[10px] bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+                  title="Escalate to Human"
+                >
+                  Create Ticket
+                </button>
+                <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Messages Area */}
