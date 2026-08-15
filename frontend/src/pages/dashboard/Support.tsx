@@ -39,6 +39,9 @@ export const Support = () => {
 
   useEffect(() => {
     fetchTickets();
+    // Poll every 15 seconds so admin replies appear automatically
+    const interval = setInterval(fetchTickets, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -57,6 +60,12 @@ export const Support = () => {
       if (res.ok) {
         const data = await res.json();
         setTickets(data);
+        // Keep activeTicket in sync so admin replies appear in real-time
+        setActiveTicket(prev => {
+          if (!prev) return prev;
+          const updated = data.find((t: any) => t._id === prev._id);
+          return updated || prev;
+        });
       }
     } catch (error) {
       console.error('Error fetching tickets:', error);
