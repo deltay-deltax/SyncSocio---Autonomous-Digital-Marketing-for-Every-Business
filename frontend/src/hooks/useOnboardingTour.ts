@@ -8,6 +8,118 @@ export const startOnboardingTour = (forceReplay = false) => {
     if (hasSeenTour) return;
   }
 
+  const isMobile = window.innerWidth < 768;
+
+  const rawSteps = [
+    {
+      popover: {
+        title: 'Welcome to SyncSocio! 🚀',
+        description: 'Let\'s take a quick tour of your new command center to show you how to automate your marketing and sales.',
+        align: 'center',
+      }
+    },
+    {
+      element: '#tour-nav-settings',
+      popover: {
+        title: '1. Connect & Configure',
+        description: 'First, configure your Brand Profile and connect your Instagram/WhatsApp here so our AI learns your brand tone.',
+        side: 'right',
+        align: 'start',
+      }
+    },
+    {
+      element: '#tour-nav-products',
+      popover: {
+        title: '2. Add Your Products',
+        description: 'Add your products or services here. Our AI will automatically generate beautiful listings and posts for them.',
+        side: 'right',
+        align: 'start',
+      }
+    },
+    {
+      element: '#tour-nav-feed',
+      popover: {
+        title: '3. Content Calendar Feed',
+        description: 'View and manage your upcoming content calendar and scheduled posts across platforms.',
+        side: 'right',
+        align: 'start',
+      }
+    },
+    {
+      element: '#tour-nav-dms',
+      popover: {
+        title: '4. DM Automation',
+        description: 'Set up simple keyword-based auto-replies for your Instagram DMs and comments.',
+        side: 'right',
+        align: 'start',
+      }
+    },
+    {
+      element: '#tour-nav-nexa',
+      popover: {
+        title: '5. Meet Nexa: Your AI Closer',
+        description: 'Configure Nexa, your advanced AI agent that handles complex sales conversations and books demo meetings 24/7.',
+        side: 'right',
+        align: 'start',
+      }
+    },
+    {
+      element: '#tour-nav-strategy',
+      popover: {
+        title: '6. AI Content Strategy',
+        description: 'Let our AI instantly generate viral posts, carousels, and captions tailored to your audience.',
+        side: 'right',
+        align: 'start',
+      }
+    },
+    {
+      element: '#tour-nav-assets',
+      popover: {
+        title: '7. Asset Library',
+        description: 'All your generated creatives live here. Be sure to click the "Heart" icon on your favorite assets to save them permanently!',
+        side: 'right',
+        align: 'start',
+      }
+    },
+    {
+      element: '#tour-nav-ads',
+      popover: {
+        title: '8. Meta Ads Integration',
+        description: 'Launch and track highly targeted Meta ads directly from your dashboard.',
+        side: 'right',
+        align: 'start',
+      }
+    },
+    {
+      element: '#tour-nav-credits',
+      popover: {
+        title: '9. Scale with Credits',
+        description: 'Track your AI credits here. Need more generations? You can top up or upgrade your plan anytime!',
+        side: 'bottom',
+        align: 'end',
+      }
+    },
+    {
+      element: '#tour-nav-profile',
+      popover: {
+        title: '10. Replay Anytime',
+        description: 'Need a refresher? You can replay this tour anytime from your profile menu. Enjoy exploring SyncSocio! 🎉',
+        side: 'bottom',
+        align: 'end',
+      }
+    }
+  ];
+
+  const steps = rawSteps.map(step => ({
+    ...step,
+    element: isMobile ? undefined : step.element,
+    popover: {
+      ...(step.popover as any),
+      align: isMobile ? 'center' : (step.popover as any).align,
+      side: isMobile ? 'bottom' : (step.popover as any).side,
+    }
+  }));
+
   const tourObj = driver({
     showProgress: true,
     animate: true,
@@ -19,105 +131,7 @@ export const startOnboardingTour = (forceReplay = false) => {
       localStorage.setItem('syncsocio_tour_completed', 'true');
       tourObj.destroy();
     },
-    steps: [
-      {
-        popover: {
-          title: 'Welcome to SyncSocio! 🚀',
-          description: 'Let\'s take a quick tour of your new command center to show you how to automate your marketing and sales.',
-          align: 'center',
-        }
-      },
-      {
-        element: '#tour-nav-settings',
-        popover: {
-          title: '1. Connect & Configure',
-          description: 'First, configure your Brand Profile and connect your Instagram/WhatsApp here so our AI learns your brand tone.',
-          side: 'right',
-          align: 'start',
-        }
-      },
-      {
-        element: '#tour-nav-products',
-        popover: {
-          title: '2. Add Your Products',
-          description: 'Add your products or services here. Our AI will automatically generate beautiful listings and posts for them.',
-          side: 'right',
-          align: 'start',
-        }
-      },
-      {
-        element: '#tour-nav-feed',
-        popover: {
-          title: '3. Content Calendar Feed',
-          description: 'View and manage your upcoming content calendar and scheduled posts across platforms.',
-          side: 'right',
-          align: 'start',
-        }
-      },
-      {
-        element: '#tour-nav-dms',
-        popover: {
-          title: '4. DM Automation',
-          description: 'Set up simple keyword-based auto-replies for your Instagram DMs and comments.',
-          side: 'right',
-          align: 'start',
-        }
-      },
-      {
-        element: '#tour-nav-nexa',
-        popover: {
-          title: '5. Meet Nexa: Your AI Closer',
-          description: 'Configure Nexa, your advanced AI agent that handles complex sales conversations and books demo meetings 24/7.',
-          side: 'right',
-          align: 'start',
-        }
-      },
-      {
-        element: '#tour-nav-strategy',
-        popover: {
-          title: '6. AI Content Strategy',
-          description: 'Let our AI instantly generate viral posts, carousels, and captions tailored to your audience.',
-          side: 'right',
-          align: 'start',
-        }
-      },
-      {
-        element: '#tour-nav-assets',
-        popover: {
-          title: '7. Asset Library',
-          description: 'All your generated creatives live here. Be sure to click the "Heart" icon on your favorite assets to save them permanently!',
-          side: 'right',
-          align: 'start',
-        }
-      },
-      {
-        element: '#tour-nav-ads',
-        popover: {
-          title: '8. Meta Ads Integration',
-          description: 'Launch and track highly targeted Meta ads directly from your dashboard.',
-          side: 'right',
-          align: 'start',
-        }
-      },
-      {
-        element: '#tour-nav-credits',
-        popover: {
-          title: '9. Scale with Credits',
-          description: 'Track your AI credits here. Need more generations? You can top up or upgrade your plan anytime!',
-          side: 'bottom',
-          align: 'end',
-        }
-      },
-      {
-        element: '#tour-nav-profile',
-        popover: {
-          title: '10. Replay Anytime',
-          description: 'Need a refresher? You can replay this tour anytime from your profile menu. Enjoy exploring SyncSocio! 🎉',
-          side: 'bottom',
-          align: 'end',
-        }
-      }
-    ]
+    steps: steps as any
   });
 
   tourObj.drive();
