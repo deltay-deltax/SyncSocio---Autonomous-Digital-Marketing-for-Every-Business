@@ -2,6 +2,6 @@ import { z } from 'zod';
 import { commonSchemas } from './common.js';
 
 export const deductionSchema = z.object({
-  feature: z.string().min(1, 'Feature is required').max(100),
-  cost: commonSchemas.positiveInt,
+  reason: z.string().min(1, 'Reason is required').max(100),
+  amount: commonSchemas.positiveInt,
 }).strict();

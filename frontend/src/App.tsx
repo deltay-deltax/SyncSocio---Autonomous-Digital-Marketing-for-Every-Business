@@ -14,6 +14,7 @@ import TermsOfUse from './pages/TermsOfUse';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import NotFound from './pages/NotFound';
 import AssetPage from './pages/AssetPage';
+import BookDemo from './pages/BookDemo';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MetaPixel } from './components/MetaPixel';
 
@@ -96,6 +97,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/set-password" element={<SetPassword />} />
           <Route path="/setup" element={<Setup />} />
+          <Route path="/book-demo" element={<BookDemo />} />
           <Route path="/instagram-setup" element={<InstagramInstructions />} />
           <Route path="/terms" element={<TermsOfUse />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

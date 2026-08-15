@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveTasksToIDB, loadTasksFromIDB } from '@/lib/idb';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 import { SiteChatbot } from '@/components/SiteChatbot';
+import { useOnboardingTour, startOnboardingTour } from '@/hooks/useOnboardingTour';
 
 const navGroups = [
   {
@@ -27,25 +28,25 @@ const navGroups = [
   {
     title: 'Socials',
     items: [
-      { label: 'Feed', icon: Rss, path: '/dashboard/feed' },
-      { label: 'DM Automation', icon: MessageSquare, path: '/dashboard/dms' },
-      { label: 'Nexa Agent', icon: Bot, path: '/dashboard/nexa' },
-      { label: 'Ads', icon: Target, path: '/dashboard/ads' },
+      { label: 'Feed', icon: Rss, path: '/dashboard/feed', id: 'tour-nav-feed' },
+      { label: 'DM Automation', icon: MessageSquare, path: '/dashboard/dms', id: 'tour-nav-dms' },
+      { label: 'Nexa Agent', icon: Bot, path: '/dashboard/nexa', id: 'tour-nav-nexa' },
+      { label: 'Ads', icon: Target, path: '/dashboard/ads', id: 'tour-nav-ads' },
     ]
   },
   {
     title: 'Studio',
     items: [
-      { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy' },
-      { label: 'Asset Library', icon: Library, path: '/dashboard/assets' },
-      { label: 'Products', icon: ShoppingBag, path: '/dashboard/products' },
+      { label: 'Campaigns', icon: Sparkles, path: '/dashboard/strategy', id: 'tour-nav-strategy' },
+      { label: 'Asset Library', icon: Library, path: '/dashboard/assets', id: 'tour-nav-assets' },
+      { label: 'Products', icon: ShoppingBag, path: '/dashboard/products', id: 'tour-nav-products' },
     ]
   },
   {
     title: 'Account',
     items: [
       { label: 'History', icon: Clock, path: '/dashboard/history' },
-      { label: 'Settings', icon: Settings, path: '/dashboard/settings' },
+      { label: 'Settings', icon: Settings, path: '/dashboard/settings', id: 'tour-nav-settings' },
       { label: 'Help & Support', icon: HelpCircle, path: '/dashboard/support' },
       { label: 'FAQ', icon: HelpCircle, path: '/dashboard/faq' },
     ]
@@ -65,6 +66,7 @@ export type BgTask = {
 };
 
 const DashboardLayoutContent = () => {
+  useOnboardingTour();
   const { unread, setUnread } = useEditor();
   const location = useLocation();
   const navigate = useNavigate();
@@ -1122,6 +1124,7 @@ const DashboardLayoutContent = () => {
                 <NavLink
                   key={item.path}
                   to={itemPath}
+                  id={(item as any).id}
                   onClick={() => setIsSidebarOpen(false)}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
@@ -1243,6 +1246,7 @@ const DashboardLayoutContent = () => {
             {/* ── Credits Badge ──────────────────────────────── */}
             {credits !== null && (
               <div
+                id="tour-nav-credits"
                 className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${credits < 50
                   ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
                   : credits < 200
@@ -1277,6 +1281,7 @@ const DashboardLayoutContent = () => {
             {/* ── User Profile Dropdown ───────────────────────── */}
             <div className="relative" ref={profileMenuRef}>
               <button
+                id="tour-nav-profile"
                 onClick={() => setShowProfileMenu(prev => !prev)}
                 className="flex items-center gap-1.5 focus:outline-none"
                 aria-label="User Account Menu"
@@ -1326,6 +1331,17 @@ const DashboardLayoutContent = () => {
 
                       {/* Navigation list */}
                       <div className="p-1.5 space-y-0.5">
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            startOnboardingTour(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-primary hover:bg-primary/10 transition-colors text-left"
+                        >
+                          <Rocket size={14} className="text-primary" />
+                          <span>Replay Tour</span>
+                        </button>
+
                         <button
                           onClick={() => {
                             setShowProfileMenu(false);
