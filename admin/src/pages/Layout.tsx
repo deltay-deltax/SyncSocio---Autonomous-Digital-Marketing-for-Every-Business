@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Ticket, LogOut, Briefcase, BarChart3, ReceiptText, Activity, ClipboardList, Menu, X, RotateCcw, CalendarClock, Image, MessageSquare, Package, Smartphone, Bell, Target } from 'lucide-react';
+import { LayoutDashboard, Users, Ticket, LogOut, Briefcase, BarChart3, ReceiptText, Activity, ClipboardList, Menu, X, RotateCcw, CalendarClock, Image, MessageSquare, Package, Smartphone, Bell, Target, BrainCircuit } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
 import axios from 'axios';
 
@@ -64,6 +64,7 @@ const NAV_SECTIONS = [
     title: 'SYSTEM',
     items: [
       { to: '/system-health', icon: Activity, label: 'System Health' },
+      { to: '/ai-operations', icon: BrainCircuit, label: 'AI Operations' },
       { to: '/campaigns', icon: Target, label: 'Campaigns Monitor' },
       { to: '/landing-gallery', icon: LayoutDashboard, label: 'Landing Gallery' },
     ]
@@ -156,19 +157,7 @@ export default function Layout() {
           </button>
         </div>
 
-        {/* Switch to Leads Button */}
-        <div className="px-3 py-3 border-b border-border">
-          <button 
-            onClick={() => navigate('/leads-management')}
-            className="w-full flex items-center justify-between bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 text-violet-400 px-3 py-2.5 rounded-xl transition-all text-sm font-medium group"
-          >
-            <div className="flex items-center gap-2">
-              <ClipboardList size={16} />
-              <span>Switch to Leads</span>
-            </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </button>
-        </div>
+
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-hide pb-20">

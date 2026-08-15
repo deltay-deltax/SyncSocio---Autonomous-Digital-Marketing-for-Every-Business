@@ -188,7 +188,7 @@ export default function Users() {
     let result = users.filter(u => {
       const matchSearch = (u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
                           (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchPlan = planFilter ? u.plan?.toLowerCase() === planFilter.toLowerCase() : true;
+      const matchPlan = planFilter ? (u.plan || 'Trial').toLowerCase() === planFilter.toLowerCase() : true;
       let matchStatus = true;
       if (statusFilter === 'blocked') matchStatus = !!u.isBlocked;
       if (statusFilter === 'active') matchStatus = !u.isBlocked;
@@ -262,9 +262,10 @@ export default function Users() {
             onChange={(e) => setPlanFilter(e.target.value)}
           >
             <option value="">All Plans</option>
+            <option value="trial">Trial</option>
             <option value="starter">Starter</option>
-            <option value="elite">Elite</option>
-            <option value="free">Free</option>
+            <option value="growth">Growth</option>
+            <option value="pro">Pro</option>
           </select>
           <select 
             className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 font-medium focus:outline-none appearance-none pr-8 cursor-pointer hover:border-slate-300 transition-colors"
@@ -348,7 +349,7 @@ export default function Users() {
                         placeholder="e.g. Pro"
                       />
                     ) : (
-                      <span className="font-semibold text-slate-700 capitalize">{user.plan || 'Free'}</span>
+                      <span className="font-semibold text-slate-700 capitalize">{user.plan || 'Trial'}</span>
                     )}
                   </td>
                   

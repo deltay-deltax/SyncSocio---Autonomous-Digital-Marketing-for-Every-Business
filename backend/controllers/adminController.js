@@ -1802,3 +1802,99 @@ export const markAllNotificationsRead = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
+
+// ==========================================
+// AI OPERATIONS (Admin The Brain Initiative)
+// ==========================================
+export const getAIOperations = async (req, res) => {
+  try {
+    const [AgentActivity, PostAnalysis, ContentCalendar] = await Promise.all([
+      import('../models/AgentActivity.js').then(m => m.default),
+      import('../models/PostAnalysis.js').then(m => m.default),
+      import('../models/ContentCalendar.js').then(m => m.default)
+    ]);
+
+    // 1. Fetch recent agent activities (Background Tasks)
+    const recentActivities = await AgentActivity.find()
+      .populate('user', 'name email')
+      .populate('brandId', 'brandName')
+      .sort({ timestamp: -1 })
+      .limit(20);
+
+    // 2. Fetch recent post optimizations / critiques
+    const recentOptimizations = await PostAnalysis.find()
+      .populate('userId', 'name email')
+      .populate('brandId', 'brandName')
+      .sort({ createdAt: -1 })
+      .limit(10);
+      
+    // 3. Stats for AI Engine usage today
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const [tasksToday, optimizationsToday] = await Promise.all([
+      AgentActivity.countDocuments({ timestamp: { $gte: startOfDay } }),
+      PostAnalysis.countDocuments({ createdAt: { $gte: startOfDay } })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        recentActivities,
+        recentOptimizations,
+        stats: {
+          tasksToday,
+          optimizationsToday
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching AI Operations:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message, stack: error.stack });
+  }
+};
+
+// ==========================================
+// BRAND DEEP CONFIG (Admin The Brain Initiative)
+// ==========================================
+export const getBrandDeepConfig = async (req, res) => {
+  try {
+    const brandId = req.params.id;
+    const BrandProfile = await import('../models/BrandProfile.js').then(m => m.default);
+    
+    const brand = await BrandProfile.findById(brandId).populate('user', 'name email plan');
+    
+    if (!brand) {
+      return res.status(404).json({ success: false, message: 'Brand not found' });
+    }
+
+    res.json({
+      success: true,
+      brand
+    });
+  } catch (error) {
+    console.error('Error fetching deep brand config:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+export const unlockBrand = async (req, res) => {
+  try {
+    const brandId = req.params.id;
+    const BrandProfile = await import('../models/BrandProfile.js').then(m => m.default);
+    
+    const brand = await BrandProfile.findById(brandId);
+    if (!brand) return res.status(404).json({ success: false, message: 'Brand not found' });
+    
+    brand.isLocked = false;
+    brand.generationLockoutUntil = null;
+    await brand.save();
+    
+    res.json({ success: true, message: 'Brand unlocked successfully' });
+  } catch (error) {
+    console.error('Error unlocking brand:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+

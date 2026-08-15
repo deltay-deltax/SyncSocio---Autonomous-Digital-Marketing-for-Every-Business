@@ -155,7 +155,7 @@ export default function UserDetails() {
     whatsappIsConnected: false,
     whatsappPhoneId: '',
     whatsappAccessToken: '',
-    selectedPlan: 'Free',
+    selectedPlan: 'Trial',
     isPaid: false
   });
 
@@ -232,7 +232,7 @@ export default function UserDetails() {
             whatsappIsConnected: brand.whatsappIsConnected || false,
             whatsappPhoneId: brand.whatsappPhoneId || '',
             whatsappAccessToken: brand.whatsappAccessToken || '',
-            selectedPlan: brand.selectedPlan || 'Free',
+            selectedPlan: brand.selectedPlan || 'Trial',
             isPaid: brand.isPaid || false
           });
         }
@@ -453,7 +453,7 @@ export default function UserDetails() {
               <span className="px-2.5 py-1 bg-yellow-50 text-yellow-600 text-xs rounded-md font-semibold border border-yellow-200">Pending</span>
             )}
             <span className="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs rounded-md font-semibold border border-blue-200 uppercase tracking-wider">
-              {userData.plan || 'Free'}
+              {userData.plan || 'Trial'}
             </span>
           </div>
           <p className="text-slate-500 text-sm flex items-center gap-2">
@@ -543,10 +543,10 @@ export default function UserDetails() {
                   onChange={(e) => setUserForm({ ...userForm, plan: e.target.value })}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm transition-shadow appearance-none"
                 >
-                  <option value="">Free</option>
-                  <option value="Pro">Pro</option>
+                  <option value="">Trial</option>
                   <option value="Starter">Starter</option>
-                  <option value="Enterprise">Enterprise</option>
+                  <option value="Growth">Growth</option>
+                  <option value="Pro">Pro</option>
                 </select>
               </div>
 

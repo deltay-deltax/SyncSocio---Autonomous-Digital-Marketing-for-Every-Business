@@ -189,7 +189,7 @@ const PlanBadge = ({ plan }: { plan: string }) => {
     : 'bg-muted/60 text-muted-foreground border-border';
   return (
     <span className={`px-2 py-0.5 text-xs rounded-full font-medium border capitalize ${cls}`}>
-      {plan || 'Free'}
+      {plan || 'Trial'}
     </span>
   );
 };
@@ -1472,8 +1472,8 @@ export default function Dashboard() {
               const paginatedData = activeUsersData.slice(startIdx, endIdx);
 
               return paginatedData.map((item) => {
-                const isElite = item.plan?.toLowerCase() === 'elite';
-                const theme = isElite ? {
+                const isPro = item.plan?.toLowerCase() === 'pro';
+                const theme = isPro ? {
                   bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100', iconBg: 'bg-indigo-100/50'
                 } : {
                   bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', iconBg: 'bg-emerald-100/50'
