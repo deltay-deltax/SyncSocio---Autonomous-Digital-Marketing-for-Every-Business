@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Download, Users, ClipboardList, Plus, Save, X, Mail, Phone, Globe, Briefcase, Edit2, LayoutDashboard } from 'lucide-react';
+import { Download, Users, ClipboardList, Plus, Save, X, Mail, Phone, Globe, Briefcase, Edit2 } from 'lucide-react';
 import { parsePhoneNumber } from 'libphonenumber-js';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
@@ -60,7 +60,6 @@ const getStatusConfig = (status: string) => {
 
 export default function Leads() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [entries, setEntries] = useState<LeadEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
