@@ -194,34 +194,10 @@ export default function Leads() {
     URL.revokeObjectURL(url);
   };
 
-  const isStandalone = location.pathname === '/leads-management';
-
   return (
-    <div className={`w-full min-h-screen bg-slate-50/50 pb-12 ${isStandalone ? 'pt-8' : ''}`}>
+    <div className="w-full min-h-screen bg-slate-50/50 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
-        {isStandalone && (
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center">
-                <ClipboardList className="w-5 h-5 text-violet-600" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-slate-900">Leads & Brands</h1>
-                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Sync Socio Control Center</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-semibold transition-colors group"
-            >
-              <LayoutDashboard size={16} className="text-blue-500" />
-              Switch to Admin
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
-          </div>
-        )}
-
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <div>
