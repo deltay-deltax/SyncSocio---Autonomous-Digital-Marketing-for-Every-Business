@@ -161,11 +161,14 @@ export const getProfile = async (req, res) => {
     const planLower = (user?.plan || '').toLowerCase();
     const isGrowthPlan  = planLower.includes('growth');
     const isProPlan     = planLower.includes('pro');
-    const isAgencyPlan = planLower.includes('agency');
-    const hasDMAddon   = planLower.includes('+ dm automation');
+    const isAgencyPlan  = planLower.includes('agency');
+    const hasDMAddon    = planLower.includes('+ dm automation');
+    const isStarterPlan = !isGrowthPlan && !isProPlan && !isAgencyPlan && !hasDMAddon;
 
-    // Nexa is included in Pro & Growth, or available via the DM add-on
-    profileObj.nexaIncluded       = isProPlan || isGrowthPlan || isAgencyPlan || hasDMAddon;
+    // All plans get Nexa (IG-only on Starter). Growth/Pro/Agency get unlimited + full payments.
+    profileObj.nexaIncluded    = true;
+    profileObj.nexaUnlimited   = isProPlan || isGrowthPlan || isAgencyPlan || hasDMAddon;
+    profileObj.nexaMonthlyLimit = isStarterPlan ? 20 : null; // null = unlimited
     // Base profiles get 1 brand.
     profileObj.brandLimit = isAgencyPlan ? 8 : 1;
 

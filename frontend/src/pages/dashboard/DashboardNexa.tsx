@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users
+  Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users, Zap, TrendingUp,
+  Truck, CheckCircle2, XCircle, Boxes, Calendar, Building, Mail, Briefcase
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOutletContext, useNavigate } from 'react-router-dom';
@@ -9,6 +10,50 @@ import { Checkout } from '@/components/Checkout';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+const isLeadDemo = (convo: any) => {
+  if (!convo) return false;
+  const status = convo.order_status || '';
+  if (['demo_booked', 'meeting_scheduled', 'contacted', 'lead_captured'].includes(status)) return true;
+  if (convo.collected?.lead_type === 'saas_demo' || convo.collected?.lead_type === 'saas_lead') return true;
+  if (convo.collected?.meeting_time || convo.collected?.company_name) return true;
+  if (!convo.collected?.delivery_address && convo.collected?.email) return true;
+  return false;
+};
+
+const renderStatusBadge = (convo: any) => {
+  const isDemo = isLeadDemo(convo);
+  const status = convo.order_status;
+
+  if (!status || status === 'none') {
+    return isDemo 
+      ? <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-violet-500/10 text-violet-600 border-violet-500/20">Demo Lead</span>
+      : null;
+  }
+
+  switch (status) {
+    case 'demo_booked':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-violet-500/10 text-violet-600 border-violet-500/20">Demo Booked</span>;
+    case 'meeting_scheduled':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-blue-500/10 text-blue-600 border-blue-500/20">Meeting Scheduled</span>;
+    case 'contacted':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-600 border-amber-500/20">Contacted</span>;
+    case 'lead_captured':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-cyan-500/10 text-cyan-600 border-cyan-500/20">Lead Captured</span>;
+    case 'ordered':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-blue-500/10 text-blue-600 border-blue-500/20">Ordered</span>;
+    case 'packing':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-600 border-amber-500/20">Packing</span>;
+    case 'shipping':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-purple-500/10 text-purple-600 border-purple-500/20">Shipping</span>;
+    case 'delivered':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{isDemo ? 'Completed' : 'Delivered'}</span>;
+    case 'cancelled':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-rose-500/10 text-rose-600 border-rose-500/20">Cancelled</span>;
+    default:
+      return null;
+  }
+};
 
 const DashboardNexa = () => {
   const { toast } = useToast();
@@ -25,8 +70,12 @@ const DashboardNexa = () => {
   const isElite = planName.includes('elite');
   const isAgency = planName.includes('agency');
   const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-  // Nexa is included in Growth & Pro plans
-  const hasNexaAccess = profile?.nexaIncluded || isGrowth || isPro || isElite || isAgency || isMetaReviewer;
+
+  // All plans now get Nexa. Starter = IG-only, 15 leads/month.
+  const nexaUnlimited = profile?.nexaUnlimited || isGrowth || isPro || isElite || isAgency || isMetaReviewer;
+  const isStarter = !nexaUnlimited;
+  const STARTER_NEXA_LIMIT = 15;
+
   const brandLimit = profile?.brandLimit ?? (isAgency ? 8 : 1);
   const totalBrands = profile?.totalBrands ?? 1;
   const isInstagramConnected = !!profile?.instagramIsConnected && !!profile?.instagramBusinessAccountId && !!profile?.instagramAccessToken;
@@ -39,13 +88,15 @@ const DashboardNexa = () => {
   const [replyText, setReplyText] = useState('');
   const [learnCheckbox, setLearnCheckbox] = useState(true);
   const [replying, setReplying] = useState(false);
+  const [monthlyCount, setMonthlyCount] = useState<number>(0);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Fetch Nexa conversations
     (async () => {
       setNexaConvLoading(true);
@@ -56,6 +107,16 @@ const DashboardNexa = () => {
           setNexaConversations(data.conversations || []);
           if (data.conversations?.length > 0) {
             setSelectedLeadId(data.conversations[0]._id);
+          }
+          // Use monthly_count from API if present (returned for Starter plans)
+          if (typeof data.monthly_count === 'number') {
+            setMonthlyCount(data.monthly_count);
+          } else if (isStarter) {
+            // Fallback: count from this month's conversations
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
+            const thisMonthCount = (data.conversations || []).filter((c: any) => new Date(c.createdAt) >= startOfMonth).length;
+            setMonthlyCount(thisMonthCount);
           }
         }
       } catch {}
@@ -86,6 +147,28 @@ const DashboardNexa = () => {
     setReplying(false);
   };
 
+  const handleUpdateOrderStatus = async (newStatus: string) => {
+    if (!selectedLeadId) return;
+    setUpdatingStatus(true);
+    try {
+      const res = await fetch(`${API_BASE}/nexa/conversations/${selectedLeadId}/order-status`, {
+        method: 'PATCH',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_status: newStatus })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: 'Order Status Updated', description: `Status changed to ${newStatus.toUpperCase()}` });
+        setNexaConversations(prev => prev.map(c => c._id === selectedLeadId ? { ...c, order_status: newStatus } : c));
+      } else {
+        toast({ title: 'Error', description: data.message, variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to update order status', variant: 'destructive' });
+    }
+    setUpdatingStatus(false);
+  };
+
   if (profile && !profile.instagramIsConnected) {
     return (
       <ConnectInstagramFallback 
@@ -95,37 +178,7 @@ const DashboardNexa = () => {
     );
   }
 
-  if (!hasNexaAccess) {
-    return (
-      <div className="max-w-md mx-auto my-16 p-8 bg-card border border-border/60 rounded-3xl text-center shadow-lg">
-        <div className="w-16 h-16 bg-violet-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Bot size={32} className="text-violet-500" />
-        </div>
-        <h2 className="text-xl font-bold mb-2">Nexa AI Sales Agent Locked</h2>
-        <p className="text-sm text-muted-foreground mb-3">
-          Your AI-powered sales closer. Turns DMs into confirmed orders — 24/7.
-        </p>
-        <p className="text-xs text-muted-foreground/80 mb-6">
-          Included in <span className="font-bold text-violet-500">Growth (₹1,499/mo)</span> &amp; <span className="font-bold text-violet-500">Pro (₹3,499/mo)</span> plans.
-        </p>
-        <div className="flex flex-col gap-3">
-          <Button 
-            onClick={() => navigate('/dashboard/billing')} 
-            className="w-full h-11 rounded-xl bg-violet-600 hover:bg-violet-700 font-bold text-white shadow-md"
-          >
-            Upgrade to Growth Plan (₹1,499/mo)
-          </Button>
-          <Button 
-            onClick={() => navigate('/dashboard/billing')} 
-            variant="outline"
-            className="w-full h-11 rounded-xl border-border/70 text-foreground font-semibold"
-          >
-            View All Plans
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const limitReached = isStarter && monthlyCount >= STARTER_NEXA_LIMIT;
 
   const filteredConversations = nexaConversations.filter(c => (c.platform || 'instagram') === activePlatform);
   const selectedLead = nexaConversations.find(c => c._id === selectedLeadId);
@@ -133,7 +186,7 @@ const DashboardNexa = () => {
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background/50">
       <main className="flex-1 p-6 lg:p-8 h-full flex flex-col">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
             <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
               <Bot size={24} className="text-violet-500" /> Nexa CRM Inbox
@@ -142,6 +195,37 @@ const DashboardNexa = () => {
               Manage your AI-driven sales conversations and orders.
             </p>
           </div>
+          {/* Starter Plan Usage Meter */}
+          {isStarter && (
+            <div className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border text-xs font-semibold transition-all ${
+              limitReached
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400'
+                : 'bg-violet-500/8 border-violet-500/20 text-violet-700 dark:text-violet-400'
+            }`}>
+              <div className="flex flex-col gap-1 min-w-[140px]">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Zap size={12} />
+                    {limitReached ? 'Monthly limit reached' : `${monthlyCount} / ${STARTER_NEXA_LIMIT} leads this month`}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-muted/60 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${limitReached ? 'bg-amber-500' : 'bg-violet-500'}`}
+                    style={{ width: `${Math.min((monthlyCount / STARTER_NEXA_LIMIT) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => navigate('/dashboard/billing')}
+                className="h-7 px-3 text-[11px] font-bold bg-violet-600 hover:bg-violet-700 text-white shrink-0"
+              >
+                <TrendingUp size={11} className="mr-1" />
+                Upgrade
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 h-[75vh]">
@@ -160,13 +244,19 @@ const DashboardNexa = () => {
                   Instagram
                 </button>
                 <button
-                  onClick={() => { setActivePlatform('whatsapp'); setSelectedLeadId(null); }}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${activePlatform === 'whatsapp' ? 'bg-background shadow text-emerald-600' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => { if (!isStarter) { setActivePlatform('whatsapp'); setSelectedLeadId(null); } }}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all relative ${
+                    isStarter
+                      ? 'text-muted-foreground/40 cursor-not-allowed'
+                      : activePlatform === 'whatsapp' ? 'bg-background shadow text-emerald-600' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={isStarter ? 'WhatsApp Nexa available on Growth & Pro plans' : undefined}
                 >
-                  WhatsApp
+                  WhatsApp {isStarter && <span className="text-[9px] ml-0.5">🔒</span>}
                 </button>
               </div>
             </CardHeader>
+
             <ScrollArea className="flex-1 p-4">
               {nexaConvLoading ? (
                 <div className="p-8 text-center text-muted-foreground text-sm">Loading leads...</div>
@@ -190,17 +280,24 @@ const DashboardNexa = () => {
                           <p className="text-sm font-bold text-foreground">{convo.collected?.customer_name || 'Unknown Lead'}</p>
                           <p className="text-xs text-muted-foreground">@{convo.ig_user_id}</p>
                         </div>
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                          convo.stage === 'CLOSED' ? 'bg-emerald-500/10 text-emerald-600' :
-                          convo.stage === 'ESCALATED' ? 'bg-amber-500/10 text-amber-600' :
-                          'bg-violet-500/10 text-violet-600'
-                        }`}>
-                          {convo.stage.replace('_', ' ')}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                            convo.stage === 'CLOSED' ? 'bg-emerald-500/10 text-emerald-600' :
+                            convo.stage === 'ESCALATED' ? 'bg-amber-500/10 text-amber-600' :
+                            'bg-violet-500/10 text-violet-600'
+                          }`}>
+                            {convo.stage.replace('_', ' ')}
+                          </span>
+                          {renderStatusBadge(convo)}
+                        </div>
                       </div>
                       
                       <div className="text-xs text-muted-foreground truncate max-w-[200px] flex items-center gap-1">
-                        <ShoppingBag size={12} /> {convo.collected?.product_interested || 'Discussing Options'}
+                        {isLeadDemo(convo) ? (
+                          <><Briefcase size={12} className="text-violet-500" /> {convo.collected?.company_name || convo.collected?.product_interested || 'Demo Meeting Request'}</>
+                        ) : (
+                          <><ShoppingBag size={12} /> {convo.collected?.product_interested || 'Discussing Options'}</>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -220,7 +317,7 @@ const DashboardNexa = () => {
                     </div>
                     <div>
                       <h2 className="text-lg font-bold">{selectedLead.collected?.customer_name || 'Unknown Customer'}</h2>
-                      <p className="text-sm text-muted-foreground">IG ID: {selectedLead.ig_user_id}</p>
+                      <p className="text-sm text-muted-foreground">{selectedLead.platform === 'whatsapp' ? 'WhatsApp' : 'IG'}: @{selectedLead.ig_user_id}</p>
                     </div>
                   </div>
                   {selectedLead.escalate_to_human && (
@@ -231,62 +328,221 @@ const DashboardNexa = () => {
                 </CardHeader>
                 
                 <ScrollArea className="flex-1 p-6">
+                  {/* Status & Action Bar (Context-aware for Demo Leads vs E-Commerce) */}
+                  {(() => {
+                    const isDemo = isLeadDemo(selectedLead);
+                    return (
+                      <div className="p-4 mb-6 rounded-2xl bg-muted/20 border border-border/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest block mb-0.5">
+                            {isDemo ? 'Lead & Meeting Status' : 'Order Status'}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {renderStatusBadge(selectedLead)}
+                            <span className="text-xs text-muted-foreground">
+                              {isDemo 
+                                ? '(Nexa manages meeting schedule & onboarding)' 
+                                : '(Nexa uses this to answer tracking inquiries)'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {isDemo ? [
+                            { id: 'demo_booked', label: 'Demo Booked', icon: Calendar },
+                            { id: 'contacted', label: 'Contacted', icon: Phone },
+                            { id: 'delivered', label: 'Completed', icon: CheckCircle2 },
+                            { id: 'cancelled', label: 'Cancelled', icon: XCircle },
+                          ].map((st) => {
+                            const Icon = st.icon;
+                            const isActive = selectedLead.order_status === st.id || (!selectedLead.order_status && st.id === 'demo_booked');
+                            return (
+                              <button
+                                key={st.id}
+                                disabled={updatingStatus}
+                                onClick={() => handleUpdateOrderStatus(st.id)}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                                  isActive 
+                                    ? 'bg-violet-600 text-white border-violet-600 shadow-sm' 
+                                    : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground border-border/60'
+                                }`}
+                              >
+                                <Icon size={12} />
+                                {st.label}
+                              </button>
+                            );
+                          }) : [
+                            { id: 'ordered', label: 'Ordered', icon: ShoppingBag },
+                            { id: 'packing', label: 'Packing', icon: Boxes },
+                            { id: 'shipping', label: 'Shipping', icon: Truck },
+                            { id: 'delivered', label: 'Delivered', icon: CheckCircle2 },
+                            { id: 'cancelled', label: 'Cancelled', icon: XCircle },
+                          ].map((st) => {
+                            const Icon = st.icon;
+                            const isActive = selectedLead.order_status === st.id;
+                            return (
+                              <button
+                                key={st.id}
+                                disabled={updatingStatus}
+                                onClick={() => handleUpdateOrderStatus(st.id)}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                                  isActive 
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm' 
+                                    : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground border-border/60'
+                                }`}
+                              >
+                                <Icon size={12} />
+                                {st.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    {/* Order Information */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">Order Details</h3>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Package size={16} className="text-violet-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Product Interested</p>
-                            <p className="text-sm font-medium">{selectedLead.collected?.product_interested || 'Not identified yet'}</p>
-                            {selectedLead.collected?.quantity && (
-                              <p className="text-xs font-bold text-primary mt-0.5">Qty: {selectedLead.collected.quantity}</p>
-                            )}
+                    {/* Information Column 1 */}
+                    {isLeadDemo(selectedLead) ? (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">
+                          Inquiry Details
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Briefcase size={16} className="text-violet-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Product / Plan Interested</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.product_interested || 'General Demo Inquiry'}</p>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-start gap-3">
-                          <CreditCard size={16} className="text-emerald-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Pricing & Payment</p>
-                            <p className="text-sm font-medium">
-                              {selectedLead.collected?.price_agreed ? `₹${selectedLead.collected.price_agreed}` : 'Not negotiated yet'}
-                            </p>
-                            {selectedLead.collected?.payment_mode && (
-                              <p className="text-xs font-bold text-emerald-600 mt-0.5 uppercase tracking-wider">
-                                {selectedLead.collected.payment_mode} • {selectedLead.payment?.payment_status}
+                          <div className="flex items-start gap-3">
+                            <CreditCard size={16} className="text-emerald-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Plan Pricing</p>
+                              <p className="text-sm font-medium">
+                                {selectedLead.collected?.price_agreed ? `₹${selectedLead.collected.price_agreed}/mo` : 'Custom / Demo'}
                               </p>
-                            )}
+                            </div>
+                          </div>
+
+                          {selectedLead.collected?.use_case && (
+                            <div className="flex items-start gap-3">
+                              <Bot size={16} className="text-blue-500 mt-1 shrink-0" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Use Case</p>
+                                <p className="text-sm font-medium">{selectedLead.collected.use_case}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">
+                          Order Details
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Package size={16} className="text-violet-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Product Interested</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.product_interested || 'Not identified yet'}</p>
+                              {selectedLead.collected?.quantity && (
+                                <p className="text-xs font-bold text-primary mt-0.5">Qty: {selectedLead.collected.quantity}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <CreditCard size={16} className="text-emerald-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Pricing &amp; Payment</p>
+                              <p className="text-sm font-medium">
+                                {selectedLead.collected?.price_agreed ? `₹${selectedLead.collected.price_agreed}` : 'Not negotiated yet'}
+                              </p>
+                              {selectedLead.collected?.payment_mode && (
+                                <p className="text-xs font-bold text-emerald-600 mt-0.5 uppercase tracking-wider">
+                                  {selectedLead.collected.payment_mode} • {selectedLead.payment?.payment_status}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Shipping & Contact */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">Shipping Profile</h3>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Phone size={16} className="text-blue-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Phone Number</p>
-                            <p className="text-sm font-medium">{selectedLead.collected?.phone_number || 'Not provided'}</p>
+                    {/* Information Column 2 */}
+                    {isLeadDemo(selectedLead) ? (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">
+                          Lead &amp; Meeting Profile
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Mail size={16} className="text-violet-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Work Email</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.email || 'Not provided'}</p>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-start gap-3">
-                          <MapPin size={16} className="text-rose-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Delivery Address</p>
-                            <p className="text-sm font-medium">{selectedLead.collected?.delivery_address || 'Not provided'}</p>
+                          <div className="flex items-start gap-3">
+                            <Building size={16} className="text-blue-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Company Name</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.company_name || 'Not provided'}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <Calendar size={16} className="text-amber-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Preferred Meeting Time</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.meeting_time || 'Not specified'}</p>
+                            </div>
+                          </div>
+
+                          {selectedLead.collected?.phone_number && (
+                            <div className="flex items-start gap-3">
+                              <Phone size={16} className="text-emerald-500 mt-1 shrink-0" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Phone / WhatsApp</p>
+                                <p className="text-sm font-medium">{selectedLead.collected.phone_number}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">
+                          Shipping Profile
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Phone size={16} className="text-blue-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Phone Number</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.phone_number || 'Not provided'}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <MapPin size={16} className="text-rose-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Delivery Address</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.delivery_address || 'Not provided'}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Chat History */}

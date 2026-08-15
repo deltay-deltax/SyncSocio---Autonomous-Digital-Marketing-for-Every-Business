@@ -48,6 +48,8 @@ const plans: Plan[] = [
       "1 brand profile",
       "50 products catalog",
       "Schedule up to 30 posts",
+      "🤖 Nexa AI Sales Agent (IG only)",
+      "15 AI-handled leads/month",
       "Email support",
     ],
     lockedFeatures: [
@@ -56,7 +58,7 @@ const plans: Plan[] = [
       "Video & Reels generation",
       "All-in-One Drop mode",
       "DM Automation",
-      "Nexa AI Sales Agent",
+      "Nexa: WhatsApp + payments",
       "Email Campaign",
       "WhatsApp Campaign",
       "Best time to post analytics",

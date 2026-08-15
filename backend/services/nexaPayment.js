@@ -127,6 +127,7 @@ export const handleRazorpayPaid = async (body) => {
       {
         $set: {
           stage: 'CLOSED',
+          order_status: 'ordered',
           'payment.payment_status': 'paid',
           'payment.paid_at': new Date(),
         },
@@ -148,7 +149,8 @@ export const handleRazorpayPaid = async (body) => {
         'success',
         '💰 Nexa: Order / Subscription Paid!',
         `${collected?.customer_name || 'A customer'} just paid for ${collected?.product_interested || 'an order'} ✅ ` +
-        `Amount: ₹${collected?.price_agreed || '?'} | ${contactSummary}`
+        `Amount: ₹${collected?.price_agreed || '?'} | ${contactSummary}`,
+        { conversationId: convo._id, platform: convo.platform, ig_user_id: convo.ig_user_id, action: 'order_paid' }
       );
     } catch (e) {
       console.error('[NexaPayment] Failed to send notification for paid order:', e.message);

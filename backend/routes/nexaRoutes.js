@@ -141,7 +141,7 @@ router.get('/conversations', protect, validate({ query: listNexaConversationsSch
 
     const [conversations, total] = await Promise.all([
       NexaConversation.find(query)
-        .select('ig_user_id platform stage origin collected payment escalate_to_human nudge_sent conversation_history createdAt updatedAt')
+        .select('ig_user_id platform stage origin collected payment escalate_to_human nudge_sent order_status conversation_history createdAt updatedAt')
         .sort({ updatedAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -152,6 +152,34 @@ router.get('/conversations', protect, validate({ query: listNexaConversationsSch
     res.json({ conversations, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     console.error('[NexaRoutes] GET conversations error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ─── PATCH /api/nexa/conversations/:id/order-status ─────────────────────────
+router.patch('/conversations/:id/order-status', protect, async (req, res) => {
+  try {
+    const { order_status } = req.body;
+    const allowed = ['none', 'demo_booked', 'meeting_scheduled', 'lead_captured', 'contacted', 'ordered', 'packing', 'shipping', 'delivered', 'cancelled'];
+    if (!allowed.includes(order_status)) {
+      return res.status(400).json({ message: `Invalid status. Allowed: ${allowed.join(', ')}` });
+    }
+
+    const brands = await BrandProfile.find({ user: req.user._id }).select('_id').lean();
+    const brandIds = brands.map(b => b._id.toString());
+
+    const convo = await NexaConversation.findById(req.params.id);
+    if (!convo) return res.status(404).json({ message: 'Conversation not found' });
+    if (!brandIds.includes(convo.brand_id.toString())) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    convo.order_status = order_status;
+    await convo.save();
+
+    res.json({ success: true, message: `Order status updated to ${order_status}`, convo });
+  } catch (err) {
+    console.error('[NexaRoutes] PATCH order-status error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

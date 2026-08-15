@@ -35,6 +35,8 @@ const nexaConversationSchema = new mongoose.Schema(
       quantity:           { type: Number, default: null },
       delivery_address:   { type: String, default: null },
       phone_number:       { type: String, default: null },
+      meeting_time:       { type: String, default: null },
+      lead_type:          { type: String, enum: ['ecommerce', 'saas_demo', 'saas_lead', 'general'], default: 'general' },
       payment_mode:       { type: String, enum: ['razorpay','upi','bank_transfer','cod', null], default: null },
     },
 
@@ -53,6 +55,13 @@ const nexaConversationSchema = new mongoose.Schema(
 
     conversation_history: { type: [conversationHistorySchema], default: [] },
     escalate_to_human:    { type: Boolean, default: false },
+
+    // Order Fulfillment & Lead / Demo Tracking State
+    order_status: {
+      type: String,
+      enum: ['none', 'demo_booked', 'meeting_scheduled', 'lead_captured', 'contacted', 'ordered', 'packing', 'shipping', 'delivered', 'cancelled'],
+      default: 'none',
+    },
 
     // Nudge scheduling
     nudge_due_at: { type: Date, default: null },
