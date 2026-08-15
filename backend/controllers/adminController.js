@@ -1854,3 +1854,47 @@ export const getAIOperations = async (req, res) => {
   }
 };
 
+// ==========================================
+// BRAND DEEP CONFIG (Admin The Brain Initiative)
+// ==========================================
+export const getBrandDeepConfig = async (req, res) => {
+  try {
+    const brandId = req.params.id;
+    const BrandProfile = await import('../models/BrandProfile.js').then(m => m.default);
+    
+    const brand = await BrandProfile.findById(brandId).populate('user', 'name email plan');
+    
+    if (!brand) {
+      return res.status(404).json({ success: false, message: 'Brand not found' });
+    }
+
+    res.json({
+      success: true,
+      brand
+    });
+  } catch (error) {
+    console.error('Error fetching deep brand config:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+export const unlockBrand = async (req, res) => {
+  try {
+    const brandId = req.params.id;
+    const BrandProfile = await import('../models/BrandProfile.js').then(m => m.default);
+    
+    const brand = await BrandProfile.findById(brandId);
+    if (!brand) return res.status(404).json({ success: false, message: 'Brand not found' });
+    
+    brand.isLocked = false;
+    brand.generationLockoutUntil = null;
+    await brand.save();
+    
+    res.json({ success: true, message: 'Brand unlocked successfully' });
+  } catch (error) {
+    console.error('Error unlocking brand:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+
