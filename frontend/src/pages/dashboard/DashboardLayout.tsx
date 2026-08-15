@@ -1007,7 +1007,7 @@ const DashboardLayoutContent = () => {
       case 'agent': return Zap;
       case 'comment': return MessageSquare;
       case 'scheduled': return Clock;
-      case 'alert': return Sparkles;
+      case 'alert': return AlertCircle;
       case 'billing': return Target;
       default: return Zap;
     }
@@ -1016,9 +1016,11 @@ const DashboardLayoutContent = () => {
   const getColorClass = (type: string) => {
     switch (type) {
       case 'success': return "bg-emerald-500/10 text-emerald-600";
-      case 'insight': return "bg-amber-500/10 text-amber-600";
+      case 'insight': return "bg-violet-500/10 text-violet-600";
       case 'alert': return "bg-rose-500/10 text-rose-600";
       case 'billing': return "bg-blue-500/10 text-blue-600";
+      case 'comment': return "bg-cyan-500/10 text-cyan-600";
+      case 'scheduled': return "bg-amber-500/10 text-amber-600";
       default: return "bg-primary/10 text-primary";
     }
   };
@@ -1538,7 +1540,13 @@ const DashboardLayoutContent = () => {
                     return (
                       <div
                         key={n._id}
-                        onClick={() => !n.isRead && markAsRead(n._id)}
+                        onClick={() => {
+                          if (!n.isRead) markAsRead(n._id);
+                          if (n.metadata?.conversationId || n.title.toLowerCase().includes('nexa') || n.description.toLowerCase().includes('crm')) {
+                            setShowNotifications(false);
+                            navigate('/dashboard/nexa');
+                          }
+                        }}
                         className={cn(
                           "p-5 rounded-[2rem] border transition-all cursor-pointer group hover:border-primary/20",
                           !n.isRead ? "bg-primary/[0.03] border-primary/10 shadow-sm" : "bg-card border-border/40 opacity-70"

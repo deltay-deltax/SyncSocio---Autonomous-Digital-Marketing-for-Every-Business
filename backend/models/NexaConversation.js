@@ -54,6 +54,13 @@ const nexaConversationSchema = new mongoose.Schema(
     conversation_history: { type: [conversationHistorySchema], default: [] },
     escalate_to_human:    { type: Boolean, default: false },
 
+    // Order Fulfillment & Tracking State
+    order_status: {
+      type: String,
+      enum: ['none', 'ordered', 'packing', 'shipping', 'delivered', 'cancelled'],
+      default: 'none',
+    },
+
     // Nudge scheduling
     nudge_due_at: { type: Date, default: null },
     nudge_sent:   { type: Boolean, default: false },

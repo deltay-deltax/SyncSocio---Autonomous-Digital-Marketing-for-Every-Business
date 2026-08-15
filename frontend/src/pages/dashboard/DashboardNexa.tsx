@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users, Zap, TrendingUp
+  Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users, Zap, TrendingUp,
+  Truck, CheckCircle2, XCircle, Boxes
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOutletContext, useNavigate } from 'react-router-dom';
@@ -44,6 +45,7 @@ const DashboardNexa = () => {
   const [learnCheckbox, setLearnCheckbox] = useState(true);
   const [replying, setReplying] = useState(false);
   const [monthlyCount, setMonthlyCount] = useState<number>(0);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
@@ -99,6 +101,28 @@ const DashboardNexa = () => {
       toast({ title: 'Error', description: 'Failed to send reply', variant: 'destructive' });
     }
     setReplying(false);
+  };
+
+  const handleUpdateOrderStatus = async (newStatus: string) => {
+    if (!selectedLeadId) return;
+    setUpdatingStatus(true);
+    try {
+      const res = await fetch(`${API_BASE}/nexa/conversations/${selectedLeadId}/order-status`, {
+        method: 'PATCH',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_status: newStatus })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: 'Order Status Updated', description: `Status changed to ${newStatus.toUpperCase()}` });
+        setNexaConversations(prev => prev.map(c => c._id === selectedLeadId ? { ...c, order_status: newStatus } : c));
+      } else {
+        toast({ title: 'Error', description: data.message, variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to update order status', variant: 'destructive' });
+    }
+    setUpdatingStatus(false);
   };
 
   if (profile && !profile.instagramIsConnected) {
@@ -212,13 +236,26 @@ const DashboardNexa = () => {
                           <p className="text-sm font-bold text-foreground">{convo.collected?.customer_name || 'Unknown Lead'}</p>
                           <p className="text-xs text-muted-foreground">@{convo.ig_user_id}</p>
                         </div>
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                          convo.stage === 'CLOSED' ? 'bg-emerald-500/10 text-emerald-600' :
-                          convo.stage === 'ESCALATED' ? 'bg-amber-500/10 text-amber-600' :
-                          'bg-violet-500/10 text-violet-600'
-                        }`}>
-                          {convo.stage.replace('_', ' ')}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                            convo.stage === 'CLOSED' ? 'bg-emerald-500/10 text-emerald-600' :
+                            convo.stage === 'ESCALATED' ? 'bg-amber-500/10 text-amber-600' :
+                            'bg-violet-500/10 text-violet-600'
+                          }`}>
+                            {convo.stage.replace('_', ' ')}
+                          </span>
+                          {convo.order_status && convo.order_status !== 'none' && (
+                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
+                              convo.order_status === 'ordered' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
+                              convo.order_status === 'packing' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                              convo.order_status === 'shipping' ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
+                              convo.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                              'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                            }`}>
+                              {convo.order_status}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="text-xs text-muted-foreground truncate max-w-[200px] flex items-center gap-1">
@@ -253,6 +290,56 @@ const DashboardNexa = () => {
                 </CardHeader>
                 
                 <ScrollArea className="flex-1 p-6">
+                  {/* Order Status & Fulfillment Action Bar */}
+                  <div className="p-4 mb-6 rounded-2xl bg-muted/20 border border-border/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest block mb-0.5">Order Status</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border ${
+                          selectedLead.order_status === 'ordered' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
+                          selectedLead.order_status === 'packing' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                          selectedLead.order_status === 'shipping' ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
+                          selectedLead.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                          selectedLead.order_status === 'cancelled' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+                          'bg-muted text-muted-foreground border-border'
+                        }`}>
+                          {selectedLead.order_status || 'No Order Yet'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          (Nexa uses this to answer customer tracking inquiries)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[
+                        { id: 'ordered', label: 'Ordered', icon: ShoppingBag },
+                        { id: 'packing', label: 'Packing', icon: Boxes },
+                        { id: 'shipping', label: 'Shipping', icon: Truck },
+                        { id: 'delivered', label: 'Delivered', icon: CheckCircle2 },
+                        { id: 'cancelled', label: 'Cancelled', icon: XCircle },
+                      ].map((st) => {
+                        const Icon = st.icon;
+                        const isActive = selectedLead.order_status === st.id;
+                        return (
+                          <button
+                            key={st.id}
+                            disabled={updatingStatus}
+                            onClick={() => handleUpdateOrderStatus(st.id)}
+                            className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                              isActive 
+                                ? 'bg-primary text-primary-foreground border-primary shadow-sm' 
+                                : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground border-border/60'
+                            }`}
+                          >
+                            <Icon size={12} />
+                            {st.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     {/* Order Information */}
                     <div className="space-y-4">

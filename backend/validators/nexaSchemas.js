@@ -12,6 +12,7 @@ export const updateNexaSettingsSchema = z.object({
   max_discount: z.coerce.number().min(0).max(100).optional(),
   upi_qr_code_url: z.string().optional(),
   business_context: z.string().max(5000).optional(),
+  demo_booking_link: z.string().max(1000).optional(),
 }).strict();
 
 export const listNexaConversationsSchema = z.object({

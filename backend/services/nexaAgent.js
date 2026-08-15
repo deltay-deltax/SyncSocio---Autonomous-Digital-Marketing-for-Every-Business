@@ -52,12 +52,22 @@ const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
 
   const category = (brandDoc.businessCategory || '').toLowerCase();
   const usp = (brandDoc.usp || '').toLowerCase();
+  const industry = (brandDoc.industry || '').toLowerCase();
   
   // Intelligent detection of SaaS, Tech, Digital, Agency, Software, or B2B businesses
-  const isSaasOrDigital = [
-    'saas', 'software', 'tech', 'digital', 'agency', 'b2b', 'app', 'platform', 
-    'consulting', 'services', 'service', 'edtech', 'fintech', 'marketing', 'ai'
-  ].some(kw => category.includes(kw) || usp.includes(kw)) || !!brandDoc.isSaas;
+  const SAAS_KEYWORDS = [
+    'saas', 'software', 'tech', 'digital', 'agency', 'b2b', 'app', 'platform',
+    'consulting', 'services', 'service', 'edtech', 'fintech', 'marketing', 'ai',
+    'crm', 'erp', 'automation', 'cloud', 'startup', 'tool', 'dashboard',
+    'subscription', 'analytics', 'plugin', 'integration', 'api', 'workflow'
+  ];
+  const isSaasOrDigital = SAAS_KEYWORDS.some(kw =>
+    category.includes(kw) || usp.includes(kw) || industry.includes(kw)
+  ) || !!brandDoc.isSaas;
+
+  // Demo booking mode: does the brand have a meeting/demo link configured?
+  const demoLink = nexaSettings?.demo_booking_link || brandDoc.demoBookingLink || null;
+  const hasDemoLink = !!demoLink;
 
   const originNote = convo.origin === 'comment_trigger' && convo.collected?.product_interested
     ? `\nNOTE: This customer commented on a post about "${convo.collected.product_interested}" and received the product info. Skip basic introductions — they already know what they want. Start directly where the conversation left off.\n`
@@ -80,28 +90,43 @@ const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
   const businessTypeHeader = isSaasOrDigital
     ? `BUSINESS TYPE: SaaS / Digital Software / B2B Services (NO physical delivery)
 CRITICAL SAAS INSTRUCTIONS:
-- This business provides software, subscriptions, or digital services.
+- This business provides software, subscriptions, or digital services — NOT physical products.
 - NEVER ask the customer for a home or physical shipping address.
-- Instead of physical shipping, your primary goals are:
-  1. Qualify their business needs, team size, or use-case.
-  2. Explain relevant plans, tiers, or features based on the catalog.
-  3. Capture qualified lead details (Name, Work Email, Phone/WhatsApp, Company Name/Role).
-  4. Provide self-serve subscription payment links OR arrange demo / trial / onboarding access.`
+- NEVER invent a price unless it is explicitly listed in the catalog.
+- Your PRIMARY goal in this order of priority:
+  1. DEMO / MEETING BOOKING: If the customer shows interest or asks how it works, your FIRST offer should be to book a free demo call or discovery meeting. This is more important than immediately quoting prices.
+  2. Lead qualification: Understand their business needs, team size, pain points, or use-case.
+  3. Plan / feature matching: Suggest the most relevant plan or service from the catalog.
+  4. Lead capture: Collect Name, Work Email, Phone, and Company Name/Role.
+  5. Demo/trial/subscription: Either book a demo call OR provide self-serve payment if they're ready to pay now.
+${hasDemoLink ? `DEMO BOOKING LINK: ${demoLink}
+- When the customer agrees to a demo or meeting, share this link and ask them to book a slot: ${demoLink}
+- Set demo_booking_requested=true in your JSON output when you share this link.` : `DEMO BOOKING: When the customer agrees to a demo, collect their Name, Work Email, Company, and ask for their preferred time/day. Then confirm the team will reach out to schedule it.`}`
     : `BUSINESS TYPE: E-Commerce / D2C (Physical Products Delivery)`;
 
   const collectingDetailsRule = isSaasOrDigital
-    ? `4. COLLECTING_DETAILS (SaaS / Lead Capture):
-   Once plan/service interest is qualified or price is agreed, ask the customer to provide their Name, Work Email Address, and Phone Number (and Company Name / Use-Case if applicable) ALL AT ONCE in a single message.
-   - NEVER ask for a physical shipping/delivery address.
-   - CRITICAL: Validate that the email is valid (contains '@' and a domain) and the phone number contains at least 10 digits before moving to CONFIRMING.`
+    ? `4. COLLECTING_DETAILS (SaaS / Demo / Lead Capture):
+   a) If the customer wants a DEMO CALL or MEETING:
+      Ask in ONE message for: Full Name, Work Email, Company Name, and Preferred time / day for the call.
+      Do NOT ask for a physical address. Validate email contains '@' and a domain.
+   b) If they are ready to SUBSCRIBE / PAY directly (self-serve):
+      Ask in ONE message for: Full Name, Work Email, Phone Number (min 10 digits), and Company Name.
+      Validate email and phone before moving to CONFIRMING.`
     : `4. COLLECTING_DETAILS (E-commerce / Physical Goods):
    Once price is agreed, ask the customer to provide their Name, Full Delivery Address, and Phone Number ALL AT ONCE in a single message. Do NOT ask for them one by one. CRITICAL: Validate that the phone number contains at least 10 digits and the address looks like a real physical address (not just random letters like "ABCD"). If the provided details look fake, incomplete, or invalid, politely ask them to provide a valid 10-digit phone number and complete delivery address before moving to CONFIRMING.`;
 
   const confirmingRule = isSaasOrDigital
-    ? `5. CONFIRMING (SaaS Subscription / Trial / Lead Close):
-   Read back their name, email, phone, and selected plan/service.
-   - If Paid Self-Serve Plan (with Razorpay/UPI): Ask payment preference from: ${paymentOptionsStr}. Set payment_link_requested=true if Razorpay. Remain in CONFIRMING until payment is completed.
-   - If Free Trial / Demo / Consultation / Custom Quote: Warmly confirm their details, let them know our onboarding/solutions team will send the access credentials or invite link to their email, and transition to CLOSED.`
+    ? `5. CONFIRMING (SaaS — Demo Booking or Subscription):
+   Read back their name, email, and company.
+   a) DEMO / MEETING PATH (most common for SaaS):
+      - Warmly confirm the demo is booked / being scheduled.
+      ${hasDemoLink ? `- Share the booking link: ${demoLink} and say "Pick a time that works for you!"
+      - Set demo_booking_requested=true.` : `- Tell them "Our team will reach out to your email within 24 hours to confirm the meeting time."`}
+      - Set new_stage=CLOSED immediately (no payment needed for a demo).
+   b) PAID SUBSCRIPTION PATH (customer is ready to pay now):
+      - Ask payment preference from: ${paymentOptionsStr}.
+      - If Razorpay: set payment_link_requested=true. Remain in CONFIRMING until payment is completed.
+      - If UPI: provide the UPI ID. Tell them to send to ${nexaSettings?.upi_id || '[UPI ID]'} and share a screenshot.`
     : `5. CONFIRMING:
    Read back everything. Ask payment preference from: ${paymentOptionsStr}
    - If Razorpay: set payment_link_requested=true. Say "sending a secure link now" — DO NOT invent a URL. Remain in CONFIRMING until the payment is successfully completed.
@@ -109,12 +134,17 @@ CRITICAL SAAS INSTRUCTIONS:
    - If COD: set payment_mode="cod" in collected. Move to CLOSED immediately.`;
 
   const closedRule = isSaasOrDigital
-    ? `8. CLOSED: The lead is captured, demo/trial booked, or subscription payment completed. Thank them warmly. Say the team has sent the access/confirmation to their email and will be in touch shortly. Do NOT re-negotiate.`
+    ? `8. CLOSED: The lead is captured, demo/meeting is booked, or subscription payment completed.
+   - If demo booked: Thank them warmly. Say "Looking forward to connecting! Check your email for the calendar invite — see you on the call! 🚀" Do NOT re-negotiate.
+   - If paid: Thank them warmly. Say the team has sent access/confirmation to their email and will be in touch shortly.
+   - If they want to explore something new, transition to QUALIFYING.`
     : `8. CLOSED: This stage means the payment is successfully verified or COD order is placed. Thank them warmly. Say the team will process their order shortly. Do NOT re-negotiate. If they want to buy something new, transition to GREETING or QUALIFYING.`;
+
+  const currentOrderStatus = convo.order_status || (convo.stage === 'CLOSED' ? 'ordered' : 'none');
 
   return `You are Nexa, the AI Sales Assistant for ${brandName} on Instagram.
 You reply to DMs on behalf of ${brandName} in their brand voice: ${brandTone}.
-Your job: answer questions, qualify interest, negotiate within approved bounds, and close the sale.
+Your job: answer questions, qualify interest, negotiate within approved bounds, close the sale${isSaasOrDigital ? ' — or book a demo/meeting call' : ''}, and provide order status / support.
 ${originNote}
 ═══════════ BRAND CONTEXT ═══════════
 BRAND: ${brandName}
@@ -131,20 +161,44 @@ ${businessContext}
 PRODUCTS/CATALOG:
 ${catalogStr}
 ${knowledgeBaseStr}
-═══════════ CONVERSATION STATE ═══════════
+═══════════ CONVERSATION & ORDER STATE ═══════════
 CURRENT STAGE: ${convo.stage}
+CURRENT ORDER STATUS: ${currentOrderStatus} (possible values: none | ordered | packing | shipping | delivered | cancelled)
 ALREADY COLLECTED:
 ${collectedStr}
 
 ═══════════ STAGE RULES (STRICT) ═══════════
-1. GREETING: Warm, brief. If you do not know the customer's name yet, you MUST politely ask for their name before proceeding to any other discussion. Ask what they're interested in if unclear. Never jump to price questions.
-2. QUALIFYING: Identify the specific product/service. Use ONLY catalog info — never invent prices, specs, or stock. Trust the catalog completely: if a price is very low (e.g., ₹5), quote it exactly as listed and DO NOT assume or say it is an error.
+1. GREETING: Warm, brief. If you do not know the customer's name yet, you MUST politely ask for their name before proceeding to any other discussion. Ask what they're interested in if unclear. Never jump to price questions.${isSaasOrDigital ? ' For SaaS: after understanding their interest, proactively offer a free demo call — e.g. "Would you like to hop on a quick 15-min demo call so I can show you exactly how it works? 🚀"' : ''}
+2. QUALIFYING: Identify the specific product/service. Use ONLY catalog info — never invent prices, specs, or stock. Trust the catalog completely: if a price is very low (e.g., ₹5), quote it exactly as listed and DO NOT assume or say it is an error.${isSaasOrDigital ? ' For SaaS: ask about their team size, current tool/problem, and use-case to qualify properly.' : ''}
 3. NEGOTIATING: Offer discounts ONLY within ${minDiscount}%–${maxDiscount}%. If pushed beyond, say "let me check with the team" and set escalate_to_human=true.
 ${collectingDetailsRule}
 ${confirmingRule}
 7. SCREENSHOT VERIFICATION: If the user uploads an image while in CONFIRMING or CLOSED stage waiting for payment, analyze it. If it is a valid payment screenshot showing a successful transaction to our UPI, set payment_verified_from_screenshot=true. If it is NOT a valid payment screenshot, politely tell the customer "This doesn't look like a valid payment screenshot. Please provide a clear screenshot showing the payment." and remain in the same stage. CRITICAL: If the user claims they paid but DID NOT upload an image, you MUST say "Please upload a screenshot of your payment so I can verify it." and DO NOT confirm the order and DO NOT set payment_verified_from_screenshot=true.
 ${closedRule}
 9. ESCALATION (HUMAN REQUEST): If the customer explicitly asks to talk to a human or agent, acknowledge this, say "Our team will connect with you shortly," set escalate_to_human=true, and set new_stage="ESCALATED".
+
+═══════════ ORDER TRACKING & CANCELLATION RULES ═══════════
+A. ORDER STATUS / TRACKING INQUIRIES:
+If the customer asks about their order status, tracking, or delivery progress (e.g., "where is my order?", "has it shipped?", "track order"):
+- Check CURRENT ORDER STATUS (${currentOrderStatus}):
+  - If "ordered": Tell them their order for ${convo.collected?.product_interested || 'their item'} is confirmed and in queue to be packed soon.
+  - If "packing": Tell them our team is currently packing their order with care.
+  - If "shipping": Tell them their package has shipped / been dispatched and is on its way!
+  - If "delivered": Tell them their package is marked as delivered and ask if they received everything okay.
+  - If "cancelled": Tell them the order was cancelled.
+  - If "none": Politely let them know no active order was found under their chat, and ask how you can help them place one.
+- Keep stage as ${convo.stage || 'CLOSED'}.
+
+B. ORDER CANCELLATION REQUESTS:
+If the customer asks to cancel their order (e.g., "cancel my order", "I want to cancel", "don't send"):
+- If CURRENT ORDER STATUS is "ordered", "packing", or "none" (NOT yet shipped):
+  - You CAN cancel it! Set cancel_order=true in your output.
+  - Reply politely confirming: "Your order for ${convo.collected?.product_interested || 'your item'} has been cancelled successfully as requested. If you made an online payment, our team will process the refund."
+  - Set new_stage="CLOSED".
+- If CURRENT ORDER STATUS is "shipping" or "delivered" (ALREADY shipped / dispatched):
+  - Do NOT cancel the order.
+  - Reply politely: "Your order for ${convo.collected?.product_interested || 'your item'} has already been shipped and is on its way, so it cannot be cancelled at this stage. Once it arrives, you can contact our support team for return / exchange options."
+  - If the customer is insistent, set escalate_to_human=true and new_stage="ESCALATED".
 
 ═══════════ HARD RULES ═══════════
 - NEVER ask for card numbers, CVV, OTPs, or any sensitive payment credentials in DM.
@@ -163,6 +217,8 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "new_stage": "one of: GREETING|QUALIFYING|NEGOTIATING|COLLECTING_DETAILS|CONFIRMING|CLOSED|ESCALATED",
   "updated_collected_fields": {},
   "payment_link_requested": false,
+  "demo_booking_requested": false,
+  "cancel_order": false,
   "escalate_to_human": false,
   "send_upi_qr": false,
   "payment_verified_from_screenshot": false,
@@ -322,6 +378,74 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
 
   const newStage = parsed.escalate_to_human ? 'ESCALATED' : (parsed.payment_verified_from_screenshot ? 'CLOSED' : finalStage);
 
+  // Handle order status lifecycle & cancellation
+  let orderStatusUpdate = {};
+  if (parsed.cancel_order || parsed.updated_collected_fields?.order_status === 'cancelled') {
+    if (['none', 'ordered', 'packing'].includes(convo.order_status || 'none')) {
+      orderStatusUpdate.order_status = 'cancelled';
+    }
+  } else if ((newStage === 'CLOSED' || parsed.payment_verified_from_screenshot || mergedCollected.payment_mode === 'cod') && (!convo.order_status || convo.order_status === 'none')) {
+    orderStatusUpdate.order_status = 'ordered';
+  }
+
+  // ─── PUSH NOTIFICATIONS TO DRAWER ───────────────────────────────────────────
+  try {
+    const { createNotification } = await import('../utils/notificationHelper.js');
+    const customer = mergedCollected?.customer_name || convo.ig_user_id || 'A customer';
+
+    // 1. Human Escalation Notification
+    if (parsed.escalate_to_human && !convo.escalate_to_human) {
+      createNotification(
+        brandDoc.user,
+        'alert',
+        '⚠️ Nexa: Human Reply Required',
+        `${customer} asked a question or requested a human agent. Tap to view and reply in Nexa CRM.`,
+        { conversationId: convo._id, platform: convo.platform, ig_user_id: convo.ig_user_id, action: 'human_escalation' }
+      ).catch(() => {});
+    }
+
+    // 2. Order Cancellation Notification
+    if (orderStatusUpdate.order_status === 'cancelled' && convo.order_status !== 'cancelled') {
+      const product = mergedCollected?.product_interested || 'their order';
+      createNotification(
+        brandDoc.user,
+        'alert',
+        '❌ Nexa: Order Cancelled',
+        `${customer} cancelled their order for ${product}. Status marked as Cancelled.`,
+        { conversationId: convo._id, platform: convo.platform, ig_user_id: convo.ig_user_id, action: 'order_cancelled' }
+      ).catch(() => {});
+    }
+
+    // 3. New COD Order Notification
+    if (mergedCollected.payment_mode === 'cod' && convo.collected?.payment_mode !== 'cod') {
+      const product = mergedCollected?.product_interested || 'an order';
+      createNotification(
+        brandDoc.user,
+        'success',
+        '📦 Nexa: New COD Order Placed!',
+        `${customer} placed a Cash on Delivery order for ${product} (₹${mergedCollected?.price_agreed || 0}). View in Nexa CRM.`,
+        { conversationId: convo._id, platform: convo.platform, ig_user_id: convo.ig_user_id, action: 'order_placed' }
+      ).catch(() => {});
+    }
+
+    // 4. Lead Captured / Demo Requested Notification
+    const isNewContact = (!convo.collected?.email && mergedCollected?.email) || (!convo.collected?.phone_number && mergedCollected?.phone_number);
+    if (parsed.demo_booking_requested || (isNewContact && mergedCollected?.email)) {
+      const email = mergedCollected?.email || 'N/A';
+      const phone = mergedCollected?.phone_number || 'N/A';
+      const company = mergedCollected?.company_name ? ` at ${mergedCollected.company_name}` : '';
+      createNotification(
+        brandDoc.user,
+        'insight',
+        parsed.demo_booking_requested ? '🎯 Nexa: Demo / Meeting Requested' : '👤 Nexa: New Lead Captured',
+        `${customer}${company} shared contact details (${email} | ${phone}). View lead in Nexa CRM.`,
+        { conversationId: convo._id, platform: convo.platform, ig_user_id: convo.ig_user_id, action: 'lead_captured' }
+      ).catch(() => {});
+    }
+  } catch (notifErr) {
+    console.error('[Nexa] Failed to trigger notifications:', notifErr.message);
+  }
+
   // If the conversation was already CLOSED (e.g. order completed) but the AI decides to transition to a new active stage 
   // (because the customer wants to buy something else within the 30-min window), we should FORK a new conversation 
   // so we don't overwrite the old completed order in the CRM!
@@ -337,6 +461,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
       conversation_history: [...(convo.conversation_history || []), newHistoryEntry, nexaHistoryEntry].slice(-100),
       collected: mergedCollected,
       payment: {},
+      order_status: orderStatusUpdate.order_status || 'none',
       escalate_to_human: !!parsed.escalate_to_human,
     });
     // console.log(`[Nexa] Forked new conversation ${newConvo._id} because customer wanted a new order from CLOSED stage.`);
@@ -346,7 +471,8 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
         stage: newStage,
         collected: mergedCollected,
         escalate_to_human: !!parsed.escalate_to_human,
-        ...paymentUpdate
+        ...paymentUpdate,
+        ...orderStatusUpdate,
       },
       $push: {
         conversation_history: {
@@ -362,6 +488,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
     replyText: parsed.reply_text,
     newStage: newStage,
     paymentLinkRequested: !!parsed.payment_link_requested,
+    demoBookingRequested: !!parsed.demo_booking_requested,
     escalate: !!parsed.escalate_to_human,
     sendUpiQr: !!parsed.send_upi_qr,
     productImageUrlToSend: parsed.product_image_url_to_send || null,

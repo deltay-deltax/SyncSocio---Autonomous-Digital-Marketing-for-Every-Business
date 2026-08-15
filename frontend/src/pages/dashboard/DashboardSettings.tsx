@@ -144,6 +144,7 @@ const DashboardSettings = () => {
     min_discount: 0,
     max_discount: 10,
     business_context: '',
+    demo_booking_link: '',
   });
   const [activeBrandId, setActiveBrandId] = useState<string>('');
 
@@ -192,6 +193,7 @@ const DashboardSettings = () => {
             razorpay_key_id: data.settings.razorpay_key_id || '',
             razorpay_key_secret: data.settings.razorpay_key_secret || '',
             business_context: data.settings.business_context || '',
+            demo_booking_link: data.settings.demo_booking_link || '',
           }));
         }
       } catch {}
@@ -1733,8 +1735,27 @@ const DashboardSettings = () => {
                   {/* Business Context & Knowledge Base */}
                   <div className="space-y-4 pt-4 border-t border-border/40">
                     <h3 className="text-sm font-bold flex items-center gap-2">
-                       Business Context & Store Policies
+                       Business Context &amp; Store Policies
                     </h3>
+
+                    {/* Demo / Meeting Booking Link */}
+                    <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-2">
+                      <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        📅 Demo / Meeting Booking Link
+                        <span className="text-[10px] font-normal text-muted-foreground ml-1">(SaaS / Services brands only)</span>
+                      </label>
+                      <Input
+                        placeholder="https://calendly.com/yourbrand/demo  or  https://cal.com/yourbrand"
+                        value={nexaForm.demo_booking_link}
+                        onChange={e => setNexaForm((p: any) => ({ ...p, demo_booking_link: e.target.value }))}
+                        className="text-xs bg-muted/30"
+                      />
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        When Nexa detects a SaaS/service inquiry, it will offer a demo call and share this link automatically.
+                        Leave blank to have Nexa collect preferred time slot details manually instead.
+                      </p>
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-muted-foreground">General information Nexa should know</label>
                       <textarea 
