@@ -377,7 +377,7 @@ Rules:
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 300, responseMimeType: 'application/json' }
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2000, responseMimeType: 'application/json' }
       },
       { timeout: 15000 }
     );

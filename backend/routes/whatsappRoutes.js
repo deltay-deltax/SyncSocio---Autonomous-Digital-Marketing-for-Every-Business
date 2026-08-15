@@ -756,13 +756,28 @@ Rules:
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 300, responseMimeType: 'application/json' }
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2000, responseMimeType: 'application/json' }
       },
-      { timeout: 15000 }
+      { timeout: 45000 }
     );
 
-    const raw = geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    const variables = JSON.parse(raw.trim());
+    let raw = geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    
+    // Extract everything between the first { and the last }
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      raw = jsonMatch[0];
+    }
+    
+    let variables = {};
+    try {
+      // Fix potentially unquoted numeric keys (e.g. { 1: "..." } -> { "1": "..." })
+      let sanitized = raw.replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3');
+      variables = JSON.parse(sanitized);
+    } catch (parseErr) {
+      console.error('[WhatsApp MapVariables] JSON Parse Error. Raw text was:', raw);
+      throw parseErr;
+    }
 
     let filledText = templateBody;
     for (const [key, value] of Object.entries(variables)) {
@@ -773,6 +788,9 @@ Rules:
     res.json({ filledText, variables });
   } catch (err) {
     console.error('[WhatsApp MapVariables] Error:', err.message);
+    if (err.response && err.response.data) {
+      console.error('[WhatsApp MapVariables] Detailed Response Error:', JSON.stringify(err.response.data, null, 2));
+    }
     res.status(500).json({ message: 'Failed to map variables.', error: 'An internal server error occurred.' });
   }
 });

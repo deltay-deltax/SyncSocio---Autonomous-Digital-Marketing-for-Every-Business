@@ -5721,15 +5721,8 @@ const CampaignResults: React.FC<CampaignResultsProps> = ({
                         }
                       }
 
-                      const headline = subject || `${brandName} Exclusive Offer`;
-                      let filled = tplBody
-                        ? tplBody
-                            .replace(/\{\{1\}\}/g, headline)
-                            .replace(/\{\{2\}\}/g, body || '...')
-                            .replace(/\{\{3\}\}/g, '')
-                            .replace(/\{\{4\}\}/g, '')
-                            .replace(/\{\{5\}\}/g, '')
-                        : `${headline}\n\n${body}`;
+                      // The backend already perfectly maps all variables into `body` (which is mapData.filledText)
+                      let filled = body || `${subject}\n\n${body}`;
                       // Clean up empty lines from unused variables
                       filled = filled.replace(/\n{3,}/g, '\n\n').trim();
                       // Render bold *text* as <strong>
