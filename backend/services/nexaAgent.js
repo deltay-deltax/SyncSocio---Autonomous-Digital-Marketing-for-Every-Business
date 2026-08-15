@@ -28,6 +28,25 @@ const isValidTransition = (from, to) => {
   return VALID_TRANSITIONS[from].includes(to);
 };
 
+// ─── SaaS / Digital Detection ────────────────────────────────────────────────
+export const SAAS_KEYWORDS = [
+  'saas', 'software', 'tech', 'digital', 'agency', 'b2b', 'app', 'platform',
+  'consulting', 'services', 'service', 'edtech', 'fintech', 'marketing', 'ai',
+  'crm', 'erp', 'automation', 'cloud', 'startup', 'tool', 'dashboard',
+  'subscription', 'analytics', 'plugin', 'integration', 'api', 'workflow'
+];
+
+export const checkIsSaasBrand = (brandDoc) => {
+  if (!brandDoc) return false;
+  const category = (brandDoc.businessCategory || '').toLowerCase();
+  const otherCat = (brandDoc.otherCategory || '').toLowerCase();
+  const usp = (brandDoc.usp || '').toLowerCase();
+  const industry = (brandDoc.industry || '').toLowerCase();
+  return SAAS_KEYWORDS.some(kw =>
+    category.includes(kw) || otherCat.includes(kw) || usp.includes(kw) || industry.includes(kw)
+  ) || !!brandDoc.isSaas;
+};
+
 // ─── Build the system prompt ───────────────────────────────────────────────────
 const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
   const brandName = brandDoc.brandName || 'Brand';
@@ -50,20 +69,7 @@ const buildSystemPrompt = (brandDoc, convo, nexaSettings) => {
   const minDiscount = nexaSettings?.min_discount ?? 0;
   const maxDiscount = nexaSettings?.max_discount ?? 0;
 
-  const category = (brandDoc.businessCategory || '').toLowerCase();
-  const usp = (brandDoc.usp || '').toLowerCase();
-  const industry = (brandDoc.industry || '').toLowerCase();
-  
-  // Intelligent detection of SaaS, Tech, Digital, Agency, Software, or B2B businesses
-  const SAAS_KEYWORDS = [
-    'saas', 'software', 'tech', 'digital', 'agency', 'b2b', 'app', 'platform',
-    'consulting', 'services', 'service', 'edtech', 'fintech', 'marketing', 'ai',
-    'crm', 'erp', 'automation', 'cloud', 'startup', 'tool', 'dashboard',
-    'subscription', 'analytics', 'plugin', 'integration', 'api', 'workflow'
-  ];
-  const isSaasOrDigital = SAAS_KEYWORDS.some(kw =>
-    category.includes(kw) || usp.includes(kw) || industry.includes(kw)
-  ) || !!brandDoc.isSaas;
+  const isSaasOrDigital = checkIsSaasBrand(brandDoc);
 
   // Demo booking mode: does the brand have a meeting/demo link configured?
   const demoLink = nexaSettings?.demo_booking_link || brandDoc.demoBookingLink || null;
@@ -387,6 +393,7 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   const newStage = parsed.escalate_to_human ? 'ESCALATED' : (parsed.payment_verified_from_screenshot ? 'CLOSED' : finalStage);
 
   // Handle order status lifecycle & cancellation
+  const isSaasOrDigital = checkIsSaasBrand(brandDoc);
   const isSaasOrDemoLead = isSaasOrDigital || parsed.demo_booking_requested || !!mergedCollected.meeting_time || !!mergedCollected.company_name || (!mergedCollected.delivery_address && !!mergedCollected.email);
 
   let orderStatusUpdate = {};
