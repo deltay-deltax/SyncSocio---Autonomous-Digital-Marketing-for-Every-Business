@@ -67,6 +67,7 @@ import {
   getNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  getAIOperations,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -172,5 +173,8 @@ router.get('/campaigns/stats', getCampaignStats);
 router.get('/notifications', getNotifications);
 router.put('/notifications/:id/read', markNotificationRead);
 router.put('/notifications/read-all', markAllNotificationsRead);
+
+// ─── AI Operations ─────────────────────────────────────────────────────────────
+router.get('/ai-operations', getAIOperations);
 
 export default router;
