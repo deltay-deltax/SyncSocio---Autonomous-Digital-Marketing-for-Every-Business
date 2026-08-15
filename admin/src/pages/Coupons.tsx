@@ -218,7 +218,8 @@ export default function Coupons() {
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'starter', label: 'Starter Plan' },
-                  { id: 'elite', label: 'Elite Plan' },
+                  { id: 'growth', label: 'Growth Plan' },
+                  { id: 'pro', label: 'Pro Plan' },
                   { id: 'topup', label: 'Credit Top Up' }
                 ].map((item) => (
                   <label key={item.id} className="flex items-center gap-2 text-sm text-foreground cursor-pointer p-2 rounded-lg border border-border/60 hover:bg-muted/30">
