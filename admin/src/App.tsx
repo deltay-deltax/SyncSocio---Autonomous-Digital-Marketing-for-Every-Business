@@ -25,6 +25,7 @@ import Campaigns from './pages/Campaigns';
 import AdminNotifications from './pages/AdminNotifications';
 import SupportTickets from './pages/SupportTickets';
 import AIOperations from './pages/AIOperations';
+import BrandDeepConfig from './pages/BrandDeepConfig';
 import './App.css';
 
 // Protected Route for Admin
@@ -49,6 +50,7 @@ function App() {
             <Route path="users" element={<Users />} />
             <Route path="users/:id" element={<UserDetails />} />
             <Route path="brands" element={<Brands />} />
+            <Route path="brands/:id/deep-config" element={<BrandDeepConfig />} />
             <Route path="coupons" element={<Coupons />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="transactions" element={<Transactions />} />
