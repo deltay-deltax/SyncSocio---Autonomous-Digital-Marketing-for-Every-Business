@@ -1120,13 +1120,13 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
             return true;
           }
 
-          // ── Starter plan: enforce 20 unique-conversation monthly cap (Instagram only) ──
+          // ── Starter plan: enforce 15 unique-conversation monthly cap (Instagram only) ──
           try {
             const userDoc = await User.findById(profile.user).select('plan').lean();
             const userPlan = (userDoc?.plan || '').toLowerCase();
             const isStarterPlan = !userPlan.includes('growth') && !userPlan.includes('pro') && !userPlan.includes('agency') && !userPlan.includes('+ dm automation');
             if (isStarterPlan) {
-              const STARTER_NEXA_LIMIT = 20;
+              const STARTER_NEXA_LIMIT = 15;
               const startOfMonth = new Date();
               startOfMonth.setDate(1);
               startOfMonth.setHours(0, 0, 0, 0);

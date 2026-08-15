@@ -49,7 +49,7 @@ const plans: Plan[] = [
       "50 products catalog",
       "Schedule up to 30 posts",
       "🤖 Nexa AI Sales Agent (IG only)",
-      "20 AI-handled leads/month",
+      "15 AI-handled leads/month",
       "Email support",
     ],
     lockedFeatures: [
