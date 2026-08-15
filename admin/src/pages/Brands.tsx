@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Briefcase, ExternalLink, Utensils, ShoppingBag, Heart, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Briefcase, ExternalLink, Utensils, ShoppingBag, Heart, Tag, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 
 interface BrandProfile {
   _id: string;
@@ -132,11 +132,18 @@ export default function Brands() {
             </div>
             
             <div className="mt-4 pt-4 border-t border-slate-100">
-              <p className="text-xs text-slate-400 font-medium mb-1.5">Owner</p>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-800">{brand.user?.email || 'Unknown User'}</span>
-                <a href={`/users/${brand.user?._id}`} className="text-blue-500 hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100 md:opacity-100">
-                  <ExternalLink size={18} />
+              <div className="flex items-center justify-between mt-2">
+                <div>
+                  <p className="text-xs text-slate-400 font-medium mb-1.5">Owner</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-800">{brand.user?.email || 'Unknown User'}</span>
+                    <a href={`/users/${brand.user?._id}`} className="text-blue-500 hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100 md:opacity-100">
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
+                </div>
+                <a href={`/brands/${brand._id}/deep-config`} className="flex items-center gap-1.5 text-xs font-semibold bg-slate-50 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors opacity-0 group-hover:opacity-100 md:opacity-100">
+                  <Settings size={14} /> Config
                 </a>
               </div>
             </div>
