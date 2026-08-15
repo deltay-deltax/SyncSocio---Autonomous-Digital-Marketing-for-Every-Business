@@ -160,7 +160,7 @@ router.get('/conversations', protect, validate({ query: listNexaConversationsSch
 router.patch('/conversations/:id/order-status', protect, async (req, res) => {
   try {
     const { order_status } = req.body;
-    const allowed = ['none', 'ordered', 'packing', 'shipping', 'delivered', 'cancelled'];
+    const allowed = ['none', 'demo_booked', 'meeting_scheduled', 'lead_captured', 'contacted', 'ordered', 'packing', 'shipping', 'delivered', 'cancelled'];
     if (!allowed.includes(order_status)) {
       return res.status(400).json({ message: `Invalid status. Allowed: ${allowed.join(', ')}` });
     }

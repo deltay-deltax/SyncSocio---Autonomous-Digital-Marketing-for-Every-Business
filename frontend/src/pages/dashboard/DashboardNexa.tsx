@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users, Zap, TrendingUp,
-  Truck, CheckCircle2, XCircle, Boxes
+  Truck, CheckCircle2, XCircle, Boxes, Calendar, Building, Mail, Briefcase
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOutletContext, useNavigate } from 'react-router-dom';
@@ -10,6 +10,50 @@ import { Checkout } from '@/components/Checkout';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+const isLeadDemo = (convo: any) => {
+  if (!convo) return false;
+  const status = convo.order_status || '';
+  if (['demo_booked', 'meeting_scheduled', 'contacted', 'lead_captured'].includes(status)) return true;
+  if (convo.collected?.lead_type === 'saas_demo' || convo.collected?.lead_type === 'saas_lead') return true;
+  if (convo.collected?.meeting_time || convo.collected?.company_name) return true;
+  if (!convo.collected?.delivery_address && convo.collected?.email) return true;
+  return false;
+};
+
+const renderStatusBadge = (convo: any) => {
+  const isDemo = isLeadDemo(convo);
+  const status = convo.order_status;
+
+  if (!status || status === 'none') {
+    return isDemo 
+      ? <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-violet-500/10 text-violet-600 border-violet-500/20">Demo Lead</span>
+      : null;
+  }
+
+  switch (status) {
+    case 'demo_booked':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-violet-500/10 text-violet-600 border-violet-500/20">Demo Booked</span>;
+    case 'meeting_scheduled':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-blue-500/10 text-blue-600 border-blue-500/20">Meeting Scheduled</span>;
+    case 'contacted':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-600 border-amber-500/20">Contacted</span>;
+    case 'lead_captured':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-cyan-500/10 text-cyan-600 border-cyan-500/20">Lead Captured</span>;
+    case 'ordered':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-blue-500/10 text-blue-600 border-blue-500/20">Ordered</span>;
+    case 'packing':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-600 border-amber-500/20">Packing</span>;
+    case 'shipping':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-purple-500/10 text-purple-600 border-purple-500/20">Shipping</span>;
+    case 'delivered':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{isDemo ? 'Completed' : 'Delivered'}</span>;
+    case 'cancelled':
+      return <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-rose-500/10 text-rose-600 border-rose-500/20">Cancelled</span>;
+    default:
+      return null;
+  }
+};
 
 const DashboardNexa = () => {
   const { toast } = useToast();
@@ -244,22 +288,16 @@ const DashboardNexa = () => {
                           }`}>
                             {convo.stage.replace('_', ' ')}
                           </span>
-                          {convo.order_status && convo.order_status !== 'none' && (
-                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${
-                              convo.order_status === 'ordered' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
-                              convo.order_status === 'packing' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
-                              convo.order_status === 'shipping' ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
-                              convo.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                              'bg-rose-500/10 text-rose-600 border-rose-500/20'
-                            }`}>
-                              {convo.order_status}
-                            </span>
-                          )}
+                          {renderStatusBadge(convo)}
                         </div>
                       </div>
                       
                       <div className="text-xs text-muted-foreground truncate max-w-[200px] flex items-center gap-1">
-                        <ShoppingBag size={12} /> {convo.collected?.product_interested || 'Discussing Options'}
+                        {isLeadDemo(convo) ? (
+                          <><Briefcase size={12} className="text-violet-500" /> {convo.collected?.company_name || convo.collected?.product_interested || 'Demo Meeting Request'}</>
+                        ) : (
+                          <><ShoppingBag size={12} /> {convo.collected?.product_interested || 'Discussing Options'}</>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -279,7 +317,7 @@ const DashboardNexa = () => {
                     </div>
                     <div>
                       <h2 className="text-lg font-bold">{selectedLead.collected?.customer_name || 'Unknown Customer'}</h2>
-                      <p className="text-sm text-muted-foreground">IG ID: {selectedLead.ig_user_id}</p>
+                      <p className="text-sm text-muted-foreground">{selectedLead.platform === 'whatsapp' ? 'WhatsApp' : 'IG'}: @{selectedLead.ig_user_id}</p>
                     </div>
                   </div>
                   {selectedLead.escalate_to_human && (
@@ -290,112 +328,221 @@ const DashboardNexa = () => {
                 </CardHeader>
                 
                 <ScrollArea className="flex-1 p-6">
-                  {/* Order Status & Fulfillment Action Bar */}
-                  <div className="p-4 mb-6 rounded-2xl bg-muted/20 border border-border/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest block mb-0.5">Order Status</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border ${
-                          selectedLead.order_status === 'ordered' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
-                          selectedLead.order_status === 'packing' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
-                          selectedLead.order_status === 'shipping' ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
-                          selectedLead.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                          selectedLead.order_status === 'cancelled' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
-                          'bg-muted text-muted-foreground border-border'
-                        }`}>
-                          {selectedLead.order_status || 'No Order Yet'}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          (Nexa uses this to answer customer tracking inquiries)
-                        </span>
-                      </div>
-                    </div>
+                  {/* Status & Action Bar (Context-aware for Demo Leads vs E-Commerce) */}
+                  {(() => {
+                    const isDemo = isLeadDemo(selectedLead);
+                    return (
+                      <div className="p-4 mb-6 rounded-2xl bg-muted/20 border border-border/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest block mb-0.5">
+                            {isDemo ? 'Lead & Meeting Status' : 'Order Status'}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {renderStatusBadge(selectedLead)}
+                            <span className="text-xs text-muted-foreground">
+                              {isDemo 
+                                ? '(Nexa manages meeting schedule & onboarding)' 
+                                : '(Nexa uses this to answer tracking inquiries)'}
+                            </span>
+                          </div>
+                        </div>
 
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {[
-                        { id: 'ordered', label: 'Ordered', icon: ShoppingBag },
-                        { id: 'packing', label: 'Packing', icon: Boxes },
-                        { id: 'shipping', label: 'Shipping', icon: Truck },
-                        { id: 'delivered', label: 'Delivered', icon: CheckCircle2 },
-                        { id: 'cancelled', label: 'Cancelled', icon: XCircle },
-                      ].map((st) => {
-                        const Icon = st.icon;
-                        const isActive = selectedLead.order_status === st.id;
-                        return (
-                          <button
-                            key={st.id}
-                            disabled={updatingStatus}
-                            onClick={() => handleUpdateOrderStatus(st.id)}
-                            className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
-                              isActive 
-                                ? 'bg-primary text-primary-foreground border-primary shadow-sm' 
-                                : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground border-border/60'
-                            }`}
-                          >
-                            <Icon size={12} />
-                            {st.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {isDemo ? [
+                            { id: 'demo_booked', label: 'Demo Booked', icon: Calendar },
+                            { id: 'contacted', label: 'Contacted', icon: Phone },
+                            { id: 'delivered', label: 'Completed', icon: CheckCircle2 },
+                            { id: 'cancelled', label: 'Cancelled', icon: XCircle },
+                          ].map((st) => {
+                            const Icon = st.icon;
+                            const isActive = selectedLead.order_status === st.id || (!selectedLead.order_status && st.id === 'demo_booked');
+                            return (
+                              <button
+                                key={st.id}
+                                disabled={updatingStatus}
+                                onClick={() => handleUpdateOrderStatus(st.id)}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                                  isActive 
+                                    ? 'bg-violet-600 text-white border-violet-600 shadow-sm' 
+                                    : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground border-border/60'
+                                }`}
+                              >
+                                <Icon size={12} />
+                                {st.label}
+                              </button>
+                            );
+                          }) : [
+                            { id: 'ordered', label: 'Ordered', icon: ShoppingBag },
+                            { id: 'packing', label: 'Packing', icon: Boxes },
+                            { id: 'shipping', label: 'Shipping', icon: Truck },
+                            { id: 'delivered', label: 'Delivered', icon: CheckCircle2 },
+                            { id: 'cancelled', label: 'Cancelled', icon: XCircle },
+                          ].map((st) => {
+                            const Icon = st.icon;
+                            const isActive = selectedLead.order_status === st.id;
+                            return (
+                              <button
+                                key={st.id}
+                                disabled={updatingStatus}
+                                onClick={() => handleUpdateOrderStatus(st.id)}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                                  isActive 
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm' 
+                                    : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground border-border/60'
+                                }`}
+                              >
+                                <Icon size={12} />
+                                {st.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    {/* Order Information */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">Order Details</h3>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Package size={16} className="text-violet-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Product Interested</p>
-                            <p className="text-sm font-medium">{selectedLead.collected?.product_interested || 'Not identified yet'}</p>
-                            {selectedLead.collected?.quantity && (
-                              <p className="text-xs font-bold text-primary mt-0.5">Qty: {selectedLead.collected.quantity}</p>
-                            )}
+                    {/* Information Column 1 */}
+                    {isLeadDemo(selectedLead) ? (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">
+                          Inquiry Details
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Briefcase size={16} className="text-violet-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Product / Plan Interested</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.product_interested || 'General Demo Inquiry'}</p>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-start gap-3">
-                          <CreditCard size={16} className="text-emerald-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Pricing & Payment</p>
-                            <p className="text-sm font-medium">
-                              {selectedLead.collected?.price_agreed ? `₹${selectedLead.collected.price_agreed}` : 'Not negotiated yet'}
-                            </p>
-                            {selectedLead.collected?.payment_mode && (
-                              <p className="text-xs font-bold text-emerald-600 mt-0.5 uppercase tracking-wider">
-                                {selectedLead.collected.payment_mode} • {selectedLead.payment?.payment_status}
+                          <div className="flex items-start gap-3">
+                            <CreditCard size={16} className="text-emerald-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Plan Pricing</p>
+                              <p className="text-sm font-medium">
+                                {selectedLead.collected?.price_agreed ? `₹${selectedLead.collected.price_agreed}/mo` : 'Custom / Demo'}
                               </p>
-                            )}
+                            </div>
+                          </div>
+
+                          {selectedLead.collected?.use_case && (
+                            <div className="flex items-start gap-3">
+                              <Bot size={16} className="text-blue-500 mt-1 shrink-0" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Use Case</p>
+                                <p className="text-sm font-medium">{selectedLead.collected.use_case}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">
+                          Order Details
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Package size={16} className="text-violet-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Product Interested</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.product_interested || 'Not identified yet'}</p>
+                              {selectedLead.collected?.quantity && (
+                                <p className="text-xs font-bold text-primary mt-0.5">Qty: {selectedLead.collected.quantity}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <CreditCard size={16} className="text-emerald-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Pricing &amp; Payment</p>
+                              <p className="text-sm font-medium">
+                                {selectedLead.collected?.price_agreed ? `₹${selectedLead.collected.price_agreed}` : 'Not negotiated yet'}
+                              </p>
+                              {selectedLead.collected?.payment_mode && (
+                                <p className="text-xs font-bold text-emerald-600 mt-0.5 uppercase tracking-wider">
+                                  {selectedLead.collected.payment_mode} • {selectedLead.payment?.payment_status}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Shipping & Contact */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">Shipping Profile</h3>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Phone size={16} className="text-blue-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Phone Number</p>
-                            <p className="text-sm font-medium">{selectedLead.collected?.phone_number || 'Not provided'}</p>
+                    {/* Information Column 2 */}
+                    {isLeadDemo(selectedLead) ? (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">
+                          Lead &amp; Meeting Profile
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Mail size={16} className="text-violet-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Work Email</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.email || 'Not provided'}</p>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-start gap-3">
-                          <MapPin size={16} className="text-rose-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Delivery Address</p>
-                            <p className="text-sm font-medium">{selectedLead.collected?.delivery_address || 'Not provided'}</p>
+                          <div className="flex items-start gap-3">
+                            <Building size={16} className="text-blue-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Company Name</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.company_name || 'Not provided'}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <Calendar size={16} className="text-amber-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Preferred Meeting Time</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.meeting_time || 'Not specified'}</p>
+                            </div>
+                          </div>
+
+                          {selectedLead.collected?.phone_number && (
+                            <div className="flex items-start gap-3">
+                              <Phone size={16} className="text-emerald-500 mt-1 shrink-0" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Phone / WhatsApp</p>
+                                <p className="text-sm font-medium">{selectedLead.collected.phone_number}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2">
+                          Shipping Profile
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Phone size={16} className="text-blue-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Phone Number</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.phone_number || 'Not provided'}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <MapPin size={16} className="text-rose-500 mt-1 shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Delivery Address</p>
+                              <p className="text-sm font-medium">{selectedLead.collected?.delivery_address || 'Not provided'}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Chat History */}

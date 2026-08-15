@@ -109,6 +109,14 @@ ${hasDemoLink ? `DEMO BOOKING LINK: ${demoLink}
    a) If the customer wants a DEMO CALL or MEETING:
       Ask in ONE message for: Full Name, Work Email, Company Name, and Preferred time / day for the call.
       Do NOT ask for a physical address. Validate email contains '@' and a domain.
+      CRITICAL: Save the extracted details into updated_collected_fields:
+      - customer_name: Full Name
+      - email: Work Email
+      - company_name: Company Name
+      - meeting_time: Preferred time / day for the call (e.g., "Tomorrow at 11 am")
+      - phone_number: Phone (if provided)
+      - order_status: "demo_booked"
+      - lead_type: "saas_demo"
    b) If they are ready to SUBSCRIBE / PAY directly (self-serve):
       Ask in ONE message for: Full Name, Work Email, Phone Number (min 10 digits), and Company Name.
       Validate email and phone before moving to CONFIRMING.`
@@ -379,13 +387,23 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   const newStage = parsed.escalate_to_human ? 'ESCALATED' : (parsed.payment_verified_from_screenshot ? 'CLOSED' : finalStage);
 
   // Handle order status lifecycle & cancellation
+  const isSaasOrDemoLead = isSaasOrDigital || parsed.demo_booking_requested || !!mergedCollected.meeting_time || !!mergedCollected.company_name || (!mergedCollected.delivery_address && !!mergedCollected.email);
+
   let orderStatusUpdate = {};
   if (parsed.cancel_order || parsed.updated_collected_fields?.order_status === 'cancelled') {
-    if (['none', 'ordered', 'packing'].includes(convo.order_status || 'none')) {
+    if (['none', 'ordered', 'packing', 'demo_booked', 'meeting_scheduled', 'lead_captured'].includes(convo.order_status || 'none')) {
       orderStatusUpdate.order_status = 'cancelled';
     }
-  } else if ((newStage === 'CLOSED' || parsed.payment_verified_from_screenshot || mergedCollected.payment_mode === 'cod') && (!convo.order_status || convo.order_status === 'none')) {
-    orderStatusUpdate.order_status = 'ordered';
+  } else if (newStage === 'CLOSED' || parsed.payment_verified_from_screenshot || mergedCollected.payment_mode === 'cod') {
+    if (!convo.order_status || convo.order_status === 'none') {
+      if (parsed.demo_booking_requested || (isSaasOrDemoLead && !mergedCollected.payment_mode)) {
+        orderStatusUpdate.order_status = 'demo_booked';
+        if (!mergedCollected.lead_type) mergedCollected.lead_type = 'saas_demo';
+      } else {
+        orderStatusUpdate.order_status = 'ordered';
+        if (!mergedCollected.lead_type) mergedCollected.lead_type = 'ecommerce';
+      }
+    }
   }
 
   // ─── PUSH NOTIFICATIONS TO DRAWER ───────────────────────────────────────────
