@@ -1,6 +1,6 @@
 import express from 'express';
 import SiteSettings from '../models/SiteSettings.js';
-import { handleChat } from '../controllers/siteChatController.js';
+import { handleChat, handleDashboardChat } from '../controllers/siteChatController.js';
 
 const router = express.Router();
 
@@ -17,6 +17,10 @@ router.get('/settings', async (req, res) => {
   }
 });
 
+// Landing page Nexa (general visitor chatbot)
 router.post('/chatbot', handleChat);
+
+// In-dashboard Nexa (support agent with full KB)
+router.post('/dashboard-chatbot', handleDashboardChat);
 
 export default router;

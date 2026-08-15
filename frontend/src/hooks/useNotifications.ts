@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 export interface Notification {
   _id: string;
-  type: 'success' | 'insight' | 'agent' | 'comment' | 'scheduled' | 'alert' | 'billing';
+  type: 'success' | 'insight' | 'agent' | 'comment' | 'scheduled' | 'alert' | 'billing' | 'support';
   title: string;
   description: string;
   isRead: boolean;
@@ -70,8 +70,8 @@ export const useNotifications = () => {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 60 seconds
-    const interval = setInterval(fetchNotifications, 60000);
+    // Poll every 30 seconds so support replies appear promptly
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 

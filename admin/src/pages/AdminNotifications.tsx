@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { 
@@ -33,6 +34,7 @@ const getIcon = (type: string, severity: string) => {
     case 'payment': return <CreditCard className="h-5 w-5 text-emerald-500" />;
     case 'failed_gen': return <AlertTriangle className="h-5 w-5 text-orange-500" />;
     case 'nexa_escalation': return <MessageSquare className="h-5 w-5 text-rose-500" />;
+    case 'ticket_reply': return <MessageSquare className="h-5 w-5 text-indigo-500" />;
     default:
       if (severity === 'critical') return <AlertCircle className="h-5 w-5 text-red-500" />;
       if (severity === 'warning') return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
@@ -54,11 +56,19 @@ const getSeverityStyles = (severity: string, isRead: boolean) => {
 };
 
 export default function AdminNotifications() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const handleNotificationClick = (notif: Notification) => {
+    markAsRead(notif._id);
+    if (notif.type === 'nexa_escalation' || notif.type === 'ticket_reply') {
+      navigate('/support-tickets');
+    }
+  };
 
   const fetchNotifications = async (pageNum = 1, append = false) => {
     try {
@@ -163,7 +173,12 @@ export default function AdminNotifications() {
                 key={notif._id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`relative p-4 rounded-xl transition-all ${getSeverityStyles(notif.severity, notif.isRead)}`}
+                className={`relative p-4 rounded-xl transition-all cursor-pointer hover:shadow-md ${
+                  getSeverityStyles(notif.severity, notif.isRead)
+                } ${
+                  (notif.type === 'nexa_escalation' || notif.type === 'ticket_reply') ? 'hover:border-indigo-300' : ''
+                }`}
+                onClick={() => handleNotificationClick(notif)}
               >
                 <div className="flex gap-4">
                   <div className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${

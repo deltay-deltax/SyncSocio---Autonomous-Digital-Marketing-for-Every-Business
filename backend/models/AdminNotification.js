@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const adminNotificationSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['new_user', 'payment', 'failed_gen', 'nexa_escalation', 'template_submitted', 'low_credits', 'system_error', 'whatsapp_connected', 'campaign_sent'],
+    enum: ['new_user', 'payment', 'failed_gen', 'nexa_escalation', 'ticket_reply', 'template_submitted', 'low_credits', 'system_error', 'whatsapp_connected', 'campaign_sent'],
     required: true
   },
   title: {

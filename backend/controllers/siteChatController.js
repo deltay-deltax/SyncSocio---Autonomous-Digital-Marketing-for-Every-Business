@@ -1,7 +1,23 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import SiteKnowledgeLead from '../models/SiteKnowledgeLead.js';
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load the comprehensive support KB at startup
+let SUPPORT_KB = '';
+try {
+  const kbPath = path.join(__dirname, '..', 'data', 'syncsocio_support_kb.md');
+  SUPPORT_KB = fs.readFileSync(kbPath, 'utf-8');
+  console.log('[SiteChatbot] Loaded support KB:', kbPath);
+} catch (err) {
+  console.warn('[SiteChatbot] Could not load support KB file:', err.message);
+}
 
 const baseSystemPrompt = `You are Nexa, SyncSocio's AI assistant. You help visitors understand what SyncSocio does, answer their questions, and encourage them to sign up.
 
@@ -39,7 +55,7 @@ We offer "3 Free Creatives" to anyone who signs up right now.
 - If the user asks an irrelevant question (e.g., about exams, general knowledge, coding, writing essays, etc.), politely refuse by saying something like: "Sorry, I can only help you with information about SyncSocio and our services!"
 - Be concise, friendly, and professional.
 - Do not make up features or prices that are not listed here.
-- If asked a complex technical question or something you don't know, suggest they click the "Create Ticket" button at the top of this chat to escalate the issue to our human support team.
+- If asked a complex technical question, payment issue, or something you don't know, include the exact phrase "[ESCALATE]" in your response, and assure the user that a human support agent will look into it.
 - Keep responses short, ideally 1-3 sentences unless explaining a plan in detail.
 `;
 
@@ -102,6 +118,58 @@ export const handleChat = async (req, res) => {
     });
   } catch (error) {
     console.error('Site Chatbot Error:', error);
+    res.status(500).json({ error: 'An error occurred while processing your request.' });
+  }
+};
+
+export const handleDashboardChat = async (req, res) => {
+  try {
+    const { message, history } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('[DashboardChatbot] OPENAI_API_KEY is missing');
+      return res.status(503).json({ error: 'Chat service is temporarily unavailable.' });
+    }
+
+    const dashboardSystemPrompt = `You are Nexa, SyncSocio's in-dashboard AI support agent. You help existing SyncSocio users understand how to use the platform, troubleshoot issues, and get the most out of their subscription.
+
+Your role:
+- Answer questions about SyncSocio features using the Knowledge Base below.
+- Troubleshoot common problems with clear, actionable steps.
+- If the issue involves payments, account restrictions, or is not covered in the KB, include the exact phrase "[ESCALATE]" in your response and tell the user you are raising a support ticket for them.
+- Be warm, concise and helpful. Keep answers to 2-4 sentences unless explaining a multi-step workflow.
+- NEVER make up features or prices not listed in the KB.
+- Do NOT answer questions unrelated to SyncSocio.
+
+${SUPPORT_KB}`;
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const messages = [
+      { role: 'system', content: dashboardSystemPrompt },
+      ...(history || []).map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      })),
+      { role: 'user', content: message }
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages,
+      temperature: 0.5,
+      max_tokens: 400,
+    });
+
+    const replyText = response.choices[0].message.content;
+
+    res.json({ reply: replyText });
+  } catch (error) {
+    console.error('Dashboard Chatbot Error:', error);
     res.status(500).json({ error: 'An error occurred while processing your request.' });
   }
 };

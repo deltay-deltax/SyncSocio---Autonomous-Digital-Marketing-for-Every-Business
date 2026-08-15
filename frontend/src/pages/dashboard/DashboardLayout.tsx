@@ -1009,6 +1009,7 @@ const DashboardLayoutContent = () => {
       case 'scheduled': return Clock;
       case 'alert': return Sparkles;
       case 'billing': return Target;
+      case 'support': return MessageSquare;
       default: return Zap;
     }
   };
@@ -1019,6 +1020,7 @@ const DashboardLayoutContent = () => {
       case 'insight': return "bg-amber-500/10 text-amber-600";
       case 'alert': return "bg-rose-500/10 text-rose-600";
       case 'billing': return "bg-blue-500/10 text-blue-600";
+      case 'support': return "bg-indigo-500/10 text-indigo-600";
       default: return "bg-primary/10 text-primary";
     }
   };

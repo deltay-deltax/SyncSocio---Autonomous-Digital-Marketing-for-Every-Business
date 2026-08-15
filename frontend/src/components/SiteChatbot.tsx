@@ -62,7 +62,9 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
 
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const response = await fetch(`${baseUrl}/site/chatbot`, {
+      // Use the KB-powered dashboard endpoint when inside the dashboard, landing page uses the general one
+      const chatEndpoint = hideWhatsApp ? `${baseUrl}/site/dashboard-chatbot` : `${baseUrl}/site/chatbot`;
+      const response = await fetch(chatEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -76,7 +78,22 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
       }
 
       const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      let reply = data.reply;
+      let shouldEscalate = false;
+      
+      if (reply.includes('[ESCALATE]')) {
+        reply = reply.replace('[ESCALATE]', '').trim();
+        shouldEscalate = true;
+      }
+      
+      setMessages(prev => {
+        const updated = [...prev, { role: 'assistant', content: reply }];
+        if (shouldEscalate) {
+          const transcript = updated.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+          setTimeout(() => handleEscalate(transcript), 100);
+        }
+        return updated;
+      });
     } catch (error) {
       console.error('Chatbot error:', error);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Oops! Something went wrong. Please try again later.' }]);
@@ -85,11 +102,11 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
     }
   };
 
-  const handleEscalate = async () => {
+  const handleEscalate = async (providedTranscript?: string | React.MouseEvent) => {
     try {
       setIsLoading(true);
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const transcript = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+      const transcriptStr = typeof providedTranscript === 'string' ? providedTranscript : messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
       
       const res = await fetch(`${API_BASE}/support/tickets`, {
         method: 'POST',
@@ -99,7 +116,7 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
         },
         body: JSON.stringify({
           subject: 'Escalated from AI Support Agent',
-          message: transcript
+          message: transcriptStr
         })
       });
 
@@ -178,7 +195,7 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
               </div>
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={handleEscalate} 
+                  onClick={() => handleEscalate()} 
                   disabled={isLoading || messages.length < 2}
                   className="text-[10px] bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-md transition-colors disabled:opacity-50"
                   title="Escalate to Human"
