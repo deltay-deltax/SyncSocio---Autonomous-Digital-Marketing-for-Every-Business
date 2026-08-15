@@ -1,4 +1,6 @@
 import Ticket from '../models/Ticket.js';
+import AdminNotification from '../models/AdminNotification.js';
+import Notification from '../models/Notification.js';
 
 // Get user's tickets
 export const getUserTickets = async (req, res) => {
@@ -31,6 +33,19 @@ export const createTicket = async (req, res) => {
     });
 
     const savedTicket = await newTicket.save();
+
+    // Create an Admin Notification
+    try {
+      await AdminNotification.create({
+        type: 'nexa_escalation',
+        title: 'New Support Ticket Raised',
+        description: subject,
+        metadata: { ticketId: savedTicket._id, userId: req.user._id }
+      });
+    } catch (notifError) {
+      console.error('Failed to create admin notification:', notifError);
+    }
+
     res.status(201).json(savedTicket);
   } catch (error) {
     console.error('Error creating ticket:', error);
@@ -44,13 +59,13 @@ export const addMessageToTicket = async (req, res) => {
     const { id } = req.params;
     const { content, sender } = req.body;
 
-    const ticket = await Ticket.findById(id);
+    const ticket = await Ticket.findById(id).populate('user', 'name email');
     
     if (!ticket) {
       return res.status(404).json({ message: 'Ticket not found' });
     }
 
-    if (!req.admin && ticket.user.toString() !== req.user?._id?.toString()) {
+    if (!req.admin && ticket.user._id.toString() !== req.user?._id?.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this ticket' });
     }
 
@@ -60,6 +75,36 @@ export const addMessageToTicket = async (req, res) => {
     });
 
     await ticket.save();
+
+    // Notify user when admin replies
+    if (sender === 'admin' && ticket.user?._id) {
+      try {
+        await Notification.create({
+          userId: ticket.user._id,
+          type: 'support',
+          title: 'Support Team Replied',
+          description: `New reply on your ticket: "${ticket.subject}"`,
+          metadata: { ticketId: ticket._id }
+        });
+      } catch (notifError) {
+        console.error('Failed to create user notification for admin reply:', notifError);
+      }
+    }
+
+    // Notify admin when user sends a message on existing ticket
+    if (sender === 'user') {
+      try {
+        await AdminNotification.create({
+          type: 'ticket_reply',
+          title: 'New Message on Support Ticket',
+          description: `User replied on ticket: "${ticket.subject}"`,
+          metadata: { ticketId: ticket._id, userId: ticket.user?._id }
+        });
+      } catch (notifError) {
+        console.error('Failed to create admin notification for user reply:', notifError);
+      }
+    }
+
     res.json(ticket);
   } catch (error) {
     console.error('Error adding message:', error);
@@ -91,6 +136,34 @@ export const updateTicketStatus = async (req, res) => {
 
     ticket.status = status;
     const updatedTicket = await ticket.save();
+
+    // Notify the user based on status change
+    if (status === 'resolved') {
+      try {
+        await Notification.create({
+          userId: ticket.user,
+          type: 'support',
+          title: '✅ Ticket Resolved',
+          description: `Your ticket "${ticket.subject}" has been resolved by our support team.`,
+          metadata: { ticketId: ticket._id }
+        });
+      } catch (notifError) {
+        console.error('Failed to create user notification:', notifError);
+      }
+    } else if (status === 'in_progress') {
+      try {
+        await Notification.create({
+          userId: ticket.user,
+          type: 'support',
+          title: '🔧 Ticket In Progress',
+          description: `Our team is now working on your ticket: "${ticket.subject}".`,
+          metadata: { ticketId: ticket._id }
+        });
+      } catch (notifError) {
+        console.error('Failed to create in_progress user notification:', notifError);
+      }
+    }
+
     res.json(updatedTicket);
   } catch (error) {
     console.error('Error updating ticket status:', error);
