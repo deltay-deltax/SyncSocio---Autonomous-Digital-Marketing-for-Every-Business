@@ -4,6 +4,7 @@ import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import DMConversation from '../models/DMConversation.js';
 import DMFlow, { normalizeKeywordInput } from '../models/DMFlow.js';
 import NexaConversation from '../models/NexaConversation.js';
+import User from '../models/User.js';
 import { upsertNexaConversationFromDM, handleIncomingMessage as nexaHandleMessage, upsertNexaConversationFromComment } from '../services/nexaAgent.js';
 import { generateRazorpayLink, getNexaSettings } from '../services/nexaPayment.js';
 import {
@@ -1118,6 +1119,31 @@ const pendingFollowUp = await claimPendingFollowUp({ profile, senderId: event.se
             // console.log(`[Nexa] Rate-limited: Skipping GPT call for ${event.senderId} (last reply ${Date.now() - lastNexaReply}ms ago)`);
             return true;
           }
+
+          // ── Starter plan: enforce 20 unique-conversation monthly cap (Instagram only) ──
+          try {
+            const userDoc = await User.findById(profile.user).select('plan').lean();
+            const userPlan = (userDoc?.plan || '').toLowerCase();
+            const isStarterPlan = !userPlan.includes('growth') && !userPlan.includes('pro') && !userPlan.includes('agency') && !userPlan.includes('+ dm automation');
+            if (isStarterPlan) {
+              const STARTER_NEXA_LIMIT = 20;
+              const startOfMonth = new Date();
+              startOfMonth.setDate(1);
+              startOfMonth.setHours(0, 0, 0, 0);
+              const monthlyCount = await NexaConversation.countDocuments({
+                brand_id: profile._id,
+                platform: 'instagram',
+                createdAt: { $gte: startOfMonth },
+              });
+              if (monthlyCount >= STARTER_NEXA_LIMIT) {
+                console.log(`[Nexa] Starter plan monthly limit (${STARTER_NEXA_LIMIT}) reached for brand ${profile._id}. Skipping reply.`);
+                return false;
+              }
+            }
+          } catch (limitErr) {
+            console.error('[Nexa] Failed to check Starter monthly limit:', limitErr.message);
+          }
+
           // console.log(`[Nexa] Routing DM from ${event.senderId} to Nexa (stage=${nexaConvo.stage})`);
         nexaReplyTimestamps.set(nexaRateLimitKey, Date.now());
         if (nexaReplyTimestamps.size > 5000) nexaReplyTimestamps.delete(nexaReplyTimestamps.keys().next().value);

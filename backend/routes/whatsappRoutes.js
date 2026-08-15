@@ -2,6 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import { protect } from '../middleware/authMiddleware.js';
 import BrandProfile from '../models/BrandProfile.js';
+import User from '../models/User.js';
 import { upsertNexaConversationFromDM, handleIncomingMessage } from '../services/nexaAgent.js';
 import { generateRazorpayLink } from '../services/nexaPayment.js';
 
@@ -841,6 +842,19 @@ router.post('/webhook', async (req, res) => {
             if (!brandProfile || !brandProfile.nexa?.nexa_enabled || !brandProfile.whatsappAccessToken) {
               // console.log(`[WhatsApp Webhook] Ignored: Brand not found, Nexa disabled, or access token missing for phone ID ${phoneNumberId}`);
               continue;
+            }
+
+            // ── Starter plan: WhatsApp Nexa is Growth+ only ──
+            try {
+              const brandUserDoc = await User.findById(brandProfile.user).select('plan').lean();
+              const brandPlan = (brandUserDoc?.plan || '').toLowerCase();
+              const isBrandStarter = !brandPlan.includes('growth') && !brandPlan.includes('pro') && !brandPlan.includes('agency') && !brandPlan.includes('+ dm automation');
+              if (isBrandStarter) {
+                // console.log(`[WhatsApp Nexa] Skipping: Starter plan does not include WhatsApp Nexa for brand ${brandProfile._id}`);
+                continue;
+              }
+            } catch (planErr) {
+              console.error('[WhatsApp Nexa] Failed to check Starter plan status:', planErr.message);
             }
 
             // Load or create the conversation state

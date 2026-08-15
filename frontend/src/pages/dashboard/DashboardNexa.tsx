@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users
+  Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users, Zap, TrendingUp
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOutletContext, useNavigate } from 'react-router-dom';
@@ -25,8 +25,12 @@ const DashboardNexa = () => {
   const isElite = planName.includes('elite');
   const isAgency = planName.includes('agency');
   const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
-  // Nexa is included in Growth & Pro plans
-  const hasNexaAccess = profile?.nexaIncluded || isGrowth || isPro || isElite || isAgency || isMetaReviewer;
+
+  // All plans now get Nexa. Starter = IG-only, 20 leads/month.
+  const nexaUnlimited = profile?.nexaUnlimited || isGrowth || isPro || isElite || isAgency || isMetaReviewer;
+  const isStarter = !nexaUnlimited;
+  const STARTER_NEXA_LIMIT = 20;
+
   const brandLimit = profile?.brandLimit ?? (isAgency ? 8 : 1);
   const totalBrands = profile?.totalBrands ?? 1;
   const isInstagramConnected = !!profile?.instagramIsConnected && !!profile?.instagramBusinessAccountId && !!profile?.instagramAccessToken;
@@ -39,13 +43,14 @@ const DashboardNexa = () => {
   const [replyText, setReplyText] = useState('');
   const [learnCheckbox, setLearnCheckbox] = useState(true);
   const [replying, setReplying] = useState(false);
+  const [monthlyCount, setMonthlyCount] = useState<number>(0);
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Fetch Nexa conversations
     (async () => {
       setNexaConvLoading(true);
@@ -56,6 +61,16 @@ const DashboardNexa = () => {
           setNexaConversations(data.conversations || []);
           if (data.conversations?.length > 0) {
             setSelectedLeadId(data.conversations[0]._id);
+          }
+          // Use monthly_count from API if present (returned for Starter plans)
+          if (typeof data.monthly_count === 'number') {
+            setMonthlyCount(data.monthly_count);
+          } else if (isStarter) {
+            // Fallback: count from this month's conversations
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
+            const thisMonthCount = (data.conversations || []).filter((c: any) => new Date(c.createdAt) >= startOfMonth).length;
+            setMonthlyCount(thisMonthCount);
           }
         }
       } catch {}
@@ -95,37 +110,7 @@ const DashboardNexa = () => {
     );
   }
 
-  if (!hasNexaAccess) {
-    return (
-      <div className="max-w-md mx-auto my-16 p-8 bg-card border border-border/60 rounded-3xl text-center shadow-lg">
-        <div className="w-16 h-16 bg-violet-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Bot size={32} className="text-violet-500" />
-        </div>
-        <h2 className="text-xl font-bold mb-2">Nexa AI Sales Agent Locked</h2>
-        <p className="text-sm text-muted-foreground mb-3">
-          Your AI-powered sales closer. Turns DMs into confirmed orders — 24/7.
-        </p>
-        <p className="text-xs text-muted-foreground/80 mb-6">
-          Included in <span className="font-bold text-violet-500">Growth (₹1,499/mo)</span> &amp; <span className="font-bold text-violet-500">Pro (₹3,499/mo)</span> plans.
-        </p>
-        <div className="flex flex-col gap-3">
-          <Button 
-            onClick={() => navigate('/dashboard/billing')} 
-            className="w-full h-11 rounded-xl bg-violet-600 hover:bg-violet-700 font-bold text-white shadow-md"
-          >
-            Upgrade to Growth Plan (₹1,499/mo)
-          </Button>
-          <Button 
-            onClick={() => navigate('/dashboard/billing')} 
-            variant="outline"
-            className="w-full h-11 rounded-xl border-border/70 text-foreground font-semibold"
-          >
-            View All Plans
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const limitReached = isStarter && monthlyCount >= STARTER_NEXA_LIMIT;
 
   const filteredConversations = nexaConversations.filter(c => (c.platform || 'instagram') === activePlatform);
   const selectedLead = nexaConversations.find(c => c._id === selectedLeadId);
@@ -133,7 +118,7 @@ const DashboardNexa = () => {
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background/50">
       <main className="flex-1 p-6 lg:p-8 h-full flex flex-col">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
             <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
               <Bot size={24} className="text-violet-500" /> Nexa CRM Inbox
@@ -142,6 +127,37 @@ const DashboardNexa = () => {
               Manage your AI-driven sales conversations and orders.
             </p>
           </div>
+          {/* Starter Plan Usage Meter */}
+          {isStarter && (
+            <div className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border text-xs font-semibold transition-all ${
+              limitReached
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400'
+                : 'bg-violet-500/8 border-violet-500/20 text-violet-700 dark:text-violet-400'
+            }`}>
+              <div className="flex flex-col gap-1 min-w-[140px]">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Zap size={12} />
+                    {limitReached ? 'Monthly limit reached' : `${monthlyCount} / ${STARTER_NEXA_LIMIT} leads this month`}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-muted/60 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${limitReached ? 'bg-amber-500' : 'bg-violet-500'}`}
+                    style={{ width: `${Math.min((monthlyCount / STARTER_NEXA_LIMIT) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => navigate('/dashboard/billing')}
+                className="h-7 px-3 text-[11px] font-bold bg-violet-600 hover:bg-violet-700 text-white shrink-0"
+              >
+                <TrendingUp size={11} className="mr-1" />
+                Upgrade
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 h-[75vh]">
@@ -160,13 +176,19 @@ const DashboardNexa = () => {
                   Instagram
                 </button>
                 <button
-                  onClick={() => { setActivePlatform('whatsapp'); setSelectedLeadId(null); }}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${activePlatform === 'whatsapp' ? 'bg-background shadow text-emerald-600' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => { if (!isStarter) { setActivePlatform('whatsapp'); setSelectedLeadId(null); } }}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all relative ${
+                    isStarter
+                      ? 'text-muted-foreground/40 cursor-not-allowed'
+                      : activePlatform === 'whatsapp' ? 'bg-background shadow text-emerald-600' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={isStarter ? 'WhatsApp Nexa available on Growth & Pro plans' : undefined}
                 >
-                  WhatsApp
+                  WhatsApp {isStarter && <span className="text-[9px] ml-0.5">🔒</span>}
                 </button>
               </div>
             </CardHeader>
+
             <ScrollArea className="flex-1 p-4">
               {nexaConvLoading ? (
                 <div className="p-8 text-center text-muted-foreground text-sm">Loading leads...</div>

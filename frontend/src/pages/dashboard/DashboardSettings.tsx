@@ -1242,6 +1242,8 @@ const DashboardSettings = () => {
                       'Photoshoot mode',
                       'AI Editor (1 edit/post)',
                       'Schedule up to 20 posts',
+                      '🤖 Nexa AI Sales Agent (IG only)',
+                      '20 AI-handled leads/month',
                       'Email support'
                     ];
 
@@ -1589,7 +1591,11 @@ const DashboardSettings = () => {
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Razorpay */}
+                      {/* Razorpay — Growth+ only */}
+                      {(() => {
+                        const nexaPlan = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+                        return nexaPlan.includes('growth') || nexaPlan.includes('pro') || nexaPlan.includes('agency');
+                      })() && (
                       <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-3">
                         <label className="text-xs font-bold text-foreground">Razorpay API</label>
                         <div className="space-y-2">
@@ -1634,6 +1640,7 @@ const DashboardSettings = () => {
                           )}
                         </div>
                       </div>
+                      )}
 
                       {/* UPI & COD */}
                       <div className="space-y-4">
