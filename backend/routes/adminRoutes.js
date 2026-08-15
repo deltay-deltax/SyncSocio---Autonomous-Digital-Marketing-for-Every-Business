@@ -68,6 +68,8 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   getAIOperations,
+  getBrandDeepConfig,
+  unlockBrand,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -104,6 +106,8 @@ router.patch('/coupons/:id/toggle', toggleCouponStatus);
 
 // ─── Brands ──────────────────────────────────────────────────────────────────
 router.get('/brands', getAllBrands);
+router.get('/brands/:id/deep-config', validate({ params: idParamSchema }), getBrandDeepConfig);
+router.post('/brands/:id/unlock', validate({ params: idParamSchema }), unlockBrand);
 
 // ─── Dashboard Metrics ───────────────────────────────────────────────────────
 router.get('/metrics', getMetrics);
