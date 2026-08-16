@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { EditorProvider, useEditor } from '@/contexts/EditorContext';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot, Gift, LogOut, CreditCard } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot, Gift, LogOut, CreditCard, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -105,6 +105,28 @@ const DashboardLayoutContent = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showSignoutModal, setShowSignoutModal] = useState(false);
   const profileMenuRef = React.useRef<HTMLDivElement>(null);
+
+  const [showReviewBrandBanner, setShowReviewBrandBanner] = useState<boolean>(() => {
+    const isPending = localStorage.getItem('syncsocio_review_brand_pending') === 'true';
+    const isDismissed = localStorage.getItem('syncsocio_review_brand_dismissed') === 'true';
+    return isPending && !isDismissed;
+  });
+
+  useEffect(() => {
+    const checkBanner = () => {
+      const isPending = localStorage.getItem('syncsocio_review_brand_pending') === 'true';
+      const isDismissed = localStorage.getItem('syncsocio_review_brand_dismissed') === 'true';
+      setShowReviewBrandBanner(isPending && !isDismissed);
+    };
+    checkBanner();
+    window.addEventListener('storage', checkBanner);
+    return () => window.removeEventListener('storage', checkBanner);
+  }, [location.pathname]);
+
+  const handleDismissReviewBanner = () => {
+    localStorage.setItem('syncsocio_review_brand_dismissed', 'true');
+    setShowReviewBrandBanner(false);
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
@@ -1422,6 +1444,55 @@ const DashboardLayoutContent = () => {
         {/* PAGE CONTENT */}
         <section className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-2 pb-24 lg:pb-8 bg-slate-50/20 scrollbar-hide scroll-touch relative">
           <div className="max-w-6xl mx-auto">
+
+            <AnimatePresence>
+              {showReviewBrandBanner && (
+                <motion.div
+                  initial={{ opacity: 0, y: -16, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -16, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-6 overflow-hidden"
+                >
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600/[0.08] via-primary/[0.07] to-amber-500/[0.08] border border-primary/20 p-3.5 sm:p-4 shadow-sm shadow-primary/5 backdrop-blur-sm">
+                    {/* Subtle decorative glow */}
+                    <div className="absolute -right-8 -top-8 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 relative z-10">
+                      <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1 w-full sm:w-auto">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary mt-0.5 sm:mt-0 shadow-sm">
+                          <Sparkles size={16} className="animate-pulse" />
+                        </div>
+                        <div className="min-w-0 flex-1 pr-6 sm:pr-0">
+                          <p className="text-xs sm:text-sm font-semibold text-foreground leading-snug">
+                            Please review your brand in <button type="button" onClick={() => navigate('/dashboard/settings?tab=Brand%20Profile')} className="font-bold text-primary hover:underline inline-flex items-center gap-0.5">settings</button> to generate perfect generatives.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                        <Button
+                          size="sm"
+                          onClick={() => navigate('/dashboard/settings?tab=Brand%20Profile')}
+                          className="h-8 px-3.5 text-xs font-bold gradient-bg text-white shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 rounded-xl w-full sm:w-auto"
+                        >
+                          <span>Review in Settings</span>
+                          <ArrowRight size={13} />
+                        </Button>
+                        <button
+                          onClick={handleDismissReviewBanner}
+                          aria-label="Dismiss banner"
+                          className="p-1.5 sm:p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0 absolute top-3 right-3 sm:static"
+                          title="Dismiss"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {profile?.plan === 'Free Trial' && (
               <div className="mb-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">

@@ -705,6 +705,8 @@ const DashboardSettings = () => {
       const updatedProfile = await res.json();
       setProfile(updatedProfile);
       localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
+      localStorage.removeItem('syncsocio_review_brand_pending');
+      localStorage.setItem('syncsocio_review_brand_dismissed', 'true');
       setAlertModal({
         isOpen: true,
         title: 'Brand Identity',

@@ -498,6 +498,22 @@ const Onboarding = () => {
             <div className="hidden md:block"></div>
 
             <div className="flex items-center gap-2">
+              {step > 0 && step < 12 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('syncsocio_review_brand_pending', 'true');
+                    localStorage.removeItem('syncsocio_review_brand_dismissed');
+                    setStep(12);
+                  }}
+                  className="flex items-center text-[10px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-widest px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-primary/10 border border-border/60 hover:border-primary/30 min-h-[36px] group"
+                  title="Skip brand review and launch dashboard"
+                >
+                  <span>Skip to Launch</span>
+                  <ArrowRight size={11} className="ml-1 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
+
               {step < 12 && (
                 <div className="flex items-center text-[11px] font-black text-primary px-2.5 sm:px-3.5 py-1.5 rounded-full uppercase tracking-widest bg-primary/[0.07] border border-primary/10">
                   <Sparkles size={11} className="mr-1.5" /> {step === 0 ? "Auto Scan" : `Step ${step}`}
@@ -638,10 +654,28 @@ const Onboarding = () => {
 
                       <div className="space-y-2.5">
                         <button
-                          onClick={() => setStep(1)}
+                          onClick={() => {
+                            localStorage.removeItem('syncsocio_review_brand_pending');
+                            localStorage.removeItem('syncsocio_review_brand_dismissed');
+                            setStep(1);
+                          }}
                           className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center uppercase tracking-widest active:scale-[0.98] hover:brightness-110"
                         >
                           Review Brand Identity <ChevronRight size={14} className="ml-1" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            localStorage.setItem('syncsocio_review_brand_pending', 'true');
+                            localStorage.removeItem('syncsocio_review_brand_dismissed');
+                            setStep(12);
+                          }}
+                          className="w-full bg-muted/40 hover:bg-muted/70 text-foreground border border-border/80 rounded-xl py-3.5 text-xs font-bold transition-all flex items-center justify-center gap-2 group uppercase tracking-widest active:scale-[0.98]"
+                        >
+                          <Clock size={14} className="text-primary group-hover:rotate-45 transition-transform" />
+                          <span>Review Later</span>
+                          <ArrowRight size={14} className="ml-0.5 group-hover:translate-x-1 transition-transform" />
                         </button>
 
                         <button
