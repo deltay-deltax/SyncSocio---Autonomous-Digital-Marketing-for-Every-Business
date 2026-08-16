@@ -2345,6 +2345,125 @@ Photorealistic."""
         # print(f"[AvatarGen] ❌ Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ── AI Ads Creative: Visual Description Generator ─────────────────────────────
+# Called automatically by productRoutes.js (Node backend) after a product is saved.
+# Generates a forensic packaging description and writes it back to MongoDB.
+# Only used by ad_creative_agent.py (Block 2). Has zero effect on other modes.
+class AdVisualDescRequest(BaseModel):
+    productId: str
+    productName: str
+    imageUrls: List[str]  # Up to 2 Cloudinary URLs
+
+@app.post("/generate-ad-visual-description")
+async def api_generate_ad_visual_description(request: AdVisualDescRequest):
+    """
+    Fire-and-forget endpoint called by productRoutes.js after product creation.
+    Runs GPT-4o Vision to generate a forensic visual description of the product
+    packaging, then writes the result back to the products MongoDB collection.
+    """
+    from visual_description_agent import generate_visual_description
+    import asyncio
+
+    # Mark as processing immediately so we don't double-trigger
+    products_collection = db["products"]
+    try:
+        await products_collection.update_one(
+            {"_id": ObjectId(request.productId)},
+            {"$set": {"adVisualDescriptionStatus": "processing"}}
+        )
+    except Exception:
+        pass
+
+    async def _run():
+        try:
+            description = await asyncio.to_thread(
+                generate_visual_description,
+                image_urls=request.imageUrls,
+                product_name=request.productName
+            )
+            if description:
+                await products_collection.update_one(
+                    {"_id": ObjectId(request.productId)},
+                    {"$set": {
+                        "adVisualDescription": description,
+                        "adVisualDescriptionStatus": "ready"
+                    }}
+                )
+                print(f"[VisualDescAgent] ✅ Saved description for product {request.productId}")
+            else:
+                await products_collection.update_one(
+                    {"_id": ObjectId(request.productId)},
+                    {"$set": {"adVisualDescriptionStatus": "failed"}}
+                )
+        except Exception as e:
+            print(f"[VisualDescAgent] ❌ Background task error: {e}")
+            try:
+                await products_collection.update_one(
+                    {"_id": ObjectId(request.productId)},
+                    {"$set": {"adVisualDescriptionStatus": "failed"}}
+                )
+            except Exception:
+                pass
+
+    # Fire and forget — return immediately, description generates in background
+    asyncio.create_task(_run())
+    return {"status": "processing", "productId": request.productId}
+
+
+@app.post("/regenerate-ad-visual-description")
+async def api_regenerate_ad_visual_description(request: AdVisualDescRequest):
+    """
+    Force-regenerates adVisualDescription for an existing product.
+    Useful when the prompt has been upgraded and existing descriptions need a refresh.
+    Accepts the same payload as /generate-ad-visual-description.
+    """
+    from visual_description_agent import generate_visual_description
+    import asyncio
+
+    products_collection = db["products"]
+    try:
+        await products_collection.update_one(
+            {"_id": ObjectId(request.productId)},
+            {"$set": {"adVisualDescriptionStatus": "processing"}}
+        )
+    except Exception:
+        pass
+
+    async def _run():
+        try:
+            description = await asyncio.to_thread(
+                generate_visual_description,
+                image_urls=request.imageUrls,
+                product_name=request.productName
+            )
+            if description:
+                await products_collection.update_one(
+                    {"_id": ObjectId(request.productId)},
+                    {"$set": {
+                        "adVisualDescription": description,
+                        "adVisualDescriptionStatus": "ready"
+                    }}
+                )
+                print(f"[VisualDescAgent] ✅ Re-generated description for product {request.productId} ({len(description.split())} words)")
+            else:
+                await products_collection.update_one(
+                    {"_id": ObjectId(request.productId)},
+                    {"$set": {"adVisualDescriptionStatus": "failed"}}
+                )
+        except Exception as e:
+            print(f"[VisualDescAgent] ❌ Regen error: {e}")
+            try:
+                await products_collection.update_one(
+                    {"_id": ObjectId(request.productId)},
+                    {"$set": {"adVisualDescriptionStatus": "failed"}}
+                )
+            except Exception:
+                pass
+
+    asyncio.create_task(_run())
+    return {"status": "regenerating", "productId": request.productId}
+
 if __name__ == "__main__":
     import uvicorn
     import os

@@ -44,6 +44,19 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  // ── AI Ads Creative only ─────────────────────────────────────────────────────
+  // Auto-generated forensic visual description of the product packaging.
+  // Used exclusively by ad_creative_agent.py as Block 2 (Product appearance).
+  // Not used by any other generation mode.
+  adVisualDescription: {
+    type: String,
+    default: '',
+  },
+  adVisualDescriptionStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'ready', 'failed', ''],
+    default: '',
+  },
 }, { timestamps: true });
 
 export default mongoose.model('Product', productSchema);

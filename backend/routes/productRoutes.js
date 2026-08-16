@@ -75,7 +75,31 @@ router.post('/', protect, async (req, res) => {
       keyBenefit: keyBenefit || '',
       serviceProvider: serviceProvider || '',
     });
+
+    // ── AI Ads Creative only ───────────────────────────────────────────────────
+    // Fire-and-forget: generate a forensic visual description of the product
+    // packaging for use as Block 2 in ad_creative_agent.py.
+    // This runs in background and does NOT affect the product creation response.
+    // Only triggered when the product has an image uploaded.
+    if (imageUrl && imageUrl.startsWith('http')) {
+      const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+      fetch(`${aiServiceUrl}/generate-ad-visual-description`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product._id.toString(),
+          productName: name,
+          imageUrls: [imageUrl],
+        }),
+      }).catch((err) => {
+        // Silently ignore — this is a background enhancement, not critical
+        console.warn('[Products] Visual description background task failed to start:', err.message);
+      });
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     res.status(201).json({ success: true, product });
+
   } catch (err) {
     res.status(500).json({ error: 'An internal server error occurred.' });
   }
