@@ -42,6 +42,15 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, isOpen]);
@@ -144,10 +153,12 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
     <>
       {/* Floating Action Buttons */}
       <motion.div
-        className="fixed bottom-6 right-6 z-50 flex flex-col gap-4"
+        className={`fixed bottom-24 lg:bottom-6 right-4 lg:right-6 z-[60] flex flex-col gap-4 ${isMobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+        drag={isMobile}
+        dragMomentum={false}
       >
         {!isOpen && !hideWhatsApp && (
           <a
