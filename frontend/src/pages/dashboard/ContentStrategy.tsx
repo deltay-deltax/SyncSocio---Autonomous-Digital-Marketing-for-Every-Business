@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye, Zap, Paintbrush, Info, Megaphone
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye, Zap, Paintbrush, Info, Megaphone, Target, Scale
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -2096,6 +2096,7 @@ const DashboardStrategy = () => {
         language: currentLanguage,
         whatsappTemplate: (currentMode === 'whatsapp') ? whatsappTemplateName : undefined,
         generateImage: (currentMode === 'whatsapp' || currentMode === 'email') ? false : generateImage,
+        userPlan: planName,
         ...(currentMode === 'ecomm' && {
           platform,
           imageCount: ecommTotal,
@@ -3935,6 +3936,77 @@ const DashboardStrategy = () => {
             </section>
           )}
 
+          {/* ─── ADS MODE ─── */}
+          {mode === 'ads' && (
+            <section className="mb-6 space-y-6">
+              <div className="p-6 rounded-2xl border border-border/60 bg-card space-y-6 shadow-sm">
+                <div>
+                  <h3 className="text-base font-bold text-foreground">What should this campaign do?</h3>
+                  <p className="text-[13px] text-muted-foreground mt-1 mb-5">Pick the job for Generic campaign. It shapes the creatives we build.</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <button
+                      onClick={() => setCampaignGoal('discover')}
+                      className={cn(
+                        'flex flex-col items-start text-left p-5 rounded-2xl border transition-all duration-200',
+                        campaignGoal === 'discover'
+                          ? 'border-indigo-500 bg-indigo-500/5 ring-1 ring-indigo-500/20 shadow-sm'
+                          : 'border-border/60 bg-card hover:border-indigo-500/30 hover:bg-indigo-500/5'
+                      )}
+                    >
+                      <div className="w-9 h-9 rounded-full bg-muted/80 flex items-center justify-center mb-4">
+                        <Target size={16} className="text-muted-foreground" />
+                      </div>
+                      <h4 className="text-sm font-bold text-foreground mb-1.5">Brand Awareness</h4>
+                      <p className="text-[12px] text-muted-foreground leading-relaxed">Introduce your brand to net-new audiences.</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCampaignGoal('compare')}
+                      className={cn(
+                        'flex flex-col items-start text-left p-5 rounded-2xl border transition-all duration-200',
+                        campaignGoal === 'compare'
+                          ? 'border-indigo-500 bg-indigo-500/5 ring-1 ring-indigo-500/20 shadow-sm'
+                          : 'border-border/60 bg-card hover:border-indigo-500/30 hover:bg-indigo-500/5'
+                      )}
+                    >
+                      <div className="w-9 h-9 rounded-full bg-muted/80 flex items-center justify-center mb-4">
+                        <Scale size={16} className="text-muted-foreground" />
+                      </div>
+                      <h4 className="text-sm font-bold text-foreground mb-1.5">Consideration & Trust</h4>
+                      <p className="text-[12px] text-muted-foreground leading-relaxed">Position yourself as the superior choice.</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCampaignGoal('purchases')}
+                      className={cn(
+                        'flex flex-col items-start text-left p-5 rounded-2xl border transition-all duration-200',
+                        campaignGoal === 'purchases'
+                          ? 'border-indigo-500 bg-indigo-500/5 ring-1 ring-indigo-500/20 shadow-sm'
+                          : 'border-border/60 bg-card hover:border-indigo-500/30 hover:bg-indigo-500/5'
+                      )}
+                    >
+                      <div className="w-9 h-9 rounded-full bg-muted/80 flex items-center justify-center mb-4">
+                        <Zap size={16} className="text-muted-foreground" />
+                      </div>
+                      <h4 className="text-sm font-bold text-foreground mb-1.5">Direct Conversion</h4>
+                      <p className="text-[12px] text-muted-foreground leading-relaxed">Turn high-intent prospects into paying customers.</p>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <IdeaBox
+                    idea={idea}
+                    setIdea={setIdea}
+                    placeholder="Any specific focus? (e.g. Highlight our new summer discount...)"
+                    label="Additional Campaign Context (Optional)"
+                  />
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* References — with "From Products" button kept */}
           <section className="mb-6">
             <div className="flex items-center justify-between mb-3">
@@ -4126,59 +4198,7 @@ const DashboardStrategy = () => {
           )}
         </>
       )}
-      {/* ─── ADS MODE ─── */}
-      {mode === 'ads' && (
-        <section className="mb-6 space-y-6">
-          <div className="p-5 rounded-2xl border border-border/60 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 space-y-5">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Campaign Goal</p>
-              <div className="flex gap-2 flex-wrap">
-                {['discover', 'convert', 'retarget'].map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setCampaignGoal(g)}
-                    className={cn(
-                      'px-4 py-2.5 rounded-xl text-sm font-semibold transition capitalize',
-                      campaignGoal === g
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
-                        : 'bg-card border border-border text-foreground hover:border-blue-500/40'
-                    )}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Marketing Angle</p>
-              <div className="flex gap-2 flex-wrap">
-                {['auto', 'PAS', 'BAB', 'FAB', 'AIDA', 'Objection-Rebuttal', 'Storytelling', 'Us vs. Them', 'Social Proof', 'FOMO', 'Educational'].map((a) => (
-                  <button
-                    key={a}
-                    onClick={() => setCampaignAngle(a)}
-                    className={cn(
-                      'px-4 py-2.5 rounded-xl text-sm font-semibold transition',
-                      campaignAngle === a
-                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                        : 'bg-card border border-border text-foreground hover:border-primary/40'
-                    )}
-                  >
-                    {a === 'auto' ? 'Auto-Select' : a}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <IdeaBox
-              idea={idea}
-              setIdea={setIdea}
-              placeholder="Any specific focus? (e.g. Highlight our new summer discount...)"
-              label="Additional Campaign Context (Optional)"
-            />
-          </div>
-        </section>
-      )}
 
       {/* ─── E-COMM ─── */}
       {mode === 'ecomm' && (

@@ -10,10 +10,30 @@ def _generate_director_concepts(brand_doc: Dict, products: List[Dict], count: in
     brand_dna = get_brand_dna(brand_doc)
     
     product_details = ""
-    for p in products:
-        product_details += f"- Name: {p.get('name')}\n  Description: {p.get('description', '')}\n  Key Benefit: {p.get('keyBenefit', '')}\n\n"
+    if products:
+        for p in products:
+            product_details += f"- Name: {p.get('name')}\n  Description: {p.get('description', '')}\n  Key Benefit: {p.get('keyBenefit', '')}\n\n"
+    else:
+        product_details = f"- Custom Product/Focus: {idea if idea else 'A premium product from the brand'}\n\n"
         
-    system_prompt = f"""You are an elite Creative Director at a top-tier digital ad agency.
+    # Map goals to specific high-converting frameworks (reverse-engineered from makelocalads & marketing best practices)
+    frameworks_map = {
+        "discover": "AIDA (Attention-Interest-Desire-Action), PAS (Problem-Agitate-Solution), BAB (Before-After-Bridge), Storytelling, Educational, QUEST (Qualify-Understand-Educate-Stimulate-Transition), Star-Story-Solution, 4Cs (Clear-Concise-Compelling-Credible), What-Why-How",
+        "compare": "Us vs. Them, FAB (Features-Advantages-Benefits), Social Proof, Spec-Sheet Showdown, Contrast Framework, Objection-Rebuttal, StoryBrand (Character-Problem-Guide), PPPP (Picture-Promise-Prove-Push), RTB (Reason To Believe), Feature-Story",
+        "purchases": "FOMO (Urgency), SLAP (Stop-Look-Act-Purchase), PASTOR (Problem-Amplify-Story-Transformation-Offer-Response), 4U's (Urgent-Unique-Ultra-specific-Useful), Command-Benefit-Push, Hook-Retain-Reward, Feature-Benefit-Action (FBA)"
+    }
+    
+    goal_context = ""
+    if goal.lower() == "purchases":
+        goal_context = "CRITICAL: Because this is a Bottom of Funnel (Drive Purchases) goal, you MUST inject strong action-oriented urgency (e.g., 'Shop Now', 'Upgrade Today'). DO NOT hallucinate fake discounts or sales (like 20% off or BOGO) unless explicitly mentioned in the ADDITIONAL CONTEXT. Focus on risk reversals (e.g., guarantees) or immediate product benefits."
+
+    if angle.lower() == "auto":
+        available = frameworks_map.get(goal.lower(), "AIDA, PAS, BAB")
+        angle_instruction = f"AUTO (You MUST assign a completely UNIQUE and DISTINCT framework for each of the {count} concepts from this list: {available}. NEVER repeat a framework unless the number of concepts requested is greater than the number of available frameworks.)"
+    else:
+        angle_instruction = angle.upper()
+
+    system_prompt = f"""You are an elite Art & Creative Director at a top-tier digital ad agency.
 Your job is to conceptualize {count} distinct, high-converting social media ad creatives.
 
 BRAND DNA:
@@ -23,24 +43,27 @@ PRODUCTS TO FEATURE:
 {product_details}
 
 CAMPAIGN GOAL: {goal.upper()}
-MARKETING ANGLE: {angle.upper()} (If 'AUTO', select the best angle like PAS, BAB, Storytelling, Us vs. Them, Social Proof, FOMO, or Educational yourself)
+MARKETING ANGLE: {angle_instruction}
 ADDITIONAL CONTEXT: {idea if idea else 'None'}
+{goal_context}
 
-For each concept, write a highly detailed "Director's Instruction" paragraph (approx 150-200 words).
+For each concept, write a highly detailed "Director's Instruction" paragraph (approx 150-250 words).
+You MUST write like a strict Art Director dictating exact visual requirements.
 The instruction MUST describe:
-- The marketing framework used (e.g., PAS, BAB)
-- The target audience and their psychology
-- The exact visual scene, layout, and lighting
-- The hero visual (product)
-- The short on-image headline
-- The call to action button (color, shape, text)
-- Brand consistency rules (colors, typography, spacing)
+1. The marketing framework used (e.g., AIDA, PAS) and the psychological archetype targeted.
+2. The exact visual composition and layout (e.g., "bold split-screen graphic", "minimalist flat-lay", "macro product shot").
+3. Specific color hex codes for the background and visual accents, ensuring they contrast perfectly with the product.
+4. Specific, premium typography (e.g., 'Tenor Sans', 'Circular Std') and exact styling for the on-image headline.
+5. The call to action button exact styling (color, shape, placement).
+6. A strict rule on negative space and visual hierarchy.
 
 Output the result as a raw JSON array of objects. Each object must have:
 - "angle": The framework used (e.g., "PAS", "BAB").
-- "instructions": The full director's instruction paragraph.
+- "instructions": The full, highly-detailed Art Director's instruction paragraph.
 - "caption": A short, punchy social media caption for the post itself (with 1-2 emojis).
 Do not include markdown blocks like ```json. Return ONLY the raw JSON array.
+
+CRITICAL FINAL CHECK: If you are generating multiple concepts, verify that EVERY SINGLE concept uses a DIFFERENT framework from the allowed list. Do not output duplicates!
 """
 
     api_key = os.getenv("OPENAI_API_KEY")
@@ -80,7 +103,8 @@ def generate_ad_creatives(
     campaign_angle: str = "auto",
     idea: str = "",
     aspect_ratio: str = "1:1",
-    ref_images: List[str] = None
+    ref_images: List[str] = None,
+    user_plan: str = ""
 ) -> List[Dict]:
     print(f"\n[AdsAgent] 🎬 Starting Ad Generation: {count} concepts | Goal: {campaign_goal} | Angle: {campaign_angle}")
     
@@ -92,8 +116,11 @@ def generate_ad_creatives(
         
     # 2. Build Static Blocks
     # Extract Product Appearance
-    prod = products[0] if products else {}
-    prod_appearance = f"The product is {prod.get('name', 'a premium item')}. {prod.get('description', '')}. It should look high-quality, authentic, and properly lit."
+    if products and len(products) > 0:
+        prod = products[0]
+        prod_appearance = f"The product is {prod.get('name', 'a premium item')}. {prod.get('visualDescription', prod.get('description', ''))} It should look high-quality, authentic, and properly lit."
+    else:
+        prod_appearance = f"The product is described as follows: {idea if idea else 'A premium item'}. It should look high-quality, authentic, and properly lit."
     
     # Extract Design Requirements from Brand
     visual_vibe = brand_doc.get("visualVibe", "Clean and modern")
@@ -106,6 +133,7 @@ def generate_ad_creatives(
 - Use a limited palette anchored to the brand colors (including {primary_color}), reserving one accent color for the call to action.
 - Keep 20% space all around the creative for the ad to look cleaner.
 - Group and align elements cleanly (Gestalt); use at most two type styles.
+- CRITICAL: DO NOT write the names of the marketing frameworks (like "PAS", "BAB", "Problem", "Agitate", "Solution", etc.) on the image. These are internal psychological frameworks for the scene, NOT ad copy! Only write the exact short on-image headline provided by the director.
 """
 
     generated_posts = []
@@ -119,17 +147,28 @@ def generate_ad_creatives(
 
 Product appearance: {prod_appearance}
 
-Use the product appearance text only as a private visual reference for accurately drawing the product. Do not print, quote, paraphrase, label, or turn any of that description into ad copy.
+Use the product appearance text only as a private visual reference for accurately drawing the product. Do not print, quote, paraphrase, label, or turn any of that description into ad copy. Treat orientation-specific details carefully: show front-only details only when the product front is visible; if the brief shows the back, side, top, or an angled view where those details would not be visible, omit them instead of moving them onto the wrong face.
+
+The attached product photos show the real product — reproduce it faithfully.
+
+The final attached image is the official brand logo. Add it once, subtly, in clean negative space; keep it exact, legible, and uncropped.
 
 Design requirements (apply to this ad):
 {design_reqs}
 """
         print(f"\n[AdsAgent] 🖌️ Assembled Prompt {idx+1}/{count}:\n{full_prompt}\n")
         
-        # Pick a reference image if available
-        ref_image = None
+        # Get brand logo
+        brand_logo = brand_doc.get("logo", "")
+        
+        # Build image attachments list (Product Image(s) + Logo)
+        attachments = []
         if ref_images and len(ref_images) > 0:
-            ref_image = ref_images[idx % len(ref_images)]
+            # We only generate ads for the FIRST selected product to avoid confusing the AI
+            attachments.append(ref_images[0])
+            
+        if brand_logo:
+            attachments.append(brand_logo)
             
         # Map aspect_ratio to fal image_size
         aspect_to_fal = {
@@ -141,12 +180,17 @@ Design requirements (apply to this ad):
         }
         gpt_size = aspect_to_fal.get(aspect_ratio, "square_hd")
 
+        img_quality = "medium" if "pro" in user_plan.lower() else "low"
+        print(f"  Quality: {img_quality}")
+
         try:
-            image_url = generate_fal_image_gpt2(
+            fal_result = generate_fal_image_gpt2(
                 prompt=full_prompt,
                 image_size=gpt_size,
-                image=ref_image
+                image=attachments if attachments else None,
+                quality=img_quality
             )
+            image_url = fal_result.get("image") if isinstance(fal_result, dict) else fal_result
             generated_posts.append({
                 "type": "image",
                 "image": image_url,

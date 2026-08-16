@@ -240,7 +240,13 @@ const DashboardLayoutContent = () => {
 
   const startBackgroundGeneration = async (payload: any, creditCost: number, creditReason: string, mode: any) => {
     const currentCreditsStr = localStorage.getItem('syncsocio_credits');
-    const currentCredits = parseInt(currentCreditsStr || '0', 10);
+    const baseCredits = parseInt(currentCreditsStr || '0', 10);
+
+    const pendingCredits = backgroundTasks
+      .filter(t => t.status === 'generating')
+      .reduce((sum, t) => sum + (t.creditCost || 0), 0);
+
+    const currentCredits = baseCredits - pendingCredits;
 
     if (creditCost > 0 && currentCredits < creditCost) {
       setOutOfCreditsCost(creditCost);
@@ -340,7 +346,13 @@ const DashboardLayoutContent = () => {
 
   const startBackgroundAllInOne = async (requests: any[], creditCost: number, creditReason: string) => {
     const currentCreditsStr = localStorage.getItem('syncsocio_credits');
-    const currentCredits = parseInt(currentCreditsStr || '0', 10);
+    const baseCredits = parseInt(currentCreditsStr || '0', 10);
+
+    const pendingCredits = backgroundTasks
+      .filter(t => t.status === 'generating')
+      .reduce((sum, t) => sum + (t.creditCost || 0), 0);
+
+    const currentCredits = baseCredits - pendingCredits;
 
     if (creditCost > 0 && currentCredits < creditCost) {
       setOutOfCreditsCost(creditCost);

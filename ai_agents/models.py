@@ -63,6 +63,7 @@ class StrategyImageRequest(BaseModel):
     language: Optional[str] = "english"
     whatsappTemplate: Optional[str] = None
     generateImage: Optional[bool] = True
+    userPlan: Optional[str] = None
     videoKind: Optional[str] = "ai-ugc"
     avatarDescription: Optional[str] = ""
     videoScript: Optional[str] = ""

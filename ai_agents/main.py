@@ -1543,7 +1543,7 @@ async def api_generate_visuals(request: VisualGenRequest):
             user_plan = "starter"
             if brand_doc:
                 user_plan = str(brand_doc.get("selectedPlan", "starter")).lower()
-            img_quality = "medium" if "pro" in user_plan else "low"
+            img_quality = "medium" if "pro" in user_plan.lower() else "low"
 
             if brand_doc:
                 location = brand_doc.get('location')
@@ -1900,7 +1900,8 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 campaign_angle=request.campaignAngle or "auto",
                 idea=request.idea,
                 aspect_ratio=request.aspectRatio or "1:1",
-                ref_images=request.refImages or []
+                ref_images=request.refImages or [],
+                user_plan=request.userPlan or ""
             )
         else:
             import asyncio
@@ -2182,7 +2183,7 @@ async def api_product_image_editor(request: ProductEditRequest):
                 safe_brand_dna = json.dumps(pruned_dna)
                 
                 user_plan = str(dna_dict.get("selectedPlan", "starter")).lower()
-                if "pro" in user_plan:
+                if "pro" in user_plan.lower():
                     img_quality = "medium"
                 else:
                     img_quality = "low"
