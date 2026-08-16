@@ -143,24 +143,35 @@ const plans: Plan[] = [
 
 const topups = [
   {
+    name: "Starter Top-up",
+    credits: 50,
+    prices: {
+      INR: { price: 250, per_credit: 5.00 },
+      USD: { price: 3.5, per_credit: 0.07 }
+    }
+  },
+  {
+    name: "Value Pack",
     credits: 100,
     prices: {
-      INR: { price: 299, per_credit: 2.99 },
-      USD: { price: 5, per_credit: 0.05 }
+      INR: { price: 475, per_credit: 4.75 },
+      USD: { price: 6.5, per_credit: 0.065 }
     }
   },
   {
+    name: "Growth Pack",
     credits: 300,
     prices: {
-      INR: { price: 799, per_credit: 2.66 },
-      USD: { price: 12, per_credit: 0.04 }
+      INR: { price: 1275, per_credit: 4.25 },
+      USD: { price: 16, per_credit: 0.053 }
     }
   },
   {
+    name: "Pro Pack",
     credits: 700,
     prices: {
-      INR: { price: 1699, per_credit: 2.42 },
-      USD: { price: 24, per_credit: 0.03 }
+      INR: { price: 2730, per_credit: 3.90 },
+      USD: { price: 35, per_credit: 0.05 }
     }
   },
 ];
@@ -424,13 +435,13 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
           <h3 className="text-2xl font-bold mb-2">Need extra credits?</h3>
           <p className="text-sm text-muted-foreground mb-10">Get instant top-ups to power your creative campaigns without upgrading your monthly plan.</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {topups.map((topup) => {
               const topupPrices = topup.prices[currency];
               return (
                 <div key={topup.credits} className="glass-card rounded-2xl p-6 flex flex-col justify-between hover-lift transition-all text-center">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-2 block">Value Pack</span>
+                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-2 block">{topup.name}</span>
                     <h4 className="text-2xl font-black text-foreground mb-1">{topup.credits} Credits</h4>
                     <p className="text-xs text-muted-foreground mb-4">{symbol}{topupPrices.per_credit} / credit</p>
                   </div>

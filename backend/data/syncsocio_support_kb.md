@@ -221,7 +221,7 @@ A: Starter: 80 credits/month (approx 16 SD images). Growth: 400 credits/month (a
 A: No. Credits reset at the start of each billing cycle and don't carry over. Use them throughout the month.
 
 **Q: How do I buy more credits (top-up)?**
-A: Go to Settings > Plan and Billing > Buy Credits, or click the credit counter at the top of the dashboard. Top-up packs available: 100 credits (Rs 299 / $5), 300 credits (Rs 799 / $12), 700 credits (Rs 1,699 / $24).
+A: Go to Settings > Plan and Billing > Buy Credits, or click the credit counter at the top of the dashboard. Top-up packs available: 50 credits (Rs 250 / $3.5), 100 credits (Rs 475 / $6.5), 300 credits (Rs 1,275 / $16), 700 credits (Rs 2,730 / $35).
 
 **Q: My credits deducted but no image was generated.**
 A: This is rare and usually a network error. Please raise a support ticket with the approximate time of the failed generation so we can verify and refund the credits if appropriate.

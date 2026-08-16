@@ -18,9 +18,10 @@ export const COMPANY_ADDRESS = {
 
 // ─── Pack / Plan Labels ───────────────────────────────────────────────────────
 const TOPUP_META = {
-  100: { label: 'Starter Credit Pack',  subtitle: '100 AI Credits · Value Pack', icon: '⚡' },
-  300: { label: 'Growth Credit Pack',   subtitle: '300 AI Credits · Best Value', icon: '🚀' },
-  700: { label: 'Power Credit Pack',    subtitle: '700 AI Credits · Max Power',  icon: '💎' },
+  50:  { label: 'Starter Top-up',      subtitle: '50 AI Credits · Quick Boost', icon: '⚡' },
+  100: { label: 'Value Credit Pack',   subtitle: '100 AI Credits · Value Pack', icon: '⚡' },
+  300: { label: 'Growth Credit Pack',  subtitle: '300 AI Credits · Best Value', icon: '🚀' },
+  700: { label: 'Pro Credit Pack',     subtitle: '700 AI Credits · Max Power',  icon: '💎' },
 };
 
 const PLAN_META = {

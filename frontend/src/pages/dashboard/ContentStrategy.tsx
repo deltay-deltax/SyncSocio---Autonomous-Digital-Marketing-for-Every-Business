@@ -133,6 +133,22 @@ const AD_TEMPLATES: { id: number; label: string; icon: string; desc: string }[] 
   { id: 10, label: 'Urgency / Offer', icon: '🔥', desc: 'Big discount badge, product, deadline' },
 ];
 
+const SAAS_BRAND_CATEGORIES = [
+  'Mobile Apps',
+  'IT & Technical Tools',
+  'Gaming & Entertainment',
+  'SaaS & Digital',
+  'Coaching & Consulting',
+  'Architecture',
+  'Financial Services',
+  'Real Estate & Property',
+  'Travel & Hospitality',
+  'Education & Training',
+  'Newsletters',
+  'Online Marketplaces',
+  'Services'
+];
+
 // ── SaaS Creative Format Tracks ───────────────────────────────────────────────
 // IDs 101-104 = Text-led (no image ref needed)
 // IDs 105-106 = Image/UI-led (dashboard screenshot anchors the output)
@@ -703,7 +719,7 @@ const DashboardStrategy = () => {
 
   const checkLocked = (sId: string) => {
     if (isStarter) {
-      return ['clone', 'sprint', 'video', 'all_in_one', 'whatsapp', 'email'].includes(sId);
+      return ['ads', 'clone', 'sprint', 'video', 'all_in_one', 'whatsapp', 'email'].includes(sId);
     }
     return false;
   };
@@ -1092,6 +1108,7 @@ const DashboardStrategy = () => {
   const isAgency = planName.includes('agency');
   const isElite = planName.includes('elite');
   const hasGrowthOrPro = isGrowth || isPro || isElite || isAgency;
+  const isSaasMode = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
 
   React.useEffect(() => {
     if (mode) {
@@ -1099,6 +1116,14 @@ const DashboardStrategy = () => {
         setStage('pick');
         setMode(null);
         setUpgradeModalReason('expired');
+        setShowUpgradeModal(true);
+      } else if (isSaasMode && (mode === 'ads' || mode === 'ecomm' || mode === 'all_in_one')) {
+        setStage('pick');
+        setMode(null);
+      } else if (mode === 'ads' && !hasGrowthOrPro) {
+        setStage('pick');
+        setMode(null);
+        setUpgradeModalReason('ads');
         setShowUpgradeModal(true);
       } else if (mode === 'video' && !hasGrowthOrPro) {
         setStage('pick');
@@ -1117,7 +1142,7 @@ const DashboardStrategy = () => {
         setShowUpgradeModal(true);
       }
     }
-  }, [mode, isPlanExpired, hasGrowthOrPro]);
+  }, [mode, isPlanExpired, hasGrowthOrPro, isSaasMode]);
 
   const handleModeClick = (mId: Mode) => {
     if (checkLocked(mId)) {
@@ -1149,62 +1174,9 @@ const DashboardStrategy = () => {
     openMode(mId);
   };
 
-  // ── SaaS / Services / Consulting mode detection
-  // If the brand category is one of these 3, hide E-Comm Listing tab and route to SaaS prompts
-  const SAAS_BRAND_CATEGORIES = [
-    'Mobile Apps',
-    'IT & Technical Tools',
-    'Gaming & Entertainment',
-    'SaaS & Digital',
-    'Coaching & Consulting',
-    'Architecture',
-    'Financial Services',
-    'Real Estate & Property',
-    'Travel & Hospitality',
-    'Education & Training',
-    'Newsletters',
-    'Online Marketplaces',
-    'Services'
-  ];
-  const isSaasMode = SAAS_BRAND_CATEGORIES.includes(profile.businessCategory || '');
-
-  // ── AI Script Generator ───────────────────────────────────────────────────
-  const generateAiScript = async () => {
-    setIsGeneratingScript(true);
-    try {
-      // Pick first product from uploads or products list for context
-      const firstProduct = selectedProducts[0] || products[0] || {};
-      const payload = {
-        brandName: profile.brandName || '',
-        brandTone: profile.brandTone || '',
-        usp: profile.usp || '',
-        productName: firstProduct.name || '',
-        productDescription: firstProduct.description || '',
-        keyBenefit: firstProduct.keyBenefit || '',
-        avatarDescription: avatarDescription.trim(),
-        isSaas: isSaasMode,
-        language: language,
-        videoDuration: videoDuration,
-      };
-      const res = await fetch(`${AI_BASE}/generate-ugc-script`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.script) setVideoScript(data.script);
-    } catch (err) {
-      console.error('[AI Script] Failed:', err);
-      toast({ title: 'Script generation failed', description: 'Please try again or write manually.', variant: 'destructive' });
-    } finally {
-      setIsGeneratingScript(false);
-    }
-  };
-
-  // Filter modes: SaaS brands don’t see E-Comm Listing or All In One
+  // Filter modes: SaaS brands don’t see E-Comm Listing, All In One, or AI Ad Creatives
   const visibleModes = isSaasMode
-    ? modes.filter((m) => m.id !== 'ecomm' && m.id !== 'all_in_one')
+    ? modes.filter((m) => m.id !== 'ecomm' && m.id !== 'all_in_one' && m.id !== 'ads')
     : modes;
 
   const visibleVideoKinds = isSaasMode
@@ -3315,24 +3287,28 @@ const DashboardStrategy = () => {
             <h2 className="text-xl font-bold mb-2">
               {upgradeModalReason === 'expired'
                 ? 'Plan Expired'
-                : upgradeModalReason === 'video'
-                  ? 'Video Generation Locked 🔒'
-                  : upgradeModalReason === 'whatsapp'
-                    ? 'WhatsApp Campaign Locked 🔒'
-                    : upgradeModalReason === 'email'
-                      ? 'Email Campaign Locked 🔒'
-                      : 'Premium Feature Locked 🔒'}
+                : upgradeModalReason === 'ads'
+                  ? 'AI Ad Creatives Locked 🔒'
+                  : upgradeModalReason === 'video'
+                    ? 'Video Generation Locked 🔒'
+                    : upgradeModalReason === 'whatsapp'
+                      ? 'WhatsApp Campaign Locked 🔒'
+                      : upgradeModalReason === 'email'
+                        ? 'Email Campaign Locked 🔒'
+                        : 'Premium Feature Locked 🔒'}
             </h2>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               {upgradeModalReason === 'expired'
                 ? 'Your SyncSocio plan has expired. Please renew your plan to continue using our AI strategy tools.'
-                : upgradeModalReason === 'video'
-                  ? 'AI Video Generation (UGC & Product Videos) is included in Growth and Pro plans. Please upgrade your plan to unlock AI video generation.'
-                  : upgradeModalReason === 'whatsapp'
-                    ? 'WhatsApp Campaigns & Broadcasts are included in Growth and Pro plans. Please upgrade your plan to unlock WhatsApp campaigns.'
-                    : upgradeModalReason === 'email'
-                      ? 'Email Campaigns & Newsletters are included in Growth and Pro plans. Please upgrade your plan to unlock email campaigns.'
-                      : `This feature is included in Growth and Pro plans. Upgrade your plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
+                : upgradeModalReason === 'ads'
+                  ? 'AI Ad Creatives (Director AI Engine) is included in Growth and Pro plans. Please upgrade your plan to unlock high-converting AI ad generation.'
+                  : upgradeModalReason === 'video'
+                    ? 'AI Video Generation (UGC & Product Videos) is included in Growth and Pro plans. Please upgrade your plan to unlock AI video generation.'
+                    : upgradeModalReason === 'whatsapp'
+                      ? 'WhatsApp Campaigns & Broadcasts are included in Growth and Pro plans. Please upgrade your plan to unlock WhatsApp campaigns.'
+                      : upgradeModalReason === 'email'
+                        ? 'Email Campaigns & Newsletters are included in Growth and Pro plans. Please upgrade your plan to unlock email campaigns.'
+                        : `This feature is included in Growth and Pro plans. Upgrade your plan to unlock the ${STUDIOS.find(s => s.id === upgradeModalReason)?.title || 'premium'} feature.`}
             </p>
 
             <Button
@@ -3380,7 +3356,7 @@ const DashboardStrategy = () => {
             {/* Studio grid — 6-col so wide cards can span 3 */}
             <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-6 md:auto-rows-[210px]">
               {sortedStudios.filter(s => {
-                if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one')) return false;
+                if (isSaasMode && (s.id === 'ecomm' || s.id === 'all_in_one' || s.id === 'ads')) return false;
                 return true;
               }).map((s, i) => (
                 <StudioCard key={s.id} s={s} i={i} onPick={handleModeClick} isLocked={checkLocked(s.id)} />
