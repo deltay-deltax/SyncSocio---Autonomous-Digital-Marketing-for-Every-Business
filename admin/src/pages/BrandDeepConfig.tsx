@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Briefcase, Mail, ShieldAlert, Cpu, Share2, Server } from 'lucide-react';
+import { ArrowLeft, Briefcase, ShieldAlert, Cpu, Share2, Server } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function BrandDeepConfig() {
