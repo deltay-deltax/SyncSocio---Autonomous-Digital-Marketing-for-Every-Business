@@ -24,6 +24,8 @@ import Products from './pages/Products';
 import Campaigns from './pages/Campaigns';
 import AdminNotifications from './pages/AdminNotifications';
 import SupportTickets from './pages/SupportTickets';
+import AIOperations from './pages/AIOperations';
+import BrandDeepConfig from './pages/BrandDeepConfig';
 import './App.css';
 
 // Protected Route for Admin
@@ -43,12 +45,12 @@ function App() {
         
         <Route element={<AdminRoute />}>
           <Route path="/" element={<AdminEntry />} />
-          <Route path="/leads-management" element={<Leads />} />
           <Route element={<Layout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="users/:id" element={<UserDetails />} />
             <Route path="brands" element={<Brands />} />
+            <Route path="brands/:id/deep-config" element={<BrandDeepConfig />} />
             <Route path="coupons" element={<Coupons />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="transactions" element={<Transactions />} />
@@ -66,7 +68,9 @@ function App() {
             <Route path="landing-gallery" element={<LandingGallery />} />
             <Route path="scheduled-posts" element={<ScheduledPosts />} />
             <Route path="generations" element={<Generations />} />
+            <Route path="ai-operations" element={<AIOperations />} />
             <Route path="lead-generation" element={<LeadGeneration />} />
+            <Route path="leads-management" element={<Leads />} />
           </Route>
         </Route>
 
