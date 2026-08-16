@@ -5,7 +5,7 @@ import {
   Wand2, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ShoppingBag,
   PartyPopper, Download, RefreshCw, Check, MessageSquare, Mail, Upload,
   Phone, AtSign, Paperclip, Smile, Mic, CheckCheck, AlertCircle, Library,
-  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye, Zap, Paintbrush, Info,
+  Package, CheckCircle2, FileSpreadsheet, ChevronDown, Copy, Folder, ExternalLink, Edit3, Lock, AlertTriangle, Camera, Eye, Zap, Paintbrush, Info, Megaphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,7 +29,7 @@ const breakpointColumnsObj = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Mode = 'sprint' | 'editor' | 'clone' | 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media' | 'photoshoot';
+type Mode = 'ads' | 'sprint' | 'editor' | 'clone' | 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media' | 'photoshoot';
 type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '2:3';
 
 // Keep the original GeneratedPost type for real API responses
@@ -61,6 +61,7 @@ const NODE_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const ASSET_CACHE_KEY = 'syncsocio_strategy_assets';
 
 const modes: { id: Mode; label: string; icon: any; desc: string; accent: string }[] = [
+  { id: 'ads', label: 'Ads', icon: Megaphone, desc: 'Generate AI Ad Creatives', accent: 'from-blue-500 to-indigo-500' },
   { id: 'all_in_one', label: 'All In One', icon: Wand2, desc: 'Generate complete marketing pack', accent: 'from-indigo-500/20 via-purple-500/10 to-pink-500/5' },
   { id: 'image', label: 'Image', icon: ImageIcon, desc: 'Single static post', accent: 'from-sky-500/20 to-blue-500/10' },
   { id: 'carousel', label: 'Carousel', icon: Layers, desc: 'Multi-slide swipe', accent: 'from-fuchsia-500/20 to-rose-500/10' },
@@ -321,6 +322,24 @@ type Studio = {
 };
 
 const STUDIOS: Studio[] = [
+  {
+    id: "ads",
+    title: "AI Ad Creatives",
+    subtitle: "High-converting marketing ads",
+    description: "Generate highly branded, conversion-optimized ad creatives using the 'Director' AI.",
+    icon: Megaphone,
+    iconTint: "text-blue-600",
+    iconBg: "bg-blue-100",
+    badge: { label: "New", tint: "bg-blue-600 text-white font-extrabold shadow-md" },
+    tags: [
+      { label: "Ads", tint: "bg-blue-50 text-blue-700 ring-blue-100" }
+    ],
+    cta: { label: "Generate Ads", tint: "text-blue-600" },
+    to: "/dashboard?mode=ads",
+    image: "/assets/Creatives_icon/studio-image.jpg",
+    featured: true,
+    hoverBorder: "hover:border-blue-400 hover:ring-1 hover:ring-blue-400",
+  },
   {
     id: "clone",
     title: "Clone Mode",
@@ -909,6 +928,8 @@ const DashboardStrategy = () => {
   // ── WhatsApp / Email
   const [generateImage, setGenerateImage] = useState<boolean>(true);
   const [productPick, setProductPick] = useState<string>('');
+  const [campaignGoal, setCampaignGoal] = useState<string>('discover');
+  const [campaignAngle, setCampaignAngle] = useState<string>('auto');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [newRecipient, setNewRecipient] = useState('');
   const [whatsappCountryCode, setWhatsappCountryCode] = useState('+91');
@@ -2087,6 +2108,10 @@ const DashboardStrategy = () => {
             ? (saasFormatId ?? (saasFormatTrack === 'text_led' ? 100 : saasFormatTrack === 'image_led' ? 110 : null))
             : (currentCount === 8 ? -1 : adTemplate),
           textMode,
+        }),
+        ...(currentMode === 'ads' && {
+          campaignGoal,
+          campaignAngle
         }),
         videoKind: currentMode === 'video' ? videoKind : undefined,
         avatarDescription: (currentMode === 'video' && videoKind === 'ai-ugc') ? avatarDescription : undefined,
@@ -3370,8 +3395,8 @@ const DashboardStrategy = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   // BUILDER — per-mode form
   // ─────────────────────────────────────────────────────────────────────────────
-  const isStandard = mode === 'image' || mode === 'carousel' || mode === 'video' || mode === 'photoshoot';
-  const standardCounts = (mode === 'image' || mode === 'photoshoot') ? imageCounts : mode === 'carousel' ? carouselCounts : videoCounts;
+  const isStandard = mode === 'image' || mode === 'carousel' || mode === 'video' || mode === 'photoshoot' || mode === 'ads';
+  const standardCounts = (mode === 'image' || mode === 'photoshoot' || mode === 'ads') ? imageCounts : mode === 'carousel' ? carouselCounts : videoCounts;
   const currentMode = modes.find((m) => m.id === mode)!;
 
   return (
@@ -3541,7 +3566,7 @@ const DashboardStrategy = () => {
                 {mode !== 'carousel' && (
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
-                      {mode === 'photoshoot' ? 'Images' : mode === 'image' ? 'Post count' : 'Videos'}
+                      {mode === 'photoshoot' ? 'Images' : (mode === 'image' || mode === 'ads') ? 'Post count' : 'Videos'}
                     </p>
                     <div className="flex gap-2 flex-wrap">
                       {standardCounts.map((c) => (
@@ -4100,6 +4125,59 @@ const DashboardStrategy = () => {
             )
           )}
         </>
+      )}
+      {/* ─── ADS MODE ─── */}
+      {mode === 'ads' && (
+        <section className="mb-6 space-y-6">
+          <div className="p-5 rounded-2xl border border-border/60 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 space-y-5">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Campaign Goal</p>
+              <div className="flex gap-2 flex-wrap">
+                {['discover', 'convert', 'retarget'].map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setCampaignGoal(g)}
+                    className={cn(
+                      'px-4 py-2.5 rounded-xl text-sm font-semibold transition capitalize',
+                      campaignGoal === g
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                        : 'bg-card border border-border text-foreground hover:border-blue-500/40'
+                    )}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Marketing Angle</p>
+              <div className="flex gap-2 flex-wrap">
+                {['auto', 'PAS', 'BAB', 'FAB', 'AIDA', 'Objection-Rebuttal', 'Storytelling', 'Us vs. Them', 'Social Proof', 'FOMO', 'Educational'].map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => setCampaignAngle(a)}
+                    className={cn(
+                      'px-4 py-2.5 rounded-xl text-sm font-semibold transition',
+                      campaignAngle === a
+                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                        : 'bg-card border border-border text-foreground hover:border-primary/40'
+                    )}
+                  >
+                    {a === 'auto' ? 'Auto-Select' : a}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <IdeaBox
+              idea={idea}
+              setIdea={setIdea}
+              placeholder="Any specific focus? (e.g. Highlight our new summer discount...)"
+              label="Additional Campaign Context (Optional)"
+            />
+          </div>
+        </section>
       )}
 
       {/* ─── E-COMM ─── */}

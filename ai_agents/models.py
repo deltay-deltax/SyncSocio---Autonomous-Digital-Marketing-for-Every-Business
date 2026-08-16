@@ -58,6 +58,8 @@ class StrategyImageRequest(BaseModel):
     ecommCaptions: Optional[List[str]] = []  # per-image captions from frontend (shot type labels)
     # Image ad template: None = auto, 1-10 = specific template, -1 = all 8 variants
     adTemplate: Optional[int] = None
+    campaignGoal: Optional[str] = "discover"
+    campaignAngle: Optional[str] = "auto"
     language: Optional[str] = "english"
     whatsappTemplate: Optional[str] = None
     generateImage: Optional[bool] = True

@@ -1888,6 +1888,20 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 video_duration=request.videoDuration,
                 comment_keyword=request.commentKeyword,
             )
+        elif request.layout == "ads":
+            import asyncio
+            from ad_creative_agent import generate_ad_creatives
+            posts = await asyncio.to_thread(
+                generate_ad_creatives,
+                brand_doc=brand_doc,
+                products=request.products or [],
+                count=request.count,
+                campaign_goal=request.campaignGoal or "discover",
+                campaign_angle=request.campaignAngle or "auto",
+                idea=request.idea,
+                aspect_ratio=request.aspectRatio or "1:1",
+                ref_images=request.refImages or []
+            )
         else:
             import asyncio
             posts = await asyncio.to_thread(
@@ -1934,7 +1948,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 cost_in_cents = len(posts) * 1  # ~1 cent per campaign (LLM copy only, no image gen)
                 endpoint = "google/gemini-campaign-copy"
             else:
-                # ecomm, festival, all_in_one, or any future layout
+                # ecomm, festival, all_in_one, ads, or any future layout
                 cost_in_cents = len(posts) * 2
 
             apilog_doc = {
