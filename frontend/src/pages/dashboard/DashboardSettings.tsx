@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HexColorPicker } from "react-colorful";
-import { RefreshCw, Trash2, Pause, Power, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, AlertCircle, Copy, CheckCheck, ArrowRight, Shield, Inbox, Unlink } from 'lucide-react';
+import { RefreshCw, Trash2, Pause, Power, Globe, MapPin, Target, Users, Megaphone, Palette, Layers, CheckCircle2, Zap, Clock, ShieldCheck, FileText, ExternalLink, Sparkles, Languages, Building2, AtSign, Heart, Type, Hash, Check, X, Camera, TrendingUp, Mail, AlertTriangle, AlertCircle, Copy, CheckCheck, ArrowRight, Shield, Inbox, Unlink, BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkout } from '@/components/Checkout';
@@ -424,7 +424,8 @@ const DashboardSettings = () => {
         secondaryColor: scraped.secondaryColor || formData.secondaryColor,
         logo: scraped.logo || formData.logo,
         typography: scraped.typography || formData.typography,
-        brandKeywords: Array.isArray(scraped.brandKeywords) ? scraped.brandKeywords.join(', ') : (scraped.brandKeywords || (Array.isArray(scraped.keywords) ? scraped.keywords.join(', ') : (scraped.keywords || formData.brandKeywords)))
+        brandKeywords: Array.isArray(scraped.brandKeywords) ? scraped.brandKeywords.join(', ') : (scraped.brandKeywords || (Array.isArray(scraped.keywords) ? scraped.keywords.join(', ') : (scraped.keywords || formData.brandKeywords))),
+        brandDesignGuide: scraped.brandDesignGuide || formData.brandDesignGuide || ''
       };
 
       // 3.5. Delete existing products before saving new ones
@@ -448,7 +449,8 @@ const DashboardSettings = () => {
       }
 
       if (scrapedProducts.length > 0) {
-        for (const prod of scrapedProducts) {
+        for (let i = 0; i < scrapedProducts.length; i++) {
+          const prod = scrapedProducts[i];
           try {
             await fetch(`${apiBase}/products`, {
               method: 'POST',
@@ -537,6 +539,7 @@ const DashboardSettings = () => {
         genderFocus: updatedFormData.genderFocus,
         brandKeywords: updatedFormData.brandKeywords,
         visualVibe: updatedFormData.visualVibe,
+        brandDesignGuide: updatedFormData.brandDesignGuide || '',
       };
 
       setFormData(updatedFormData);
@@ -593,7 +596,8 @@ const DashboardSettings = () => {
     ageRange: profile?.ageRange || '',
     genderFocus: profile?.genderFocus || '',
     brandKeywords: profile?.brandKeywords || '',
-    visualVibe: profile?.visualVibe || ''
+    visualVibe: profile?.visualVibe || '',
+    brandDesignGuide: profile?.brandDesignGuide || ''
   });
 
   useEffect(() => {
@@ -618,7 +622,8 @@ const DashboardSettings = () => {
         ageRange: profile.ageRange || '',
         genderFocus: profile.genderFocus || '',
         brandKeywords: profile.brandKeywords || '',
-        visualVibe: profile.visualVibe || ''
+        visualVibe: profile.visualVibe || '',
+        brandDesignGuide: profile.brandDesignGuide || ''
       });
 
       const kwList = profile.brandKeywords ? profile.brandKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [];
@@ -926,6 +931,15 @@ const DashboardSettings = () => {
                   <Field label="Visual Vibe" icon={<Palette size={11} />}>
                     <ChipGroup options={visualVibes} value={formData.visualVibe} onChange={v => updateField('visualVibe', v)} />
                   </Field>
+
+                  {/* Brand Design Guide Pill */}
+                  {formData.brandDesignGuide && (
+                    <BrandDesignGuidePill
+                      guide={formData.brandDesignGuide}
+                      brandName={formData.brandName}
+                      primaryColor={formData.primaryColor}
+                    />
+                  )}
                 </CardContent>
               </Card>
 
@@ -2470,6 +2484,147 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
 };
 
 export default DashboardSettings;
+
+// ── Brand Design Guide Pill + Modal ──────────────────────────────────────────
+const BrandDesignGuidePill = ({
+  guide,
+  brandName,
+  primaryColor,
+}: {
+  guide: string;
+  brandName: string;
+  primaryColor: string;
+}) => {
+  const [open, setOpen] = useState(false);
+
+  // Parse markdown into sections for structured display
+  const sections = guide
+    .split(/^## /m)
+    .filter(Boolean)
+    .map((s) => {
+      const lines = s.trim().split('\n');
+      const title = lines[0].replace(/^\d+\.\s*/, '').trim();
+      const body = lines.slice(1).join('\n').trim();
+      return { title, body };
+    });
+
+  return (
+    <>
+      {/* Pill trigger */}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all text-sm font-semibold text-primary w-full justify-between group"
+      >
+        <span className="flex items-center gap-2">
+          <BookOpen size={14} className="text-primary" />
+          Brand Design Guide
+        </span>
+        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-white opacity-90">
+          AI-Generated
+        </span>
+      </button>
+
+      {/* Modal */}
+      <AnimatePresence>
+        {open && createPortal(
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+            onClick={() => setOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 280 }}
+              className="w-full max-w-2xl max-h-[85vh] rounded-3xl border border-border/60 bg-background shadow-2xl flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div
+                className="flex items-center justify-between px-7 py-5 border-b border-border/50"
+                style={{ background: `linear-gradient(135deg, ${primaryColor}18, ${primaryColor}08)` }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: primaryColor }}
+                  >
+                    <BookOpen size={16} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-foreground">{brandName}</p>
+                    <p className="text-[11px] text-muted-foreground font-medium">Brand Design Guide · AI-Generated</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="overflow-y-auto flex-1 px-7 py-6 space-y-5">
+                {sections.length > 0 ? (
+                  sections.map((section, i) => (
+                    <div key={i} className="space-y-2">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <span
+                          className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black text-white"
+                          style={{ background: primaryColor }}
+                        >
+                          {i + 1}
+                        </span>
+                        {section.title}
+                      </h3>
+                      <div className="rounded-xl bg-muted/40 border border-border/40 px-4 py-3">
+                        {section.body.split('\n').filter(Boolean).map((line, j) => {
+                          const isBullet = line.startsWith('- ') || line.startsWith('* ');
+                          const isBold = line.startsWith('**') && line.includes('**', 2);
+                          if (isBullet) {
+                            return (
+                              <div key={j} className="flex items-start gap-2 text-[13px] text-foreground/85 leading-relaxed py-0.5">
+                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: primaryColor }} />
+                                <span dangerouslySetInnerHTML={{
+                                  __html: line.replace(/^[-*]\s/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                }} />
+                              </div>
+                            );
+                          }
+                          return (
+                            <p key={j} className="text-[13px] text-foreground/80 leading-relaxed py-0.5"
+                              dangerouslySetInnerHTML={{
+                                __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <pre className="text-[12px] text-foreground/80 leading-relaxed whitespace-pre-wrap font-mono">
+                    {guide}
+                  </pre>
+                )}
+
+                <p className="text-center text-[11px] text-muted-foreground pt-2">
+                  🤖 Auto-generated from your scraped brand data · Used only by AI Ad Creatives
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>,
+          document.body
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
 
 const Field = ({ label, icon, required, className, children }: { label: string; icon?: React.ReactNode; required?: boolean; className?: string; children: React.ReactNode }) => (
   <div className={cn('space-y-1.5', className)}>

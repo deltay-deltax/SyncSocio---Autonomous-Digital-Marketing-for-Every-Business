@@ -55,6 +55,8 @@ interface Product {
   offerPrice: string;
   keyBenefit: string;
   serviceProvider?: string;
+  adVisualDescription?: string;
+  adVisualDescriptionStatus?: string;
 }
 
 const emptyProduct = (): Product => ({
@@ -422,6 +424,19 @@ const ProductForm: React.FC<{
             </div>
           </div>
 
+          {/* AI Visual Description (Read-Only) */}
+          {form.adVisualDescription && (
+            <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-violet-500" />
+                <p className="text-[11px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">AI Visual Description</p>
+              </div>
+              <p className="text-xs text-foreground leading-relaxed italic opacity-90">
+                {form.adVisualDescription}
+              </p>
+            </div>
+          )}
+
           {/* Key Benefit */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Key Benefit</p>
@@ -601,7 +616,10 @@ const Products = () => {
           </p>
           <div className="mt-3 flex items-start gap-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 text-xs leading-relaxed shadow-sm w-full">
             <span className="text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider text-[11px] shrink-0 mt-0.5">⚠️ Notice:</span>
-            <span className="flex-1">AI agents may make mistakes while parsing or scraping details. Please verify the information yourself.</span>
+            <span className="flex-1">
+              AI agents may make mistakes while parsing or scraping details. Please verify the information yourself. 
+              <span className="block mt-1"><strong>Missing an image?</strong> Edit the product and upload it manually to unlock AI visual description.</span>
+            </span>
           </div>
         </div>
         <Button

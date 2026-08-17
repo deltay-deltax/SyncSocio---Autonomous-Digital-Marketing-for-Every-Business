@@ -2,8 +2,37 @@ import os
 import json
 import requests
 from typing import List, Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from fal_visual_engine import generate_fal_image_gpt2
 from common import get_brand_dna
+
+
+# Phrases that indicate GPT-4o refused to describe the product image
+_REFUSAL_PHRASES = [
+    "i'm sorry, i can't",
+    "i'm sorry, i cannot",
+    "i can't assist",
+    "i cannot assist",
+    "i can't help",
+    "i cannot help",
+    "i'm unable to",
+    "i am unable to",
+    "i apologize",
+    "not able to",
+    "unable to provide",
+    "can't provide",
+    "cannot provide",
+    "sorry, but i",
+    "sorry, i'm not",
+    "i don't feel comfortable",
+    "i'm not able to",
+]
+
+
+def _is_refusal(text: str) -> bool:
+    """Returns True if the text looks like a GPT-4o content-policy refusal."""
+    lower = text.lower().strip()
+    return any(phrase in lower for phrase in _REFUSAL_PHRASES)
 
 
 def _generate_director_concepts(
@@ -12,7 +41,8 @@ def _generate_director_concepts(
     count: int,
     goal: str,
     angle: str,
-    idea: str
+    idea: str,
+    brand_design_guide: str = ""
 ) -> List[Dict]:
     brand_dna = get_brand_dna(brand_doc)
     brand_name = brand_doc.get("brandName", "the brand")
@@ -92,14 +122,14 @@ def _generate_director_concepts(
     system_prompt = f"""You are an elite Art & Creative Director at a world-class digital ad agency specializing in premium Indian D2C brands.
 Your job: conceptualize {count} DISTINCT, high-converting social media ad creatives for {brand_name}.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 BRAND DNA:
 {brand_dna}
 
 Category: {category}
 Visual Style: {visual_vibe}
 Primary Target: {target_audience if isinstance(target_audience, str) else ', '.join(target_audience) if isinstance(target_audience, list) else str(target_audience)}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
 PRODUCTS TO FEATURE:
 {product_details}
@@ -109,20 +139,20 @@ MARKETING ANGLE: {angle_instruction}
 ADDITIONAL CONTEXT: {idea if idea else 'None'}
 {goal_context}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CREATIVE BRIEF WRITING RULES — FOLLOW EXACTLY:
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+CREATIVE BRIEF WRITING RULES \u2014 FOLLOW EXACTLY:
 
 Write ONE paragraph (~180-250 words) per concept. Style: strict Art Director briefing an AI image generator.
 
 Each brief MUST contain ALL of the following, woven naturally into ONE flowing paragraph:
 
-1. FRAMEWORK + ARCHETYPE: Name the framework and the specific psychological archetype or pain point being targeted. Be specific — name the exact frustration, desire, or identity (e.g., "mothers dealing with fussy eaters", "fitness enthusiasts frustrated by bloating").
+1. FRAMEWORK + ARCHETYPE: Name the framework and the specific psychological archetype or pain point being targeted. Be specific \u2014 name the exact frustration, desire, or identity (e.g., "mothers dealing with fussy eaters", "fitness enthusiasts frustrated by bloating").
 
 2. VISUAL COMPOSITION: Describe the exact scene layout in cinematic detail (e.g., "stark split-screen", "minimalist flat-lay on marble", "macro close-up of texture", "lifestyle hero shot"). Specify what occupies each area of the frame.
 
-3. VISUAL HERO: Explicitly name THE visual hero — the single most dominant element the eye locks on (e.g., "The visual hero is the product's transparent capsule shell", "The visual hero is the before/after contrast").
+3. VISUAL HERO: Explicitly name THE visual hero \u2014 the single most dominant element the eye locks on (e.g., "The visual hero is the product's transparent capsule shell", "The visual hero is the before/after contrast").
 
-4. COLOR PALETTE — CRITICAL RULE:
+4. COLOR PALETTE \u2014 CRITICAL RULE:
    - Extract the dominant scene colors FROM THE PRODUCT PACKAGING itself.
    - Name them descriptively: "warm Sand Beige", "deep burgundy-maroon", "clinical Mist Gray", "soft Wellness Cream".
    - DO NOT use random hex codes. DO NOT use the brand's generic settings colors for backgrounds.
@@ -130,7 +160,7 @@ Each brief MUST contain ALL of the following, woven naturally into ONE flowing p
 
 5. HEADLINE: State the EXACT short on-image headline in quotes (e.g., 'Tired of feeling constantly tired?'). It must be 4-8 words max. Bold, premium typeface (e.g., Circular Std, Tenor Sans, Outfit Bold).
 
-6. TEXT BUDGET: State exactly what % of the frame text occupies — e.g., "occupying under 10% of the overall layout". Keep it minimal.
+6. TEXT BUDGET: State exactly what % of the frame text occupies \u2014 e.g., "occupying under 10% of the overall layout". Keep it minimal.
 
 7. CTA: Describe the exact CTA text, button shape, and border-radius style. Use brand accent color only here (e.g., "a sharp, zero-radius button", "pill-shaped badge", "6px rounded rectangle bordered button").
 
@@ -138,7 +168,7 @@ Each brief MUST contain ALL of the following, woven naturally into ONE flowing p
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT FORMAT:
-Return ONLY a raw JSON array — no markdown, no code fences.
+Return ONLY a raw JSON array \u2014 no markdown, no code fences.
 Each object has exactly:
 - "angle": framework short name (e.g., "PAS", "Spec-Sheet Showdown")
 - "instructions": the full Art Director brief paragraph
@@ -147,10 +177,23 @@ Each object has exactly:
 FINAL CHECK: Every concept MUST use a DIFFERENT framework. Verify before outputting.
 """
 
+    # Append design guide if available — gives LLM exact fonts, hex colors, CTA shapes
+    if brand_design_guide and brand_design_guide.strip():
+        system_prompt += f"""
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BRAND DESIGN GUIDE (use exact fonts, colors, and CTA styles from this):
+{brand_design_guide.strip()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRITICAL: When writing the brief, use the EXACT font names, named colors with hex codes,
+and CTA button styles specified above. Do NOT use generic terms like 'grape purple' or
+'Outfit Bold' — use the real brand design tokens above.
+"""
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("[AdsAgent] OPENAI_API_KEY missing — returning fallback dummy")
-        return [{"angle": angle, "instructions": "A beautiful product shot on a clean background.", "caption": "Buy now! 🚀"}] * count
+        print("[AdsAgent] OPENAI_API_KEY missing \u2014 returning fallback dummy")
+        return [{"angle": angle, "instructions": "A beautiful product shot on a clean background.", "caption": "Buy now! \U0001f680"}] * count
 
     try:
         res = requests.post(
@@ -160,7 +203,7 @@ FINAL CHECK: Every concept MUST use a DIFFERENT framework. Verify before outputt
                 "model": "gpt-4o",
                 "messages": [{"role": "system", "content": system_prompt}],
                 "temperature": 0.75,
-                "max_tokens": 4000,  # Increased from 1500 — brief truncation was cutting output
+                "max_tokens": 4000,  # Increased from 1500 \u2014 brief truncation was cutting output
             },
             timeout=60
         )
@@ -187,35 +230,41 @@ def generate_ad_creatives(
     idea: str = "",
     aspect_ratio: str = "1:1",
     ref_images: List[str] = None,
-    user_plan: str = ""
+    user_plan: str = "",
+    brand_design_guide: str = ""
 ) -> List[Dict]:
-    print(f"\n[AdsAgent] 🎬 Starting Ad Generation: {count} concepts | Goal: {campaign_goal} | Angle: {campaign_angle}")
+    print(f"\n[AdsAgent] \U0001f3ac Starting Ad Generation: {count} concepts | Goal: {campaign_goal} | Angle: {campaign_angle}")
 
-    # ── Step 1: Generate Art Director Concepts ────────────────────────────────
-    concepts = _generate_director_concepts(brand_doc, products, count, campaign_goal, campaign_angle, idea)
+    # ── Step 1: Generate Art Director Concepts ────────────────────────────────────────────────────────────────────────────────────────────────
+    concepts = _generate_director_concepts(brand_doc, products, count, campaign_goal, campaign_angle, idea, brand_design_guide)
     if not concepts:
         raise ValueError("Director LLM returned no concepts.")
 
-    # ── Step 2: Build Block 2 (Product Appearance) ───────────────────────────
+    # ── Step 2: Build Block 2 (Product Appearance) ──────────────────────────────────────────────────────────────────────────────────────────
     # Priority: adVisualDescription (GPT-4o Vision forensic analysis, ~220 words)
-    #           → short description fallback (for products not yet analyzed)
+    #           → short description fallback (products not yet analyzed, or if GPT-4o refused)
     if products and len(products) > 0:
         prod = products[0]
+        name = prod.get("name", "a premium item")
+        desc = prod.get("description", "")
+        benefit = prod.get("keyBenefit", "")
+        short_fallback = f"The product is {name}. {desc} {benefit}".strip() + " It should look high-quality, authentic, and properly lit."
+
         ad_visual_desc = (prod.get("adVisualDescription") or "").strip()
-        if ad_visual_desc:
+        if ad_visual_desc and not _is_refusal(ad_visual_desc):
             prod_appearance = ad_visual_desc
-            print(f"  [AdsAgent] ✅ Using rich adVisualDescription ({len(ad_visual_desc.split())} words)")
+            print(f"  [AdsAgent] \u2705 Using rich adVisualDescription ({len(ad_visual_desc.split())} words)")
+        elif ad_visual_desc and _is_refusal(ad_visual_desc):
+            prod_appearance = short_fallback
+            print(f"  [AdsAgent] \u26a0\ufe0f  adVisualDescription contains a refusal \u2014 using short fallback")
         else:
-            name = prod.get("name", "a premium item")
-            desc = prod.get("description", "")
-            benefit = prod.get("keyBenefit", "")
-            prod_appearance = f"The product is {name}. {desc} {benefit}".strip() + " It should look high-quality, authentic, and properly lit."
-            print(f"  [AdsAgent] ⚠️  No adVisualDescription found — using short fallback")
+            prod_appearance = short_fallback
+            print(f"  [AdsAgent] \u26a0\ufe0f  No adVisualDescription found \u2014 using short fallback")
     else:
         prod_appearance = f"The product: {idea if idea else 'A premium item'}. It should look high-quality, authentic, and properly lit."
 
-    # ── Step 3: Build Block 3 (Design Requirements) ──────────────────────────
-    # Verbatim format matching makelocalads — no dynamic hex injection in this block
+    # \u2500\u2500 Step 3: Build Block 3 (Design Requirements) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # Verbatim format matching makelocalads \u2014 no dynamic hex injection in this block
     design_reqs = """\
 - Follow the instructions by the director.
 - Make the ad design, layout, typography on-branded, but should look premium, editorial-like.
@@ -230,11 +279,11 @@ def generate_ad_creatives(
 - Keep 20% space all around the creative for the ad to look cleaner
 - Group and align elements cleanly (Gestalt); use at most two type styles."""
 
-    # ── Step 4: Brand logo attachment ────────────────────────────────────────
+    # \u2500\u2500 Step 4: Brand logo attachment \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     brand_logo = brand_doc.get("logo", "").strip()
     has_logo = bool(brand_logo)
 
-    # ── Step 5: Image size + quality mapping ─────────────────────────────────
+    # \u2500\u2500 Step 5: Image size + quality mapping \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     aspect_to_fal = {
         "1:1": "square_hd",
         "4:5": "portrait_4_3",
@@ -246,18 +295,25 @@ def generate_ad_creatives(
     img_quality = "medium" if "pro" in user_plan.lower() else "low"
     print(f"  Quality: {img_quality} | Size: {gpt_size}")
 
-    # ── Step 6: Render each concept ───────────────────────────────────────────
-    generated_posts = []
+    # \u2500\u2500 Step 6: Render ALL concepts in PARALLEL \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    logo_line = (
+        "\nThe final attached image is the official brand logo. "
+        "Add it once, subtly, in clean negative space; keep it exact, legible, and uncropped."
+    ) if has_logo else ""
 
-    for idx, concept in enumerate(concepts[:count]):
+    # Pre-build attachments list (shared, read-only across threads)
+    attachments = []
+    if ref_images:
+        for img in ref_images[:2]:
+            if img:
+                attachments.append(img)
+    if has_logo:
+        attachments.append(brand_logo)
+
+    def _render_concept(args):
+        idx, concept = args
         instructions = concept.get("instructions", "")
         caption = concept.get("caption", "Discover our latest collection.")
-
-        # Assemble the full 3-block prompt — exactly matching makelocalads structure
-        logo_line = (
-            "\nThe final attached image is the official brand logo. "
-            "Add it once, subtly, in clean negative space; keep it exact, legible, and uncropped."
-        ) if has_logo else ""
 
         full_prompt = (
             f"Instructions by the director: {instructions}\n\n"
@@ -272,17 +328,7 @@ def generate_ad_creatives(
             f"Design requirements (apply to this ad):\n{design_reqs}\n"
         )
 
-        print(f"\n[AdsAgent] 🖌️ Assembled Prompt {idx+1}/{count}:\n{full_prompt}\n")
-
-        # Build attachments: up to 2 product ref images + brand logo (last)
-        attachments = []
-        if ref_images:
-            # Add up to 2 product reference images for better 3D packaging context
-            for img in ref_images[:2]:
-                if img:
-                    attachments.append(img)
-        if has_logo:
-            attachments.append(brand_logo)
+        print(f"\n[AdsAgent] \U0001f58c\ufe0f Assembled Prompt {idx+1}/{count}:\n{full_prompt}\n")
 
         try:
             fal_result = generate_fal_image_gpt2(
@@ -292,18 +338,29 @@ def generate_ad_creatives(
                 quality=img_quality
             )
             image_url = fal_result.get("image") if isinstance(fal_result, dict) else fal_result
-            generated_posts.append({
+            return idx, {
                 "type": "image",
                 "image": image_url,
                 "caption": caption,
                 "angle": concept.get("angle", "Custom"),
-            })
+            }
         except Exception as e:
             print(f"[AdsAgent] Render Error on Concept {idx+1}: {e}")
-            generated_posts.append({
+            return idx, {
                 "type": "image",
                 "error": str(e),
                 "caption": caption,
-            })
+            }
 
-    return generated_posts
+    active_concepts = concepts[:count]
+    print(f"  [AdsAgent] \U0001f680 Rendering {len(active_concepts)} concepts in PARALLEL...")
+
+    results_map = {}
+    with ThreadPoolExecutor(max_workers=len(active_concepts)) as executor:
+        futures = {executor.submit(_render_concept, (idx, c)): idx for idx, c in enumerate(active_concepts)}
+        for future in as_completed(futures):
+            idx, post = future.result()
+            results_map[idx] = post
+
+    # Return in original order
+    return [results_map[i] for i in range(len(active_concepts))]

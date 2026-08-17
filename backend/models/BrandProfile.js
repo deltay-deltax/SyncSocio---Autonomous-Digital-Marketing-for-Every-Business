@@ -58,6 +58,7 @@ const brandProfileSchema = new mongoose.Schema({
    secondaryColor: { type: String, default: '#60A5FA' },
    logo: { type: String, default: "" },
    typography: { type: String, default: "" },
+   brandDesignGuide: { type: String, default: "" },
   instagramAccessToken: String,
   instagramPageAccessToken: String,
   instagramUserId: String,

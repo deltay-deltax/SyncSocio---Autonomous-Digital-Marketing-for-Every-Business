@@ -338,6 +338,86 @@ class ScrapeRequest(BaseModel):
     userEmail: Optional[str] = None
     userPhone: Optional[str] = None
 
+
+def generate_brand_design_guide(brand_data: dict) -> str:
+    """
+    Compiles already-scraped brand fields into a concise markdown
+    Brand Design Guide used by the AI Ads Art Director LLM.
+    Called during /scrape-brand-profile so the guide is always ready
+    by the time the user clicks 'Generate Ads'.
+    """
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not openai_key:
+        return ""
+
+    brand_name     = brand_data.get("brandName", "the brand")
+    primary_color  = brand_data.get("primaryColor", "")
+    secondary_color = brand_data.get("secondaryColor", "")
+    typography     = brand_data.get("typography", "Sans Serif Modern")
+    brand_tone     = brand_data.get("brandTone", "Professional & Clean")
+    visual_vibe    = brand_data.get("visualVibe", "Minimalist")
+    usp            = brand_data.get("usp", "")
+    keywords       = brand_data.get("brandKeywords", "")
+    category       = brand_data.get("businessCategory", "")
+    target_audience = brand_data.get("targetAudiences", [])
+    if isinstance(target_audience, list):
+        target_audience = ", ".join(target_audience)
+
+    system_prompt = (
+        "You are a senior brand designer writing a concise Brand Design Guide "
+        "for an AI art director who will create ad images. Be extremely specific. "
+        "Name every color descriptively with its hex (e.g. 'Forest Green #14433D'). "
+        "Name font styles descriptively. Keep the full guide under 450 words."
+    )
+
+    user_prompt = f"""Create a Brand Design Guide for '{brand_name}' based on:
+- Industry: {category}
+- Primary Color: {primary_color}
+- Secondary Color: {secondary_color}
+- Typography style scraped from site: {typography}
+- Brand Tone: {brand_tone}
+- Visual Vibe: {visual_vibe}
+- USP: {usp}
+- Target Audience: {target_audience}
+- Brand Keywords: {keywords}
+
+Output a markdown guide with EXACTLY these 6 sections:
+## 1. Brand Personality
+## 2. Typography (name the primary & secondary font styles with visual equivalents)
+## 3. Color Palette (name every color descriptively with hex, state usage — e.g. '60% background', '30% text', '10% CTA')
+## 4. Buttons & CTAs (exact shape, border-radius description, color)
+## 5. Photography & Visual Style
+## 6. On-Brand DONTs
+
+Be very specific. Use named colors not vague terms. Aim for 350-450 words total."""
+
+    try:
+        # Use a direct call — do NOT use call_openai_gpt() which forces json_object mode.
+        # The design guide is markdown, not JSON, so json_object would cause a 400.
+        resp = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {openai_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.4,
+                "max_tokens": 900
+            },
+            timeout=45
+        )
+        resp.raise_for_status()
+        guide = resp.json()["choices"][0]["message"]["content"]
+        return guide.strip()
+    except Exception as e:
+        print(f"[BrandGuide] Failed to generate design guide: {e}")
+        return ""
+
 @app.post("/scrape-brand-profile")
 async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
     url = payload.url
@@ -551,7 +631,15 @@ JSON Structure:
         
         # Normalize price / offerPrice on every product (strip currency symbols, fix swaps)
         scraped_data["products"] = [normalize_product_prices(p) for p in products]
-                    
+
+        # Generate Brand Design Guide from scraped brand data (used only by AI Ads agent)
+        try:
+            scraped_data["brandDesignGuide"] = generate_brand_design_guide(scraped_data)
+            print(f"[BrandGuide] ✅ Generated design guide for {scraped_data.get('brandName', 'brand')} ({len(scraped_data['brandDesignGuide'])} chars)")
+        except Exception as guide_err:
+            print(f"[BrandGuide] ⚠️ Guide generation failed: {guide_err}")
+            scraped_data["brandDesignGuide"] = ""
+
         return scraped_data
         
     except Exception as gpt_err:
@@ -1901,7 +1989,8 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 idea=request.idea,
                 aspect_ratio=request.aspectRatio or "1:1",
                 ref_images=request.refImages or [],
-                user_plan=request.userPlan or ""
+                user_plan=request.userPlan or "",
+                brand_design_guide=brand_doc.get("brandDesignGuide", "")
             )
         else:
             import asyncio
@@ -2350,6 +2439,10 @@ Photorealistic."""
 # Called automatically by productRoutes.js (Node backend) after a product is saved.
 # Generates a forensic packaging description and writes it back to MongoDB.
 # Only used by ad_creative_agent.py (Block 2). Has zero effect on other modes.
+
+import asyncio
+visual_desc_semaphore = asyncio.Semaphore(3)  # Max 3 concurrent OpenAI Vision calls to prevent 429 rate limits
+
 class AdVisualDescRequest(BaseModel):
     productId: str
     productName: str
@@ -2376,37 +2469,38 @@ async def api_generate_ad_visual_description(request: AdVisualDescRequest):
         pass
 
     async def _run():
-        try:
-            description = await asyncio.to_thread(
-                generate_visual_description,
-                image_urls=request.imageUrls,
-                product_name=request.productName
-            )
-            if description:
-                await products_collection.update_one(
-                    {"_id": ObjectId(request.productId)},
-                    {"$set": {
-                        "adVisualDescription": description,
-                        "adVisualDescriptionStatus": "ready"
-                    }}
-                )
-                print(f"[VisualDescAgent] ✅ Saved description for product {request.productId}")
-            else:
-                await products_collection.update_one(
-                    {"_id": ObjectId(request.productId)},
-                    {"$set": {"adVisualDescriptionStatus": "failed"}}
-                )
-        except Exception as e:
-            print(f"[VisualDescAgent] ❌ Background task error: {e}")
+        async with visual_desc_semaphore:
             try:
-                await products_collection.update_one(
-                    {"_id": ObjectId(request.productId)},
-                    {"$set": {"adVisualDescriptionStatus": "failed"}}
+                description = await asyncio.to_thread(
+                    generate_visual_description,
+                    image_urls=request.imageUrls,
+                    product_name=request.productName
                 )
-            except Exception:
-                pass
+                if description:
+                    await products_collection.update_one(
+                        {"_id": ObjectId(request.productId)},
+                        {"$set": {
+                            "adVisualDescription": description,
+                            "adVisualDescriptionStatus": "ready"
+                        }}
+                    )
+                    print(f"[VisualDescAgent] ✅ Saved description for product {request.productId}")
+                else:
+                    await products_collection.update_one(
+                        {"_id": ObjectId(request.productId)},
+                        {"$set": {"adVisualDescriptionStatus": "failed"}}
+                    )
+            except Exception as e:
+                print(f"[VisualDescAgent] ❌ Background task error: {e}")
+                try:
+                    await products_collection.update_one(
+                        {"_id": ObjectId(request.productId)},
+                        {"$set": {"adVisualDescriptionStatus": "failed"}}
+                    )
+                except Exception:
+                    pass
 
-    # Fire and forget — return immediately, description generates in background
+    # Fire and forget — return immediately, description generates in background queue
     asyncio.create_task(_run())
     return {"status": "processing", "productId": request.productId}
 
