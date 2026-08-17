@@ -44,6 +44,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -81,7 +89,6 @@ const voiceTones = [
   'Inspirational',
   'Luxury & Premium'
 ];
-const typographyOptions = ['Sans Serif Modern', 'Serif Classic', 'Display Bold', 'Handwritten', 'Mono Tech'];
 const growthGoals = [
   'Grow followers',
   'Sell products / get orders',
@@ -464,6 +471,12 @@ const DashboardSettings = () => {
                 price: prod.price || '',
                 offerPrice: prod.offerPrice || '',
                 keyBenefit: prod.keyBenefit || '',
+                verifiedBenefits: prod.verifiedBenefits || [],
+                proofPoints: prod.proofPoints || [],
+                offerDetails: prod.offerDetails || '',
+                guarantee: prod.guarantee || '',
+                variantDetails: prod.variantDetails || [],
+                sourceUrl: prod.sourceUrl || formData.website || '',
                 imageBase64: prod.imageBase64 || ''
               })
             });
@@ -926,7 +939,15 @@ const DashboardSettings = () => {
                     LIVE BRAND GRADIENT PREVIEW
                   </div>
                   <Field label="Typography" icon={<Type size={11} />}>
-                    <ChipGroup options={typographyOptions} value={formData.typography} onChange={v => updateField('typography', v)} />
+                    <Input
+                      value={formData.typography}
+                      onChange={e => updateField('typography', e.target.value)}
+                      placeholder="Exact fonts, e.g. WindsorEF, Ano"
+                      className="font-medium"
+                    />
+                    <p className="text-[10px] text-muted-foreground px-1">
+                      Use exact detected family names when available; generic style labels are only fallbacks.
+                    </p>
                   </Field>
                   <Field label="Visual Vibe" icon={<Palette size={11} />}>
                     <ChipGroup options={visualVibes} value={formData.visualVibe} onChange={v => updateField('visualVibe', v)} />
@@ -2495,134 +2516,157 @@ const BrandDesignGuidePill = ({
   brandName: string;
   primaryColor: string;
 }) => {
-  const [open, setOpen] = useState(false);
+  const normalizedGuide = guide.trim();
+  const sectionSource = normalizedGuide
+    .replace(/^#(?!#)\s+[^\n]+\n*/m, '')
+    .replace(/[ \t]+(?=##(?!#)\s+)/g, '\n\n')
+    .trim();
+  const hasMarkdownSections = /^##\s+/m.test(sectionSource);
+  const sections = hasMarkdownSections
+    ? sectionSource
+      .split(/^##\s+/m)
+      .filter(Boolean)
+      .map((section) => {
+        const lines = section.trim().split('\n');
+        const rawTitle = lines[0].replace(/^\d+\.\s*/, '').trim();
+        const inlineBody = rawTitle.match(/^([^()]+?)\s*\((.+)\)\.?$/);
+        return {
+          title: inlineBody ? inlineBody[1].trim() : rawTitle,
+          body: [inlineBody?.[2], ...lines.slice(1)].filter(Boolean).join('\n').trim(),
+        };
+      })
+    : [];
 
-  // Parse markdown into sections for structured display
-  const sections = guide
-    .split(/^## /m)
-    .filter(Boolean)
-    .map((s) => {
-      const lines = s.trim().split('\n');
-      const title = lines[0].replace(/^\d+\.\s*/, '').trim();
-      const body = lines.slice(1).join('\n').trim();
-      return { title, body };
-    });
+  const cleanGuideText = (value: string) => value
+    .replace(/^[-*]\s+/, '')
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/`/g, '')
+    .trim();
 
   return (
-    <>
-      {/* Pill trigger */}
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all text-sm font-semibold text-primary w-full justify-between group"
-      >
-        <span className="flex items-center gap-2">
-          <BookOpen size={14} className="text-primary" />
-          Brand Design Guide
-        </span>
-        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-white opacity-90">
-          AI-Generated
-        </span>
-      </button>
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="flex cursor-pointer items-center gap-2 px-4 py-3 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-semibold text-primary w-full justify-between group"
+          aria-label={'Open ' + (brandName || 'brand') + ' design guide'}
+        >
+          <span className="flex items-center gap-2">
+            <BookOpen size={14} className="text-primary" />
+            Brand Design Guide
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="hidden sm:inline text-[11px] font-bold text-primary/80 group-hover:text-primary">
+              View guide
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-white opacity-90">
+              AI-Generated
+            </span>
+          </span>
+        </button>
+      </DialogTrigger>
 
-      {/* Modal */}
-      <AnimatePresence>
-        {open && createPortal(
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
-            onClick={() => setOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 20, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-              className="w-full max-w-2xl max-h-[85vh] rounded-3xl border border-border/60 bg-background shadow-2xl flex flex-col overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
+      <DialogContent className="flex h-[85dvh] max-h-[48rem] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-background p-0 shadow-2xl">
+        <DialogHeader
+          className="shrink-0 px-7 py-5 pr-14 border-b border-border/50 text-left"
+          style={{ background: 'linear-gradient(135deg, ' + primaryColor + '18, ' + primaryColor + '08)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: primaryColor }}
             >
-              {/* Header */}
-              <div
-                className="flex items-center justify-between px-7 py-5 border-b border-border/50"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}18, ${primaryColor}08)` }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+              <BookOpen size={16} className="text-white" />
+            </div>
+            <div>
+              <DialogTitle className="text-sm font-black text-foreground">
+                {brandName || 'Brand'} Design Guide
+              </DialogTitle>
+              <DialogDescription className="text-[11px] font-medium">
+                Exact visual direction used by AI Ad Creatives
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div
+          className="min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto px-7 py-6 space-y-5"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          {sections.length > 0 ? (
+            sections.map((section, i) => (
+              <section key={section.title + '-' + i} className="space-y-2">
+                <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                  <span
+                    className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black text-white"
                     style={{ background: primaryColor }}
                   >
-                    <BookOpen size={16} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-foreground">{brandName}</p>
-                    <p className="text-[11px] text-muted-foreground font-medium">Brand Design Guide · AI-Generated</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setOpen(false)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="overflow-y-auto flex-1 px-7 py-6 space-y-5">
-                {sections.length > 0 ? (
-                  sections.map((section, i) => (
-                    <div key={i} className="space-y-2">
-                      <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                        <span
-                          className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black text-white"
-                          style={{ background: primaryColor }}
+                    {i + 1}
+                  </span>
+                  {cleanGuideText(section.title)}
+                </h3>
+                <div className="rounded-xl bg-muted/40 border border-border/40 px-4 py-3">
+                  {section.body.split('\n').filter(line => line.trim() && line.trim() !== '---').map((line, j, bodyLines) => {
+                    const trimmedLine = line.trim();
+                    const isSubheading = /^###\s+/.test(trimmedLine);
+                    const isBullet = /^\s*[-*]\s+/.test(line);
+                    const isTableRow = /^\|.*\|$/.test(trimmedLine);
+                    const isTableDivider = /^\|(?:\s*:?-+:?\s*\|)+$/.test(trimmedLine);
+                    const text = cleanGuideText(line);
+                    if (isTableDivider) return null;
+                    if (isSubheading) {
+                      return (
+                        <h4 key={j} className="pt-2 text-[12px] font-extrabold text-foreground first:pt-0">
+                          {cleanGuideText(trimmedLine.replace(/^###\s+/, ''))}
+                        </h4>
+                      );
+                    }
+                    if (isTableRow) {
+                      const cells = trimmedLine.slice(1, -1).split('|').map(cell => cleanGuideText(cell));
+                      const nextLine = bodyLines[j + 1]?.trim() || '';
+                      const isHeader = /^\|(?:\s*:?-+:?\s*\|)+$/.test(nextLine);
+                      return (
+                        <div
+                          key={j}
+                          className={cn(
+                            'grid gap-3 border-b border-border/40 py-2 text-[12px] last:border-b-0',
+                            isHeader ? 'font-extrabold text-foreground' : 'text-foreground/80'
+                          )}
+                          style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }}
                         >
-                          {i + 1}
-                        </span>
-                        {section.title}
-                      </h3>
-                      <div className="rounded-xl bg-muted/40 border border-border/40 px-4 py-3">
-                        {section.body.split('\n').filter(Boolean).map((line, j) => {
-                          const isBullet = line.startsWith('- ') || line.startsWith('* ');
-                          const isBold = line.startsWith('**') && line.includes('**', 2);
-                          if (isBullet) {
-                            return (
-                              <div key={j} className="flex items-start gap-2 text-[13px] text-foreground/85 leading-relaxed py-0.5">
-                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: primaryColor }} />
-                                <span dangerouslySetInnerHTML={{
-                                  __html: line.replace(/^[-*]\s/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                }} />
-                              </div>
-                            );
-                          }
-                          return (
-                            <p key={j} className="text-[13px] text-foreground/80 leading-relaxed py-0.5"
-                              dangerouslySetInnerHTML={{
-                                __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                              }}
-                            />
-                          );
-                        })}
+                          {cells.map((cell, cellIndex) => <span key={cellIndex}>{cell}</span>)}
+                        </div>
+                      );
+                    }
+                    return isBullet ? (
+                      <div key={j} className="flex items-start gap-2 text-[13px] text-foreground/85 leading-relaxed py-0.5">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: primaryColor }} />
+                        <span>{text}</span>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <pre className="text-[12px] text-foreground/80 leading-relaxed whitespace-pre-wrap font-mono">
-                    {guide}
-                  </pre>
-                )}
+                    ) : (
+                      <p key={j} className="text-[13px] text-foreground/80 leading-relaxed py-0.5">
+                        {text}
+                      </p>
+                    );
+                  })}
+                </div>
+              </section>
+            ))
+          ) : (
+            <div className="rounded-xl bg-muted/40 border border-border/40 px-5 py-4">
+              <p className="text-[13px] text-foreground/85 leading-6 whitespace-pre-wrap">
+                {cleanGuideText(normalizedGuide)}
+              </p>
+            </div>
+          )}
 
-                <p className="text-center text-[11px] text-muted-foreground pt-2">
-                  🤖 Auto-generated from your scraped brand data · Used only by AI Ad Creatives
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>,
-          document.body
-        )}
-      </AnimatePresence>
-    </>
+          <p className="text-center text-[11px] text-muted-foreground pt-2">
+            Auto-generated from verified brand data · Used by AI Ad Creatives
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

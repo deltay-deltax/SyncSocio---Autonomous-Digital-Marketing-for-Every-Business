@@ -55,12 +55,17 @@ app.set('trust proxy', 1);
 app.use(cors({
   origin: [
     'http://localhost:5173',
+    'http://127.0.0.1:5173',
     'http://localhost:3000',
+    'http://127.0.0.1:3000',
     'https://www.syncsocio.com',
     'https://syncsocio.com',
     'http://localhost:4173',
+    'http://127.0.0.1:4173',
     'http://localhost:5174',
+    'http://127.0.0.1:5174',
     'http://localhost:5175',
+    'http://127.0.0.1:5175',
     'https://www.velocitydm.com',
     'https://velocitydm.com',
     process.env.FRONTEND_URL,
@@ -129,6 +134,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5050;
+const BIND_HOST = process.env.BIND_HOST || '0.0.0.0';
 
 // Connect to MongoDB
 if (process.env.MONGO_URI) {
@@ -143,8 +149,8 @@ if (process.env.MONGO_URI) {
         // Safe to ignore if index does not exist or has already been dropped
       });
 
-      app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
+      app.listen(PORT, BIND_HOST, () => {
+        console.log(`Server running on ${BIND_HOST}:${PORT}`);
         // Seed in-memory webhook dedup caches from DB (prevents double-sends after restarts)
         seedWebhookCache();
         // Start polling for Instagram comments (bypasses webhook delivery issues)
@@ -166,8 +172,8 @@ if (process.env.MONGO_URI) {
     });
 } else {
   console.warn('No MONGO_URI provided in environment variables. Starting server without DB connection.');
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} (No DB)`);
+  app.listen(PORT, BIND_HOST, () => {
+    console.log(`Server running on ${BIND_HOST}:${PORT} (No DB)`);
   });
 }
 

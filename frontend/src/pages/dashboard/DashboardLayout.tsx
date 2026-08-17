@@ -171,7 +171,8 @@ const DashboardLayoutContent = () => {
           });
 
           if (hasInterrupted) {
-            axios.post(`${import.meta.env.VITE_API_URL}/api/ai/log-client-error`, {
+            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+            axios.post(`${apiBase}/ai/log-client-error`, {
               provider: 'OTHER',
               endpoint: 'client-generation',
               errorMessage: 'Page refresh interruption'

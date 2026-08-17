@@ -16,7 +16,7 @@ export default function DMAutomations() {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       
       let url = `${API_URL}/admin/dm-flows`;
       const queryParams = [];

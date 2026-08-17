@@ -55,6 +55,12 @@ interface Product {
   offerPrice: string;
   keyBenefit: string;
   serviceProvider?: string;
+  verifiedBenefits?: string[];
+  proofPoints?: string[];
+  offerDetails?: string;
+  guarantee?: string;
+  variantDetails?: string[];
+  sourceUrl?: string;
   adVisualDescription?: string;
   adVisualDescriptionStatus?: string;
 }
@@ -67,6 +73,12 @@ const emptyProduct = (): Product => ({
   offerPrice: '',
   keyBenefit: '',
   serviceProvider: '',
+  verifiedBenefits: [],
+  proofPoints: [],
+  offerDetails: '',
+  guarantee: '',
+  variantDetails: [],
+  sourceUrl: '',
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -201,6 +213,12 @@ const ProductForm: React.FC<{
         price: scrapedPrice || f.price,
         offerPrice: scrapedOffer || f.offerPrice,
         keyBenefit: data.keyBenefit || f.keyBenefit,
+        verifiedBenefits: data.verifiedBenefits || [],
+        proofPoints: data.proofPoints || [],
+        offerDetails: data.offerDetails || '',
+        guarantee: data.guarantee || '',
+        variantDetails: data.variantDetails || [],
+        sourceUrl: data.sourceUrl || link,
         imageBase64: data.imageBase64 || f.imageBase64
       }));
       if (data.imageBase64) {

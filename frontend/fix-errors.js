@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import process from 'node:process';
 
 const SRC_DIR = path.join(process.cwd(), 'src');
 

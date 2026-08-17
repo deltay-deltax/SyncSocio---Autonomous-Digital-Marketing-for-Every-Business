@@ -27,7 +27,8 @@ const DashboardFeed = () => {
     const fetchFeed = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/instagram/feed`, {
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+        const res = await fetch(`${apiBase}/instagram/feed`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

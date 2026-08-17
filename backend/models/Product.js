@@ -40,6 +40,36 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  // Compact, verified facts used by the AI Ads Director. These fields are
+  // intentionally bounded so product scraping stays inexpensive and prompts
+  // do not grow with full product-page content.
+  verifiedBenefits: {
+    type: [String],
+    default: [],
+  },
+  proofPoints: {
+    type: [String],
+    default: [],
+  },
+  offerDetails: {
+    type: String,
+    maxlength: 120,
+    default: '',
+  },
+  guarantee: {
+    type: String,
+    maxlength: 100,
+    default: '',
+  },
+  variantDetails: {
+    type: [String],
+    default: [],
+  },
+  sourceUrl: {
+    type: String,
+    maxlength: 500,
+    default: '',
+  },
   serviceProvider: {
     type: String,
     default: '',

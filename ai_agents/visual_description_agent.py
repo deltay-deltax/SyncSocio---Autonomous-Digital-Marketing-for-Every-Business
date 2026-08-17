@@ -3,7 +3,7 @@ visual_description_agent.py
 ─────────────────────────────────────────────────────────────────────────────
 AI Ads Creative — Visual Description Generator (Block 2)
 ─────────────────────────────────────────────────────────────────────────────
-Generates a forensic 200-300 word visual description of a product's packaging
+Generates a compact forensic visual description of a product's packaging
 by passing the product image(s) to GPT-4o Vision.
 
 This description is stored on the Product document as `adVisualDescription`
@@ -23,7 +23,7 @@ SYSTEM_PROMPT = """You are a senior packaging designer and product photography d
 
 This is a purely commercial design task about physical packaging. Describe ONLY what you observe visually: shapes, colors, materials, text, labels, and graphic design elements.
 
-Write 220-280 words of flowing, precise prose covering:
+Write 140-180 words of compact, precise prose covering:
 
 1. FORM FACTOR: Exact container shape, size (relative), material, and surface finish (e.g., "a cylindrical matte white opaque plastic jar with a flat screw-on cap").
 2. COLOR STORY: The exact color palette — use descriptive names AND approximate values (e.g., "a gradient from clean white at the top to golden-amber at the base"). Include all accent and secondary colors.
@@ -51,7 +51,7 @@ def generate_visual_description(image_urls: List[str], product_name: str = "") -
         product_name: Optional product name for context in the prompt.
 
     Returns:
-        The visual description string (200-260 words), or None on failure.
+        The compact visual description string, or None on failure.
     """
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -119,7 +119,7 @@ def generate_visual_description(image_urls: List[str], product_name: str = "") -
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": content}
                 ],
-                "max_tokens": 800,
+                "max_tokens": 420,
                 "temperature": 0.2,
             },
             timeout=45
