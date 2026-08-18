@@ -35,11 +35,11 @@ desktop.ini
 
 # Velocity Specific
 *.log
+*.har
 temp/
 uploads/
 .tmp-uploads/
 cloudinary_downloads/
 scratch/
 backend/scratch/
-
 

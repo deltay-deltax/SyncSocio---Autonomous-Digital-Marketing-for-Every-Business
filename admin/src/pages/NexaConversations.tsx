@@ -20,7 +20,7 @@ export default function NexaConversations() {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       
       const [statsRes, convRes] = await Promise.all([
         axios.get(`${API_URL}/admin/nexa/stats`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -43,7 +43,7 @@ export default function NexaConversations() {
   const viewDetails = async (id: string) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       const res = await axios.get(`${API_URL}/admin/nexa/conversations/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });

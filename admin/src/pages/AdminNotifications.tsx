@@ -74,7 +74,7 @@ export default function AdminNotifications() {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       
       const res = await axios.get(`${API_URL}/admin/notifications?page=${pageNum}&limit=20`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -103,7 +103,7 @@ export default function AdminNotifications() {
   const markAsRead = async (id: string) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       
       await axios.put(`${API_URL}/admin/notifications/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
@@ -121,7 +121,7 @@ export default function AdminNotifications() {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       
       await axios.put(`${API_URL}/admin/notifications/read-all`, {}, {
         headers: { Authorization: `Bearer ${token}` }

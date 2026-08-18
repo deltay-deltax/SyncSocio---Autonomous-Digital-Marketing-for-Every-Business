@@ -65,7 +65,11 @@ frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
 origins = [origin.strip() for origin in frontend_url.split(",")] if frontend_url else []
 for fallback in [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
     "https://velocity-26.vercel.app",
     "https://www.syncsocio.com",
     "https://syncsocio.com"
@@ -135,6 +139,7 @@ class HTMLMetadataExtractor(HTMLParser):
         self.in_ignore = False
         self.images = []
         self.logo_candidates = []
+        self.stylesheet_urls = []
 
     def handle_starttag(self, tag, attrs):
         if tag == "title":
@@ -148,6 +153,11 @@ class HTMLMetadataExtractor(HTMLParser):
         attrs_dict = dict(attrs)
         if tag == "link":
             rel = attrs_dict.get("rel", "").lower()
+            if "stylesheet" in rel:
+                href = attrs_dict.get("href", "")
+                if href:
+                    from urllib.parse import urljoin
+                    self.stylesheet_urls.append(urljoin(self.base_url, href))
             if any(x in rel for x in ["icon", "shortcut icon", "apple-touch-icon"]):
                 href = attrs_dict.get("href", "")
                 if href:
@@ -251,7 +261,10 @@ class HTMLMetadataExtractor(HTMLParser):
             if normalized_src not in seen_normalized:
                 seen_normalized.add(normalized_src)
                 formatted_images.append(img)
-                if len(formatted_images) >= 200:
+                # Keep the scrape prompt compact. The first useful product images
+                # are enough for catalog matching; hundreds of URLs only burn
+                # tokens and rarely improve extraction quality.
+                if len(formatted_images) >= 40:
                     break
 
         # Deduplicate logo candidates
@@ -268,12 +281,15 @@ class HTMLMetadataExtractor(HTMLParser):
         return {
             "title": self.title.strip(),
             "meta_description": self.meta_desc.strip(),
-            "body_text": " ".join(self.body_text)[:50000],
+            # A focused excerpt is materially cheaper than sending the entire
+            # storefront while still retaining the hero, offer, and product copy.
+            "body_text": " ".join(self.body_text)[:18000],
             "images": formatted_images,
-            "logo_candidates": unique_logos
+            "logo_candidates": unique_logos[:8],
+            "stylesheet_urls": list(dict.fromkeys(self.stylesheet_urls))[:3],
         }
 
-def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = ""):
+def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = "", max_tokens: int = 2600):
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -285,7 +301,8 @@ def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = ""):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.2
+        "temperature": 0.2,
+        "max_tokens": max_tokens,
     }
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
     response.raise_for_status()
@@ -341,82 +358,156 @@ class ScrapeRequest(BaseModel):
 
 def generate_brand_design_guide(brand_data: dict) -> str:
     """
-    Compiles already-scraped brand fields into a concise markdown
-    Brand Design Guide used by the AI Ads Art Director LLM.
-    Called during /scrape-brand-profile so the guide is always ready
-    by the time the user clicks 'Generate Ads'.
+    Compile the structured, evidence-only design system returned by the existing
+    brand-profile call into the Markdown consumed by the UI and Art Director.
+
+    This intentionally performs no second LLM request. A deterministic compiler
+    prevents the model from collapsing a design system into a vague paragraph,
+    keeps headings stable, and makes missing evidence explicit instead of guessed.
     """
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if not openai_key:
-        return ""
 
-    brand_name     = brand_data.get("brandName", "the brand")
-    primary_color  = brand_data.get("primaryColor", "")
-    secondary_color = brand_data.get("secondaryColor", "")
-    typography     = brand_data.get("typography", "Sans Serif Modern")
-    brand_tone     = brand_data.get("brandTone", "Professional & Clean")
-    visual_vibe    = brand_data.get("visualVibe", "Minimalist")
-    usp            = brand_data.get("usp", "")
-    keywords       = brand_data.get("brandKeywords", "")
-    category       = brand_data.get("businessCategory", "")
-    target_audience = brand_data.get("targetAudiences", [])
-    if isinstance(target_audience, list):
-        target_audience = ", ".join(target_audience)
+    def _text(value: Any, fallback: str = "Not verified") -> str:
+        cleaned = " ".join(str(value or "").split()).strip()
+        return cleaned if cleaned else fallback
 
-    system_prompt = (
-        "You are a senior brand designer writing a concise Brand Design Guide "
-        "for an AI art director who will create ad images. Be extremely specific. "
-        "Name every color descriptively with its hex (e.g. 'Forest Green #14433D'). "
-        "Name font styles descriptively. Keep the full guide under 450 words."
-    )
+    def _items(value: Any, limit: int = 8) -> List[str]:
+        if isinstance(value, list):
+            return [_text(item, "") for item in value[:limit] if _text(item, "")]
+        if isinstance(value, str) and value.strip():
+            return [_text(part, "") for part in value.split(",")[:limit] if _text(part, "")]
+        return []
 
-    user_prompt = f"""Create a Brand Design Guide for '{brand_name}' based on:
-- Industry: {category}
-- Primary Color: {primary_color}
-- Secondary Color: {secondary_color}
-- Typography style scraped from site: {typography}
-- Brand Tone: {brand_tone}
-- Visual Vibe: {visual_vibe}
-- USP: {usp}
-- Target Audience: {target_audience}
-- Brand Keywords: {keywords}
+    system = brand_data.get("brandDesignSystem")
+    if isinstance(system, dict) and system:
+        brand_name = _text(brand_data.get("brandName"), "Brand")
+        identity = system.get("identity") if isinstance(system.get("identity"), dict) else {}
+        typography = system.get("typography") if isinstance(system.get("typography"), list) else []
+        colors = system.get("colors") if isinstance(system.get("colors"), list) else []
+        ctas = system.get("ctaStyles") if isinstance(system.get("ctaStyles"), list) else []
+        motifs = system.get("motifs") if isinstance(system.get("motifs"), list) else []
+        hierarchy = system.get("hierarchy") if isinstance(system.get("hierarchy"), dict) else {}
+        photography = system.get("photography") if isinstance(system.get("photography"), dict) else {}
+        guardrails = system.get("guardrails") if isinstance(system.get("guardrails"), dict) else {}
 
-Output a markdown guide with EXACTLY these 6 sections:
-## 1. Brand Personality
-## 2. Typography (name the primary & secondary font styles with visual equivalents)
-## 3. Color Palette (name every color descriptively with hex, state usage — e.g. '60% background', '30% text', '10% CTA')
-## 4. Buttons & CTAs (exact shape, border-radius description, color)
-## 5. Photography & Visual Style
-## 6. On-Brand DONTs
+        personality = ", ".join(_items(identity.get("personality"), 6)) or "Not verified"
+        lines = [
+            f"# Brand Design Guide: {brand_name}",
+            "",
+            "## 1. Brand Identity",
+            f"**Core aesthetic:** {_text(identity.get('coreAesthetic'))}",
+            f"**Brand tension:** {_text(identity.get('brandTension'))}",
+            f"**Personality:** {personality}",
+            f"**Creative principle:** {_text(identity.get('creativePrinciple'))}",
+            "",
+            "## 2. Typography",
+        ]
 
-Be very specific. Use named colors not vague terms. Aim for 350-450 words total."""
+        valid_type_rows = [row for row in typography[:8] if isinstance(row, dict) and _text(row.get("family"), "")]
+        if valid_type_rows:
+            for row in valid_type_rows:
+                weights = ", ".join(_items(row.get("weights"), 6)) or "Not verified"
+                lines.extend([
+                    f"### {_text(row.get('role'), 'Font')} — {_text(row.get('family'))}",
+                    f"- **Weights:** {weights}",
+                    f"- **Usage:** {_text(row.get('usage'))}",
+                    f"- **Tracking and case:** {_text(row.get('trackingAndCase'))}",
+                    f"- **Fallback:** {_text(row.get('fallback'))}",
+                ])
+        else:
+            lines.append("No exact typography roles were verified. Do not invent a font family.")
 
-    try:
-        # Use a direct call — do NOT use call_openai_gpt() which forces json_object mode.
-        # The design guide is markdown, not JSON, so json_object would cause a 400.
-        resp = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {openai_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0.4,
-                "max_tokens": 900
-            },
-            timeout=45
-        )
-        resp.raise_for_status()
-        guide = resp.json()["choices"][0]["message"]["content"]
-        return guide.strip()
-    except Exception as e:
-        print(f"[BrandGuide] Failed to generate design guide: {e}")
-        return ""
+        lines.extend(["", "## 3. Color Palette"])
+        valid_colors = [row for row in colors[:8] if isinstance(row, dict) and _text(row.get("hex"), "")]
+        if valid_colors:
+            lines.extend([
+                "| Color | Hex | Functional role | Usage rule |",
+                "| :--- | :--- | :--- | :--- |",
+            ])
+            for row in valid_colors:
+                lines.append(
+                    f"| {_text(row.get('name'), 'Verified color')} | `{_text(row.get('hex'))}` | "
+                    f"{_text(row.get('role'))} | {_text(row.get('usage'))} |"
+                )
+        else:
+            lines.append("No exact color tokens were verified. Do not invent a palette.")
+
+        lines.extend(["", "## 4. Components & Visual Motifs", "### CTA system"])
+        valid_ctas = [row for row in ctas[:5] if isinstance(row, dict)]
+        if valid_ctas:
+            for row in valid_ctas:
+                lines.append(
+                    f"- **{_text(row.get('name'), 'CTA')}:** {_text(row.get('shape'))}; "
+                    f"radius {_text(row.get('radius'))}; fill {_text(row.get('fill'))}; "
+                    f"text {_text(row.get('textColor'))}. Use for {_text(row.get('usage'))}."
+                )
+        else:
+            lines.append("- CTA geometry and colors: Not verified.")
+
+        lines.append("### Recurring motifs")
+        valid_motifs = [row for row in motifs[:8] if isinstance(row, dict)]
+        if valid_motifs:
+            for row in valid_motifs:
+                lines.append(
+                    f"- **{_text(row.get('name'), 'Motif')}:** {_text(row.get('description'))} "
+                    f"Use it for {_text(row.get('usage'))}."
+                )
+        else:
+            lines.append("- No recurring visual motif was verified; do not manufacture one.")
+
+        lines.extend([
+            f"- **Icons and badges:** {_text(system.get('iconAndBadgeStyle'))}",
+            f"- **Borders and surfaces:** {_text(system.get('borderAndSurfaceStyle'))}",
+            "",
+            "## 5. Hierarchy, Spacing & Photography",
+            f"- **Headline scale:** {_text(hierarchy.get('headlineScale'))}",
+            f"- **Body scale:** {_text(hierarchy.get('bodyScale'))}",
+            f"- **Text density:** {_text(hierarchy.get('textDensity'))}",
+            f"- **Spacing:** {_text(hierarchy.get('spacing'))}",
+            f"- **Product prominence:** {_text(hierarchy.get('productProminence'))}",
+            f"- **Lighting:** {_text(photography.get('lighting'))}",
+            f"- **Camera and environment:** {_text(photography.get('cameraAndEnvironment'))}",
+            f"- **Background treatment:** {_text(photography.get('backgroundTreatment'))}",
+            f"- **Image treatment:** {_text(photography.get('imageTreatment'))}",
+            "",
+            "## 6. Designer Guardrails",
+            "### Do",
+        ])
+        dos = _items(guardrails.get("do"), 8)
+        donts = _items(guardrails.get("dont"), 8)
+        lines.extend([f"- {item}" for item in dos] or ["- Follow only verified brand evidence."])
+        lines.extend(["### Don't"])
+        lines.extend([f"- {item}" for item in donts] or ["- Do not invent brand tokens or unsupported motifs."])
+        return "\n".join(lines)[:10000]
+
+    # Backward compatibility for profiles saved before structured extraction.
+    extracted_guide = str(brand_data.get("brandDesignGuide") or "").strip()
+    if extracted_guide:
+        extracted_guide = re.sub(r"[ \t]+(?=##\s+)", "\n\n", extracted_guide)
+        return extracted_guide[:7000]
+
+    typography = str(brand_data.get("typography") or "").strip()
+    primary = str(brand_data.get("primaryColor") or "").strip()
+    secondary = str(brand_data.get("secondaryColor") or "").strip()
+    brand_name = str(brand_data.get("brandName") or "Brand").strip()
+    visual_vibe = str(brand_data.get("visualVibe") or "").strip()
+    brand_tone = str(brand_data.get("brandTone") or "").strip()
+    keywords = str(brand_data.get("brandKeywords") or "").strip()
+    colors = ", ".join(value for value in (primary, secondary) if value) or "No verified color tokens"
+    return (
+        f"# Brand Design Guide: {brand_name}\n\n"
+        f"## 1. Brand Identity\nVerified tone: {brand_tone or 'Not evidenced'}. "
+        f"Verified visual direction: {visual_vibe or 'Not evidenced'}. "
+        f"Brand cues: {keywords or 'Not evidenced'}.\n\n"
+        f"## 2. Typography\nVerified font families: {typography or 'No exact family detected'}. "
+        "Use a single display family for headlines and one highly legible family for body copy and CTAs; "
+        "do not invent additional fonts.\n\n"
+        f"## 3. Color System\nVerified palette: {colors}. Use the primary color as the dominant anchor, "
+        "the secondary color for support, and preserve strong text/background contrast.\n\n"
+        "## 4. Components & Motifs\nUse only website-evidenced button shapes, decorative motifs, icon styles, "
+        "and surface treatments. Keep CTA styling consistent across a campaign.\n\n"
+        "## 5. Composition & Guardrails\nKeep one dominant product or message, a clear headline-to-proof-to-CTA hierarchy, "
+        "generous negative space, and no unsupported visual tokens or claims."
+    )[:7000]
 
 @app.post("/scrape-brand-profile")
 async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
@@ -476,9 +567,21 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         if not extracted["body_text"].strip():
             raise Exception("No readable text content found on the webpage.")
             
-        # Extract typography candidates using regex
+        # Inspect at most three linked stylesheets. This adds no model call and
+        # greatly improves exact font/color extraction for modern storefronts.
         import re
-        google_font_urls = re.findall(r'https://fonts\.googleapis\.com/css[2]?\?[^"\'\s>]+', html_content)
+        style_sources = [html_content]
+        for stylesheet_url in extracted.get("stylesheet_urls", [])[:3]:
+            try:
+                css_response = requests.get(stylesheet_url, headers=headers, timeout=6, verify=False)
+                if css_response.ok:
+                    style_sources.append(css_response.text[:250000])
+            except Exception:
+                continue
+        style_text = "\n".join(style_sources)
+
+        # Extract typography candidates using regex
+        google_font_urls = re.findall(r'https://fonts\.googleapis\.com/css[2]?\?[^"\'\s>]+', style_text)
         google_fonts = []
         for f_url in google_font_urls:
             decoded_url = f_url.replace("&amp;", "&")
@@ -488,7 +591,14 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
                 if clean_fam and clean_fam not in google_fonts:
                     google_fonts.append(clean_fam)
                     
-        font_family_matches = re.findall(r'font-family\s*:\s*([^;\'"}]+)', html_content)
+        # Keep quoted custom families such as "WindsorEF" or 'Ano'. The old
+        # expression stopped at the opening quote and silently lost the fonts
+        # that most materially affect brand fidelity.
+        font_family_matches = re.findall(
+            r'(?:font-family|--[\w-]*(?:font|type)[\w-]*)\s*:\s*([^;}]+)',
+            style_text,
+            flags=re.IGNORECASE,
+        )
         css_fonts = []
         generics = {"sans-serif", "serif", "monospace", "system-ui", "-apple-system", "blinkmacsystemfont", 
                     "segoe ui", "helvetica neue", "helvetica", "arial", "geneva", "tahoma", "verdana", 
@@ -498,16 +608,99 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
             for f in fonts:
                 if f:
                     f_lower = f.lower()
-                    if f_lower not in generics and f not in css_fonts:
+                    is_css_expression = any(token in f_lower for token in ("var(", "url(", "calc("))
+                    is_css_measurement = bool(re.search(r'\d(?:px|rem|em|%|vh|vw)\b', f_lower))
+                    if (
+                        f_lower not in generics
+                        and not is_css_expression
+                        and not is_css_measurement
+                        and re.search(r'[a-zA-Z]', f)
+                        and f not in css_fonts
+                    ):
                         css_fonts.append(f)
                         
         typography_candidates = list(dict.fromkeys(google_fonts + css_fonts))[:10]
 
         # Extract hex colors
-        hex_colors = re.findall(r'#(?:[0-9a-fA-F]{3}){1,2}\b', html_content)
+        hex_colors = re.findall(r'#(?:[0-9a-fA-F]{3}){1,2}\b', style_text)
         from collections import Counter
         color_counts = Counter([c.upper() for c in hex_colors])
         top_colors = [c for c, _ in color_counts.most_common(15)]
+
+        # Preserve the small amount of CSS context that materially changes a
+        # design guide. Frequency-only color/font lists lose role, weight,
+        # radius, and component information. This evidence is compact and is
+        # sent through the same extraction call, so it adds no extra AI request.
+        font_face_evidence = []
+        for block in re.findall(r'@font-face\s*\{([^{}]{1,1600})\}', style_text, flags=re.IGNORECASE):
+            family_match = re.search(r'font-family\s*:\s*([^;}]+)', block, flags=re.IGNORECASE)
+            if not family_match:
+                continue
+            family = family_match.group(1).strip().strip("'\"")[:80]
+            weight_match = re.search(r'font-weight\s*:\s*([^;}]+)', block, flags=re.IGNORECASE)
+            weight = weight_match.group(1).strip()[:40] if weight_match else "unspecified"
+            evidence = f"{family} (weight {weight})"
+            if family and evidence not in font_face_evidence:
+                font_face_evidence.append(evidence)
+            if len(font_face_evidence) >= 12:
+                break
+
+        named_color_evidence = []
+        for token_name, token_value in re.findall(
+            r'(--[\w-]{2,80})\s*:\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b',
+            style_text,
+        ):
+            evidence = f"{token_name}={token_value.upper()}"
+            if evidence not in named_color_evidence:
+                named_color_evidence.append(evidence)
+            if len(named_color_evidence) >= 18:
+                break
+
+        component_style_evidence = []
+        relevant_selector = re.compile(
+            r'(^|[\s,.#>:+~-])(h1|h2|h3|headline|heading|body|button|btn|cta|badge|card)([\s,.#>:+~\[\]-]|$)',
+            flags=re.IGNORECASE,
+        )
+        relevant_properties = (
+            "font-family", "font-weight", "font-size", "line-height",
+            "letter-spacing", "text-transform", "background-color",
+            "background", "color", "border-radius",
+        )
+        for rule in re.finditer(r'([^{}]{1,180})\{([^{}]{1,1200})\}', style_text):
+            selector = " ".join(rule.group(1).split())[-140:]
+            if not relevant_selector.search(selector):
+                continue
+            declarations = []
+            rule_body = rule.group(2)
+            for prop in relevant_properties:
+                value_match = re.search(
+                    rf'(?<![-\w]){re.escape(prop)}\s*:\s*([^;}}]+)',
+                    rule_body,
+                    flags=re.IGNORECASE,
+                )
+                if value_match:
+                    value = " ".join(value_match.group(1).split())[:90]
+                    if "url(" not in value.lower():
+                        declarations.append(f"{prop}={value}")
+            if declarations:
+                evidence = f"{selector}: {', '.join(declarations[:7])}"
+                if evidence not in component_style_evidence:
+                    component_style_evidence.append(evidence)
+            if len(component_style_evidence) >= 14:
+                break
+
+        motif_terms = [
+            "wave", "curve", "pill", "starburst", "badge", "marquee",
+            "arch", "rounded", "blob", "botanical", "grain", "texture",
+        ]
+        style_text_lower = style_text.lower()
+        observed_motif_terms = [term for term in motif_terms if term in style_text_lower]
+        design_evidence = (
+            "Font-face declarations: " + ("; ".join(font_face_evidence) or "None") + "\n"
+            "Named color tokens: " + ("; ".join(named_color_evidence) or "None") + "\n"
+            "Relevant component rules:\n- " + ("\n- ".join(component_style_evidence) or "None") + "\n"
+            "Observed motif/class signals: " + (", ".join(observed_motif_terms) or "None")
+        )[:6500]
 
         # print("\n" + "="*80)
         # print(f"[WEBSITE SCANNER] [START] Initiating scan for URL: {url}")
@@ -521,21 +714,12 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         # print("="*80 + "\n")
             
     except Exception as scrape_err:
-        pass
-        # print(f"[WEBSITE SCANNER] [WARNING] Scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis...")
-        is_fallback = True
-        
-        # Build inferred title from domain
-        domain_part = url.split("//")[-1].replace("www.", "").split("/")[0].split(".")[0].capitalize()
-        extracted = {
-            "title": domain_part,
-            "meta_description": f"Official website of {domain_part}",
-            "body_text": f"Scraping was blocked by firewall. Inferring brand details based on brand name: {domain_part}.",
-            "images": [],
-            "logo_candidates": []
-        }
-        typography_candidates = []
-        top_colors = []
+        # Do not spend tokens on an ungrounded fallback when the storefront is
+        # unreadable. Manual entry is cheaper and safer than invented data.
+        raise HTTPException(
+            status_code=422,
+            detail="The website could not be read. Add the brand details manually instead."
+        )
         
     if not openai_key:
         raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
@@ -544,15 +728,27 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         system_prompt = """You are an expert brand researcher and product/service cataloging agent. 
 Analyze the website's title, meta description, lists of logo candidates, typography candidates, page images, and body text content to extract the brand's profile information and standard products or services list.
 
-Your output must be a valid JSON object matching the following structure. If any field or product/service detail is not found, keep it as an empty string ("") or empty array ([]). 
+Your output must be a valid JSON object matching the following structure. If any field or product/service detail is not found, keep it as an empty string ("") or empty array ([]).
 
-IMPORTANT: The user strictly requires at least 20 products. If the website text explicitly lists fewer than 20 products, you MUST intelligently invent and generate realistic product variants (e.g. different colors, models, or related standard items for this brand) to ensure you output exactly 20 products. Do not output less than 20.
-IMPORTANT: Rephrase and summarize any long descriptions or text fields to keep them concise. Descriptions MUST be strictly 200 characters or less.
-IMPORTANT: You MUST extract or generate AT LEAST 20 products, up to a maximum of 50. Do not output fewer than 20 products!
+TRUTH AND COST RULES:
+- Never invent a product, variant, offer, guarantee, statistic, claim, font, or color.
+- Return only distinct products explicitly evidenced in the supplied page, maximum 12.
+- Keep descriptions under 200 characters and all fact arrays to at most 4 short items.
+- Preserve only facts that can materially change an ad: benefits, quantitative proof, offer, guarantee, and variant/purchase option.
 
-For each product or service, select the most relevant image URL from the provided list of images by matching the name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. IMPORTANT: If no exact matching image is found in the list (especially for the generated/invented variants), you MUST pick a visually related or random high-quality product image URL from the provided list to use as a fallback. NEVER leave `imageBase64` blank if there are ANY images available in the list.
+DESIGN-SYSTEM COMPLETENESS RULES:
+- `brandDesignSystem` is required and every nested key in the schema must be returned.
+- Treat CSS declarations and named variables as stronger evidence than generic marketing prose.
+- Return 2-4 typography roles when evidenced, preserving exact family names, weights, and headline/body/CTA assignments. Never call a body font the primary headline font.
+- Return 4-8 materially distinct evidenced colors when available, including primary anchor, background, text, CTA/accent, and restricted sale/urgency colors. Preserve exact hex values.
+- Return 1-3 evidenced CTA variants and 1-6 evidenced recurring motifs. A hover color alone is not a complete CTA style.
+- Make hierarchy, spacing, photography, and guardrails operational enough that an art director could execute an ad without seeing the website.
+- Avoid generic filler such as "clean and modern" unless accompanied by exact visual evidence. Use empty strings/arrays for unsupported details; never guess to fill the schema.
+- Return 4-8 concise `do` rules and 4-8 concise `dont` rules when evidence permits.
 
-For the brand logo, select the best URL matching the brand logo from the provided logo candidates. If no candidates exist or look valid, select an appropriate image from the general images list. If none are found, set "logo" to an empty string.
+For each product or service, select an image only when its name clearly matches the supplied alt text or filename. Never assign a random product image. Leave `imageBase64` empty when no clear match exists.
+
+For the brand logo, use only a clear logo candidate. If none is evidenced, set "logo" to an empty string; never substitute a general product image.
 
 JSON Structure:
 {
@@ -565,18 +761,80 @@ JSON Structure:
     "city": "Target city if found, otherwise empty string"
   },
   "logo": "URL of the brand's logo image selected from candidates or empty string",
-  "typography": "Choose ONE from: 'Sans Serif Modern', 'Serif Classic', 'Display Bold', 'Handwritten', 'Mono Tech' based on the typography candidates and brand tone (default: 'Sans Serif Modern')",
+  "typography": "Exact detected font family names, comma-separated. Empty string if exact names are not evidenced.",
   "usp": "A concise, punchy Unique Selling Point summarizing the brand's key differentiator (under 150 characters)",
   "competitors": ["rival_handle_1", "rival_handle_2"],
-  "targetAudiences": ["Choose one or more from: 'Students & Young Adults', 'Working Professionals', 'Parents & Families', 'Business Owners'"],
+  "targetAudiences": ["Up to 3 concise audience groups evidenced by the brand or product positioning"],
   "ageRange": "Choose ONE from: '18-24', '25-34', '35-44', '45+' (default: empty string)",
   "genderFocus": "Choose ONE from: 'All', 'Male', 'Female' (default: 'All')",
   "painPoint": "A clear customer pain point solved by this brand (under 150 characters)",
   "brandTone": "Choose ONE from: 'Warm & Friendly', 'Professional & Clean', 'Fun & Energetic', 'Inspirational', 'Luxury & Premium' (default: 'Warm & Friendly')",
   "visualVibe": "Choose ONE from: 'Minimalist', 'Vibrant', 'Luxury', 'Edgy' (default: 'Minimalist')",
   "brandKeywords": "A comma-separated string of 3-5 keywords describing the brand vibe",
-  "primaryColor": "Hex code of the brand's primary color. Select a color from the 'Detected colors' list that matches the brand category, tone, and logo. Avoid choosing generic blue/social link colors (like #1863DC, #2563EB) for non-tech/non-SaaS brands unless they are the true brand colors (default: '#2563EB')",
-  "secondaryColor": "Hex code of the brand's secondary color. Select a matching color from the 'Detected colors' list that complements the primary color and fits the brand identity (default: '#60A5FA')",
+  "primaryColor": "Most clearly evidenced primary brand hex from Detected colors; empty if uncertain",
+  "secondaryColor": "Most clearly evidenced secondary brand hex from Detected colors; empty if uncertain",
+  "brandDesignSystem": {
+    "identity": {
+      "coreAesthetic": "Specific evidenced aesthetic, not a generic adjective",
+      "brandTension": "The deliberate balance that makes the design recognizable, e.g. nostalgic yet modern; empty if not evidenced",
+      "personality": ["3-6 evidenced personality traits"],
+      "creativePrinciple": "One operational sentence explaining how designers preserve the identity"
+    },
+    "typography": [
+      {
+        "family": "Exact evidenced font family",
+        "role": "Primary Headline | Secondary/Body | CTA | System Fallback",
+        "weights": ["Only evidenced weights"],
+        "usage": "Where and how the family is used",
+        "trackingAndCase": "Evidenced tracking, casing, or scale treatment; empty if unknown",
+        "fallback": "Evidence-based safe fallback or empty string"
+      }
+    ],
+    "colors": [
+      {
+        "name": "Descriptive token name grounded in the CSS variable or visible role",
+        "hex": "Exact evidenced hex",
+        "role": "Primary anchor | Secondary | Background | Text | CTA | Accent | Restricted urgency",
+        "usage": "Specific pairing and usage rule"
+      }
+    ],
+    "ctaStyles": [
+      {
+        "name": "Standard CTA or evidenced variant",
+        "shape": "Exact evidenced shape",
+        "radius": "Exact CSS value when evidenced, otherwise empty string",
+        "fill": "Exact evidenced color token/hex",
+        "textColor": "Exact evidenced color token/hex",
+        "usage": "When this variant is used"
+      }
+    ],
+    "motifs": [
+      {
+        "name": "Evidenced recurring motif",
+        "description": "Exact geometry or visual treatment",
+        "usage": "Where it appears and what it organizes"
+      }
+    ],
+    "iconAndBadgeStyle": "Evidenced icon, checkmark, seal, badge, or callout treatment",
+    "borderAndSurfaceStyle": "Evidenced borders, corners, shadows, texture, and surface treatment",
+    "hierarchy": {
+      "headlineScale": "Evidenced size range or relative scale",
+      "bodyScale": "Evidenced size/line-height or relative scale",
+      "textDensity": "Copy-density and hierarchy rule",
+      "spacing": "Whitespace, gutter, and alignment rule",
+      "productProminence": "How dominant the product should be"
+    },
+    "photography": {
+      "lighting": "Evidenced lighting direction and mood",
+      "cameraAndEnvironment": "Evidenced camera/framing and environment",
+      "backgroundTreatment": "Evidenced backdrop and color-block treatment",
+      "imageTreatment": "Evidenced realism, grain, contrast, props, or retouching style"
+    },
+    "guardrails": {
+      "do": ["4-8 specific evidence-based rules"],
+      "dont": ["4-8 specific evidence-based prohibitions"]
+    }
+  },
   "products": [
     {
       "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
@@ -585,6 +843,12 @@ JSON Structure:
       "price": "The ORIGINAL / MRP / regular (higher) price. Return ONLY the numeric value — strip all currency symbols (Rs., ₹, $, etc.) and return just the number (e.g., '249', '29.99'). Empty string if not found.",
       "offerPrice": "The DISCOUNTED / SALE / offer (lower) price if shown separately. MUST be strictly less than price. Strip currency symbols, return just the number. Empty string if no separate discounted price exists.",
       "keyBenefit": "One-liner key benefit or feature of this product/service",
+      "verifiedBenefits": ["Up to 4 short, explicitly stated benefits"],
+      "proofPoints": ["Up to 4 quantitative specifications or verified claims such as 5g sugar or 9g fiber"],
+      "offerDetails": "Exact discount, bundle, or subscription offer in 120 characters or less; empty if absent",
+      "guarantee": "Exact verified guarantee in 100 characters or less; empty if absent",
+      "variantDetails": ["Up to 3 verified pack sizes or purchase options"],
+      "sourceUrl": "The scanned page URL",
       "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
     }
   ]
@@ -597,7 +861,7 @@ JSON Structure:
             typo_info_str = ", ".join(typography_candidates) if typography_candidates else "None detected"
             color_info_str = ", ".join(top_colors) if top_colors else "None detected"
             images_info_str = "\n".join([f"- URL: {img['src']} | Alt text: {img['alt']}" for img in extracted["images"]])
-            user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\n{logo_info_str}\n\nDetected typography candidates:\n{typo_info_str}\n\nDetected colors:\n{color_info_str}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
+            user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\n{logo_info_str}\n\nDetected typography candidates:\n{typo_info_str}\n\nDetected colors:\n{color_info_str}\n\nCompact CSS design evidence:\n{design_evidence}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
         
         # print("\n" + "="*80)
         # print("[WEBSITE SCANNER] [PROMPT] PROMPT BEING SENT TO GPT:")
@@ -605,7 +869,10 @@ JSON Structure:
         # print(f"User Prompt:\n{user_prompt}")
         # print("="*80 + "\n")
         
-        gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt)
+        # The richer guide shares this existing extraction call; there is still
+        # no second model request. The larger ceiling only prevents truncation
+        # when a catalog and a complete design system are returned together.
+        gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt, max_tokens=4200)
         
         # print("\n" + "="*80)
         # print("[WEBSITE SCANNER] [IN] GPT RESPONSE RECEIVED:")
@@ -622,23 +889,21 @@ JSON Structure:
 
         # Convert matched product image URLs to base64 strings
         products = scraped_data.get("products", [])
-        if len(products) > 50:
-            # print(f"[WEBSITE SCANNER] [PRODUCTS] Truncating products from {len(products)} to max 50 limit.")
-            products = products[:50]
+        if len(products) > 12:
+            products = products[:12]
             scraped_data["products"] = products
             
         # print(f"[WEBSITE SCANNER] [PRODUCTS] Skipping base64 conversion for {len(products)} products to save storage quota...")
         
         # Normalize price / offerPrice on every product (strip currency symbols, fix swaps)
-        scraped_data["products"] = [normalize_product_prices(p) for p in products]
+        scraped_data["products"] = [
+            normalize_compact_ad_facts(normalize_product_prices(p), source_url=url)
+            for p in products
+            if isinstance(p, dict) and str(p.get("name") or "").strip()
+        ]
 
-        # Generate Brand Design Guide from scraped brand data (used only by AI Ads agent)
-        try:
-            scraped_data["brandDesignGuide"] = generate_brand_design_guide(scraped_data)
-            print(f"[BrandGuide] ✅ Generated design guide for {scraped_data.get('brandName', 'brand')} ({len(scraped_data['brandDesignGuide'])} chars)")
-        except Exception as guide_err:
-            print(f"[BrandGuide] ⚠️ Guide generation failed: {guide_err}")
-            scraped_data["brandDesignGuide"] = ""
+        # Compact guide comes from the same extraction call: no extra LLM request.
+        scraped_data["brandDesignGuide"] = generate_brand_design_guide(scraped_data)
 
         return scraped_data
         
@@ -684,6 +949,32 @@ def normalize_product_prices(product: dict) -> dict:
     if price_num is not None and offer_num is not None and offer_num > price_num:
         product['price'], product['offerPrice'] = product['offerPrice'], product['price']
 
+    return product
+
+
+def normalize_compact_ad_facts(product: dict, source_url: str = "") -> dict:
+    """Bound the small verified fact set carried into the ad Director prompt."""
+    def _short_list(value, limit: int, item_chars: int = 120):
+        if not isinstance(value, list):
+            return []
+        result = []
+        seen = set()
+        for item in value:
+            text = str(item or "").strip()[:item_chars]
+            key = text.casefold()
+            if text and key not in seen:
+                seen.add(key)
+                result.append(text)
+            if len(result) >= limit:
+                break
+        return result
+
+    product["verifiedBenefits"] = _short_list(product.get("verifiedBenefits"), 4)
+    product["proofPoints"] = _short_list(product.get("proofPoints"), 4)
+    product["variantDetails"] = _short_list(product.get("variantDetails"), 3)
+    product["offerDetails"] = str(product.get("offerDetails") or "").strip()[:120]
+    product["guarantee"] = str(product.get("guarantee") or "").strip()[:100]
+    product["sourceUrl"] = str(product.get("sourceUrl") or source_url or "").strip()[:500]
     return product
 
 
@@ -799,8 +1090,14 @@ async def api_scrape_single_product(payload: ScrapeRequest):
             raise Exception("No readable text content found on the webpage.")
             
     except Exception as scrape_err:
-        pass
-        # print(f"[SCRAPER] Single product scraper failed for {url} ({scrape_err}). Switching to offline LLM synthesis fallback...")
+        # Never spend tokens synthesizing a physical product that could not be
+        # verified. SaaS/service URLs retain the legacy fallback because many
+        # of them are intentionally auth-walled.
+        if not _is_saas:
+            raise HTTPException(
+                status_code=422,
+                detail="The product page could not be read. Add the product manually instead."
+            )
         is_fallback = True
         
         # Parse host/path to infer service details
@@ -887,6 +1184,12 @@ JSON Structure:
   "price": "The ORIGINAL / MRP / regular (higher) price of the product shown on the page. Extract the numeric value only — strip all currency symbols (Rs., ₹, $, etc.) and return just the number (e.g., '249', '29.99'). Use an empty string if not found.",
   "offerPrice": "The DISCOUNTED / SALE / offer (lower) price, if shown separately from the original price. MUST be strictly less than `price` — if the page only shows one price, leave this empty. Never put a higher value here than in `price`. Strip currency symbols and return just the number (e.g., '199'). Use an empty string if no separate discounted price exists.",
   "keyBenefit": "One-liner key benefit or feature of this product/service",
+  "verifiedBenefits": ["Up to 4 short, explicitly stated benefits"],
+  "proofPoints": ["Up to 4 quantitative specifications or verified claims"],
+  "offerDetails": "Exact discount, bundle, or subscription offer in 120 characters or less; empty if absent",
+  "guarantee": "Exact verified guarantee in 100 characters or less; empty if absent",
+  "variantDetails": ["Up to 3 verified pack sizes or purchase options"],
+  "sourceUrl": "The scanned page URL",
   "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
 }
 """
@@ -897,13 +1200,16 @@ JSON Structure:
         images_info_str = "\n".join([f"- URL: {img.get('src', '')} | Alt text: {img.get('alt', '')}" for img in all_imgs])
         user_prompt = f"Scrape URL: {url}\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of page images:\n{images_info_str}\n\nWebpage visible text:\n{extracted['body_text']}"
         
-        gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt)
+        gpt_response_text = call_openai_gpt(user_prompt, openai_key, system_prompt, max_tokens=900)
         
         import json
         scraped_data = json.loads(gpt_response_text)
         
         # Normalize price / offerPrice (strip currency symbols like 'Rs. 249' → '249', fix swapped values)
-        scraped_data = normalize_product_prices(scraped_data)
+        scraped_data = normalize_compact_ad_facts(
+            normalize_product_prices(scraped_data),
+            source_url=url,
+        )
             
         return scraped_data
         
@@ -1979,10 +2285,64 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
         elif request.layout == "ads":
             import asyncio
             from ad_creative_agent import generate_ad_creatives
+            from visual_description_agent import generate_visual_description
+
+            # AI Ads uses one selected product. Load its compact verified facts
+            # from MongoDB so a stale client cannot drop offer/proof fields.
+            ad_products = [dict(request.products[0])] if request.products else []
+            if ad_products:
+                primary_product = ad_products[0]
+                product_id = str(primary_product.get("_id") or "")
+                stored_product = None
+                if ObjectId.is_valid(product_id):
+                    stored_product = await db["products"].find_one({"_id": ObjectId(product_id)})
+
+                if stored_product:
+                    for field in (
+                        "name", "description", "price", "offerPrice", "keyBenefit",
+                        "verifiedBenefits", "proofPoints", "offerDetails", "guarantee",
+                        "variantDetails", "sourceUrl", "imageBase64",
+                        "adVisualDescription", "adVisualDescriptionStatus",
+                    ):
+                        if field in stored_product:
+                            primary_product[field] = stored_product[field]
+
+                # Generate packaging intelligence only for the chosen product,
+                # once. This replaces the previous N vision calls during scrape.
+                appearance = str(primary_product.get("adVisualDescription") or "").strip()
+                product_image = str(primary_product.get("imageBase64") or "").strip()
+                if not appearance and product_image.startswith("http"):
+                    if stored_product:
+                        await db["products"].update_one(
+                            {"_id": stored_product["_id"]},
+                            {"$set": {"adVisualDescriptionStatus": "processing"}},
+                        )
+                    appearance = await asyncio.to_thread(
+                        generate_visual_description,
+                        image_urls=[product_image],
+                        product_name=str(primary_product.get("name") or ""),
+                    )
+                    if appearance:
+                        primary_product["adVisualDescription"] = appearance
+                        primary_product["adVisualDescriptionStatus"] = "ready"
+                        if stored_product:
+                            await db["products"].update_one(
+                                {"_id": stored_product["_id"]},
+                                {"$set": {
+                                    "adVisualDescription": appearance,
+                                    "adVisualDescriptionStatus": "ready",
+                                }},
+                            )
+                    elif stored_product:
+                        await db["products"].update_one(
+                            {"_id": stored_product["_id"]},
+                            {"$set": {"adVisualDescriptionStatus": "failed"}},
+                        )
+
             posts = await asyncio.to_thread(
                 generate_ad_creatives,
                 brand_doc=brand_doc,
-                products=request.products or [],
+                products=ad_products,
                 count=request.count,
                 campaign_goal=request.campaignGoal or "discover",
                 campaign_angle=request.campaignAngle or "auto",
@@ -1990,6 +2350,7 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 aspect_ratio=request.aspectRatio or "1:1",
                 ref_images=request.refImages or [],
                 user_plan=request.userPlan or "",
+                language=request.language or "English",
                 brand_design_guide=brand_doc.get("brandDesignGuide", "")
             )
         else:

@@ -1072,7 +1072,7 @@ const DashboardStrategy = () => {
   const [showProductModal, setShowProductModal] = useState(false);
 
   React.useEffect(() => {
-    const maxProducts = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
+    const maxProducts = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'ads' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count)));
     if (selectedProducts.length > maxProducts) {
       setSelectedProducts(selectedProducts.slice(0, maxProducts));
     }
@@ -1296,7 +1296,7 @@ const DashboardStrategy = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const limit = mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count);
+    const limit = mode === 'ecomm' ? 1 : (mode === 'ads' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
     if (selectedProducts.length >= limit) {
       alert(`You can select at most ${limit} item(s). Please deselect an item first.`);
       return;
@@ -1406,13 +1406,13 @@ const DashboardStrategy = () => {
   }, [generated]);
 
   const pickRandom = () => {
-    const targetLimit = mode === 'ecomm' ? 1 : count;
+    const targetLimit = mode === 'ecomm' || mode === 'ads' ? 1 : count;
     if (products.length > 0) {
       const shuffled = [...products].sort(() => 0.5 - Math.random()).slice(0, Math.min(products.length, targetLimit));
       setSelectedProducts(shuffled);
       setUploads([]);
     } else {
-      const shuffled = [...stockImages].sort(() => 0.5 - Math.random()).slice(0, 4);
+      const shuffled = [...stockImages].sort(() => 0.5 - Math.random()).slice(0, mode === 'ads' ? 1 : 4);
       setUploads((u) => [...u, ...shuffled]);
       setSelectedProducts([]);
     }
@@ -1435,7 +1435,7 @@ const DashboardStrategy = () => {
       } else {
         const exists = prev.find((x) => x._id === p._id);
         if (exists) return prev.filter((x) => x._id !== p._id);
-        const limit = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
+        const limit = mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'ads' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count)));
         if (prev.length >= limit) return prev;
         return [...prev, p];
       }
@@ -1952,8 +1952,10 @@ const DashboardStrategy = () => {
         }
       }
 
-      // Append brand logo as an additional reference image if available
-      if (profile?.logo && !refImages.includes(profile.logo)) {
+      // AI Ads appends the authoritative brand logo server-side so it is attached
+      // exactly once to every creative in the batch. Other modes still receive it
+      // from the client as before.
+      if (currentMode !== 'ads' && profile?.logo && !refImages.includes(profile.logo)) {
         refImages.push(profile.logo);
       }
 
@@ -4941,7 +4943,9 @@ const DashboardStrategy = () => {
                     <ShoppingBag size={18} className="text-primary" /> Select Products
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Pick up to {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} product{(mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) > 1 ? 's' : ''}. SyncSocio will anchor generations to these.
+                    {mode === 'ads'
+                      ? 'Pick 1 product. SyncSocio will anchor every ad creative to it.'
+                      : <>Pick up to {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} product{(mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) > 1 ? 's' : ''}. SyncSocio will anchor generations to these.</>}
                   </p>
                 </div>
                 <button onClick={() => setShowProductModal(false)} className="p-2 rounded-xl hover:bg-muted transition">
@@ -4993,7 +4997,7 @@ const DashboardStrategy = () => {
 
                   {products.map((p) => {
                     const selected = !!selectedProducts.find((x) => x._id === p._id);
-                    const disabled = !selected && selectedProducts.length >= (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'photoshoot' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))));
+                    const disabled = !selected && selectedProducts.length >= (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'ads' ? 1 : (mode === 'photoshoot' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count)))));
                     return (
                       <button
                         key={p._id}
@@ -5027,9 +5031,9 @@ const DashboardStrategy = () => {
 
               <div className="p-5 border-t border-border/50 shrink-0 flex items-center justify-between">
                 <p className="text-xs font-semibold text-muted-foreground">
-                  <span className={cn(selectedProducts.length === (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))) ? 'text-primary' : 'text-foreground')}>
+                  <span className={cn(selectedProducts.length === (mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'ads' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count)))) ? 'text-primary' : 'text-foreground')}>
                     {selectedProducts.length}
-                  </span> / {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count))} selected
+                  </span> / {mode === 'all_in_one' ? 1 : (mode === 'ecomm' ? 1 : (mode === 'ads' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count)))} selected
                 </p>
                 <Button onClick={() => setShowProductModal(false)} className="rounded-xl px-6">Done</Button>
               </div>

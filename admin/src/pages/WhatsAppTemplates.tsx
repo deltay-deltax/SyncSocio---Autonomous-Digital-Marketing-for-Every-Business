@@ -16,7 +16,7 @@ export default function WhatsAppTemplates() {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       
       let url = `${API_URL}/admin/whatsapp-templates`;
       const queryParams = [];
@@ -50,7 +50,7 @@ export default function WhatsAppTemplates() {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       
       await axios.put(`${API_URL}/admin/whatsapp-templates/${id}/status`, {
         status: newStatus,

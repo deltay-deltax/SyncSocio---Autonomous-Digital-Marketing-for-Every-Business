@@ -71,7 +71,7 @@ const parseRecipients = (textOrRows, isRows, mode, whatsappCountryCode) => {
   if (typeof processedTextOrRows === 'string' && processedTextOrRows.includes('{\\rtf')) {
     // Very rudimentary RTF table parsing: split by \row to keep rows together
     const rows = processedTextOrRows.split('\\row');
-    processedTextOrRows = rows.map(r => r.replace(/\\[a-z0-9]+[ ]?/g, '').replace(/[\{\}]/g, '').trim()).filter(r => r.length > 0);
+    processedTextOrRows = rows.map(r => r.replace(/\\[a-z0-9]+[ ]?/g, '').replace(/[{}]/g, '').trim()).filter(r => r.length > 0);
     isRows = true;
   }
 
@@ -135,4 +135,3 @@ const rtfStr = `{\\rtf1\\ansi\\ansicpg1252\\cocoartf2867
 }`;
 
 console.log(parseRecipients(rtfStr, false, 'whatsapp', '+91'));
-
