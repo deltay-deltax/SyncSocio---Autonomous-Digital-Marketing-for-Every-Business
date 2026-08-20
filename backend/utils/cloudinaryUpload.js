@@ -28,7 +28,6 @@ export async function uploadBase64ToCloudinary(base64, folder = 'syncsocio/creat
   const result = await cloudinary.uploader.upload(dataUri, {
     folder,
     resource_type: 'image',
-    transformation: [{ quality: 'auto', fetch_format: 'auto' }],
     ...options,
   });
 

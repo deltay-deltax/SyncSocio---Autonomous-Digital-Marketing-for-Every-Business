@@ -105,7 +105,7 @@ const Signup = () => {
           window.location.href = "/setup?step=plan";
         } else {
           localStorage.setItem("syncsocio_setup_done", "false");
-          window.location.href = "/setup";
+          window.location.href = "/onboarding";
         }
       } else {
         localStorage.setItem("syncsocio_setup_done", "false");

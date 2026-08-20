@@ -145,18 +145,18 @@ export const signup = async (req, res) => {
     if (existingUser) {
       existingUser.name = name;
       existingUser.password = hashedPassword;
-      existingUser.isVerified = false;
-      existingUser.otpCode = hashedOtp;
-      existingUser.otpExpiry = otpExpiry;
+      existingUser.isVerified = true;
+      existingUser.otpCode = undefined;
+      existingUser.otpExpiry = undefined;
       user = await existingUser.save();
     } else {
       user = await User.create({
         name,
         email: normalizedEmail,
         password: hashedPassword,
-        isVerified: false,
-        otpCode: hashedOtp,
-        otpExpiry,
+        isVerified: true,
+        otpCode: undefined,
+        otpExpiry: undefined,
       });
     }
 
@@ -165,11 +165,15 @@ export const signup = async (req, res) => {
       .then(() => console.log(`[DEV MODE] OTP for ${user.email} is ${otp}`))
       .catch(mailError => console.error('OTP email send failed:', mailError));
 
+    const token = generateToken(user._id);
     res.status(existingUser ? 200 : 201).json({
-      message: 'OTP sent to your email. Please verify to complete signup.',
-      email: user.email,
-      requiresOtp: true,
-      otpExpiresAt: user.otpExpiry,
+      message: 'Signup successful',
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

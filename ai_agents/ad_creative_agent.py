@@ -44,7 +44,8 @@ def _generate_director_concepts(
     idea: str,
     aspect_ratio: str = "1:1",
     language: str = "English",
-    brand_design_guide: str = ""
+    brand_design_guide: str = "",
+    post_format: str = "ad"
 ) -> List[Dict]:
     goal = {
         "convert": "purchases",
@@ -55,11 +56,16 @@ def _generate_director_concepts(
     brand_name = brand_doc.get("brandName", "the brand")
     visual_vibe = brand_doc.get("visualVibe", "Clean and modern")
     category = brand_doc.get("businessCategory", "consumer product")
+    is_ecomm = any(k in category.lower() for k in ["ecommerce", "shop", "store", "product"])
     target_audience = (
         brand_doc.get("targetAudience")
         or brand_doc.get("targetAudiences")
         or "Infer the most relevant audience from the verified product information"
     )
+
+    background_rule = ""
+    if not is_ecomm:
+        background_rule = f"\n\nCRITICAL RULE ON BACKGROUNDS: Since you are generating {count} creatives, exactly half of them (at least {count // 2}) MUST use a solid brand contrast color or a solid product-matching color as the background. Do not use complex scenes or natural environments for these; explicitly instruct the visual engine to use a highly aesthetic solid background.\n\n"
 
     # Build the verified product-intelligence block for the Art Director LLM.
     # The packaging description must be available before the brief is written,
@@ -75,18 +81,23 @@ def _generate_director_concepts(
             ("Offer", ("offerDetails",)),
             ("Guarantee", ("guarantee",)),
             ("Purchase Options", ("variantDetails",)),
+            ("Specifications", ("specifications",)),
         )
 
         def _display_fact(value: Any) -> str:
             if isinstance(value, list):
+                if value and isinstance(value[0], dict):
+                    return ", ".join(f"{item.get('key', '')}: {item.get('value', '')}" for item in value[:4])
                 return ", ".join(str(item)[:120] for item in value[:4] if item not in (None, ""))
             if isinstance(value, dict):
                 return json.dumps(value, ensure_ascii=False)[:400]
             return str(value)[:240] if value not in (None, "") else ""
 
-        for index, p in enumerate(products, start=1):
+        # Force a single product context for the entire batch
+        active_products = [products[0]] if products else []
+        for index, p in enumerate(active_products, start=1):
             product_details += (
-                f"PRODUCT {index}\n"
+                f"PRODUCT 1\n"
                 f"- Name: {p.get('name') or 'Unnamed product'}\n"
                 f"- Description: {p.get('description', '')}\n"
                 f"- Key Benefit: {p.get('keyBenefit', '')}\n"
@@ -116,118 +127,166 @@ def _generate_director_concepts(
     campaign_portfolios = {
         "discover": [
             {
+                "code": "Dynamic-Kinetic",
+                "framework": "Dynamic Kinetic Energy",
+                "job": "Sensory product explosion",
+            },
+            {
+                "code": "Infographic",
+                "framework": "Infographic & Diagrammatic",
+                "job": "Visual ingredient breakdown",
+            },
+            {
                 "code": "AIDA",
                 "framework": "Attention-Interest-Desire-Action (AIDA)",
                 "job": "Memorable product upgrade",
-                "composition": "Editorial product-hero studio",
-                "direction": "Make one faithful product the dominant hero on a brand-native set, using a signature shape or motif to guide the eye from headline to product to soft CTA.",
             },
             {
-                "code": "Storytelling",
-                "framework": "Storytelling / Narrative",
-                "job": "Aspirational usage ritual",
-                "composition": "In-context lifestyle vignette",
-                "direction": "Show the product naturally integrated into a specific desirable moment; keep people or environment secondary to the product and avoid generic stock-photo staging.",
+                "code": "Graphic-Poster",
+                "framework": "Graphic Poster / Sunburst",
+                "job": "Iconic brand statement",
             },
             {
                 "code": "FAB",
                 "framework": "Feature-Benefit (FAB)",
                 "job": "Benefit made visually tangible",
-                "composition": "Ingredient or mechanism macro flat-lay",
-                "direction": "Turn one verified benefit, ingredient, material, or mechanism into a premium tactile visual world around the product without printing unverified claims.",
             },
             {
                 "code": "PAS",
                 "framework": "Problem-Agitate-Solve (PAS)",
                 "job": "Recognizable daily-friction hook",
-                "composition": "High-contrast problem/solution split scene",
-                "direction": "Dramatize one familiar problem on one side and the product-enabled resolution on the other, with the product placed at the transition or solution focal point.",
             },
             {
-                "code": "BAB",
-                "framework": "Before-After-Bridge (BAB)",
-                "job": "Category upgrade reframe",
-                "composition": "Before/after transformation tableau",
-                "direction": "Contrast the old category habit with a cleaner, more desirable after-state; use a generic alternative unless verified competitor evidence exists.",
+                "code": "Data-Vis",
+                "framework": "Data Visualization / Bar Chart",
+                "job": "Proof-driven comparison",
             },
             {
-                "code": "Educational",
-                "framework": "Educational / Ingredient Spotlight",
-                "job": "Fast product education",
-                "composition": "Structured editorial explainer",
-                "direction": "Use one product hero plus no more than two verified proof callouts, connected with clean rules, badges, or ingredient/material cues rather than a dense infographic.",
+                "code": "Storytelling",
+                "framework": "Storytelling / Narrative",
+                "job": "Aspirational usage ritual",
             },
             {
-                "code": "What-Why-How",
-                "framework": "What-Why-How",
-                "job": "Category curiosity and mechanism",
-                "composition": "Modular editorial grid",
-                "direction": "Create a disciplined grid that answers what it is, why it matters, and how it fits the audience's life while preserving one obvious focal point.",
+                "code": "Ingredient-Macro",
+                "framework": "Ingredient Spotlight / Macro-Texture",
+                "job": "Visceral purity and texture showcase",
             },
             {
-                "code": "Star-Story-Solution",
-                "framework": "Star-Story-Solution",
-                "job": "Identity-led emotional memory",
-                "composition": "Cinematic lifestyle portrait",
-                "direction": "Use a sharply defined identity moment with cinematic light and one narrative prop; the product remains clearly visible and essential to the story.",
+                "code": "Lifestyle-Flatlay",
+                "framework": "Lifestyle Integration / Aesthetic Flat-lay",
+                "job": "Contextualizing product in daily routine",
+            },
+            {
+                "code": "Clinical-Science",
+                "framework": "The Science Inside / Clinical Minimalist",
+                "job": "Authority and active compound breakdown",
+            },
+            {
+                "code": "Unboxing-Haul",
+                "framework": "Premium Unboxing / Haul Spill",
+                "job": "High-perceived value and excitement",
+            },
+            {
+                "code": "UGC-Candid",
+                "framework": "UGC / Candid Creator-Style",
+                "job": "Authentic, relatable social proof",
+            },
+            {
+                "code": "UI-Abstract",
+                "framework": "Abstract UI Dashboard / Glassmorphism",
+                "job": "Sleek software visualization",
+            },
+            {
+                "code": "Workspace-B2B",
+                "framework": "Professional Workspace / Desk Setup",
+                "job": "B2B productivity context",
+            },
+            {
+                "code": "Device-Mockup",
+                "framework": "Floating Device / App Mockup",
+                "job": "Digital product tangibility",
+            },
+            {
+                "code": "Editorial-Lookbook",
+                "framework": "Editorial Lookbook / High-Fashion Pose",
+                "job": "Aspirational lifestyle styling",
+            },
+            {
+                "code": "Outfit-Grid",
+                "framework": "Get the Look / Flat-lay Outfit Grid",
+                "job": "Shoppable outfit curation",
+            },
+            {
+                "code": "Fabric-Macro",
+                "framework": "Macro Fabric / Stitching Detail",
+                "job": "Premium quality and texture proof",
             },
         ],
         "compare": [
             {
+                "code": "Comparison-Table",
+                "framework": "Comparison Table / Feature Matrix",
+                "job": "Feature-by-feature superiority checklist",
+            },
+            {
                 "code": "CC",
                 "framework": "Contrast and Choice (CC)",
                 "job": "Superior-choice reframe",
-                "composition": "Premium split-choice still life",
-                "direction": "Place a generic category alternative against the faithful product and make the verified difference instantly legible without inventing competitor facts.",
             },
             {
-                "code": "FAB",
-                "framework": "Feature-Advantage-Benefit (FAB)",
-                "job": "Reason-to-believe proof",
-                "composition": "Product hero with proof architecture",
-                "direction": "Build a premium editorial product shot around one verified feature and its customer benefit, using at most two concise proof callouts.",
-            },
-            {
-                "code": "Objection-Rebuttal",
-                "framework": "Objection-Rebuttal",
-                "job": "Primary objection removal",
-                "composition": "Myth/rebuttal graphic contrast",
-                "direction": "Make the audience's most likely objection the hook, then resolve it visually with verified product evidence and a calm, confident hierarchy.",
+                "code": "Data-Vis",
+                "framework": "Data Visualization / Bar Chart",
+                "job": "Visual benefit comparison",
             },
             {
                 "code": "SBSC",
                 "framework": "Side-by-Side Comparison (SBSC)",
                 "job": "Scannable alternative comparison",
-                "composition": "Two-column comparison card",
-                "direction": "Use a sharply structured two-column layout with the product as the preferred choice; compare only supplied facts and keep the alternative generic.",
+            },
+            {
+                "code": "Infographic",
+                "framework": "Infographic Breakdown",
+                "job": "Ingredient superiority",
             },
             {
                 "code": "PAS",
                 "framework": "Problem-Agitate-Solve (PAS)",
                 "job": "Problem-solution demonstration",
-                "composition": "Contextual demonstration scene",
-                "direction": "Show a specific problem in use and make the product-enabled solution visually self-evident through props, environment, and product placement.",
             },
             {
                 "code": "BAB",
                 "framework": "Before-After-Bridge (BAB)",
                 "job": "Switching and upgrade motivation",
-                "composition": "Transformation diptych",
-                "direction": "Contrast the compromised before-state with the verified product after-state using distinct lighting, texture, and spatial treatment.",
             },
             {
                 "code": "RTB",
                 "framework": "Social Proof + RTB (Reason To Believe)",
                 "job": "Proof-led confidence",
-                "composition": "Evidence badge editorial layout",
-                "direction": "Lead with verified specifications, certification, guarantee, or product proof. Never invent reviews, ratings, testimonials, or popularity claims.",
             },
             {
                 "code": "Spec-Sheet",
                 "framework": "Spec-Sheet Showdown",
                 "job": "Detailed value justification",
-                "composition": "Compressed modular spec grid",
-                "direction": "Create a premium spec-led grid around the product with only the few supplied facts that materially justify choosing it.",
+            },
+            {
+                "code": "Us-vs-Them",
+                "framework": "Us vs Them / Visual Checklist",
+                "job": "Absolute feature superiority",
+            },
+            {
+                "code": "Hard-vs-Easy",
+                "framework": "The Hard Way vs The Easy Way",
+                "job": "Frictionless alternative framing",
+            },
+            {
+                "code": "Myth-vs-Fact",
+                "framework": "Myth vs Fact / Busting Industry Lies",
+                "job": "Trust-building paradigm shift",
+            },
+            {
+                "code": "Anatomy-Of",
+                "framework": "Anatomy of a Superior Product",
+                "job": "Detailed teardown of value",
             },
         ],
     }
@@ -250,58 +309,42 @@ def _generate_director_concepts(
             "code": "OBU",
             "framework": "Offer-Benefit-Urgency (OBU)",
             "job": "Offer or replenishment conversion",
-            "composition": "In-context stock-up or offer lifestyle",
-            "direction": "Visualize the verified pack, subscription, discount, or purchase option in a useful replenishment moment; make the exact offer badge secondary to the product hero.",
         }
         conversion_fifth = {
             "code": "Bundle-Value",
             "framework": "Bundle / Value Offer",
             "job": "Bundle value justification",
-            "composition": "Premium bundle-value tableau",
-            "direction": "Show only the verified pack or purchase configuration and make its value obvious through quantity, arrangement, and one concise offer callout.",
         }
         conversion_sixth = {
             "code": "PAS-Offer",
             "framework": "Problem-Agitation-Solution (PAS) with Offer",
             "job": "Problem resolution with purchase incentive",
-            "composition": "Problem-to-offer transition scene",
-            "direction": "Connect one product-solved frustration to the exact verified offer without inventing a deadline, scarcity claim, or additional discount.",
         }
     else:
         conversion_second = {
             "code": "FBA",
             "framework": "Feature-Benefit-Action (FBA)",
             "job": "Benefit-led direct response",
-            "composition": "Benefit demonstration product scene",
-            "direction": "Make one verified benefit immediately tangible, then drive a direct action CTA without implying an unavailable discount or bundle.",
         }
         conversion_fifth = {
             "code": "Command-Benefit-Push",
             "framework": "Command-Benefit-Push",
             "job": "Decisive benefit close",
-            "composition": "Bold command-led product poster",
-            "direction": "Use a short action-oriented headline, faithful product hero, and one verified benefit to create momentum without fabricated urgency.",
         }
         conversion_sixth = {
             "code": "PAS-Direct",
             "framework": "Problem-Agitation-Solution (PAS)",
             "job": "Pain-to-purchase resolution",
-            "composition": "Problem-to-product transition scene",
-            "direction": "Show one costly or frustrating status quo and make the product the immediate, credible resolution with a direct purchase CTA.",
         }
 
     conversion_third = {
         "code": "Risk-Reversal",
         "framework": "Risk Reversal + Guarantee",
         "job": "Purchase-risk removal",
-        "composition": "Retro-modern comparison with guarantee seal",
-        "direction": "Contrast the risky or compromised generic alternative with the faithful product and make the exact verified guarantee a prominent trust device.",
     } if has_verified_guarantee else {
         "code": "Objection-Rebuttal",
         "framework": "Objection-Rebuttal",
         "job": "Final purchase objection removal",
-        "composition": "Graphic objection/proof contrast",
-        "direction": "Resolve the strongest likely purchase objection with supplied proof. Do not draw a guarantee seal or claim risk-free purchasing when no guarantee is verified.",
     }
 
     campaign_portfolios["purchases"] = [
@@ -309,8 +352,6 @@ def _generate_director_concepts(
             "code": "AIDA",
             "framework": "Attention-Interest-Desire-Action (AIDA)",
             "job": "Friction-free product upgrade",
-            "composition": "Minimalist conversion product-hero studio",
-            "direction": "Make one faithful product the dominant hero, use one brand motif to move the eye from a punchy upgrade headline to verified proof and a direct CTA.",
         },
         conversion_second,
         conversion_third,
@@ -318,8 +359,6 @@ def _generate_director_concepts(
             "code": "SLAP",
             "framework": "SLAP (Stop-Look-Act-Purchase)",
             "job": "Fast high-intent action",
-            "composition": "High-impact typographic product poster",
-            "direction": "Use an arresting but on-brand headline, one oversized faithful product, and a short visual path to a decisive CTA; keep supporting copy minimal.",
         },
         conversion_fifth,
         conversion_sixth,
@@ -327,17 +366,70 @@ def _generate_director_concepts(
             "code": "Hook-Retain-Reward",
             "framework": "Hook-Retain-Reward",
             "job": "Reward-led purchase momentum",
-            "composition": "Sensory reward editorial scene",
-            "direction": "Hook with the product's most desirable verified outcome, retain attention through tactile details, and finish with a direct action without false scarcity.",
         },
         {
             "code": "BAB-Direct",
-            "framework": "Before-After-Bridge (BAB) for Direct Response",
-            "job": "Immediate upgrade close",
-            "composition": "Purchase-focused before/after diptych",
-            "direction": "Show the old generic compromise and the verified product upgrade in one decisive composition, ending with a clear purchase CTA.",
+            "framework": "Before-After-Bridge (Direct)",
+            "job": "Instant transformation close",
+        },
+        {
+            "code": "The-3-Step",
+            "framework": "The 3-Step System / Easy Onboarding",
+            "job": "Removing friction to start",
+        },
+        {
+            "code": "FOMO-Scarcity",
+            "framework": "FOMO / Scarcity Drop",
+            "job": "Urgency-driven impulse purchase",
+        },
+        {
+            "code": "Anatomy-Of-Offer",
+            "framework": "Visual Offer Teardown",
+            "job": "Maximizing perceived value of bundle",
         },
     ]
+
+    _festival_base = [
+        {
+            "code": "Festive-Greeting",
+            "framework": "Brand Celebration / Festive Greeting",
+            "job": "Subtle product integration within a warm holiday message",
+        },
+        {
+            "code": "Cultural-Integration",
+            "framework": "Cultural Context / Tradition",
+            "job": "Positioning the product seamlessly into cultural holiday traditions",
+        },
+        {
+            "code": "Festive-Bundle",
+            "framework": "Festive Gifting / Bundle Showcase",
+            "job": "Showcasing the product as the perfect holiday gift or bundle",
+        },
+        {
+            "code": "Festive-Glamour",
+            "framework": "Holiday Glamour / Premium Aesthetic",
+            "job": "Premium, highly vibrant and aesthetic holiday mood",
+        },
+        {
+            "code": "Festive-Offer",
+            "framework": "Holiday Special / Festive Offer",
+            "job": "High-energy visual highlighting a special holiday sale or bundle",
+        },
+    ]
+    # Conditionally add commerce-compatible festive frameworks
+    if has_verified_offer:
+        _festival_base.append({
+            "code": "OBU",
+            "framework": "Offer-Benefit-Urgency (OBU) — Festive Edition",
+            "job": "Festive urgency: drive immediate purchase with verified offer + holiday energy",
+        })
+    if any("limited" in str(p.get("description", "")).lower() or "edition" in str(p.get("name", "")).lower() for p in products or []):
+        _festival_base.append({
+            "code": "FOMO-Scarcity",
+            "framework": "FOMO / Festive Scarcity Drop",
+            "job": "Limited-edition festive urgency — sell out energy and exclusivity",
+        })
+    campaign_portfolios["festival"] = _festival_base
 
     goal_context = ""
     if goal.lower() == "purchases":
@@ -350,36 +442,94 @@ def _generate_director_concepts(
             "replenishment job when a verified offer exists, and an objection/risk-removal job when a verified "
             "guarantee or proof point exists. Give each job a different composition class."
         )
-
-    portfolio = campaign_portfolios.get(goal.lower(), campaign_portfolios["discover"])
-    if count < 1 or count > len(portfolio):
-        raise ValueError(f"AI Ads supports between 1 and {len(portfolio)} creatives per batch")
-    assigned_portfolio = [dict(item) for item in portfolio[:count]]
-    if angle.lower() != "auto":
-        for item in assigned_portfolio:
-            item["code"] = angle.upper()
-            item["framework"] = f"{angle.upper()} (user-requested framework)"
-
-    assignments_text = "\n\n".join(
-        (
-            f"ASSIGNMENT {index}\n"
-            f"- Framework code (copy exactly): {item['code']}\n"
-            f"- Full framework: {item['framework']}\n"
-            f"- Creative job (copy exactly): {item['job']}\n"
-            f"- Composition class (copy exactly): {item['composition']}\n"
-            f"- Visual direction: {item['direction']}"
+    elif goal.lower() == "festival":
+        goal_context = (
+            "CRITICAL — FESTIVAL CAMPAIGN: This batch is for a major cultural or holiday festival. "
+            "The aesthetic MUST be highly celebratory, vibrant, and culturally relevant to the festival mentioned in the idea. "
+            "Use warm, community-driven messaging, festive motifs (like lights, gifts, traditional patterns if applicable), "
+            "and ensure the product is integrated elegantly into the celebration rather than forced."
         )
-        for index, item in enumerate(assigned_portfolio, start=1)
+
+    import random
+    if goal.lower() in ("auto", "random", ""):
+        # Create a balanced mix (e.g., if count=6, pick 2 from discover, 2 from compare, 2 from purchases)
+        available_pools = [
+            list(campaign_portfolios["discover"]),
+            list(campaign_portfolios["compare"]),
+            list(campaign_portfolios["purchases"])
+        ]
+        for pool in available_pools:
+            random.shuffle(pool)
+            
+        random.shuffle(available_pools)
+        
+        portfolio = []
+        for i in range(count):
+            pool = available_pools[i % 3]
+            if pool:
+                portfolio.append(pool.pop(0))
+            else:
+                for fallback_pool in available_pools:
+                    if fallback_pool:
+                        portfolio.append(fallback_pool.pop(0))
+                        break
+    else:
+        portfolio = campaign_portfolios.get(goal.lower(), campaign_portfolios["discover"])
+        if count < 1 or count > len(portfolio):
+            raise ValueError(f"AI Ads supports between 1 and {len(portfolio)} creatives per batch")
+    
+    # Pass the ENTIRE portfolio as a menu for the LLM to choose from
+    if angle.lower() != "auto":
+        portfolio = [
+            {
+                "code": angle.upper(),
+                "framework": f"{angle.upper()} (user-requested framework)",
+                "job": "Custom user-requested job"
+            }
+        ]
+
+    valid_frameworks = {item['code'].casefold(): item['job'] for item in portfolio}
+
+    assignments_text = "\n".join(
+        (
+            f"- Code: {item['code']} | Framework: {item['framework']} | Job: {item['job']}"
+        )
+        for item in portfolio
     )
-    angle_instruction = (
-        "Use the numbered CREATIVE ASSIGNMENTS exactly, in order. Do not substitute, reorder, or randomly "
-        "sample frameworks. Every assignment owns a different commercial job and composition class."
-    )
-    framework_check = "Every concept must match its numbered assignment exactly."
+    if goal.lower() == "festival":
+        angle_instruction = (
+            f"SELECT exactly {count} distinct frameworks from the FESTIVAL MENU OF AVAILABLE FRAMEWORKS below. "
+            f"CRITICAL: You MUST ONLY use frameworks from this exact list. Do NOT invent new frameworks, borrow from "
+            f"non-festival pools (e.g. Contrast-and-Choice, PAS, AIDA, Spec-Sheet), or go off-menu under any circumstances. "
+            f"Each framework is purpose-built for festive campaigns. Choose the ones that best match the festival/occasion "
+            f"mentioned in ADDITIONAL CONTEXT and the brand's product. Execute exactly one concept per selected framework."
+        )
+        framework_check = (
+            "FESTIVAL LOCK: Every concept MUST use a framework code EXACTLY from the FESTIVAL MENU above. "
+            "No borrowing from other pools. No invented frameworks. If a code is not in the menu list, reject it and pick another."
+        )
+    else:
+        angle_instruction = (
+            f"SELECT exactly {count} distinct frameworks from the MENU OF AVAILABLE FRAMEWORKS below that are BEST SUITED "
+            f"for the brand's industry ({category}) and visual vibe. Do not pick randomly; choose frameworks that logically fit. "
+            f"For example, do not choose 'Dynamic Kinetic Energy' for a calming night serum. Execute exactly one concept per selected framework."
+        )
+        framework_check = "Every concept must use a valid framework code from the menu and its exact matching creative job."
+
+    if post_format.lower() in ("image", "carousel"):
+        persona = "You are an elite Organic Social Media Art Director at a world-class digital agency."
+        job_desc = f"Your job: conceptualize {count} DISTINCT, highly-engaging organic social media {'carousel ' if post_format == 'carousel' else ''}posts for {brand_name}."
+        text_budget_rule = "8. TEXT BUDGET: For organic posts, you may use bold typography, but you are NOT restricted to the 20% ad text rule. Use negative space elegantly."
+        cta_rule = "9. CTA FULL SPEC: For organic posts, a literal button is optional. If you include a CTA on-image, describe its placement (e.g., small pill badge, subtle text prompt like 'Swipe >'). Specify exact text, shape, and brand colors."
+    else:
+        persona = "You are an elite performance-ad Art & Creative Director at a world-class digital agency."
+        job_desc = f"Your job: conceptualize {count} DISTINCT, high-converting social media ad creatives for {brand_name}."
+        text_budget_rule = "8. TEXT BUDGET: Explicitly keep all on-image text under 20% of the frame and preserve generous negative space, unless the specific layout calls for oversized typography."
+        cta_rule = "9. CTA FULL SPEC: You MUST write the EXACT text of the CTA inside the paragraph (e.g., The single call to action is a large, pill-shaped Citron Yellow button with bold text that reads \"Compare Now\"). ALWAYS specify ALL of:\n   - Exact CTA text (must be bold and a bit big)\n   - Shape: pill (fully rounded) / sharp-corner rectangle / rounded rectangle — be explicit\n   - Fill color: named brand color + hex\n   - Text color: named brand color + hex\n   It must fit the campaign goal, be unique within the batch, and cannot imply an unavailable offer."
 
     # ── The Art Director system prompt ────────────────────────────────────────
-    system_prompt = f"""You are an elite performance-ad Art & Creative Director at a world-class digital agency.
-Your job: conceptualize {count} DISTINCT, high-converting social media ad creatives for {brand_name}.
+    system_prompt = f"""{persona}
+{job_desc}
 
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 BRAND DNA:
@@ -401,7 +551,7 @@ ADDITIONAL CONTEXT: {idea if idea else 'None'}
 {goal_context}
 
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-CREATIVE ASSIGNMENTS \u2014 EXECUTE ONE-TO-ONE AND IN THIS ORDER:
+MENU OF AVAILABLE FRAMEWORKS (Select exactly {count}):
 
 {assignments_text}
 
@@ -429,43 +579,66 @@ that psychology; never bolt a random framework onto a generic audience.
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 CREATIVE BRIEF WRITING RULES \u2014 FOLLOW EXACTLY:
 
-Write ONE dense paragraph of 125-190 words per concept. Match the observed MakeLocalAds style: decisive,
+Write ONE dense paragraph of 150-240 words per concept. Match the observed MakeLocalAds style: decisive,
 visual, specific, premium, and immediately executable by an image model. Do not explain your reasoning.
 
 Open naturally by naming the assigned full framework and the precise audience situation. You may begin with
 "Using...", "Grounded in...", "Applying...", or "Based on..." so the batch does not sound templated.
 
 Each brief MUST contain ALL of the following, woven naturally into ONE flowing paragraph:
+{background_rule}
 
-1. ASSIGNMENT FIDELITY: Execute the exact numbered framework, creative job, composition class, and visual
-direction. Do not merge assignments. Name the framework and precise product-grounded audience situation.
+1. ASSIGNMENT FIDELITY: Execute exactly {count} concepts using the {count} frameworks you selected from the menu. Name the framework and precise product-grounded audience situation. Ensure the 'angle' exactly matches the Code and 'creative_job' exactly matches the Job from the menu.
 
-2. POSITIONING + PROOF: State the single positioning idea and use only benefits, ingredients, specifications, prices, offers, or claims present in PRODUCT INTELLIGENCE. Never fabricate statistics, testimonials, guarantees, discounts, certifications, competitor facts, or product capabilities.
+2. POSITIONING + EMOTIONAL STAKE: Open with what emotional argument this ad makes — one sentence stating WHY
+the visuals exist (e.g. 'emphasizes clean, plant-powered ingredients over synthetic alternatives'). Then state
+the single positioning idea. Use only benefits, ingredients, specifications, prices, offers, or claims from
+PRODUCT INTELLIGENCE. Never fabricate statistics, testimonials, guarantees, discounts, certifications, or
+competitor facts.
 
-3. VISUAL COMPOSITION: Describe the exact scene and spatial layout in executable detail. Specify foreground,
-background, product scale and placement, supporting props, lighting direction, camera perspective, surface or
-environment, and what occupies each important region. Use the assigned composition class visibly. For comparison
-concepts, use a generic alternative unless named competitor evidence was explicitly supplied.
+3. VISUAL COMPOSITION + BACKGROUND SURFACE: You must INVENT a highly creative, premium, and dynamic visual composition that perfectly matches the assigned framework. DO NOT default to a boring 'product on a desk'.
+   - Examples of dynamic compositions: Asymmetrical multi-panel collages (e.g. large lifestyle hero on the left, two stacked macro detail shots on the right), aggressive split-screens (e.g., oily face vs matte face, or messy spreadsheet vs clean UI), dramatic cross-outs of competitor products or old methods, infographic posters with hand-drawn arrows, oversized data-visualization bar charts, high-energy kinetic splashes, immersive lush flat-lays, or floating device mockups. FORCE aggressive comparison visuals and complex collage structures when appropriate.
+   - Describe the exact scene in full executable detail. ALWAYS specify:
+   - Background: named color + hex code + one texture adjective. SUGGESTION: Often use solid colors or subtle gradients derived directly from the PRODUCT's colors (rather than just brand colors or natural environments) for a high-impact, modern look.
+   - Layout structural element: wave separator, split partition, chart axes, sunburst rays, grid, etc.
+   - Product placement: which variant, exactly which third of frame, what the product is RESTING ON or SURROUNDED BY (pedestal, ingredient bed, props, surface slab — NOT a generic 'clean white surface')
+   - Supporting props in foreground/background that make it feel like a premium photoshoot
+   - Lighting direction and quality
 
 4. VISUAL HERO: Explicitly say "The visual hero is..." and define the single dominant element or contrast.
 Ground product form, orientation, visible label details, packaging colors, and material in the verified reference.
-Do not request multiple hero products unless a verified multi-pack assignment requires them.
+CRITICAL: If the product intelligence mentions an offer for a "3-pack", "5-pack", or bundle, you MUST explicitly instruct the visual layout to display EXACTLY 3 or 5 instances of the product. Do not request multiple hero products unless a verified multi-pack assignment requires them.
 
-5. COLOR PALETTE: Derive product colors from VERIFIED PRODUCT APPEARANCE and brand/layout colors from the BRAND DESIGN GUIDE. Name colors descriptively and use exact design-guide tokens when available. Reserve one accent color for the CTA or a single high-attention element.
+5. COLOR PALETTE: Name all colors using BOTH the brand name AND hex (e.g. 'Hunter Green (#034638)' not just
+'#034638'). Derive product colors from VERIFIED PRODUCT APPEARANCE. Reserve one named+hex accent color for the
+CTA only.
 
-6. HEADLINE + PROOF COPY: State the EXACT short on-image headline in double quotes, normally 4-8 words.
-Include at most two short proof callouts, only when verified. Specify the exact brand headline/body fonts when
-available. The headline must be unique within the batch.
+6. HEADLINE SPEC: You MUST write the EXACT text of the headline inside the paragraph (e.g., The on-image headline is "Your text here." in the bold, vintage WindsorEF typeface).
+   - CRITICAL COPYWRITING RULE: DO NOT use generic, fluffy D2C hooks. Your hooks MUST be visceral, aggressive, and highly-specific. Use physical or emotional action verbs that attack the core pain point.
+   - HEADLINE FORMATTING: The headline font MUST be described as BIG and bold. You MUST include a full stop (period) at the end of every headline.
+   ALWAYS specify:
+   - Font name (exact brand font)
+   - Font weight (ultra-heavy / bold / medium — never leave blank)
+   - Tracking / letter-spacing feel (tightly tracked / loose / standard)
+   - Color: named brand color + hex
+   - Typographic Layout & Placement: DO NOT just say "text at the top". You MUST describe exactly how the text is physically arranged. Use highly dynamic, premium layouts (e.g., "curved in a bold arch tightly wrapping over the product", "stacked asymmetrically on the left with oversized letters bleeding off the edge", "floating dynamically among the ingredients"). Be extremely visual and specific.
+   Include at most two short proof callouts, only when verified. The headline must be unique within the batch.
 
-7. TEXT BUDGET: Explicitly keep all on-image text under 20% of the frame and preserve generous negative space.
+7. TYPOGRAPHY ASSIGNMENTS: Explicitly assign a font per text role:
+   - Headline: [font name] [weight]
+   - Body/support text: [font name] [weight]
+   - CTA text: [font name] [weight]
+   Do not leave any text role without a font assignment.
 
-8. CTA: Define one exact CTA in double quotes, including its shape, background color, text color, and corner
-treatment. It must fit the campaign goal, be unique within the batch, and cannot imply an unavailable offer.
+{text_budget_rule}
 
-9. BRAND ALIGNMENT: End with "To keep this ad on-brand," followed by concrete typography, palette, spacing,
-motif, and layout directions taken from the BRAND DESIGN GUIDE. Do not replace exact tokens with generic styles.
+{cta_rule}
 
-10. LANGUAGE: All visible headline, proof copy, CTA text, and caption must use {language or 'English'}. Do not mix languages unless ADDITIONAL CONTEXT explicitly asks for it.
+10. BRAND ALIGNMENT: End with "To keep this ad on-brand," followed by concrete typography rules (font weight,
+tracking feel), named palette rules (use exact named+hex tokens), brand motif usage, and spacing rules taken
+from the BRAND DESIGN GUIDE. This sentence should make the creative feel unmistakably like the brand.
+
+11. LANGUAGE: The entire output, including the instructions (the direction), audience angle, headline, proof copy, CTA text, and caption MUST be written strictly in {language or 'English'}. Do not mix languages unless ADDITIONAL CONTEXT explicitly asks for it.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT FORMAT:
@@ -511,7 +684,7 @@ and CTA button styles specified above. Do NOT use generic terms like 'grape purp
         def _call_director(messages: List[Dict[str, str]], temperature: float) -> str:
             # Scale only with the requested batch. Eight dense briefs need more
             # room than one, but there is still one Director call per batch.
-            output_token_cap = min(3200, max(760, 320 + (count * 340)))
+            output_token_cap = min(5000, max(900, 400 + (count * 520)))
             res = requests.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
@@ -544,7 +717,6 @@ and CTA button styles specified above. Do NOT use generic terms like 'grape purp
                 if not isinstance(concept, dict):
                     raise ValueError(f"Concept {index + 1} is not an object")
 
-                expected = assigned_portfolio[index]
                 try:
                     assignment_id = int(concept.get("assignment_id"))
                 except (TypeError, ValueError):
@@ -553,47 +725,31 @@ and CTA button styles specified above. Do NOT use generic terms like 'grape purp
                     raise ValueError(f"Concept {index + 1} does not match assignment {index + 1}")
 
                 framework_code = str(concept.get("angle") or "").strip()
-                if framework_code.casefold() != expected["code"].casefold():
+                if framework_code.casefold() not in valid_frameworks:
                     raise ValueError(
-                        f"Concept {index + 1} used framework '{framework_code}' instead of '{expected['code']}'"
+                        f"Concept {index + 1} used framework code '{framework_code}' which is not in the menu."
                     )
+                
                 creative_job = str(concept.get("creative_job") or "").strip()
-                if creative_job.casefold() != expected["job"].casefold():
-                    raise ValueError(f"Concept {index + 1} changed its assigned creative job")
+                expected_job = valid_frameworks[framework_code.casefold()]
+                if creative_job.casefold() != expected_job.casefold():
+                    raise ValueError(f"Concept {index + 1} used job '{creative_job}' instead of '{expected_job}'")
                 composition_class = str(concept.get("composition_class") or "").strip()
-                if composition_class.casefold() != expected["composition"].casefold():
-                    raise ValueError(f"Concept {index + 1} changed its assigned composition class")
+                if not composition_class:
+                    raise ValueError(f"Concept {index + 1} is missing its invented composition class")
 
                 instructions = str(concept.get("instructions") or "").strip()
-                word_count = len(instructions.split())
-                if not 110 <= word_count <= 210:
-                    raise ValueError(f"Concept {index + 1} brief has {word_count} words; expected 110-210")
-                lower_instructions = instructions.lower()
-                normalized_instructions = " ".join(
-                    lower_instructions
-                    .replace("\u201c", '"')
-                    .replace("\u201d", '"')
-                    .replace("\u2018", "'")
-                    .replace("\u2019", "'")
-                    .split()
-                )
-                accepted_openers = ("using ", "grounded in ", "applying ", "based on ")
-                if not lower_instructions.startswith(accepted_openers):
-                    raise ValueError(f"Concept {index + 1} does not open with its framework")
-                for required_phrase in ("the visual hero is", "to keep this ad on-brand"):
-                    if required_phrase not in lower_instructions:
-                        raise ValueError(f"Concept {index + 1} is missing '{required_phrase}'")
-                if "call to action" not in lower_instructions and "cta" not in lower_instructions:
-                    raise ValueError(f"Concept {index + 1} is missing a CTA specification")
+                if not instructions:
+                    raise ValueError(f"Concept {index + 1} is missing its instructions")
 
                 headline = str(concept.get("headline") or "").strip().strip('"\u201c\u201d')
                 cta = str(concept.get("cta") or "").strip().strip('"\u201c\u201d')
                 normalized_headline = " ".join(headline.casefold().split())
                 normalized_cta = " ".join(cta.casefold().split())
-                if not normalized_headline or normalized_headline not in normalized_instructions:
-                    raise ValueError(f"Concept {index + 1} is missing its exact headline text")
-                if not normalized_cta or normalized_cta not in normalized_instructions:
-                    raise ValueError(f"Concept {index + 1} is missing its exact CTA text")
+                if not normalized_headline:
+                    raise ValueError(f"Concept {index + 1} is missing its headline text in the JSON")
+                if not normalized_cta:
+                    raise ValueError(f"Concept {index + 1} is missing its CTA text in the JSON")
                 if headline.casefold() in seen_headlines:
                     raise ValueError(f"Concept {index + 1} repeats a headline")
                 if cta.casefold() in seen_ctas:
@@ -655,7 +811,8 @@ def generate_ad_creatives(
     ref_images: List[str] = None,
     user_plan: str = "",
     language: str = "English",
-    brand_design_guide: str = ""
+    brand_design_guide: str = "",
+    post_format: str = "ad"
 ) -> List[Dict]:
     print(f"\n[AdsAgent] \U0001f3ac Starting Ad Generation: {count} concepts | Goal: {campaign_goal} | Angle: {campaign_angle}")
 
@@ -670,6 +827,7 @@ def generate_ad_creatives(
         aspect_ratio=aspect_ratio,
         language=language,
         brand_design_guide=brand_design_guide,
+        post_format=post_format,
     )
     if not concepts:
         raise ValueError("Director LLM returned no concepts.")
@@ -698,7 +856,7 @@ def generate_ad_creatives(
         prod_appearance = f"The product: {idea if idea else 'A premium item'}. It should look high-quality, authentic, and properly lit."
 
     # \u2500\u2500 Step 3: Build Block 3 (Design Requirements) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-    # Verbatim format matching makelocalads \u2014 no dynamic hex injection in this block
+    # Verbatim format matching makelocalads — no dynamic hex injection in this block
     design_reqs = """\
 - Follow the instructions by the director.
 - Make the ad design, layout, typography on-branded, but should look premium, editorial-like.
@@ -741,6 +899,14 @@ def generate_ad_creatives(
     # creative receives the same ordered values.
     product_refs = []
     seen_refs = set()
+    
+    if products and len(products) > 0:
+        prod_img = (products[0].get("imageBase64") or "").strip()
+        if prod_img and prod_img not in seen_refs:
+            if not (has_logo and prod_img == brand_logo):
+                seen_refs.add(prod_img)
+                product_refs.append(prod_img)
+
     for img in ref_images or []:
         if not isinstance(img, str):
             continue
@@ -768,8 +934,16 @@ def generate_ad_creatives(
         instructions = concept.get("instructions", "")
         caption = concept.get("caption", "Discover our latest collection.")
 
+        headline_text = concept.get("headline", "")
+        cta_text = concept.get("cta", "")
+        fallback_text = ""
+        if headline_text and headline_text.lower() not in instructions.lower():
+            fallback_text += f'\nThe on-image headline is "{headline_text}".'
+        if cta_text and cta_text.lower() not in instructions.lower():
+            fallback_text += f'\nThe single call to action is a button that reads "{cta_text}".'
+
         full_prompt = (
-            f"Instructions by the director: {instructions}\n\n"
+            f"Instructions by the director: {instructions}{fallback_text}\n\n"
             f"Product appearance: {prod_appearance}\n\n"
             f"Use the product appearance text only as a private visual reference for accurately drawing the product. "
             f"Do not print, quote, paraphrase, label, or turn any of that description into ad copy. "

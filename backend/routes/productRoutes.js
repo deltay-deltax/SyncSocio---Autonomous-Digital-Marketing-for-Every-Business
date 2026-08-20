@@ -52,6 +52,8 @@ router.post('/', protect, async (req, res) => {
   try {
     const {
       imageBase64,
+      imageUrls,
+      specifications,
       name,
       description,
       price,
@@ -96,10 +98,29 @@ router.post('/', protect, async (req, res) => {
       imageUrl = imageBase64 || '';
     }
 
+    let processedImageUrls = [];
+    if (Array.isArray(imageUrls)) {
+      for (const u of imageUrls) {
+        if (u && !u.startsWith('http')) {
+          try {
+            const upUrl = await uploadBase64ToCloudinary(u, 'syncsocio/products');
+            processedImageUrls.push(upUrl);
+          } catch (e) {
+            console.error('[Products] Cloudinary imageUrls upload failed:', e.message);
+            processedImageUrls.push(u);
+          }
+        } else {
+          processedImageUrls.push(u);
+        }
+      }
+    }
+
     const product = await Product.create({
       user: req.user._id,
       brandId: req.user.activeBrandId,
       imageBase64: imageUrl, // field kept for backward compatibility, now stores url
+      imageUrls: processedImageUrls,
+      specifications: specifications || [],
       name,
       description: description || '',
       price: price || '',
@@ -139,19 +160,51 @@ router.put('/:id', protect, async (req, res) => {
     if ('guarantee' in updateData) updateData.guarantee = compactString(updateData.guarantee, 100);
     if ('sourceUrl' in updateData) updateData.sourceUrl = compactString(updateData.sourceUrl, 500);
     
+    const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user._id });
+    if (!oldProduct) return res.status(404).json({ error: 'Product not found' });
+
+    let imageChanged = false;
+
     // If updating imageBase64 and it's a new base64 string
-    if (updateData.imageBase64 && !updateData.imageBase64.startsWith('http')) {
+    if (updateData.imageBase64 && !updateData.imageBase64.startsWith('http') && updateData.imageBase64 !== oldProduct.imageBase64) {
       try {
-        // Fetch original to delete its image first
-        const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user._id });
-        if (oldProduct && oldProduct.imageBase64 && oldProduct.imageBase64.startsWith('http')) {
+        if (oldProduct.imageBase64 && oldProduct.imageBase64.startsWith('http')) {
           await deleteFromCloudinary(oldProduct.imageBase64).catch(() => {});
         }
         updateData.imageBase64 = await uploadBase64ToCloudinary(updateData.imageBase64, 'syncsocio/products');
+        imageChanged = true;
       } catch (uploadErr) {
         console.error('[Products] Cloudinary product update failed:', uploadErr.message);
       }
+    } else if (updateData.imageBase64 !== oldProduct.imageBase64) {
+      imageChanged = true;
     }
+
+    if (updateData.imageUrls && JSON.stringify(updateData.imageUrls) !== JSON.stringify(oldProduct.imageUrls)) {
+      let processedUrls = [];
+      for (const u of updateData.imageUrls) {
+        if (u && !u.startsWith('http')) {
+          try {
+            const upUrl = await uploadBase64ToCloudinary(u, 'syncsocio/products');
+            processedUrls.push(upUrl);
+          } catch (e) {
+            console.error('[Products] Cloudinary imageUrls update failed:', e.message);
+            processedUrls.push(u);
+          }
+        } else {
+          processedUrls.push(u);
+        }
+      }
+      updateData.imageUrls = processedUrls;
+      imageChanged = true;
+    }
+
+    if (imageChanged) {
+      updateData.adVisualDescription = '';
+      updateData.adVisualDescriptionSecondary = '';
+      updateData.adVisualDescriptionStatus = '';
+    }
+
 
     const product = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },

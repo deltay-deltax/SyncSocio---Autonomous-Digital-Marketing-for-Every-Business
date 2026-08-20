@@ -419,12 +419,7 @@ export default function ClonePage() {
                     >
                       Tweak inputs
                     </button>
-                    <button
-                      onClick={generate}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary/90"
-                    >
-                      <Wand2 className="h-4 w-4" /> Regenerate
-                    </button>
+
                   </>
                 ) : (
                   <button

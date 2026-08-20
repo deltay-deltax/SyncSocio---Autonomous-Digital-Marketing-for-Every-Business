@@ -1,0 +1,882 @@
+
+
+========================================
+ANALYZING: d:\Major_Project\makelocalads.com_ecom_product.har
+========================================
+
+
+--- REQUEST TO https://makelocalads.com/api/amazon-listing/image-ideas/stream ---
+--- PAYLOAD ---
+{
+  "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+  "marketplace": {
+    "id": "in",
+    "label": "India",
+    "domain": "amazon.in"
+  }
+}
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.saveIdeas?batch=1 ---
+--- PAYLOAD ---
+{
+  "0": {
+    "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+    "marketplace": "in",
+    "ideas": [
+      {
+        "slotType": "main",
+        "summary": "Show the exact 3-pack bundle: three Goli Ashwa Gummies bottles on a pure white background, evenly spaced with front labels clearly facing camera. No loose gummies, props, text, badges, or graphics. Clean bright lighting, sharp focus, accurate cyan-blue bottle color, and the bundle filling most of the square frame while fully visible."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Create a benefit-led product image with one bottle and a few gummies on a clean light background, using concise callouts for the four supported wellness areas: stress and relaxation support, sleep quality support, memory and concentration support, and healthy immune system support. Keep language supportive rather than cure-oriented, and make the bottle label prominent."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Highlight the key active ingredients visually: bottle in center with neat ingredient callouts for KSM-66 Ashwagandha Root Extract, Vitamin D2, and pectin. Include tasteful botanical-style ashwagandha root illustration or simple ingredient icons without implying medical treatment. Show glossy berry-red gummies to reinforce the gummy format."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Feature dietary fit and free-from details in a clean icon grid beside the bottle. Prioritize vegan-friendly and gelatin-free, then group major free-from items such as gluten, soy, dairy, wheat, egg, peanuts, shellfish, synthetic colors, yeast, agave, and salicylates. Make it easy to scan for shoppers with dietary restrictions."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Show the value and replenishment story of the 3-pack with three bottles arranged in a tidy row and a simple visual cue that this is a one-time purchase 3-pack. Emphasize daily wellness routine and having multiple bottles on hand, without making savings or duration claims that are not provided."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Create a routine-context image on a clean bathroom vanity or bedside table with one bottle, a small dish containing two berry-red gummies, and a glass of water. The scene should feel calm and adult wellness-oriented, suggesting an easy daily habit while avoiding dosage instructions or medical claims."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Show a close-up macro image of the gummies: glossy, translucent deep berry-red, dome-shaped pieces with jelly texture, next to the bottle label showing Mixed Berry. Use this to communicate flavor format and texture in a visually appetizing but supplement-appropriate way."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Create a label-detail image showing the front and side of the bottle clearly enough to see the Goli branding, Ashwagandha Gummies name, 60 gummies count, and the visible label icons such as gluten-free, non-GMO, plant-based, vegan, and KSM-66 reference. This helps shoppers verify what they are buying."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Create a clean informational image showing the 3-pack contents and package consistency: three identical bottles with one angled to reveal the supplement facts side panel and one facing front. Add a concise note to check the product label for full ingredients and suggested use, supporting transparency without overcrowding the image."
+      }
+    ]
+  }
+}
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "ideas": [
+          {
+            "id": "f77ce9b9-d643-40c6-951b-8224443c1741",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "main",
+            "slotType": "main",
+            "title": "MAIN IMG",
+            "summary": "Show the exact 3-pack bundle: three Goli Ashwa Gummies bottles on a pure white background, evenly spaced with front labels clearly facing camera. No loose gummies, props, text, badges, or graphics. Clean bright lighting, sharp focus, accurate cyan-blue bottle color, and the bundle filling most of the square frame while fully visible.",
+            "creativeId": null,
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:04.906Z"
+          },
+          {
+            "id": "a8caeb5c-2689-47a6-b9c7-4a8b4d9ae606",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-1",
+            "slotType": "variant",
+            "title": "VARIANT IMG #1",
+            "summary": "Create a benefit-led product image with one bottle and a few gummies on a clean light background, using concise callouts for the four supported wellness areas: stress and relaxation support, sleep quality support, memory and concentration support, and healthy immune system support. Keep language supportive rather than cure-oriented, and make the bottle label prominent.",
+            "creativeId": null,
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:04.906Z"
+          },
+          {
+            "id": "615511e8-a000-4469-aa18-e27464c63eae",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-2",
+            "slotType": "variant",
+            "title": "VARIANT IMG #2",
+            "summary": "Highlight the key active ingredients visually: bottle in center with neat ingredient callouts for KSM-66 Ashwagandha Root Extract, Vitamin D2, and pectin. Include tasteful botanical-style ashwagandha root illustration or simple ingredient icons without implying medical treatment. Show glossy berry-red gummies to reinforce the gummy format.",
+            "creativeId": null,
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:04.906Z"
+          },
+          {
+            "id": "7ffb482b-b02c-4c1b-b8d9-8532aef10b74",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-3",
+            "slotType": "variant",
+            "title": "VARIANT IMG #3",
+            "summary": "Feature dietary fit and free-from details in a clean icon grid beside the bottle. Prioritize vegan-friendly and gelatin-free, then group major free-from items such as gluten, soy, dairy, wheat, egg, peanuts, shellfish, synthetic colors, yeast,...
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.listIdeas?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%227e9246c0-11d0-461e-8ea2-dee55cfe63a1%22%2C%22marketplace%22%3A%22in%22%7D%7D ---
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "ideas": [
+          {
+            "id": "f77ce9b9-d643-40c6-951b-8224443c1741",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "main",
+            "slotType": "main",
+            "title": "MAIN IMG",
+            "summary": "Show the exact 3-pack bundle: three Goli Ashwa Gummies bottles on a pure white background, evenly spaced with front labels clearly facing camera. No loose gummies, props, text, badges, or graphics. Clean bright lighting, sharp focus, accurate cyan-blue bottle color, and the bundle filling most of the square frame while fully visible.",
+            "creativeId": null,
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:04.906Z"
+          },
+          {
+            "id": "a8caeb5c-2689-47a6-b9c7-4a8b4d9ae606",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-1",
+            "slotType": "variant",
+            "title": "VARIANT IMG #1",
+            "summary": "Create a benefit-led product image with one bottle and a few gummies on a clean light background, using concise callouts for the four supported wellness areas: stress and relaxation support, sleep quality support, memory and concentration support, and healthy immune system support. Keep language supportive rather than cure-oriented, and make the bottle label prominent.",
+            "creativeId": null,
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:04.906Z"
+          },
+          {
+            "id": "615511e8-a000-4469-aa18-e27464c63eae",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-2",
+            "slotType": "variant",
+            "title": "VARIANT IMG #2",
+            "summary": "Highlight the key active ingredients visually: bottle in center with neat ingredient callouts for KSM-66 Ashwagandha Root Extract, Vitamin D2, and pectin. Include tasteful botanical-style ashwagandha root illustration or simple ingredient icons without implying medical treatment. Show glossy berry-red gummies to reinforce the gummy format.",
+            "creativeId": null,
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:04.906Z"
+          },
+          {
+            "id": "7ffb482b-b02c-4c1b-b8d9-8532aef10b74",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-3",
+            "slotType": "variant",
+            "title": "VARIANT IMG #3",
+            "summary": "Feature dietary fit and free-from details in a clean icon grid beside the bottle. Prioritize vegan-friendly and gelatin-free, then group major free-from items such as gluten, soy, dairy, wheat, egg, peanuts, shellfish, synthetic colors, yeast,...
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.generateAllCreatives?batch=1 ---
+--- PAYLOAD ---
+{
+  "0": {
+    "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+    "marketplace": "in",
+    "maxCreatives": 9,
+    "summaries": [
+      {
+        "ideaId": "f77ce9b9-d643-40c6-951b-8224443c1741",
+        "summary": "Show the exact 3-pack bundle: three Goli Ashwa Gummies bottles on a pure white background, evenly spaced with front labels clearly facing camera. No loose gummies, props, text, badges, or graphics. Clean bright lighting, sharp focus, accurate cyan-blue bottle color, and the bundle filling most of the square frame while fully visible."
+      },
+      {
+        "ideaId": "a8caeb5c-2689-47a6-b9c7-4a8b4d9ae606",
+        "summary": "Create a benefit-led product image with one bottle and a few gummies on a clean light background, using concise callouts for the four supported wellness areas: stress and relaxation support, sleep quality support, memory and concentration support, and healthy immune system support. Keep language supportive rather than cure-oriented, and make the bottle label prominent."
+      },
+      {
+        "ideaId": "615511e8-a000-4469-aa18-e27464c63eae",
+        "summary": "Highlight the key active ingredients visually: bottle in center with neat ingredient callouts for KSM-66 Ashwagandha Root Extract, Vitamin D2, and pectin. Include tasteful botanical-style ashwagandha root illustration or simple ingredient icons without implying medical treatment. Show glossy berry-red gummies to reinforce the gummy format."
+      },
+      {
+        "ideaId": "7ffb482b-b02c-4c1b-b8d9-8532aef10b74",
+        "summary": "Feature dietary fit and free-from details in a clean icon grid beside the bottle. Prioritize vegan-friendly and gelatin-free, then group major free-from items such as gluten, soy, dairy, wheat, egg, peanuts, shellfish, synthetic colors, yeast, agave, and salicylates. Make it easy to scan for shoppers with dietary restrictions."
+      },
+      {
+        "ideaId": "076dd092-817c-4cda-aa9b-38a072a124e9",
+        "summary": "Show the value and replenishment story of the 3-pack with three bottles arranged in a tidy row and a simple visual cue that this is a one-time purchase 3-pack. Emphasize daily wellness routine and having multiple bottles on hand, without making savings or duration claims that are not provided."
+      },
+      {
+        "ideaId": "89473ebd-f353-473b-899f-4285b37cb0c8",
+        "summary": "Create a routine-context image on a clean bathroom vanity or bedside table with one bottle, a small dish containing two berry-red gummies, and a glass of water. The scene should feel calm and adult wellness-oriented, suggesting an easy daily habit while avoiding dosage instructions or medical claims."
+      },
+      {
+        "ideaId": "8bdd1369-8902-43a0-83b1-dee83af5de85",
+        "summary": "Show a close-up macro image of the gummies: glossy, translucent deep berry-red, dome-shaped pieces with jelly texture, next to the bottle label showing Mixed Berry. Use this to communicate flavor format and texture in a visually appetizing but supplement-appropriate way."
+      },
+      {
+        "ideaId": "53993012-1696-494a-850f-59b73c19bc29",
+        "summary": "Create a label-detail image showing the front and side of the bottle clearly enough to see the Goli branding, Ashwagandha Gummies name, 60 gummies count, and the visible label icons such as gluten-free, non-GMO, plant-based, vegan, and KSM-66 reference. This helps shoppers verify what they are buying."
+      },
+      {
+        "ideaId": "89ce49ac-08df-41c4-ae9c-7d280f6baf0c",
+        "summary": "Create a clean informational image showing the 3-pack contents and package consistency: three identical bottles with one angled to reveal the supplement facts side panel and one facing front. Add a concise note to check the product label for full ingredients and suggested use, supporting transparency without overcrowding the image."
+      }
+    ]
+  }
+}
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "generationJobId": "1f6187be-e149-4b2a-bfea-ec1fd7dcf5cf",
+        "createdCount": 9,
+        "creatives": [
+          {
+            "ideaId": "f77ce9b9-d643-40c6-951b-8224443c1741",
+            "creativeId": "23925b39-c1ca-445f-a902-c21aabe98921",
+            "triggerRunId": "run_06g1iu4qqdkup9pn9el0cl3701"
+          },
+          {
+            "ideaId": "a8caeb5c-2689-47a6-b9c7-4a8b4d9ae606",
+            "creativeId": "e34f7d8a-d341-47b4-9d56-c0731afcd563",
+            "triggerRunId": "run_06g1iu4qqn7hif87gggq9rme01"
+          },
+          {
+            "ideaId": "615511e8-a000-4469-aa18-e27464c63eae",
+            "creativeId": "916a0c2a-4e8c-4dae-b762-47c3b7398855",
+            "triggerRunId": "run_06g1iu4qsibkcc4gnu40onb901"
+          },
+          {
+            "ideaId": "7ffb482b-b02c-4c1b-b8d9-8532aef10b74",
+            "creativeId": "4c30dcf0-8baa-4f28-ad9a-8f3b1d7b6ff9",
+            "triggerRunId": "run_06g1iu4qr0nbr59oo594rjj101"
+          },
+          {
+            "ideaId": "076dd092-817c-4cda-aa9b-38a072a124e9",
+            "creativeId": "ce3bf50e-75a5-41ad-a007-65bf2a563876",
+            "triggerRunId": "run_06g1iu4qqko1gsrdj2m591q801"
+          },
+          {
+            "ideaId": "89473ebd-f353-473b-899f-4285b37cb0c8",
+            "creativeId": "9d583e51-4f27-45f5-90f9-54aab40d9883",
+            "triggerRunId": "run_06g1iu4qrmr0fo1pkit22ngk01"
+          },
+          {
+            "ideaId": "8bdd1369-8902-43a0-83b1-dee83af5de85",
+            "creativeId": "3d7ef8ea-b074-42bc-bf26-f70a2750719c",
+            "triggerRunId": "run_06g1iu4rt9ol2qnmjsrn1bou01"
+          },
+          {
+            "ideaId": "53993012-1696-494a-850f-59b73c19bc29",
+            "creativeId": "2bb98be6-835e-44d1-8df7-0c9f4a842651",
+            "triggerRunId": "run_06g1iu4rtf58la8vtnl9btcv01"
+          },
+          {
+            "ideaId": "89ce49ac-08df-41c4-ae9c-7d280f6baf0c",
+            "creativeId": "e5309b85-9a0a-4d2e-94cd-b6b2a30edd1a",
+            "triggerRunId": "run_06g1iu4ru3hvtflvt5mfgn9501"
+          }
+        ]
+      }
+    }
+  }
+]...
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.listIdeas?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%227e9246c0-11d0-461e-8ea2-dee55cfe63a1%22%2C%22marketplace%22%3A%22in%22%7D%7D ---
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "ideas": [
+          {
+            "id": "f77ce9b9-d643-40c6-951b-8224443c1741",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "main",
+            "slotType": "main",
+            "title": "MAIN IMG",
+            "summary": "Show the exact 3-pack bundle: three Goli Ashwa Gummies bottles on a pure white background, evenly spaced with front labels clearly facing camera. No loose gummies, props, text, badges, or graphics. Clean bright lighting, sharp focus, accurate cyan-blue bottle color, and the bundle filling most of the square frame while fully visible.",
+            "creativeId": "23925b39-c1ca-445f-a902-c21aabe98921",
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:08.437Z"
+          },
+          {
+            "id": "a8caeb5c-2689-47a6-b9c7-4a8b4d9ae606",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-1",
+            "slotType": "variant",
+            "title": "VARIANT IMG #1",
+            "summary": "Create a benefit-led product image with one bottle and a few gummies on a clean light background, using concise callouts for the four supported wellness areas: stress and relaxation support, sleep quality support, memory and concentration support, and healthy immune system support. Keep language supportive rather than cure-oriented, and make the bottle label prominent.",
+            "creativeId": "e34f7d8a-d341-47b4-9d56-c0731afcd563",
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:08.437Z"
+          },
+          {
+            "id": "615511e8-a000-4469-aa18-e27464c63eae",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-2",
+            "slotType": "variant",
+            "title": "VARIANT IMG #2",
+            "summary": "Highlight the key active ingredients visually: bottle in center with neat ingredient callouts for KSM-66 Ashwagandha Root Extract, Vitamin D2, and pectin. Include tasteful botanical-style ashwagandha root illustration or simple ingredient icons without implying medical treatment. Show glossy berry-red gummies to reinforce the gummy format.",
+            "creativeId": "916a0c2a-4e8c-4dae-b762-47c3b7398855",
+            "createdAt": "2026-08-19T10:02:04.906Z",
+            "updatedAt": "2026-08-19T10:02:08.437Z"
+          },
+          {
+            "id": "7ffb482b-b02c-4c1b-b8d9-8532aef10b74",
+            "offeringId": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+            "marketplace": "in",
+            "slotId": "variant-3",
+            "slotType": "variant",
+            "title": "VARIANT IMG #3",
+            "summary": "Feature dietary fit and free-from details in a clean icon grid beside the bottle. Prioritize vegan-friendly and gelatin-free, then group majo...
+
+--- REQUEST TO https://makelocalads.com/api/trpc/credits.overview,brands.list,billing.subscription,offerings.searchSidebar,referrals.status,brands.getDesignGuide,notifications.list,offerings.list,offerings.get,amazonListing.listIdeas,creatives.feed?batch=1&input=%7B%221%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%7D%2C%222%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%7D%2C%223%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%2C%22brandId%22%3A%22a77d596c-a723-4e98-81df-d7b21f76d718%22%2C%22limit%22%3A5%7D%2C%224%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%7D%2C%225%22%3A%7B%22brandId%22%3A%22a77d596c-a723-4e98-81df-d7b21f76d718%22%7D%2C%227%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%7D%2C%228%22%3A%7B%22offeringId%22%3A%227e9246c0-11d0-461e-8ea2-dee55cfe63a1%22%7D%2C%229%22%3A%7B%22offeringId%22%3A%227e9246c0-11d0-461e-8ea2-dee55cfe63a1%22%2C%22marketplace%22%3A%22in%22%7D%2C%2210%22%3A%7B%22offeringId%22%3A%227e9246c0-11d0-461e-8ea2-dee55cfe63a1%22%2C%22studioType%22%3A%22amazon-listing%22%2C%22limit%22%3A50%7D%7D ---
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "summary": {
+          "availableCredits": 120,
+          "allottedCredits": 150,
+          "usedCredits": 30,
+          "manualAllotted": 0,
+          "subscriptionAllotted": 150,
+          "cycleUsedCredits": 30
+        },
+        "allotments": [
+          {
+            "id": "428b6607-1f70-40ad-bbf7-d5d1a0d73753",
+            "creditDelta": 150,
+            "description": "Starter plan: 150 credits",
+            "createdAt": "2026-08-19T05:40:40.124Z"
+          }
+        ],
+        "dailyUsage": [
+          {
+            "date": "2026-08-19",
+            "credits": 30
+          }
+        ]
+      }
+    }
+  },
+  {
+    "result": {
+      "data": [
+        {
+          "id": "a77d596c-a723-4e98-81df-d7b21f76d718",
+          "orgId": "2702cd00-4d2a-4e59-b411-0582c2d8d675",
+          "name": "Goli",
+          "slug": "goli",
+          "websiteUrl": "https://goli.com/",
+          "brandProfile": {
+            "logoUrl": "https://localads.t3.storage.dev/brand-logos/a77d596c-a723-4e98-81df-d7b21f76d718/e690ef98-de14-4dcb-824e-bd65b41d1600.png",
+            "logoStatus": "ready",
+            "logoSourceUrl": "https://goli.com/cdn/shop/t/52/assets/goli_logo.svg?v=69744193860116714471772212230",
+            "sellingCountries": []
+          },
+          "createdBy": "17e6ccf4-32c6-4940-a6bd-5399371b4258",
+          "createdAt": "2026-08-19T05:56:46.825Z",
+          "updatedAt": "2026-08-19T05:57:54.226Z"
+        }
+      ]
+    }
+  },
+  {
+    "result": {
+      "data": {
+        "active": true,
+        "state": "starter",
+        "hadPriorSubscription": true,
+        "limits": {
+          "maxBrands": 3,
+          "maxOfferings": 10,
+          "canGenerate": "credits",
+          "creativesPerAngle": null,
+          "locked": [],
+          "credits": 150
+        },
+        "plan": {
+          "slug": "starter",
+          "label": "Starter",
+          "creditsPerCycle": 150,
+          "currentPeriodEnd": "2026-08-26T05:40:37.818Z",
+          "status": "active",
+          "trialEndsAt": "2026-08-26T05:40:37.818Z",
+          "isTrialing": true,
+          "cancelAtPeriodEnd": false,
+          "isManual": false
+        },
+        "plans": {
+          "starter": {
+            "slug": "starter",
+            "label": "Starter",
+            "credits": 150,
+            "usd": 49,
+            "maxBrands": 3,
+            "maxOfferings": 10
+          },
+          "pro": {
+            "slug": "pro",
+            "label": "Pro",
+            "credits": 400,
+            "usd": 99,
+            "maxBrands": 10,
+            "maxOfferings": 50
+          }
+        }
+      }
+    }
+  },
+  {
+    "result": {
+      "data": [
+        {
+          "id": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+          "name": "Goli\u00ae Ashwa Gummies",
+          "status": "active",
+          "thumbnail": "https://localads.t3.storage.dev/product-images/7e9246c0-11d0-461e-8ea2-dee55cfe63a1/1787119046169-9fc3abce-2f5f-455d-8810-e51813116eb9.jpg",
+          "created...
+
+--- REQUEST TO https://makelocalads.com/api/trpc/credits.overview,brands.list,billing.subscription,offerings.searchSidebar,referrals.status,brands.getDesignGuide,notifications.list,whatsNew.list,offerings.list,offerings.get,amazonListing.listIdeas,creatives.feed?batch=1&input=%7B%221%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%7D%2C%222%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%7D%2C%223%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%2C%22brandId%22%3A%22a77d596c-a723-4e98-81df-d7b21f76d718%22%2C%22limit%22%3A5%7D%2C%224%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%7D%2C%225%22%3A%7B%22brandId%22%3A%22a77d596c-a723-4e98-81df-d7b21f76d718%22%7D%2C%228%22%3A%7B%22orgId%22%3A%222702cd00-4d2a-4e59-b411-0582c2d8d675%22%7D%2C%229%22%3A%7B%22offeringId%22%3A%227e9246c0-11d0-461e-8ea2-dee55cfe63a1%22%7D%2C%2210%22%3A%7B%22offeringId%22%3A%227e9246c0-11d0-461e-8ea2-dee55cfe63a1%22%2C%22marketplace%22%3A%22in%22%7D%2C%2211%22%3A%7B%22offeringId%22%3A%227e9246c0-11d0-461e-8ea2-dee55cfe63a1%22%2C%22studioType%22%3A%22amazon-listing%22%2C%22limit%22%3A50%7D%7D ---
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "summary": {
+          "availableCredits": 120,
+          "allottedCredits": 150,
+          "usedCredits": 30,
+          "manualAllotted": 0,
+          "subscriptionAllotted": 150,
+          "cycleUsedCredits": 30
+        },
+        "allotments": [
+          {
+            "id": "428b6607-1f70-40ad-bbf7-d5d1a0d73753",
+            "creditDelta": 150,
+            "description": "Starter plan: 150 credits",
+            "createdAt": "2026-08-19T05:40:40.124Z"
+          }
+        ],
+        "dailyUsage": [
+          {
+            "date": "2026-08-19",
+            "credits": 30
+          }
+        ]
+      }
+    }
+  },
+  {
+    "result": {
+      "data": [
+        {
+          "id": "a77d596c-a723-4e98-81df-d7b21f76d718",
+          "orgId": "2702cd00-4d2a-4e59-b411-0582c2d8d675",
+          "name": "Goli",
+          "slug": "goli",
+          "websiteUrl": "https://goli.com/",
+          "brandProfile": {
+            "logoUrl": "https://localads.t3.storage.dev/brand-logos/a77d596c-a723-4e98-81df-d7b21f76d718/e690ef98-de14-4dcb-824e-bd65b41d1600.png",
+            "logoStatus": "ready",
+            "logoSourceUrl": "https://goli.com/cdn/shop/t/52/assets/goli_logo.svg?v=69744193860116714471772212230",
+            "sellingCountries": []
+          },
+          "createdBy": "17e6ccf4-32c6-4940-a6bd-5399371b4258",
+          "createdAt": "2026-08-19T05:56:46.825Z",
+          "updatedAt": "2026-08-19T05:57:54.226Z"
+        }
+      ]
+    }
+  },
+  {
+    "result": {
+      "data": {
+        "active": true,
+        "state": "starter",
+        "hadPriorSubscription": true,
+        "limits": {
+          "maxBrands": 3,
+          "maxOfferings": 10,
+          "canGenerate": "credits",
+          "creativesPerAngle": null,
+          "locked": [],
+          "credits": 150
+        },
+        "plan": {
+          "slug": "starter",
+          "label": "Starter",
+          "creditsPerCycle": 150,
+          "currentPeriodEnd": "2026-08-26T05:40:37.818Z",
+          "status": "active",
+          "trialEndsAt": "2026-08-26T05:40:37.818Z",
+          "isTrialing": true,
+          "cancelAtPeriodEnd": false,
+          "isManual": false
+        },
+        "plans": {
+          "starter": {
+            "slug": "starter",
+            "label": "Starter",
+            "credits": 150,
+            "usd": 49,
+            "maxBrands": 3,
+            "maxOfferings": 10
+          },
+          "pro": {
+            "slug": "pro",
+            "label": "Pro",
+            "credits": 400,
+            "usd": 99,
+            "maxBrands": 10,
+            "maxOfferings": 50
+          }
+        }
+      }
+    }
+  },
+  {
+    "result": {
+      "data": [
+        {
+          "id": "7e9246c0-11d0-461e-8ea2-dee55cfe63a1",
+          "name": "Goli\u00ae Ashwa Gummies",
+          "status": "active",
+          "thumbnail": "https://localads.t3.storage.dev/product-images/7e9246c0-11d0-461e-8ea2-dee55cfe63a1/1787119046169-9fc3abce-2f5f-455d-8810-e51813116eb9.jpg",
+          "created...
+
+
+========================================
+ANALYZING: d:\Major_Project\makelocalads.com_new_ecomm_mode.har
+========================================
+
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.listIdeas?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%2287972c9f-a792-4e87-ad2f-fb2f744ba4bb%22%2C%22marketplace%22%3A%22in%22%7D%7D ---
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "ideas": []
+      }
+    }
+  }
+]...
+
+--- REQUEST TO https://makelocalads.com/api/amazon-listing/image-ideas/stream ---
+--- PAYLOAD ---
+{
+  "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+  "marketplace": {
+    "id": "in",
+    "label": "India",
+    "domain": "amazon.in"
+  }
+}
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.saveIdeas?batch=1 ---
+--- PAYLOAD ---
+{
+  "0": {
+    "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+    "marketplace": "in",
+    "ideas": [
+      {
+        "slotType": "main",
+        "summary": "Show the exact SNIQUE Glitter Spray Sunscreen SPF 30+++ 100 mL bottle together with its outer carton on a pure white background. Use clean commercial lighting, sharp focus, accurate coral-pink shimmer liquid, and a thumbnail-friendly three-quarter angle with both bottle and box fully visible and filling most of the square frame."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Create a benefit-led image showing the bottle hero against a bright, clean coral-and-white backdrop with subtle sunlight reflections. Add clear callouts for Broad Spectrum SPF 30+++ and UVA + UVB protection, while keeping the product dominant so shoppers immediately understand it is a sunscreen with beauty appeal."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Show a close-up visual of the fine micro-shimmer effect: the bottle beside a tasteful swatch of radiant coral-pink mist on skin-toned or neutral surface, with sparkle highlights that look cosmetic and refined. Communicate lightweight shimmer finish, no white cast, and no sticky residue without implying guaranteed results."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Create a hydration-focused composition with the bottle, soft water droplets, aloe leaf, and moisture-inspired visuals. Include concise callouts for hyaluronic acid, glycerin, aloe vera, and Vitamin E to show why the mist is positioned as hydrating and comfortable for sunny days."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Show an aspirational but safe summer-use scene: the bottle standing upright in a beach or poolside travel setup with sunglasses, towel, and bright daylight, no risky sun exposure or nudity. Emphasize that the product fits beach trips, pool days, festivals, and vacations while maintaining a premium skincare look."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Create a simple step-by-step usage infographic around the bottle: shake well, spray generously and evenly 15 minutes before sun exposure, reapply every 2 hours, and reapply after sweating or swimming. Include a small caution to avoid eyes and lips, presented clearly and neutrally."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Design an ingredients and formula credibility image featuring the bottle and carton beside neat ingredient highlights. Visually group hyaluronic acid, aloe vera, Vitamin E, cosmetic-grade glitter, and SPF filter concept elements, while also noting dermatologist tested, cruelty-free, and reef-safe formula as product claims."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Show a compact size and pack contents image with the bottle and carton measured visually as 100 mL / 3.38 fl oz. Include a hand-free travel or vanity context in the background to communicate easy carry and spray format, but keep the exact single bottle plus carton clear as what shoppers receive."
+      },
+      {
+        "slotType": "variant",
+        "summary": "Create a responsible-use and safety image with the product on a clean bathroom or dressing-table surface and small icon-style reminders: external use only, patch test recommended, discontinue if irritation occurs, keep out of reach of children, and flammable\u2014do not use near heat or open flame. Keep the tone calm and practical, not alarming."
+      }
+    ]
+  }
+}
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "ideas": [
+          {
+            "id": "84dd4b89-ab54-462b-9118-bd9c4cfb8515",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "main",
+            "slotType": "main",
+            "title": "MAIN IMG",
+            "summary": "Show the exact SNIQUE Glitter Spray Sunscreen SPF 30+++ 100 mL bottle together with its outer carton on a pure white background. Use clean commercial lighting, sharp focus, accurate coral-pink shimmer liquid, and a thumbnail-friendly three-quarter angle with both bottle and box fully visible and filling most of the square frame.",
+            "creativeId": null,
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:07.540Z"
+          },
+          {
+            "id": "421f5d77-9cd9-4dd9-a2ab-86ad0e4cb279",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-1",
+            "slotType": "variant",
+            "title": "VARIANT IMG #1",
+            "summary": "Create a benefit-led image showing the bottle hero against a bright, clean coral-and-white backdrop with subtle sunlight reflections. Add clear callouts for Broad Spectrum SPF 30+++ and UVA + UVB protection, while keeping the product dominant so shoppers immediately understand it is a sunscreen with beauty appeal.",
+            "creativeId": null,
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:07.540Z"
+          },
+          {
+            "id": "ab19c436-cfbf-4405-a218-46e417431588",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-2",
+            "slotType": "variant",
+            "title": "VARIANT IMG #2",
+            "summary": "Show a close-up visual of the fine micro-shimmer effect: the bottle beside a tasteful swatch of radiant coral-pink mist on skin-toned or neutral surface, with sparkle highlights that look cosmetic and refined. Communicate lightweight shimmer finish, no white cast, and no sticky residue without implying guaranteed results.",
+            "creativeId": null,
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:07.540Z"
+          },
+          {
+            "id": "f03f63b4-c3ac-4c3f-b2c4-b5e2c74d2607",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-3",
+            "slotType": "variant",
+            "title": "VARIANT IMG #3",
+            "summary": "Create a hydration-focused composition with the bottle, soft water droplets, aloe leaf, and moisture-inspired visuals. Include concise callouts for hyaluronic acid, glycerin, aloe vera, and Vitamin E to show why the mist is positioned as hydrating and comfortable for sunny days.",
+            "creativeId": null,
+        ...
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.listIdeas?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%2287972c9f-a792-4e87-ad2f-fb2f744ba4bb%22%2C%22marketplace%22%3A%22in%22%7D%7D ---
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "ideas": [
+          {
+            "id": "84dd4b89-ab54-462b-9118-bd9c4cfb8515",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "main",
+            "slotType": "main",
+            "title": "MAIN IMG",
+            "summary": "Show the exact SNIQUE Glitter Spray Sunscreen SPF 30+++ 100 mL bottle together with its outer carton on a pure white background. Use clean commercial lighting, sharp focus, accurate coral-pink shimmer liquid, and a thumbnail-friendly three-quarter angle with both bottle and box fully visible and filling most of the square frame.",
+            "creativeId": null,
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:07.540Z"
+          },
+          {
+            "id": "421f5d77-9cd9-4dd9-a2ab-86ad0e4cb279",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-1",
+            "slotType": "variant",
+            "title": "VARIANT IMG #1",
+            "summary": "Create a benefit-led image showing the bottle hero against a bright, clean coral-and-white backdrop with subtle sunlight reflections. Add clear callouts for Broad Spectrum SPF 30+++ and UVA + UVB protection, while keeping the product dominant so shoppers immediately understand it is a sunscreen with beauty appeal.",
+            "creativeId": null,
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:07.540Z"
+          },
+          {
+            "id": "ab19c436-cfbf-4405-a218-46e417431588",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-2",
+            "slotType": "variant",
+            "title": "VARIANT IMG #2",
+            "summary": "Show a close-up visual of the fine micro-shimmer effect: the bottle beside a tasteful swatch of radiant coral-pink mist on skin-toned or neutral surface, with sparkle highlights that look cosmetic and refined. Communicate lightweight shimmer finish, no white cast, and no sticky residue without implying guaranteed results.",
+            "creativeId": null,
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:07.540Z"
+          },
+          {
+            "id": "f03f63b4-c3ac-4c3f-b2c4-b5e2c74d2607",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-3",
+            "slotType": "variant",
+            "title": "VARIANT IMG #3",
+            "summary": "Create a hydration-focused composition with the bottle, soft water droplets, aloe leaf, and moisture-inspired visuals. Include concise callouts for hyaluronic acid, glycerin, aloe vera, and Vitamin E to show why the mist is positioned as hydrating and comfortable for sunny days.",
+            "creativeId": null,
+        ...
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.generateAllCreatives?batch=1 ---
+--- PAYLOAD ---
+{
+  "0": {
+    "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+    "marketplace": "in",
+    "maxCreatives": 9,
+    "summaries": [
+      {
+        "ideaId": "84dd4b89-ab54-462b-9118-bd9c4cfb8515",
+        "summary": "Show the exact SNIQUE Glitter Spray Sunscreen SPF 30+++ 100 mL bottle together with its outer carton on a pure white background. Use clean commercial lighting, sharp focus, accurate coral-pink shimmer liquid, and a thumbnail-friendly three-quarter angle with both bottle and box fully visible and filling most of the square frame."
+      },
+      {
+        "ideaId": "421f5d77-9cd9-4dd9-a2ab-86ad0e4cb279",
+        "summary": "Create a benefit-led image showing the bottle hero against a bright, clean coral-and-white backdrop with subtle sunlight reflections. Add clear callouts for Broad Spectrum SPF 30+++ and UVA + UVB protection, while keeping the product dominant so shoppers immediately understand it is a sunscreen with beauty appeal."
+      },
+      {
+        "ideaId": "ab19c436-cfbf-4405-a218-46e417431588",
+        "summary": "Show a close-up visual of the fine micro-shimmer effect: the bottle beside a tasteful swatch of radiant coral-pink mist on skin-toned or neutral surface, with sparkle highlights that look cosmetic and refined. Communicate lightweight shimmer finish, no white cast, and no sticky residue without implying guaranteed results."
+      },
+      {
+        "ideaId": "f03f63b4-c3ac-4c3f-b2c4-b5e2c74d2607",
+        "summary": "Create a hydration-focused composition with the bottle, soft water droplets, aloe leaf, and moisture-inspired visuals. Include concise callouts for hyaluronic acid, glycerin, aloe vera, and Vitamin E to show why the mist is positioned as hydrating and comfortable for sunny days."
+      },
+      {
+        "ideaId": "66d06351-fbd6-4d2a-bfff-eeacb4600fb8",
+        "summary": "Show an aspirational but safe summer-use scene: the bottle standing upright in a beach or poolside travel setup with sunglasses, towel, and bright daylight, no risky sun exposure or nudity. Emphasize that the product fits beach trips, pool days, festivals, and vacations while maintaining a premium skincare look."
+      },
+      {
+        "ideaId": "9f1d0141-2232-48a6-8cb6-e0259a59568a",
+        "summary": "Create a simple step-by-step usage infographic around the bottle: shake well, spray generously and evenly 15 minutes before sun exposure, reapply every 2 hours, and reapply after sweating or swimming. Include a small caution to avoid eyes and lips, presented clearly and neutrally."
+      },
+      {
+        "ideaId": "09a2cc28-5777-4cd8-bb78-ec51c15e288f",
+        "summary": "Design an ingredients and formula credibility image featuring the bottle and carton beside neat ingredient highlights. Visually group hyaluronic acid, aloe vera, Vitamin E, cosmetic-grade glitter, and SPF filter concept elements, while also noting dermatologist tested, cruelty-free, and reef-safe formula as product claims."
+      },
+      {
+        "ideaId": "ed4e4640-51c0-4ca6-ae44-83458acd68b7",
+        "summary": "Show a compact size and pack contents image with the bottle and carton measured visually as 100 mL / 3.38 fl oz. Include a hand-free travel or vanity context in the background to communicate easy carry and spray format, but keep the exact single bottle plus carton clear as what shoppers receive."
+      },
+      {
+        "ideaId": "e20beab8-a041-4b37-9066-92479011d068",
+        "summary": "Create a responsible-use and safety image with the product on a clean bathroom or dressing-table surface and small icon-style reminders: external use only, patch test recommended, discontinue if irritation occurs, keep out of reach of children, and flammable\u2014do not use near heat or open flame. Keep the tone calm and practical, not alarming."
+      }
+    ]
+  }
+}
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "generationJobId": "c1777e93-812c-4c64-8842-876b87479462",
+        "createdCount": 9,
+        "creatives": [
+          {
+            "ideaId": "84dd4b89-ab54-462b-9118-bd9c4cfb8515",
+            "creativeId": "78bab95b-bdec-4c4a-b9d9-69615ed01846",
+            "triggerRunId": "run_06g1922cdlh650pbknjbngp701"
+          },
+          {
+            "ideaId": "421f5d77-9cd9-4dd9-a2ab-86ad0e4cb279",
+            "creativeId": "9f633bfa-fe3c-47bc-a5ec-cde769077c4c",
+            "triggerRunId": "run_06g1922aveh9te0fjfm7bh5h01"
+          },
+          {
+            "ideaId": "ab19c436-cfbf-4405-a218-46e417431588",
+            "creativeId": "d6085dbe-27d3-4c9c-a804-439e15aecb5d",
+            "triggerRunId": "run_06g1922avkm5te6ij7tuqhoe01"
+          },
+          {
+            "ideaId": "f03f63b4-c3ac-4c3f-b2c4-b5e2c74d2607",
+            "creativeId": "3d34b40d-9497-4fc6-bd40-803cdb64e439",
+            "triggerRunId": "run_06g1922cboiemuelk0mv28ph01"
+          },
+          {
+            "ideaId": "66d06351-fbd6-4d2a-bfff-eeacb4600fb8",
+            "creativeId": "af947874-7e95-4f60-846c-196a180061e1",
+            "triggerRunId": "run_06g1922avdtkqb4nv40g5mbl01"
+          },
+          {
+            "ideaId": "9f1d0141-2232-48a6-8cb6-e0259a59568a",
+            "creativeId": "3e0883ce-5b29-494f-a531-923ce467a0de",
+            "triggerRunId": "run_06g1922b06eppi8m04m41rjt01"
+          },
+          {
+            "ideaId": "09a2cc28-5777-4cd8-bb78-ec51c15e288f",
+            "creativeId": "84b7c3a6-5214-4923-8fe1-aabe193bc7e5",
+            "triggerRunId": "run_06g1922de3cte8u6ma002aok01"
+          },
+          {
+            "ideaId": "ed4e4640-51c0-4ca6-ae44-83458acd68b7",
+            "creativeId": "9b977c45-ccec-4818-88ea-99de6418a22e",
+            "triggerRunId": "run_06g1922c19podniupmjt2uor01"
+          },
+          {
+            "ideaId": "e20beab8-a041-4b37-9066-92479011d068",
+            "creativeId": "342f50c0-7cd0-444a-a219-4e37b91ec909",
+            "triggerRunId": "run_06g1922c1k53da3sg7sokuf401"
+          }
+        ]
+      }
+    }
+  }
+]...
+
+--- REQUEST TO https://makelocalads.com/api/trpc/amazonListing.listIdeas?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%2287972c9f-a792-4e87-ad2f-fb2f744ba4bb%22%2C%22marketplace%22%3A%22in%22%7D%7D ---
+--- RESPONSE ---
+[
+  {
+    "result": {
+      "data": {
+        "ideas": [
+          {
+            "id": "84dd4b89-ab54-462b-9118-bd9c4cfb8515",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "main",
+            "slotType": "main",
+            "title": "MAIN IMG",
+            "summary": "Show the exact SNIQUE Glitter Spray Sunscreen SPF 30+++ 100 mL bottle together with its outer carton on a pure white background. Use clean commercial lighting, sharp focus, accurate coral-pink shimmer liquid, and a thumbnail-friendly three-quarter angle with both bottle and box fully visible and filling most of the square frame.",
+            "creativeId": "78bab95b-bdec-4c4a-b9d9-69615ed01846",
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:10.880Z"
+          },
+          {
+            "id": "421f5d77-9cd9-4dd9-a2ab-86ad0e4cb279",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-1",
+            "slotType": "variant",
+            "title": "VARIANT IMG #1",
+            "summary": "Create a benefit-led image showing the bottle hero against a bright, clean coral-and-white backdrop with subtle sunlight reflections. Add clear callouts for Broad Spectrum SPF 30+++ and UVA + UVB protection, while keeping the product dominant so shoppers immediately understand it is a sunscreen with beauty appeal.",
+            "creativeId": "9f633bfa-fe3c-47bc-a5ec-cde769077c4c",
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:10.880Z"
+          },
+          {
+            "id": "ab19c436-cfbf-4405-a218-46e417431588",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-2",
+            "slotType": "variant",
+            "title": "VARIANT IMG #2",
+            "summary": "Show a close-up visual of the fine micro-shimmer effect: the bottle beside a tasteful swatch of radiant coral-pink mist on skin-toned or neutral surface, with sparkle highlights that look cosmetic and refined. Communicate lightweight shimmer finish, no white cast, and no sticky residue without implying guaranteed results.",
+            "creativeId": "d6085dbe-27d3-4c9c-a804-439e15aecb5d",
+            "createdAt": "2026-08-18T11:01:07.540Z",
+            "updatedAt": "2026-08-18T11:01:10.880Z"
+          },
+          {
+            "id": "f03f63b4-c3ac-4c3f-b2c4-b5e2c74d2607",
+            "offeringId": "87972c9f-a792-4e87-ad2f-fb2f744ba4bb",
+            "marketplace": "in",
+            "slotId": "variant-3",
+            "slotType": "variant",
+            "title": "VARIANT IMG #3",
+            "summary": "Create a hydration-focused composition with the bottle, soft water droplets, aloe leaf, and moisture-inspired visuals. Include concise callouts for hyaluronic acid, glycerin, aloe vera, and Vitamin E to show why the mist...

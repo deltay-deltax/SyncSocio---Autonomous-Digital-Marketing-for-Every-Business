@@ -1,0 +1,29 @@
+15: import FestivalCalendar, { FESTIVALS_2026 } from '@/components/FestivalCalendar';
+32: type Mode = 'ads' | 'sprint' | 'editor' | 'clone' | 'all_in_one' | 'image' | 'carousel' | 'video' | 'ecomm' | 'festival' | 'whatsapp' | 'email' | 'edit_media' | 'photoshoot';
+70: { id: 'festival', label: 'Festival', icon: PartyPopper, desc: 'Calendar-led campaigns', accent: 'from-violet-500/20 to-indigo-500/10' },
+482: id: "festival",
+483: title: "Festival",
+493: cta: { label: "Browse Festivals", tint: "text-pink-600" },
+494: to: "/dashboard?mode=festival",
+495: image: "/assets/Creatives_icon/studio-festival.jpg",
+952: // ── Festival
+953: const [festival, setFestival] = useState<string>('diwali');
+1474: if (m === 'festival') setCount(4);
+1938: const currentMode = overrides?.layout || (mode === 'festival' ? 'image' : mode);
+1943: let currentAspect = overrides?.aspect !== undefined ? overrides.aspect : (mode === 'festival' && tone === 'Story' ? '9:16' : aspect);
+2075: layout: currentMode === 'ecomm' ? 'ecomm' : currentMode === 'festival' ? 'image' : currentMode,
+2091: ...((currentMode === 'image' || currentMode === 'festival') && {
+2140: creditCost = currentCount * baseImageCost;  // image / festival
+2776: // RESULTS — Gallery (image / carousel / video / ecomm / festival)
+2779: const selectedFest = FESTIVALS_2026.find((f) => f.id === festival);
+2782: : mode === 'festival' && selectedFest ? `Campaign · ${selectedFest.name} ${selectedFest.emoji}`
+2783: : mode === 'festival' ? `Campaign · ${festival}`
+2788: : mode === 'festival' ? 'from-violet-500 via-fuchsia-500 to-rose-500'
+3888: {/* ─── Text Style pills (D2C image / festival only) ─── */}
+4592: {/* ─── FESTIVAL — Calendar driven ─── */}
+4593: {mode === 'festival' && (
+4594: <FestivalCalendar
+4608: setFestival(data.festival.id);
+5215: {mode !== 'festival' && (() => {
+5411: syncsocio_festival: "Celebrate Now",
+5439: syncsocio_festival: '🎉 *{{1}}*\nThis festive season, we have something special for you:\n{{2}}\nOffer valid for a limited time.',

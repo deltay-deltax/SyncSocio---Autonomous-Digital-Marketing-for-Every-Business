@@ -22,8 +22,7 @@ import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 
 
 const breakpointColumnsObj = {
-  default: 4,
-  1280: 3,
+  default: 3,
   1024: 2,
   640: 1
 };
@@ -685,7 +684,7 @@ const AssetLibrary = () => {
                   )}
 
                   {/* Thumbnail wrapper */}
-                  <div className="relative bg-muted overflow-hidden flex items-center justify-center min-h-[200px]">
+                  <div className="relative overflow-hidden w-full cursor-pointer select-none">
                     {asset.type === 'video' && asset.videoUrl ? (
                       <video
                         src={`${asset.videoUrl}#t=0.5`}
@@ -722,17 +721,17 @@ const AssetLibrary = () => {
 
                     {/* Hover overlay with actions - only visible if not in selection mode */}
                     {!selectionMode && (
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
+                      <div className="absolute inset-x-0 bottom-0 p-3 pt-8 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 flex justify-end gap-2 bg-gradient-to-t from-black/60 to-transparent">
                         {asset.status === 'draft' && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/dashboard/strategy?draftId=${asset._id}`);
                             }}
-                            className="w-11 h-11 rounded-full bg-blue-500/80 backdrop-blur-md text-white hover:bg-blue-500 hover:scale-105 transition flex items-center justify-center shadow-lg"
+                            className="w-8 h-8 rounded-full bg-blue-500/80 backdrop-blur-md text-white hover:bg-blue-500 hover:scale-105 transition flex items-center justify-center shadow-lg"
                             title="Load into Campaigns to send"
                           >
-                            <Send size={16} />
+                            <Send size={14} />
                           </button>
                         )}
                         <button
@@ -740,10 +739,10 @@ const AssetLibrary = () => {
                             e.stopPropagation();
                             handleDownload(asset);
                           }}
-                          className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/40 hover:scale-105 transition flex items-center justify-center shadow-lg"
+                          className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/40 hover:scale-105 transition flex items-center justify-center shadow-lg"
                           title="Download"
                         >
-                          <Download size={18} />
+                          <Download size={14} />
                         </button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -752,13 +751,13 @@ const AssetLibrary = () => {
                                 e.stopPropagation();
                               }}
                               disabled={deleting === asset._id}
-                              className="w-11 h-11 rounded-full bg-rose-500/80 backdrop-blur-md text-white hover:bg-rose-500 hover:scale-105 transition flex items-center justify-center shadow-lg"
+                              className="w-8 h-8 rounded-full bg-rose-500/80 backdrop-blur-md text-white hover:bg-rose-500 hover:scale-105 transition flex items-center justify-center shadow-lg"
                               title="Remove from library"
                             >
                               {deleting === asset._id ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               ) : (
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                               )}
                             </button>
                           </AlertDialogTrigger>
@@ -785,27 +784,6 @@ const AssetLibrary = () => {
                         </AlertDialog>
                       </div>
                     )}
-                  </div>
-
-                  {/* Caption */}
-                  <div className="p-3">
-                    <p className="text-[11px] text-foreground leading-relaxed line-clamp-2">
-                      {(() => {
-                        if (asset.status === 'draft') {
-                          try {
-                            const parsed = JSON.parse(asset.caption);
-                            return parsed.subject ? `Subject: ${parsed.subject} — ${parsed.body}` : parsed.body || asset.caption;
-                          } catch (e) { }
-                        }
-                        return asset.caption;
-                      })()}
-                    </p>
-                    {asset.idea && (
-                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1 italic">"{asset.idea}"</p>
-                    )}
-                    <p className="text-[9px] text-muted-foreground/50 mt-1.5">
-                      {new Date(asset.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
                   </div>
                 </motion.div>
               );
@@ -840,17 +818,18 @@ const AssetLibrary = () => {
               initial={{ scale: 0.95, y: 10 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 10 }}
-              className="w-full max-w-4xl max-h-[85vh] md:h-[70vh] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-card flex flex-col md:flex-row cursor-default animate-in fade-in zoom-in-95 duration-200"
+              style={{ width: 'fit-content' }}
+              className="w-full max-w-[95vw] sm:max-w-lg md:max-w-xl max-h-[95vh] rounded-[2rem] overflow-hidden border border-border shadow-2xl relative bg-card flex flex-col cursor-default animate-in fade-in zoom-in-95 duration-200"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Left panel: Media */}
-              <div className="flex-1 bg-black/95 flex items-center justify-center p-4 relative min-h-[40vh] md:min-h-0">
+              {/* Top panel: Media */}
+              <div className="relative flex items-center justify-center bg-transparent w-full">
                 {previewAsset.type === 'video' && previewAsset.videoUrl ? (
                   <video
                     src={previewAsset.videoUrl}
                     controls
                     autoPlay
-                    className="w-full h-auto max-h-[60vh] md:max-h-[65vh] object-contain max-w-full"
+                    className="w-auto h-auto max-w-full max-h-[55vh] object-contain block"
                   />
                 ) : previewAsset.type === 'carousel' && previewAsset.slides?.length > 0 ? (
                   <div className="relative flex flex-col items-center justify-center w-full">
@@ -863,7 +842,7 @@ const AssetLibrary = () => {
                         transition={{ duration: 0.15 }}
                         src={imgSrc(previewAsset.slides[previewSlide]?.image)}
                         alt={`Slide ${previewSlide + 1}`}
-                        className="w-full h-auto max-h-[55vh] md:max-h-[60vh] object-contain max-w-full cursor-grab active:cursor-grabbing"
+                        className="w-auto h-auto max-w-full max-h-[55vh] object-contain block cursor-grab active:cursor-grabbing"
                         loading="lazy"
                         drag="x"
                         dragConstraints={{ left: 0, right: 0 }}
@@ -918,80 +897,82 @@ const AssetLibrary = () => {
                   <img
                     src={imgSrc(previewAsset.thumbnailBase64)}
                     alt="Preview"
-                    className="w-full h-auto max-h-[60vh] md:max-h-[65vh] object-contain max-w-full"
+                    className="w-auto h-auto max-w-full max-h-[55vh] object-contain block"
                     loading="lazy"
                   />
                 )}
               </div>
 
-              {/* Right panel: Caption & Hashtags */}
-              <div className="w-full md:w-[360px] shrink-0 border-t md:border-t-0 md:border-l border-border/60 flex flex-col bg-card overflow-hidden">
-                <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {previewAsset.status === 'draft' ? 'Email Draft Content' : 'Instagram Post Caption'}
-                  </span>
-                  <button
-                    onClick={() => {
-                      let text = previewAsset.caption || '';
-                      if (previewAsset.status === 'draft') {
-                        try {
-                          const parsed = JSON.parse(previewAsset.caption);
-                          text = `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
-                        } catch (e) { }
-                      }
-                      navigator.clipboard.writeText(text);
-                      setCopiedAsset(true);
-                      setTimeout(() => setCopiedAsset(false), 2000);
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold border transition",
-                      copiedAsset
-                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                        : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
-                    )}
-                  >
-                    {copiedAsset ? (
-                      <>
-                        <Check size={11} />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={11} />
-                        Copy Text
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-5 select-text custom-scrollbar">
-                  <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                    {(() => {
-                      if (previewAsset.status === 'draft') {
-                        try {
-                          const parsed = JSON.parse(previewAsset.caption);
-                          return `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
-                        } catch (e) { }
-                      }
-                      return previewAsset.caption || "No caption generated.";
-                    })()}
-                  </p>
-                </div>
-                {previewAsset.status === 'draft' && (
-                  <div className="p-4 border-t border-border/50 bg-muted/10">
-                    <Button
+              {/* Bottom panel: Caption & Hashtags */}
+              {!['ecomm', 'photoshoot', 'video'].includes(previewAsset.layout) && (
+                <div className="w-0 min-w-full flex flex-col bg-card overflow-y-auto shrink-0 border-t border-border/50">
+                  <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      {previewAsset.status === 'draft' ? 'Email Draft Content' : 'Instagram Post Caption'}
+                    </span>
+                    <button
                       onClick={() => {
-                        setPreviewAsset(null);
-                        navigate(`/dashboard/strategy?draftId=${previewAsset._id}`);
+                        let text = previewAsset.caption || '';
+                        if (previewAsset.status === 'draft') {
+                          try {
+                            const parsed = JSON.parse(previewAsset.caption);
+                            text = `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
+                          } catch (e) { }
+                        }
+                        navigator.clipboard.writeText(text);
+                        setCopiedAsset(true);
+                        setTimeout(() => setCopiedAsset(false), 2000);
                       }}
-                      className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center justify-center gap-2 shadow-md border-0"
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold border transition",
+                        copiedAsset
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
+                      )}
                     >
-                      <Send size={12} />
-                      Load into Campaigns to send
-                    </Button>
+                      {copiedAsset ? (
+                        <>
+                          <Check size={11} />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={11} />
+                          Copy Text
+                        </>
+                      )}
+                    </button>
                   </div>
-                )}
-              </div>
+
+                  <div className="flex-1 overflow-y-auto p-4 select-text custom-scrollbar max-h-[25vh]">
+                    <p className="text-[11px] sm:text-xs text-foreground whitespace-pre-wrap leading-relaxed">
+                      {(() => {
+                        if (previewAsset.status === 'draft') {
+                          try {
+                            const parsed = JSON.parse(previewAsset.caption);
+                            return `Subject: ${parsed.subject || ''}\n\n${parsed.body || ''}`;
+                          } catch (e) { }
+                        }
+                        return previewAsset.caption || "No caption generated.";
+                      })()}
+                    </p>
+                  </div>
+                  {previewAsset.status === 'draft' && (
+                    <div className="p-4 border-t border-border/50 bg-muted/10">
+                      <Button
+                        onClick={() => {
+                          setPreviewAsset(null);
+                          navigate(`/dashboard/strategy?draftId=${previewAsset._id}`);
+                        }}
+                        className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center justify-center gap-2 shadow-md border-0"
+                      >
+                        <Send size={12} />
+                        Load into Campaigns to send
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

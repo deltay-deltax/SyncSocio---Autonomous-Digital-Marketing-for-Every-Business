@@ -468,12 +468,21 @@ const Setup = () => {
                   <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
 
                   {step.status === 'active' && i === 1 && (
-                    <Button
-                      onClick={() => setScreen('instagram')}
-                      className="mt-3 gradient-bg text-primary-foreground border-0 text-xs px-5 h-9"
-                    >
-                      Connect Instagram Account →
-                    </Button>
+                    <div className="flex items-center gap-2 mt-3">
+                      <Button
+                        onClick={() => setScreen('instagram')}
+                        className="gradient-bg text-primary-foreground border-0 text-xs px-5 h-9 rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                      >
+                        Connect Instagram Account →
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setScreen('plan')}
+                        className="text-xs px-5 h-9 rounded-xl border border-border/80 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all"
+                      >
+                        Skip
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>

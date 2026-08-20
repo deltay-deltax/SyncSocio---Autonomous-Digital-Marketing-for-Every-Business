@@ -49,6 +49,8 @@ async function idbGet(key: string): Promise<any> {
 interface Product {
   _id?: string;
   imageBase64: string;
+  imageUrls?: string[];
+  specifications?: { label: string; value: string }[];
   name: string;
   description: string;
   price: string;
@@ -62,6 +64,7 @@ interface Product {
   variantDetails?: string[];
   sourceUrl?: string;
   adVisualDescription?: string;
+  adVisualDescriptionSecondary?: string;
   adVisualDescriptionStatus?: string;
 }
 
@@ -169,13 +172,28 @@ const ProductForm: React.FC<{
   const [link, setLink] = useState('');
   const [scraping, setScraping] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const addFileRef = useRef<HTMLInputElement>(null);
 
-  const set = (k: keyof Product, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof Product, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleImageFile = async (file: File) => {
     const b64 = await fileToBase64(file);
+    const currentImg = imgPreview || form.imageBase64 || (form.imageUrls && form.imageUrls[0]);
+    
+    // If they are replacing a scraped image, remove it from the scraped list
+    if (currentImg && form.imageUrls && form.imageUrls.includes(currentImg)) {
+      set('imageUrls', form.imageUrls.filter(u => u !== currentImg));
+    }
+    
     setImgPreview(b64);
     set('imageBase64', b64);
+  };
+
+  const handleAddImageFile = async (file: File) => {
+    const b64 = await fileToBase64(file);
+    const newUrls = [...(form.imageUrls || []), b64];
+    set('imageUrls', newUrls);
+    setImgPreview(b64);
   };
 
   const handleAutofill = async () => {
@@ -219,7 +237,9 @@ const ProductForm: React.FC<{
         guarantee: data.guarantee || '',
         variantDetails: data.variantDetails || [],
         sourceUrl: data.sourceUrl || link,
-        imageBase64: data.imageBase64 || f.imageBase64
+        imageBase64: data.imageBase64 || f.imageBase64,
+        imageUrls: data.imageUrls || f.imageUrls,
+        specifications: data.specifications || f.specifications
       }));
       if (data.imageBase64) {
         setImgPreview(data.imageBase64);
@@ -308,11 +328,16 @@ const ProductForm: React.FC<{
               {isSaas ? 'Service / Feature Graphic' : 'Product Image'}
             </p>
             <div className="relative">
-              {imgPreview ? (
-                <div className="w-full h-40 rounded-2xl border border-primary/20 overflow-hidden relative bg-muted flex items-center justify-center group">
-                  <img src={imgSrc(imgPreview)} alt="" className="w-full h-full object-contain p-2" />
-                  
-                  {/* Overlay for Changing/Removing image */}
+              {(() => {
+                const allImages = Array.from(new Set([form.imageBase64, ...(form.imageUrls || [])].filter(Boolean)));
+                const currentImg = imgPreview || allImages[0] || '';
+
+                return allImages.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="w-full h-40 rounded-2xl border border-primary/20 overflow-hidden relative bg-muted flex items-center justify-center group">
+                      <img src={imgSrc(currentImg)} alt="" className="w-full h-full object-contain p-2" />
+                    
+                    {/* Overlay for Changing/Removing image */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 flex items-center justify-center gap-2">
                     <Button
                       type="button"
@@ -326,9 +351,33 @@ const ProductForm: React.FC<{
                       type="button"
                       size="sm"
                       variant="destructive"
-                      onClick={() => {
+                      onClick={async () => {
+                        const currentImg = imgPreview || form.imageBase64 || (form.imageUrls && form.imageUrls[0]);
+                        let newBase64 = form.imageBase64;
+                        let newUrls = form.imageUrls || [];
+
+                        if (currentImg === form.imageBase64) {
+                          set('imageBase64', '');
+                          newBase64 = '';
+                        } else if (form.imageUrls && currentImg && form.imageUrls.includes(currentImg)) {
+                          newUrls = form.imageUrls.filter(u => u !== currentImg);
+                          set('imageUrls', newUrls);
+                        }
                         setImgPreview('');
-                        set('imageBase64', '');
+
+                        // Immediately persist removal to the server
+                        if (form._id) {
+                          try {
+                            const token = localStorage.getItem('token');
+                            await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/products/${form._id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                              body: JSON.stringify({ imageBase64: newBase64, imageUrls: newUrls })
+                            });
+                          } catch(err) {
+                            console.error("Failed to instantly remove from server", err);
+                          }
+                        }
                       }}
                       className="text-xs font-semibold rounded-xl flex items-center gap-1.5 px-3 py-1.5 shadow"
                     >
@@ -336,10 +385,44 @@ const ProductForm: React.FC<{
                     </Button>
                   </div>
 
-                  {/* Always-visible small badge for mobile/clarity */}
-                  <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 pointer-events-none group-hover:opacity-0 transition duration-200">
                     <Edit2 size={8} /> Click / Hover to edit
                   </div>
+                
+                {allImages.length > 0 && (
+                  <div className="flex gap-2 mt-2 overflow-x-auto pb-1 scrollbar-thin items-center">
+                    {allImages.map((img, idx) => (
+                      <div key={idx} className="flex flex-col items-center gap-1">
+                        <div 
+                          onClick={() => {
+                            setImgPreview(img);
+                          }}
+                          className={`w-14 h-14 shrink-0 rounded-lg border bg-muted overflow-hidden flex items-center justify-center cursor-pointer transition hover:border-primary ${
+                            currentImg === img ? "border-primary ring-2 ring-primary/30" : "border-border"
+                          }`}
+                        >
+                          <img src={imgSrc(img)} alt={`Variant ${idx+1}`} className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                          {idx === 0 ? "Front" : "Back"}
+                        </span>
+                      </div>
+                    ))}
+                    {allImages.length < 2 && (
+                      <div className="flex flex-col items-center gap-1">
+                        <div
+                          onClick={() => addFileRef.current?.click()}
+                          className="w-14 h-14 shrink-0 rounded-lg border border-dashed border-border hover:border-primary hover:bg-primary/5 flex items-center justify-center cursor-pointer transition text-muted-foreground hover:text-primary"
+                          title="Add back photo"
+                        >
+                          <Plus size={18} />
+                        </div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                          Back
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 </div>
               ) : (
                 <button
@@ -351,13 +434,17 @@ const ProductForm: React.FC<{
                     <Upload size={18} />
                   </div>
                   <p className="text-xs text-muted-foreground font-medium">
-                    {isSaas ? 'Upload service graphic/icon' : 'Upload product photo'}
+                    {isSaas ? 'Upload service graphic/icon' : (
+                      <>Upload <span className="text-primary font-black">FRONT</span> product photo</>
+                    )}
                   </p>
                   <p className="text-[10px] text-muted-foreground/60">PNG, JPG, AVIF, WebP, SVG</p>
                 </button>
-              )}
+              )
+            })()}
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])} />
+            <input ref={addFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleAddImageFile(e.target.files[0])} />
           </div>
 
           {/* Name */}
@@ -444,14 +531,28 @@ const ProductForm: React.FC<{
 
           {/* AI Visual Description (Read-Only) */}
           {form.adVisualDescription && (
-            <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={14} className="text-violet-500" />
-                <p className="text-[11px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">AI Visual Description</p>
+            <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 flex flex-col gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={14} className="text-violet-500" />
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">AI Visual Description (Front)</p>
+                </div>
+                <p className="text-xs text-foreground leading-relaxed italic opacity-90">
+                  {form.adVisualDescription}
+                </p>
               </div>
-              <p className="text-xs text-foreground leading-relaxed italic opacity-90">
-                {form.adVisualDescription}
-              </p>
+              
+              {form.adVisualDescriptionSecondary && (
+                <div className="pt-3 border-t border-violet-500/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles size={14} className="text-violet-500" />
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">AI Visual Description (Back)</p>
+                  </div>
+                  <p className="text-xs text-foreground leading-relaxed italic opacity-90">
+                    {form.adVisualDescriptionSecondary}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -464,6 +565,65 @@ const ProductForm: React.FC<{
               placeholder={isSaas ? "e.g. 99.999999999% data durability" : "e.g. UVA protection indoors"}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
+          </div>
+          
+          {/* Scraped Specifications */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Specifications (Size, Fit, Nutrition, etc.)</p>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 px-2 text-[10px] text-primary"
+                onClick={() => set('specifications', [...(form.specifications || []), { label: '', value: '' }])}
+              >
+                + Add
+              </Button>
+            </div>
+            
+            {(form.specifications || []).length > 0 ? (
+              <div className="flex flex-col gap-2 bg-muted/10 p-3 rounded-xl border border-border/50">
+                {form.specifications!.map((spec, idx) => (
+                  <div key={idx} className="flex gap-2 items-start">
+                    <input
+                      value={spec.label}
+                      onChange={(e) => {
+                        const newSpecs = [...form.specifications!];
+                        newSpecs[idx].label = e.target.value;
+                        set('specifications', newSpecs);
+                      }}
+                      placeholder="Label (e.g. Fit)"
+                      className="w-1/3 px-3 py-1.5 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    />
+                    <textarea
+                      value={spec.value}
+                      onChange={(e) => {
+                        const newSpecs = [...form.specifications!];
+                        newSpecs[idx].value = e.target.value;
+                        set('specifications', newSpecs);
+                      }}
+                      placeholder="Value"
+                      rows={2}
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none min-h-[32px]"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const newSpecs = [...form.specifications!];
+                        newSpecs.splice(idx, 1);
+                        set('specifications', newSpecs);
+                      }}
+                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition mt-0.5"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+               <p className="text-xs text-muted-foreground/60 italic">No specifications added.</p>
+            )}
           </div>
         </div>
 
@@ -632,11 +792,11 @@ const Products = () => {
               ? "Add your services & features — SyncSocio will use them to generate targeted ad creatives." 
               : "Add your products — SyncSocio will use them to generate targeted ad creatives."}
           </p>
-          <div className="mt-3 flex items-start gap-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 text-xs leading-relaxed shadow-sm w-full">
-            <span className="text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider text-[11px] shrink-0 mt-0.5">⚠️ Notice:</span>
+          <div className="mt-3 flex items-start gap-2.5 p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-800 dark:text-red-400 text-xs leading-relaxed shadow-sm w-full">
+            <span className="text-red-600 dark:text-red-400 font-black uppercase tracking-wider text-[11px] shrink-0 mt-0.5">⚠️ Notice:</span>
             <span className="flex-1">
               AI agents may make mistakes while parsing or scraping details. Please verify the information yourself. 
-              <span className="block mt-1"><strong>Missing an image?</strong> Edit the product and upload it manually to unlock AI visual description.</span>
+              <span className="block mt-1"><strong>Missing an image?</strong> Edit the product and upload it manually to unlock AI visual description. You can add a back and front photo of your product.</span>
             </span>
           </div>
         </div>
@@ -734,15 +894,21 @@ const Products = () => {
               {/* Product image */}
               <div 
                 onClick={() => {
-                  if (p.imageBase64) setPreviewUrl(imgSrc(p.imageBase64));
+                  const mainImage = p.imageBase64 || (p.imageUrls && p.imageUrls.length > 0 ? p.imageUrls[0] : '');
+                  if (mainImage) setPreviewUrl(imgSrc(mainImage));
                 }}
-                className={cn("relative h-44 bg-muted/40 overflow-hidden", p.imageBase64 && "cursor-zoom-in")}
+                className={cn("relative h-44 bg-muted/40 overflow-hidden", (p.imageBase64 || (p.imageUrls && p.imageUrls.length > 0)) && "cursor-zoom-in")}
               >
-                {p.imageBase64 ? (
-                  <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-3 transition-transform duration-300 group-hover:scale-105" />
+                {(p.imageBase64 || (p.imageUrls && p.imageUrls.length > 0)) ? (
+                  <img src={imgSrc(p.imageBase64 || p.imageUrls?.[0] || '')} alt={p.name} className="w-full h-full object-contain p-3 transition-transform duration-300 group-hover:scale-105" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Package size={40} className="text-muted-foreground/20" />
+                  </div>
+                )}
+                {p.imageUrls && p.imageUrls.length > 1 && (
+                  <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm">
+                    +{p.imageUrls.length - 1} images
                   </div>
                 )}
 
@@ -818,6 +984,23 @@ const Products = () => {
                   <div className="flex items-start gap-1.5 mt-1">
                     <Sparkles size={11} className="text-primary mt-0.5 shrink-0" />
                     <p className="text-[11px] text-muted-foreground">{p.keyBenefit}</p>
+                  </div>
+                )}
+                
+                {p.specifications && p.specifications.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-border/50">
+                    <div className="flex flex-wrap gap-1">
+                      {p.specifications.slice(0, 3).map((spec, sIdx) => (
+                        <span key={sIdx} className="inline-flex bg-muted/50 text-muted-foreground text-[10px] px-1.5 py-0.5 rounded border border-border/50 max-w-[140px] truncate" title={`${spec.label}: ${spec.value}`}>
+                          <span className="font-semibold mr-1">{spec.label}:</span>{spec.value}
+                        </span>
+                      ))}
+                      {p.specifications.length > 3 && (
+                        <span className="inline-flex bg-muted/50 text-muted-foreground text-[10px] px-1.5 py-0.5 rounded border border-border/50">
+                          +{p.specifications.length - 3} more
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

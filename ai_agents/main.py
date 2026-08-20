@@ -304,7 +304,7 @@ def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = "", max_toke
         "temperature": 0.2,
         "max_tokens": max_tokens,
     }
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=120)
     response.raise_for_status()
     result = response.json()
     return result["choices"][0]["message"]["content"]
@@ -350,6 +350,7 @@ def download_image_as_base64(url: str) -> str:
 
 class ScrapeRequest(BaseModel):
     url: str
+    plan: Optional[str] = "Starter"
     businessCategory: Optional[str] = None
     metaEventId: Optional[str] = None
     userEmail: Optional[str] = None
@@ -732,7 +733,7 @@ Your output must be a valid JSON object matching the following structure. If any
 
 TRUTH AND COST RULES:
 - Never invent a product, variant, offer, guarantee, statistic, claim, font, or color.
-- Return only distinct products explicitly evidenced in the supplied page, maximum 12.
+- Return only distinct products explicitly evidenced in the supplied page, maximum {PRODUCT_LIMIT}.
 - Keep descriptions under 200 characters and all fact arrays to at most 4 short items.
 - Preserve only facts that can materially change an ad: benefits, quantitative proof, offer, guarantee, and variant/purchase option.
 
@@ -792,7 +793,7 @@ JSON Structure:
     ],
     "colors": [
       {
-        "name": "Descriptive token name grounded in the CSS variable or visible role",
+        "name": "Descriptive semantic color name (e.g., 'Hunter Green', 'Citron Yellow', 'Charcoal') based on the hex value",
         "hex": "Exact evidenced hex",
         "role": "Primary anchor | Secondary | Background | Text | CTA | Accent | Restricted urgency",
         "usage": "Specific pairing and usage rule"
@@ -849,11 +850,27 @@ JSON Structure:
       "guarantee": "Exact verified guarantee in 100 characters or less; empty if absent",
       "variantDetails": ["Up to 3 verified pack sizes or purchase options"],
       "sourceUrl": "The scanned page URL",
-      "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
+      "imageUrls": ["Up to 3 absolute image URLs for this product or its variants from the provided list of images"],
+      "specifications": [
+        {
+          "label": "Auto-categorized header (e.g., Ingredients, Nutritional Facts, Material Used, Fabric, Size Chart, Fit: neck/sleeve, Claims, Cautions)",
+          "value": "Extracted details from the page. Bring maximum info you can find."
+        }
+      ]
     }
   ]
 }
 """
+        product_limit = 5
+        if payload.plan:
+            plan_lower = payload.plan.lower()
+            if "pro" in plan_lower or "agency" in plan_lower:
+                product_limit = 12
+            elif "growth" in plan_lower:
+                product_limit = 8
+        
+        system_prompt = system_prompt.replace("{PRODUCT_LIMIT}", str(product_limit))
+
         if is_fallback:
             user_prompt = f"Scrape URL: {url} (SCRAPER BLOCKED/FAILED - PLEASE USE OFFLINE TRAINING KNOWLEDGE TO INFER DETAILS)\nTitle: {extracted['title']}\nMeta Description: {extracted['meta_description']}\n\nList of logo candidates:\nNone (scraper failed)\n\nDetected typography candidates:\nNone (scraper failed)\n\nDetected colors:\nNone (scraper failed)\n\nList of page images:\nNone (scraper failed)\n\nWebpage visible text:\n{extracted['body_text']}"
         else:
@@ -887,10 +904,15 @@ JSON Structure:
         logo_url = scraped_data.get("logo", "")
         # print(f"[WEBSITE SCANNER] [LOGO] Scraped Logo URL: {logo_url or 'None'}")
 
-        # Convert matched product image URLs to base64 strings
+        # Convert matched product image URLs to base64 strings (skipped for quota)
         products = scraped_data.get("products", [])
-        if len(products) > 12:
-            products = products[:12]
+        
+        # Enforce plan-based limits
+        plan_lower = (payload.plan or "Starter").lower()
+        product_limit = 12 if "pro" in plan_lower else (8 if "growth" in plan_lower else 5)
+        
+        if len(products) > product_limit:
+            products = products[:product_limit]
             scraped_data["products"] = products
             
         # print(f"[WEBSITE SCANNER] [PRODUCTS] Skipping base64 conversion for {len(products)} products to save storage quota...")
@@ -1174,7 +1196,9 @@ The description MUST be strictly 200 characters or less.
 
 Identify the service provider (e.g. AWS/Amazon Web Services, Google Cloud, Microsoft, Stripe, Shopify, or the brand name itself) if the page describes a service, API, or cloud infrastructure component.
 
-For the product/service, select the most relevant image or logo URL from the provided list of images by matching the name against the image alt text or the image filename. Store this matched image URL in the `imageBase64` field. If no matching image is found in the list, leave `imageBase64` blank.
+CRITICAL INSTRUCTION: Dive deep into the webpage text. Often, details like "Ingredients", "How to use", "Product Details", or "Key Features" are available. You MUST extract these sections comprehensively and add them as individual items in the `specifications` array. Do not just return basic fields.
+
+For the product/service, select exactly 2 of the most relevant image URLs from the provided list. CRITICAL: The 1st URL in the array MUST be the FRONT/PRIMARY view of the product. The 2nd URL MUST be the BACK/SECONDARY view (or the ingredient/nutrition label). Use the image alt text and filenames to infer the angle (e.g., looking for words like "front", "back", "label"). If a back view cannot be found, provide the 2 best standalone product shots. Store these in the `imageUrls` array. If no matching image is found, leave `imageUrls` empty.
 
 JSON Structure:
 {
@@ -1189,8 +1213,17 @@ JSON Structure:
   "offerDetails": "Exact discount, bundle, or subscription offer in 120 characters or less; empty if absent",
   "guarantee": "Exact verified guarantee in 100 characters or less; empty if absent",
   "variantDetails": ["Up to 3 verified pack sizes or purchase options"],
+  "specifications": [
+    {
+      "label": "Section Name (e.g., Ingredients, How to Use, Product Details, Specifications, Material)",
+      "value": "Extract the FULL text from these sections. Dive deep into the webpage text—do not summarize too heavily if it contains important ingredients or instructions."
+    }
+  ],
   "sourceUrl": "The scanned page URL",
-  "imageBase64": "Matched absolute image URL from the provided list of images (or empty string)"
+  "imageUrls": [
+    "1st MUST be FRONT PRIMARY view",
+    "2nd MUST be BACK SECONDARY view (if available)"
+  ]
 }
 """
         all_imgs = extracted.get("images", [])
@@ -2243,6 +2276,60 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
             if request.language.lower() not in ["english", "nepali"]:
                 request.language = "english"
 
+        # 1.5 Populate all requested products with full MongoDB data
+        import asyncio
+        from visual_description_agent import generate_visual_description
+        if request.products:
+            populated_products = []
+            vision_calls_made = 0
+            # Cap vision calls to save credits on large batches (e.g. Sprints)
+            max_vision_calls = 5
+            for p_in in request.products:
+                p_dict = dict(p_in)
+                product_id = str(p_dict.get("_id") or "")
+                if ObjectId.is_valid(product_id):
+                    stored_product = await db["products"].find_one({"_id": ObjectId(product_id)})
+                    if stored_product:
+                        for field in (
+                            "name", "description", "price", "offerPrice", "keyBenefit",
+                            "verifiedBenefits", "proofPoints", "offerDetails", "guarantee",
+                            "variantDetails", "sourceUrl", "imageBase64", "imageUrls",
+                            "adVisualDescription", "adVisualDescriptionStatus",
+                        ):
+                            if field in stored_product:
+                                p_dict[field] = stored_product[field]
+                        
+                        appearance = str(p_dict.get("adVisualDescription") or "").strip()
+                        product_image = str(p_dict.get("imageBase64") or (p_dict.get("imageUrls") and p_dict.get("imageUrls")[0]) or "").strip()
+                        if not appearance and product_image.startswith("http") and vision_calls_made < max_vision_calls:
+                            vision_calls_made += 1
+                            await db["products"].update_one(
+                                {"_id": stored_product["_id"]},
+                                {"$set": {"adVisualDescriptionStatus": "processing"}},
+                            )
+                            appearance = await asyncio.to_thread(
+                                generate_visual_description,
+                                image_urls=[product_image],
+                                product_name=str(p_dict.get("name") or ""),
+                            )
+                            if appearance:
+                                p_dict["adVisualDescription"] = appearance
+                                p_dict["adVisualDescriptionStatus"] = "ready"
+                                await db["products"].update_one(
+                                    {"_id": stored_product["_id"]},
+                                    {"$set": {
+                                        "adVisualDescription": appearance,
+                                        "adVisualDescriptionStatus": "ready",
+                                    }},
+                                )
+                            else:
+                                await db["products"].update_one(
+                                    {"_id": stored_product["_id"]},
+                                    {"$set": {"adVisualDescriptionStatus": "failed"}},
+                                )
+                populated_products.append(p_dict)
+            request.products = populated_products
+
         # 2. Detect if SaaS/Services/Consulting brand and route accordingly
         business_category = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", ""))
         _is_saas = _SAAS_AGENT_AVAILABLE and is_saas_brand(business_category)
@@ -2285,59 +2372,8 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
         elif request.layout == "ads":
             import asyncio
             from ad_creative_agent import generate_ad_creatives
-            from visual_description_agent import generate_visual_description
 
-            # AI Ads uses one selected product. Load its compact verified facts
-            # from MongoDB so a stale client cannot drop offer/proof fields.
-            ad_products = [dict(request.products[0])] if request.products else []
-            if ad_products:
-                primary_product = ad_products[0]
-                product_id = str(primary_product.get("_id") or "")
-                stored_product = None
-                if ObjectId.is_valid(product_id):
-                    stored_product = await db["products"].find_one({"_id": ObjectId(product_id)})
-
-                if stored_product:
-                    for field in (
-                        "name", "description", "price", "offerPrice", "keyBenefit",
-                        "verifiedBenefits", "proofPoints", "offerDetails", "guarantee",
-                        "variantDetails", "sourceUrl", "imageBase64",
-                        "adVisualDescription", "adVisualDescriptionStatus",
-                    ):
-                        if field in stored_product:
-                            primary_product[field] = stored_product[field]
-
-                # Generate packaging intelligence only for the chosen product,
-                # once. This replaces the previous N vision calls during scrape.
-                appearance = str(primary_product.get("adVisualDescription") or "").strip()
-                product_image = str(primary_product.get("imageBase64") or "").strip()
-                if not appearance and product_image.startswith("http"):
-                    if stored_product:
-                        await db["products"].update_one(
-                            {"_id": stored_product["_id"]},
-                            {"$set": {"adVisualDescriptionStatus": "processing"}},
-                        )
-                    appearance = await asyncio.to_thread(
-                        generate_visual_description,
-                        image_urls=[product_image],
-                        product_name=str(primary_product.get("name") or ""),
-                    )
-                    if appearance:
-                        primary_product["adVisualDescription"] = appearance
-                        primary_product["adVisualDescriptionStatus"] = "ready"
-                        if stored_product:
-                            await db["products"].update_one(
-                                {"_id": stored_product["_id"]},
-                                {"$set": {
-                                    "adVisualDescription": appearance,
-                                    "adVisualDescriptionStatus": "ready",
-                                }},
-                            )
-                    elif stored_product:
-                        await db["products"].update_one(
-                            {"_id": stored_product["_id"]},
-                            {"$set": {"adVisualDescriptionStatus": "failed"}},
-                        )
+            ad_products = [request.products[0]] if request.products else []
 
             posts = await asyncio.to_thread(
                 generate_ad_creatives,
@@ -2353,6 +2389,31 @@ async def api_generate_strategy_images(request: StrategyImageRequest):
                 language=request.language or "English",
                 brand_design_guide=brand_doc.get("brandDesignGuide", "")
             )
+
+            # Enrich each ad creative with a full Instagram caption + hashtags
+            from strategy_image_agent import generate_instagram_caption_and_hashtags
+            import asyncio as _asyncio
+
+            async def _enrich_caption(idx, post):
+                prod = ad_products[0] if ad_products else None
+                # Use Director's short caption as a hint for the caption agent
+                director_hint = post.get("caption", "")
+                idea_with_hint = f"{request.idea or ''} | {director_hint}".strip(" |") if director_hint else request.idea
+                caption = await _asyncio.to_thread(
+                    generate_instagram_caption_and_hashtags,
+                    brand_doc=brand_doc,
+                    product=prod,
+                    layout="ads",
+                    idea=idea_with_hint,
+                    language=request.language or "English",
+                    template_label=post.get("angle", "Ad Creative"),
+                    index=idx,
+                    trigger_keyword=request.commentKeyword or "",
+                )
+                post["caption"] = caption
+                return post
+
+            posts = list(await _asyncio.gather(*[_enrich_caption(i, p) for i, p in enumerate(posts)]))
         else:
             import asyncio
             posts = await asyncio.to_thread(
@@ -2711,12 +2772,48 @@ async def api_generate_autopilot(request: AutopilotRequest):
         product_collection = db["products"]
         product_ids = [ObjectId(pid) for pid in request.selectedProductIds if ObjectId.is_valid(pid)]
         products = []
+        vision_calls_made = 0
+        max_vision_calls = 5
+        
+        from visual_description_agent import generate_visual_description
+        
         async for prod in product_collection.find({"_id": {"$in": product_ids}}):
             prod["_id"] = str(prod["_id"])
             if "user" in prod:
                 prod["user"] = str(prod["user"])
             if "brandId" in prod:
                 prod["brandId"] = str(prod["brandId"])
+                
+            appearance = str(prod.get("adVisualDescription") or "").strip()
+            product_image = str(prod.get("imageBase64") or "").strip()
+            if not appearance and product_image.startswith("http") and vision_calls_made < max_vision_calls:
+                vision_calls_made += 1
+                await db["products"].update_one(
+                    {"_id": ObjectId(prod["_id"])},
+                    {"$set": {"adVisualDescriptionStatus": "processing"}},
+                )
+                import asyncio
+                appearance = await asyncio.to_thread(
+                    generate_visual_description,
+                    image_urls=[product_image],
+                    product_name=str(prod.get("name") or ""),
+                )
+                if appearance:
+                    prod["adVisualDescription"] = appearance
+                    prod["adVisualDescriptionStatus"] = "ready"
+                    await db["products"].update_one(
+                        {"_id": ObjectId(prod["_id"])},
+                        {"$set": {
+                            "adVisualDescription": appearance,
+                            "adVisualDescriptionStatus": "ready",
+                        }},
+                    )
+                else:
+                    await db["products"].update_one(
+                        {"_id": ObjectId(prod["_id"])},
+                        {"$set": {"adVisualDescriptionStatus": "failed"}},
+                    )
+                    
             products.append(prod)
             
         if not products:
@@ -2832,16 +2929,28 @@ async def api_generate_ad_visual_description(request: AdVisualDescRequest):
     async def _run():
         async with visual_desc_semaphore:
             try:
-                description = await asyncio.to_thread(
-                    generate_visual_description,
-                    image_urls=request.imageUrls,
-                    product_name=request.productName
-                )
-                if description:
+                desc1 = ""
+                if request.imageUrls and len(request.imageUrls) > 0:
+                    desc1 = await asyncio.to_thread(
+                        generate_visual_description,
+                        image_urls=[request.imageUrls[0]],
+                        product_name=request.productName
+                    )
+                
+                desc2 = ""
+                if request.imageUrls and len(request.imageUrls) > 1:
+                    desc2 = await asyncio.to_thread(
+                        generate_visual_description,
+                        image_urls=[request.imageUrls[1]],
+                        product_name=request.productName
+                    )
+
+                if desc1:
                     await products_collection.update_one(
                         {"_id": ObjectId(request.productId)},
                         {"$set": {
-                            "adVisualDescription": description,
+                            "adVisualDescription": desc1,
+                            "adVisualDescriptionSecondary": desc2,
                             "adVisualDescriptionStatus": "ready"
                         }}
                     )
@@ -2887,20 +2996,32 @@ async def api_regenerate_ad_visual_description(request: AdVisualDescRequest):
 
     async def _run():
         try:
-            description = await asyncio.to_thread(
-                generate_visual_description,
-                image_urls=request.imageUrls,
-                product_name=request.productName
-            )
-            if description:
+            desc1 = ""
+            if request.imageUrls and len(request.imageUrls) > 0:
+                desc1 = await asyncio.to_thread(
+                    generate_visual_description,
+                    image_urls=[request.imageUrls[0]],
+                    product_name=request.productName
+                )
+            
+            desc2 = ""
+            if request.imageUrls and len(request.imageUrls) > 1:
+                desc2 = await asyncio.to_thread(
+                    generate_visual_description,
+                    image_urls=[request.imageUrls[1]],
+                    product_name=request.productName
+                )
+
+            if desc1:
                 await products_collection.update_one(
                     {"_id": ObjectId(request.productId)},
                     {"$set": {
-                        "adVisualDescription": description,
+                        "adVisualDescription": desc1,
+                        "adVisualDescriptionSecondary": desc2,
                         "adVisualDescriptionStatus": "ready"
                     }}
                 )
-                print(f"[VisualDescAgent] ✅ Re-generated description for product {request.productId} ({len(description.split())} words)")
+                print(f"[VisualDescAgent] ✅ Re-generated description for product {request.productId}")
             else:
                 await products_collection.update_one(
                     {"_id": ObjectId(request.productId)},

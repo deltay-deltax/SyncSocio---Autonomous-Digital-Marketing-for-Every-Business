@@ -91,7 +91,7 @@ def generate_visual_description(image_urls: List[str], product_name: str = "") -
 
     content.append({"type": "text", "text": context_text})
 
-    for url in http_urls[:2]:  # Max 2 images, same as makelocalads
+    for url in http_urls[:1]:  # Max 1 image
         content.append({
             "type": "image_url",
             "image_url": {"url": url, "detail": "high"}

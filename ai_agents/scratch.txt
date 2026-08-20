@@ -1,0 +1,150 @@
+        def run_image_task(task):
+            prompt, refs, index, prod, t_id, c_dir = task
+            template_label = None
+            if t_id and t_id in AD_TEMPLATE_DIRECTIVES:
+                template_label = AD_TEMPLATE_DIRECTIVES[t_id]["label"]
+            elif c_dir:
+                # Find if c_dir matches any template directive
+                for tid, tval in AD_TEMPLATE_DIRECTIVES.items():
+                    if tval["directive"] == c_dir:
+                        template_label = tval["label"]
+                        break
+                if not template_label:
+                    template_label = c_dir.replace("Use a ", "").replace("Use an ", "").replace("Use ", "").strip(".")
+
+            print(f"\n[StrategyAgent] 🖼  Image {index+1}/{count} | ref_image={'YES ✓ (' + str(len(refs)) + ')' if refs else 'NONE'} | template={template_label or 'None'}")
+            
+            # Generate custom Instagram caption + hashtags using Gemini
+            caption = generate_instagram_caption_and_hashtags(
+                brand_doc=brand_doc,
+                product=prod,
+                layout="image",
+                idea=idea,
+                language=language,
+                template_label=template_label,
+                index=index,
+                trigger_keyword=comment_keyword,
+            )
+            
+            try:
+                img_count = len(refs) if refs else 0
+                img_types = []
+                for idx, img in enumerate(refs or []):
+                    if isinstance(img, str) and img.startswith('http'):
+                        img_types.append(f"[{idx}] URL: {img[:80]}")
+                    elif isinstance(img, str):
+                        img_types.append(f"[{idx}] base64 ({len(img)//1024}KB)")
+                print(f"\n[ImageAgent DEBUG] 🖼 Task {index+1}: Passing {img_count} image(s) to FAL:")
+                for t in img_types: print(f"  {t}")
+                result = generate_fal_image_gpt2(
+                    prompt=prompt,
+                    image=refs,
+                    image_size=fal_size,
+                    quality=img_quality,
+                )
+                return {
+                    "image":    result["image"],
+                    "caption":  caption,
+                    "type":     "image",
+                    "template": template_label,
+                    "index":    index
+                }
+            except Exception as e:
+                print(f"[StrategyAgent] ❌ Image {index+1} failed: {e}")
+                return {
+                    "image":    None,
+                    "caption":  caption,
+                    "type":     "image",
+                    "error":    str(e),
+                    "index":    index
+                }
+
+        print(f"[StrategyAgent] 🚀 Running static image generations in parallel...")
+        with ThreadPoolExecutor(max_workers=count) as executor:
+            thread_results = list(executor.map(run_image_task, tasks))
+            
+        thread_results.sort(key=lambda x: x["index"])
+        for r in thread_results:
+            del r["index"]
+            results.append(r)
+
+    # ── PHOTOSHOOT ─────────────────────────────────
+    elif layout == "photoshoot":
+        fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
+        tasks = []
+        
+        _raw_cat = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")).lower()
+        _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear", "shoe", "accessory", "accessories", "streetwear", "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+        is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
+        
+        planned_shots = plan_image_shots(
+            brand_doc=brand_doc,
+            product=products[0] if products else None,
+            platform=platform or "Instagram",
+            count=count,
+            is_fashion=is_fashion,
+            layout="photoshoot",
+            idea=idea
+        )
+
+        for i in range(count):
+            prod = assigned_products[i]
+            
+            task_refs = []
+            if prod:
+                if prod.get("imageBase64"):
+                    task_refs.append(prod.get("imageBase64"))
+            elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
+                task_refs.append(assigned_refs[i])
+            if brand_doc.get("logo"):
+                res_logo = _resolve_ref_image(brand_doc.get("logo"))
+                if res_logo and res_logo not in task_refs:
+                    task_refs.append(res_logo)
+            
+            shot_label = planned_shots[i] if i < len(planned_shots) else "Cinematic photoshoot setting"
+            c_dir = f"STRICTLY NO TEXT. THE IMAGE MUST BE PURE PHOTOGRAPHY WITH NO LETTERS, LOGOS, OR CHARACTERS. {shot_label}"
+            
+            prompt = build_image_prompt(
+                brand_doc, idea, aspect_ratio, 
+                product=prod, ad_template=None, 
+                language=language, custom_directive=c_dir,
+                text_mode="none"
+            )
+            tasks.append((prompt, task_refs, i, prod))
+
+        def run_photoshoot_task(task):
+            prompt, refs, index, prod = task
+            print(f"\n[StrategyAgent] 📸 Photoshoot {index+1}/{count} | ref_image={'YES ✓' if refs else 'NONE'}")
+            
+            try:
+                result = generate_fal_image_gpt2(
+                    prompt=prompt,
+                    image=refs,
+                    image_size=fal_size,
+                    quality=img_quality,
+                )
+                return {
+                    "image":    result["image"],
+                    "caption":  "",
+                    "type":     "photoshoot",
+                    "template": "Photoshoot",
+                    "index":    index
+                }
+            except Exception as e:
+                print(f"[StrategyAgent] ❌ Photoshoot {index+1} failed: {e}")
+                return {
+                    "image":    None,
+                    "caption":  "",
+                    "type":     "photoshoot",
+                    "error":    str(e),
+                    "index":    index
+                }
+
+        print(f"[StrategyAgent] 🚀 Running photoshoot generations in parallel...")
+        with ThreadPoolExecutor(max_workers=count) as executor:
+            thread_results = list(executor.map(run_photoshoot_task, tasks))
+            
+        thread_results.sort(key=lambda x: x["index"])
+        for r in thread_results:
+            del r["index"]
+            results.append(r)

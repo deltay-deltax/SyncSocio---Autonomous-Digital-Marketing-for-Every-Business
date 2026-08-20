@@ -1761,7 +1761,7 @@ const DashboardLayoutContent = () => {
             </p>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowOutOfCreditsModal(false)}>Cancel</Button>
-              <Button className="flex-1 gradient-bg text-white border-0" onClick={() => { setShowOutOfCreditsModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}>Buy Plan</Button>
+              <Button className="flex-1 gradient-bg text-white border-0" onClick={() => { setShowOutOfCreditsModal(false); navigate('/dashboard/buy-credits'); }}>Buy Credits</Button>
             </div>
           </div>
         </div>

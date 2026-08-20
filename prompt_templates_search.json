@@ -1,0 +1,46 @@
+[
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": " feels creamy and organic, and avoid pure black in favor of Charcoal for secondary text.\",\"prompt\":\"Instructions by the director: Based on the Side-by-Side Comparison (SBSC) framework, this static 1:1 graphic directly compares OLIPOP Classic Grape to traditional grape soda to prove it is the ultimate health upgrade. The layout"
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "a0-d728f3743739\",\"triggerRunId\":null,\"changeType\":\"initial\",\"instructions\":null,\"finalImagePrompt\":\"Instructions by the director: Based on the Side-by-Side Comparison (SBSC) framework, this static 1:1 graphic directly compares OLIPOP Classic Grape to traditional grape soda to prove it is the ultimate health upgrade. The layout"
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "\"English\",\"lastError\":null,\"imageModel\":\"openai/gpt-image-2:100\",\"hasNSFWRisk\":false,\"imagePrompt\":\"Instructions by the director: Based on the Side-by-Side Comparison (SBSC) framework, this static 1:1 graphic directly compares OLIPOP Classic Grape to traditional grape soda to prove it is the ultimate health upgrade. The layout"
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": " brand palette, and keep the typography tightly tracked for that nostalgic, chunky look.\",\"prompt\":\"Instructions by the director: Based on the Contrast and Choice (CC) framework, this static 1:1 ad targets routine diet soda drinkers by positioning OLIPOP as the premium, clean-label upgrade that eliminates chemical sweeteners. "
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "\"English\",\"lastError\":null,\"imageModel\":\"openai/gpt-image-2:100\",\"hasNSFWRisk\":false,\"imagePrompt\":\"Instructions by the director: Based on the Contrast and Choice (CC) framework, this static 1:1 ad targets routine diet soda drinkers by positioning OLIPOP as the premium, clean-label upgrade that eliminates chemical sweeteners. "
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "xt, and maintain the retro-modern aesthetic with generous whitespace around the product.\",\"prompt\":\"Instructions by the director: Based on the Problem-Agitate-Solve (PAS) framework, this static 1:1 ad targets consumers who love soda but hate the bloating and digestive discomfort that traditional sugary drinks cause. The layout"
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "a0-d728f3743739\",\"triggerRunId\":null,\"changeType\":\"initial\",\"instructions\":null,\"finalImagePrompt\":\"Instructions by the director: Based on the Problem-Agitate-Solve (PAS) framework, this static 1:1 ad targets consumers who love soda but hate the bloating and digestive discomfort that traditional sugary drinks cause. The layout"
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "\"English\",\"lastError\":null,\"imageModel\":\"openai/gpt-image-2:100\",\"hasNSFWRisk\":false,\"imagePrompt\":\"Instructions by the director: Based on the Problem-Agitate-Solve (PAS) framework, this static 1:1 ad targets consumers who love soda but hate the bloating and digestive discomfort that traditional sugary drinks cause. The layout"
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "a0-d728f3743739\",\"triggerRunId\":null,\"changeType\":\"initial\",\"instructions\":null,\"finalImagePrompt\":\"Instructions by the director: Based on the Contrast and Choice (CC) framework, this static 1:1 ad targets routine diet soda drinkers by positioning OLIPOP as the premium, clean-label upgrade that eliminates chemical sweeteners. "
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "\"language\":\"English\",\"lastError\":null,\"imageModel\":\"gpt-image-2\",\"hasNSFWRisk\":false,\"imagePrompt\":\"Instructions by the director: Based on the Side-by-Side Comparison (SBSC) framework, this static 1:1 graphic directly compares OLIPOP Classic Grape to traditional grape soda to prove it is the ultimate health upgrade. The layout"
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/creatives.feed?batch=1&input=%7B%220%22%3A%7B%22offeringId%22%3A%22fdfcaad1-1542-44ff-a267-cc38b91f44b8%22%2C%22campaignId%22%3A%22b90774ce-3740-4166-9d9c-c1a9d6ccaab9%22%2C%22limit%22%3A50%7D%7D",
+    "match": "\"language\":\"English\",\"lastError\":null,\"imageModel\":\"gpt-image-2\",\"hasNSFWRisk\":false,\"imagePrompt\":\"Instructions by the director: Based on the Contrast and Choice (CC) framework, this static 1:1 ad targets routine diet soda drinkers by positioning OLIPOP as the premium, clean-label upgrade that eliminates chemical sweeteners. "
+  }
+]

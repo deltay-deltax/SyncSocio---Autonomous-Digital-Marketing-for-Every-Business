@@ -398,7 +398,10 @@ const DashboardSettings = () => {
       const scrapeRes = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: formData.website })
+        body: JSON.stringify({ 
+          url: formData.website,
+          plan: profile?.selectedPlan || 'Starter'
+        })
       });
 
       if (!scrapeRes.ok) {
@@ -647,6 +650,18 @@ const DashboardSettings = () => {
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const fileType = file.type.toLowerCase();
+    if (fileType === 'image/webp' || fileType === 'image/svg+xml') {
+      setAlertModal({
+        isOpen: true,
+        title: 'Unsupported Logo Format',
+        message: 'Could not update logo. Please upload a JPG or PNG image.',
+        type: 'error'
+      });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => updateField('logo', reader.result as string);
     reader.readAsDataURL(file);
@@ -959,6 +974,7 @@ const DashboardSettings = () => {
                       guide={formData.brandDesignGuide}
                       brandName={formData.brandName}
                       primaryColor={formData.primaryColor}
+                      onChange={(newGuide) => updateField('brandDesignGuide', newGuide)}
                     />
                   )}
                 </CardContent>
@@ -2511,12 +2527,26 @@ const BrandDesignGuidePill = ({
   guide,
   brandName,
   primaryColor,
+  onChange,
 }: {
   guide: string;
   brandName: string;
   primaryColor: string;
+  onChange?: (guide: string) => void;
 }) => {
-  const normalizedGuide = guide.trim();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(guide);
+
+  useEffect(() => {
+    setEditValue(guide);
+  }, [guide]);
+
+  const handleSave = () => {
+    onChange?.(editValue);
+    setIsEditing(false);
+  };
+
+  const normalizedGuide = (isEditing ? editValue : guide).trim();
   const sectionSource = normalizedGuide
     .replace(/^#(?!#)\s+[^\n]+\n*/m, '')
     .replace(/[ \t]+(?=##(?!#)\s+)/g, '\n\n')
@@ -2545,7 +2575,7 @@ const BrandDesignGuidePill = ({
     .trim();
 
   return (
-    <Dialog>
+    <Dialog onOpenChange={(open) => { if(!open) setIsEditing(false); }}>
       <DialogTrigger asChild>
         <button
           type="button"
@@ -2558,7 +2588,7 @@ const BrandDesignGuidePill = ({
           </span>
           <span className="flex items-center gap-2">
             <span className="hidden sm:inline text-[11px] font-bold text-primary/80 group-hover:text-primary">
-              View guide
+              {onChange ? 'View & Edit guide' : 'View guide'}
             </span>
             <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-white opacity-90">
               AI-Generated
@@ -2569,24 +2599,38 @@ const BrandDesignGuidePill = ({
 
       <DialogContent className="flex h-[85dvh] max-h-[48rem] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-background p-0 shadow-2xl">
         <DialogHeader
-          className="shrink-0 px-7 py-5 pr-14 border-b border-border/50 text-left"
+          className="shrink-0 px-7 py-5 border-b border-border/50 text-left"
           style={{ background: 'linear-gradient(135deg, ' + primaryColor + '18, ' + primaryColor + '08)' }}
         >
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: primaryColor }}
-            >
-              <BookOpen size={16} className="text-white" />
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: primaryColor }}
+              >
+                <BookOpen size={16} className="text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-black text-foreground pr-8">
+                  {brandName || 'Brand'} Design Guide
+                </DialogTitle>
+                <DialogDescription className="text-[11px] font-medium pr-8">
+                  Exact visual direction used by AI Ad Creatives
+                </DialogDescription>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-sm font-black text-foreground">
-                {brandName || 'Brand'} Design Guide
-              </DialogTitle>
-              <DialogDescription className="text-[11px] font-medium">
-                Exact visual direction used by AI Ad Creatives
-              </DialogDescription>
-            </div>
+            {onChange && (
+              <div className="flex items-center gap-2 mr-6">
+                {isEditing ? (
+                  <>
+                    <Button size="sm" variant="outline" className="h-8 text-xs px-3" onClick={() => { setIsEditing(false); setEditValue(guide); }}>Cancel</Button>
+                    <Button size="sm" className="h-8 text-xs px-3" onClick={handleSave}>Save</Button>
+                  </>
+                ) : (
+                  <Button size="sm" variant="outline" className="h-8 text-xs px-3" onClick={() => setIsEditing(true)}>Edit Guide</Button>
+                )}
+              </div>
+            )}
           </div>
         </DialogHeader>
 
@@ -2594,7 +2638,17 @@ const BrandDesignGuidePill = ({
           className="min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto px-7 py-6 space-y-5"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          {sections.length > 0 ? (
+          {isEditing ? (
+            <div className="flex flex-col h-full space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Raw Guide Source</Label>
+              <Textarea 
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                className="flex-1 font-mono text-xs p-4 rounded-xl border border-primary/20 bg-primary/5 focus-visible:ring-primary/40 resize-none"
+                placeholder="Enter markdown brand guidelines here..."
+              />
+            </div>
+          ) : sections.length > 0 ? (
             sections.map((section, i) => (
               <section key={section.title + '-' + i} className="space-y-2">
                 <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
@@ -2661,9 +2715,11 @@ const BrandDesignGuidePill = ({
             </div>
           )}
 
-          <p className="text-center text-[11px] text-muted-foreground pt-2">
-            Auto-generated from verified brand data · Used by AI Ad Creatives
-          </p>
+          {!isEditing && (
+            <p className="text-center text-[11px] text-muted-foreground pt-2">
+              Auto-generated from verified brand data · Used by AI Ad Creatives
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -343,7 +343,7 @@ export default function AutopilotPage() {
   const handleToggleProduct = (id: string) => {
     setSelectedProductIds(prev => {
       const isSelected = prev.includes(id);
-      if (!isSelected && prev.length >= selectedWeeks * 7) {
+      if (!isSelected && prev.length >= Math.max(1, Math.floor((selectedWeeks * 7) / 2))) {
         return prev;
       }
       return isSelected ? prev.filter(pid => pid !== id) : [...prev, id];
@@ -655,15 +655,6 @@ export default function AutopilotPage() {
               </button>
             </div>
 
-            {/* Quick Actions */}
-            <Button
-              onClick={handleBackToForm}
-              variant="outline"
-              size="sm"
-              className="rounded-xl text-xs font-bold gap-1.5 h-10 border-border/70"
-            >
-              <RefreshCw size={13} /> Regenerate
-            </Button>
             <Button
               onClick={handleExportAll}
               variant="default"
@@ -1268,7 +1259,7 @@ export default function AutopilotPage() {
                     <ShoppingBag size={18} className="text-primary" /> Select Products
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Pick up to {selectedWeeks * 7} products. SyncSocio will anchor generations to these.
+                    Pick up to {Math.max(1, Math.floor((selectedWeeks * 7) / 2))} products. SyncSocio will anchor generations to these.
                   </p>
                 </div>
                 <button onClick={() => setShowProductModal(false)} className="p-2 rounded-xl hover:bg-muted transition">
@@ -1292,7 +1283,7 @@ export default function AutopilotPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {products.map((p) => {
                       const selected = selectedProductIds.includes(p._id);
-                      const disabled = !selected && selectedProductIds.length >= selectedWeeks * 7;
+                      const disabled = !selected && selectedProductIds.length >= Math.max(1, Math.floor((selectedWeeks * 7) / 2));
                       return (
                         <button
                           key={p._id}
@@ -1328,9 +1319,9 @@ export default function AutopilotPage() {
 
               <div className="p-5 border-t border-border/50 shrink-0 flex items-center justify-between bg-card rounded-b-3xl">
                 <p className="text-xs font-semibold text-muted-foreground">
-                  <span className={cn(selectedProductIds.length === selectedWeeks * 7 ? 'text-primary' : 'text-foreground')}>
+                  <span className={cn(selectedProductIds.length === Math.max(1, Math.floor((selectedWeeks * 7) / 2)) ? 'text-primary' : 'text-foreground')}>
                     {selectedProductIds.length}
-                  </span> / {selectedWeeks * 7} selected
+                  </span> / {Math.max(1, Math.floor((selectedWeeks * 7) / 2))} selected
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setSelectedProductIds([])} className="text-xs">Clear</Button>

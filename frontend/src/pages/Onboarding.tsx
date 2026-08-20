@@ -294,7 +294,8 @@ const Onboarding = () => {
           url: scanUrl, 
           metaEventId,
           userEmail,
-          userPhone
+          userPhone,
+          plan: userProfile?.plan || 'Starter'
         })
       });
 

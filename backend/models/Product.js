@@ -12,11 +12,21 @@ const productSchema = new mongoose.Schema({
     ref: 'BrandProfile',
     index: true,
   },
-  // Image stored as base64 string
+  // Image stored as base64 string (deprecated in favor of imageUrls)
   imageBase64: {
     type: String,
     default: '',
   },
+  // Up to 3 variant images for the product
+  imageUrls: {
+    type: [String],
+    default: [],
+  },
+  // Dynamically categorized specifications (e.g., Ingredients, Fit, Fabric)
+  specifications: [{
+    label: String,
+    value: String,
+  }],
   name: {
     type: String,
     required: true,
@@ -79,6 +89,10 @@ const productSchema = new mongoose.Schema({
   // Used exclusively by ad_creative_agent.py as Block 2 (Product appearance).
   // Not used by any other generation mode.
   adVisualDescription: {
+    type: String,
+    default: '',
+  },
+  adVisualDescriptionSecondary: {
     type: String,
     default: '',
   },
