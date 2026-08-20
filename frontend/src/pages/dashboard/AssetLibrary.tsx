@@ -829,7 +829,12 @@ const AssetLibrary = () => {
                     src={previewAsset.videoUrl}
                     controls
                     autoPlay
-                    className="w-auto h-auto max-w-full max-h-[55vh] object-contain block"
+                    className={cn(
+                      "w-auto h-auto max-w-full object-contain block", 
+                      (['ecomm', 'photoshoot', 'video'].includes(previewAsset.type) || (previewAsset.type === 'image' && previewAsset.caption?.includes(' ✨'))) 
+                        ? 'max-h-[90vh]' 
+                        : 'max-h-[70vh]'
+                    )}
                   />
                 ) : previewAsset.type === 'carousel' && previewAsset.slides?.length > 0 ? (
                   <div className="relative flex flex-col items-center justify-center w-full">
@@ -842,7 +847,12 @@ const AssetLibrary = () => {
                         transition={{ duration: 0.15 }}
                         src={imgSrc(previewAsset.slides[previewSlide]?.image)}
                         alt={`Slide ${previewSlide + 1}`}
-                        className="w-auto h-auto max-w-full max-h-[55vh] object-contain block cursor-grab active:cursor-grabbing"
+                        className={cn(
+                          "w-auto h-auto max-w-full object-contain block cursor-grab active:cursor-grabbing", 
+                          (['ecomm', 'photoshoot', 'video'].includes(previewAsset.type) || (previewAsset.type === 'image' && previewAsset.caption?.includes(' ✨'))) 
+                            ? 'max-h-[90vh]' 
+                            : 'max-h-[70vh]'
+                        )}
                         loading="lazy"
                         drag="x"
                         dragConstraints={{ left: 0, right: 0 }}
@@ -897,14 +907,22 @@ const AssetLibrary = () => {
                   <img
                     src={imgSrc(previewAsset.thumbnailBase64)}
                     alt="Preview"
-                    className="w-auto h-auto max-w-full max-h-[55vh] object-contain block"
+                    className={cn(
+                      "w-auto h-auto max-w-full object-contain block", 
+                      (['ecomm', 'photoshoot', 'video'].includes(previewAsset.type) || (previewAsset.type === 'image' && previewAsset.caption?.includes(' ✨'))) 
+                        ? 'max-h-[90vh]' 
+                        : 'max-h-[70vh]'
+                    )}
                     loading="lazy"
                   />
                 )}
               </div>
 
               {/* Bottom panel: Caption & Hashtags */}
-              {!['ecomm', 'photoshoot', 'video'].includes(previewAsset.layout) && (
+              {!(
+                ['ecomm', 'photoshoot', 'video'].includes(previewAsset.type) || 
+                (previewAsset.type === 'image' && previewAsset.caption?.includes(' ✨'))
+              ) && (
                 <div className="w-0 min-w-full flex flex-col bg-card overflow-y-auto shrink-0 border-t border-border/50">
                   <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
                     <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">

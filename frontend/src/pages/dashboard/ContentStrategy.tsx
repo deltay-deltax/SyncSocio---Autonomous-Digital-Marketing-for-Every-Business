@@ -3084,14 +3084,14 @@ const DashboardStrategy = () => {
                       src={previewPost.url}
                       controls
                       autoPlay
-                      className="w-auto h-auto max-w-full max-h-[55vh] object-contain block"
+                      className={cn("w-auto h-auto max-w-full object-contain block", ['ecomm', 'photoshoot', 'video'].includes(previewPost.layout || mode || '') ? 'max-h-[90vh]' : 'max-h-[70vh]')}
                     />
                   ) : previewPost.type === 'carousel' && previewPost.slides && previewPost.slides.length > 0 ? (
                     <div className="relative flex flex-col items-center justify-center w-full">
                       <img
                         src={imgSrc(previewPost.slides[previewSlide]?.image)}
                         alt={`Slide ${previewSlide + 1}`}
-                        className="w-auto h-auto max-w-full max-h-[55vh] object-contain block"
+                        className={cn("w-auto h-auto max-w-full object-contain block", ['ecomm', 'photoshoot', 'video'].includes(previewPost.layout || mode || '') ? 'max-h-[90vh]' : 'max-h-[70vh]')}
                       />
                       {/* Navigation dots */}
                       {previewPost.slides.length > 1 && (
@@ -3134,14 +3134,14 @@ const DashboardStrategy = () => {
                     <img
                       src={imgSrc(previewPost.image || previewPost.thumbnail)}
                       alt="Preview"
-                      className="w-auto h-auto max-w-full max-h-[55vh] object-contain block"
+                      className={cn("w-auto h-auto max-w-full object-contain block", ['ecomm', 'photoshoot', 'video'].includes(previewPost.layout || mode || '') ? 'max-h-[90vh]' : 'max-h-[70vh]')}
                     />
                   )}
                 </div>
 
                 {/* Bottom panel: Caption & Hashtags */}
                 <div className="w-0 min-w-full flex flex-col bg-card overflow-y-auto shrink-0 border-t border-border/50">
-                  {!['ecomm', 'photoshoot', 'video'].includes(mode || '') && (
+                  {!['ecomm', 'photoshoot', 'video'].includes(previewPost.layout || mode || '') && (
                     <>
                       <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
                         <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Instagram Post Caption</span>

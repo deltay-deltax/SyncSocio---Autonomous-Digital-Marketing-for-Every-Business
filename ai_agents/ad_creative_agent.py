@@ -565,6 +565,7 @@ SOURCE-OF-TRUTH PRIORITY:
 5. Generic profile labels are fallback context only.
 
 Never resolve a conflict by inventing or blending facts. Never turn packaging-description text into ad copy.
+If no packaging images are provided, do not assume or invent fake packaging.
 
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 PRODUCT-GROUNDED AUDIENCE INFERENCE \u2014 DO THIS SILENTLY BEFORE WRITING:
@@ -586,7 +587,8 @@ Open naturally by naming the assigned full framework and the precise audience si
 "Using...", "Grounded in...", "Applying...", or "Based on..." so the batch does not sound templated.
 
 Each brief MUST contain ALL of the following, woven naturally into ONE flowing paragraph:
-{background_rule}
+
+0. UI BACKGROUND COLOR RULE: Given the brand's Primary Color and Secondary Color, select the most appropriate UI background color for the composition. Never use the primary or secondary color directly as the background. Generate a very light, desaturated tint that complements both brand colors. Prioritize readability and visual balance — the background must stay subtle and let the brand colors stand out.
 
 1. ASSIGNMENT FIDELITY: Execute exactly {count} concepts using the {count} frameworks you selected from the menu. Name the framework and precise product-grounded audience situation. Ensure the 'angle' exactly matches the Code and 'creative_job' exactly matches the Job from the menu.
 

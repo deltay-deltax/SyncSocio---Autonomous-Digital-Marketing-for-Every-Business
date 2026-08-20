@@ -147,7 +147,7 @@ FASHION_APPAREL_SLOTS: List[str] = [
 # Static guardrails appended to EVERY E-Comm prompt (identical across all 9 slots)
 ECOMM_CONSISTENCY_RULE = (
     "CONSISTENCY RULE: Keep the product's shape, materials, colors, proportions, label details, packaging details, "
-    "and overall visual identity consistent with this description."
+    "and overall visual identity consistent with this description. If no packaging images are provided, do not assume or invent fake packaging."
 )
 
 ECOMM_SAFETY_GUARDRAIL = (
@@ -867,6 +867,75 @@ def _is_fashion_brand(brand_doc: Dict[str, Any]) -> bool:
     return any(k in raw for k in keys)
 
 
+def plan_ecomm_slots(product: Optional[Dict[str, Any]], count: int, is_fashion: bool) -> List[str]:
+    """
+    Uses Gemini to intelligently select the `count` most relevant slots from the full pool of 9
+    based on the specific product's features. Slot 1 is always forced.
+    """
+    pool = FASHION_APPAREL_SLOTS if is_fashion else PHYSICAL_PRODUCT_SLOTS
+    
+    # If they want all slots or more, just return the whole pool
+    if count >= len(pool):
+        return pool[:count]
+        
+    # Slot 1 (Main Hero) is ALWAYS required
+    selected = [pool[0]]
+    remaining_count = count - 1
+    
+    if remaining_count <= 0:
+        return selected
+
+    available_pool = pool[1:]
+    
+    prod_name = product.get("name", "Flagship product") if product else "Flagship product"
+    prod_desc = (product.get("description", "") if product else "")[:300]
+    prod_benefit = (product.get("keyBenefit", "") if product else "")[:200]
+    _specs = product.get("specifications", []) if product else []
+    prod_specs = "\n".join([f"{s.get('key', '')}: {s.get('value', '')}" for s in _specs if isinstance(s, dict)])
+    
+    system_prompt = (
+        "You are an E-Commerce Strategy Planner. Your job is to curate the perfect image gallery layout for a product.\n"
+        f"You must select exactly {remaining_count} additional slots from the provided menu to accompany the Main Hero image.\n"
+        "Return ONLY a JSON array of the exact strings from the menu. Do not invent new slots or modify the strings.\n"
+        "Example output: [\"Model (Front)...\", \"Size & Fit...\"]"
+    )
+    
+    user_prompt = f"Product: {prod_name}\nDescription: {prod_desc}\nBenefit: {prod_benefit}\nSpecs: {prod_specs}\n\n"
+    user_prompt += "AVAILABLE SLOTS TO CHOOSE FROM (Pick exactly " + str(remaining_count) + " based on what is most relevant for this specific product):\n\n"
+    user_prompt += "\n\n".join(available_pool)
+    
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.messages import SystemMessage, HumanMessage
+        import os, json
+        
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+        raw = response.content.strip()
+        
+        start_idx = raw.find('[')
+        end_idx = raw.rfind(']')
+        if start_idx != -1 and end_idx != -1:
+            raw = raw[start_idx:end_idx+1]
+        
+        chosen_slots = json.loads(raw)
+        
+        # Verify the LLM returned exactly strings that exist in our pool
+        valid_chosen = [s for s in available_pool if any(s.startswith(c[:20]) for c in chosen_slots)]
+        
+        # If it failed to return enough valid ones, fallback to sequential
+        if len(valid_chosen) < remaining_count:
+            valid_chosen = valid_chosen + [s for s in available_pool if s not in valid_chosen]
+            
+        selected.extend(valid_chosen[:remaining_count])
+        
+    except Exception as e:
+        print(f"[EcommPlanner] ⚠️ Planning failed ({e}). Falling back to sequential slots.")
+        selected.extend(available_pool[:remaining_count])
+        
+    return selected
+
+
 def generate_ecomm_idea_briefs(
     brand_doc: Dict[str, Any],
     product: Optional[Dict[str, Any]],
@@ -876,17 +945,19 @@ def generate_ecomm_idea_briefs(
     idea: Optional[str] = None,
     language: str = "english",
     has_avatar: bool = False,
-) -> List[str]:
+) -> tuple[List[str], List[str]]:
     """
     Director LLM: takes the appropriate slot template list (first `count` slots) and
     calls Gemini Flash ONCE to produce product-specific, constraint-bound idea briefs
     for every slot in a single JSON array response.
 
-    Returns: list of `count` strings — one idea brief per slot.
+    Returns: Tuple of (idea_briefs_list, slot_templates_list)
     """
-    slot_templates = FASHION_APPAREL_SLOTS[:count] if is_fashion else PHYSICAL_PRODUCT_SLOTS[:count]
+    # Generate dynamic slots using LLM Planner instead of strict slicing
+    print(f"[EcommPlanner] 🧠 Planning {count} optimal e-commerce slots for {product.get('name', 'product') if product else 'product'}...")
+    slot_templates = plan_ecomm_slots(product, count, is_fashion)
 
-    # Apply Amazon vs non-Amazon rule for slot 0
+    # Apply Amazon vs non-Amazon rule for slot 0 (Main Hero)
     slot_templates = list(slot_templates)
     if platform != "Amazon":
         slot_templates[0] = slot_templates[0].replace(
@@ -971,7 +1042,7 @@ SLOT TEMPLATES TO ADAPT:
 
 RULES FOR EACH BRIEF (Write 4-6 dense, highly specific sentences per slot):
 1. COMPOSITION & HERO: Start with an action verb (Show / Create / Feature / Highlight). Substitute the ACTUAL product name, colors, materials, and ingredients from Product Intelligence above.
-2. BACKGROUND & LIGHTING: Explicitly define the background. For Amazon, Slot 1 MUST be pure white (#FFFFFF). However, for ALL subsequent slots (Slot 2-9), NEVER use a plain white background. Instead, use highly aesthetic solid brand colors, solid product-derived colors, subtle gradients, natural lifestyle scenes, or rich textures (e.g., "solid {primary_color} backdrop", "soft {secondary_color} gradient", "warm sunlit kitchen counter").
+2. BACKGROUND & LIGHTING: Explicitly define the background. For Amazon, Slot 1 MUST be pure white (#FFFFFF). However, for ALL subsequent slots (Slot 2-9), NEVER use a plain white background. Instead, you MUST STRICTLY FOLLOW THE UI BACKGROUND COLOR RULE: Generate a very light, desaturated tint that complements both the primary and secondary brand colors. Never use the primary or secondary color directly as the background. Prioritize readability and visual balance (e.g., "very light, desaturated warm grey-pink backdrop", "soft washed-out mint gradient").
 3. HEADLINES, TYPOGRAPHY & OVERLAYS (Crucial): For any slot with text, explicitly define a strong HEADLINE (e.g., "KEY INGREDIENTS", "DIETARY FIT", "3-PACK CONTENTS"). Mention the font style (e.g., "{brand_font}"), the exact text color using hex codes (e.g., "text in {primary_color}"), and text placement. If applicable, add a subtle CTA or badge (e.g., "a pill-shaped badge reading 'Vegan Friendly'").
 4. INGREDIENT PROPS & VISUALS: Do not just say "add icons". When describing ingredients or flavors, explicitly command the visual engine to draw realistic supporting props (e.g., "subtle green botanical leaves", "ashwagandha root sticks", "sliced oranges", "water droplets"). Integrate these props beautifully around the product to elevate the premium feel.
 5. MAXIMIZE ECOMM INFO: This is a premium e-commerce listing, so pack the images with highly informative text. Instruct the visual engine to list a substantial amount of key ingredients (e.g., 4-6 primary ingredients) rather than just one or two, along with step-by-step usage instructions and key specifications. Cram the image with detailed text callouts, rich lists, and infographics so the shopper gets a comprehensive view without it becoming an unreadable wall of text.
@@ -997,12 +1068,12 @@ Return ONLY a JSON array of {count} strings: ["brief1", "brief2", ...]"""
         briefs = json.loads(raw.strip())
         if isinstance(briefs, list) and len(briefs) == count:
             print(f"[EcommDirector] ✅ Generated {count} idea briefs for {prod_name} on {platform}")
-            return briefs
+            return briefs, slot_templates
     except Exception as e:
         print(f"[EcommDirector] ⚠️ LLM brief generation failed: {e}. Falling back to templates.")
 
     # Fallback: return raw templates with product name substituted
-    return [t.replace("[PRODUCT_NAME]", prod_name) for t in slot_templates]
+    return [t.replace("[PRODUCT_NAME]", prod_name) for t in slot_templates], slot_templates
 
 
 def assemble_ecomm_final_prompt(idea_brief: str, product_vision_desc: str) -> str:
@@ -1068,7 +1139,7 @@ is_fashion: bool, layout: str, idea: str = "", language: str = "english") -> Lis
         user_prompt += f"IMPORTANT LANGUAGE RULE: Write ALL directions and angle descriptions strictly in {language}.\n\n"
             
         if layout != "ecomm":
-            user_prompt += f"CRITICAL RULE ON BACKGROUNDS: Since you are planning {count} shots, exactly half of them (at least {count // 2}) MUST explicitly specify a solid brand contrast color or a solid product-matching color as the background. Do not use complex scenes or natural environments for these; explicitly instruct that the background is a highly aesthetic solid color.\n\n"
+            user_prompt += f"CRITICAL RULE ON BACKGROUNDS: Since you are planning {count} shots, you MUST strictly follow the UI BACKGROUND COLOR RULE for any shots that require a simple or solid background. Generate a very light, desaturated tint that complements both the primary and secondary brand colors. Never use the primary or secondary color directly as the background. Prioritize readability and visual balance.\n\n"
             
         user_prompt += f"Output EXACTLY {count} labels in a JSON array."
         
@@ -1138,7 +1209,7 @@ Output the text in {language}.
 Make it punchy and engaging. Slide 1 must be a strong visual hook. The last slide must be the Call to Action.
 For each slide, you must provide:
 1. "text": The punchy text overlay.
-2. "visual_prompt": A highly detailed, premium description of the image for that slide. Describe the camera angle, the scene, lighting, and how the product is shown. Do NOT mention text overlays in the visual_prompt.
+2. "visual_prompt": A highly detailed, premium description of the image for that slide. Describe the camera angle, the scene, lighting, and how the product is shown. Do NOT mention text overlays in the visual_prompt. CRITICAL UI BACKGROUND COLOR RULE: If the scene requires a studio or solid background, you MUST generate a very light, desaturated tint that complements both the primary and secondary brand colors. Never use the primary or secondary color directly as the background. Prioritize readability and visual balance.
 
 Output ONLY a valid JSON array of objects. Do not use Markdown formatting.
 Example output:
@@ -1280,7 +1351,7 @@ Orchestrates generation for all layout types.
 
         # ── Step 1: Director LLM generates all `count` idea briefs in ONE call ──
         print(f"[EcommAgent] 🎯 Generating {count} idea briefs via Director ({plat}, fashion={is_fashion})...")
-        idea_briefs = generate_ecomm_idea_briefs(
+        idea_briefs, chosen_slot_templates = generate_ecomm_idea_briefs(
             brand_doc=brand_doc,
             product=listing_product,
             platform=plat,
@@ -1292,14 +1363,6 @@ Orchestrates generation for all layout types.
         )
 
         # ── Step 2: Build task list (prompt assembly + reference images) ──
-        slot_labels = (
-            ["Main Hero", "Model (Front)", "Design Detail", "Lifestyle Scene",
-             "Feature Callouts", "Back View", "Finishing Details", "Size & Fit", "Care & Origin"]
-            if is_fashion else
-            ["Main Hero", "Benefit Callouts", "Ingredients", "Safety/Certifications",
-             "Value/Bundle", "Lifestyle Context", "Macro Detail", "Label/Dimensions", "Usage/Care"]
-        )
-
         tasks = []
         for i, brief in enumerate(idea_briefs):
             final_prompt = assemble_ecomm_final_prompt(brief, prod_vision)
@@ -1321,7 +1384,11 @@ Orchestrates generation for all layout types.
             elif assigned_refs and assigned_refs[0]:
                 task_refs.append(assigned_refs[0])
 
-            label = slot_labels[i] if i < len(slot_labels) else f"Slot {i+1}"
+            # Extract the actual short label from the chosen slot template
+            raw_template = chosen_slot_templates[i] if i < len(chosen_slot_templates) else f"Slot {i+1}"
+            label = raw_template.split(".")[0][:80] if "." in raw_template else raw_template[:80]
+            label = label.split(":")[0].strip() if ":" in label else label.strip()
+
             prod_name = (listing_product.get("name", "") if listing_product else "") or brand_doc.get("brandName", "")
             caption = f"{prod_name} · {label} ({plat}) ✨"
             tasks.append((final_prompt, caption, task_refs, i))

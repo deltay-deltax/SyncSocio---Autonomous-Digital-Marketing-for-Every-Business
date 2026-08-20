@@ -432,6 +432,12 @@ def generate_brand_design_guide(brand_data: dict) -> str:
         else:
             lines.append("No exact color tokens were verified. Do not invent a palette.")
 
+        lines.extend([
+            "",
+            "### UI Background Color Rule",
+            "Given a brand's Primary Color and Secondary Color, select the most appropriate UI background color. Never use the primary or secondary color directly as the background. Generate a very light, desaturated tint that complements both brand colors. Prioritize readability and visual balance — the background must stay subtle and let the brand colors stand out."
+        ])
+
         lines.extend(["", "## 4. Components & Visual Motifs", "### CTA system"])
         valid_ctas = [row for row in ctas[:5] if isinstance(row, dict)]
         if valid_ctas:
@@ -503,7 +509,12 @@ def generate_brand_design_guide(brand_data: dict) -> str:
         "Use a single display family for headlines and one highly legible family for body copy and CTAs; "
         "do not invent additional fonts.\n\n"
         f"## 3. Color System\nVerified palette: {colors}. Use the primary color as the dominant anchor, "
-        "the secondary color for support, and preserve strong text/background contrast.\n\n"
+        "the secondary color for support, and preserve strong text/background contrast.\n"
+        "### UI Background Color Rule\n"
+        "Given a brand's Primary Color and Secondary Color, select the most appropriate UI background color. "
+        "Never use the primary or secondary color directly as the background. Generate a very light, desaturated tint "
+        "that complements both brand colors. Prioritize readability and visual balance — the background must stay subtle "
+        "and let the brand colors stand out.\n\n"
         "## 4. Components & Motifs\nUse only website-evidenced button shapes, decorative motifs, icon styles, "
         "and surface treatments. Keep CTA styling consistent across a campaign.\n\n"
         "## 5. Composition & Guardrails\nKeep one dominant product or message, a clear headline-to-proof-to-CTA hierarchy, "
