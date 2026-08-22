@@ -35,7 +35,7 @@ from fal_visual_engine import generate_fal_image_flux, generate_fal_carousel_ide
 from veo_engine import generate_veo_video
 from meta_capi import send_meta_capi_event
 from prompt_architect import build_ideogram_slide_prompt, _hex_to_words
-from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest, AutopilotRequest
+from models import BrandInfo, StrategyResponse, StrategyImageRequest, EditMediaRequest, RefineCopyRequest, AutopilotRequest, ParseTextRequest
 from post_validator import validate_post, optimize_post, publisher_node
 from vector_utils import find_similar_posts
 from plan_agent import generate_weekly_plan
@@ -745,8 +745,8 @@ Your output must be a valid JSON object matching the following structure. If any
 TRUTH AND COST RULES:
 - Never invent a product, variant, offer, guarantee, statistic, claim, font, or color.
 - Return only distinct products explicitly evidenced in the supplied page, maximum {PRODUCT_LIMIT}.
-- Keep descriptions under 200 characters and all fact arrays to at most 4 short items.
-- Preserve only facts that can materially change an ad: benefits, quantitative proof, offer, guarantee, and variant/purchase option.
+- Extract AS MUCH information as you can find about the product. Do not summarize or omit important details, ingredients, or specifications.
+- Capture all verified benefits, quantitative proof, offers, guarantees, and variants/purchase options comprehensively.
 
 DESIGN-SYSTEM COMPLETENESS RULES:
 - `brandDesignSystem` is required and every nested key in the schema must be returned.
@@ -851,7 +851,7 @@ JSON Structure:
     {
       "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
       "serviceProvider": "Company/Platform providing this service if it is a cloud/digital service or tool (e.g., 'AWS', 'Google Cloud', 'Stripe', or the brand name itself)",
-      "description": "Short description of the product or service (strictly 200 characters or less, rephrased for conciseness)",
+      "description": "Detailed description of the product or service. Bring as much info as it finds.",
       "price": "The ORIGINAL / MRP / regular (higher) price. Return ONLY the numeric value — strip all currency symbols (Rs., ₹, $, etc.) and return just the number (e.g., '249', '29.99'). Empty string if not found.",
       "offerPrice": "The DISCOUNTED / SALE / offer (lower) price if shown separately. MUST be strictly less than price. Strip currency symbols, return just the number. Empty string if no separate discounted price exists.",
       "keyBenefit": "One-liner key benefit or feature of this product/service",
@@ -872,13 +872,8 @@ JSON Structure:
   ]
 }
 """
-        product_limit = 5
-        if payload.plan:
-            plan_lower = payload.plan.lower()
-            if "pro" in plan_lower or "agency" in plan_lower:
-                product_limit = 12
-            elif "growth" in plan_lower:
-                product_limit = 8
+        plan_lower = (payload.plan or "Starter").lower()
+        product_limit = 8 if "pro" in plan_lower else (5 if "growth" in plan_lower else 2)
         
         system_prompt = system_prompt.replace("{PRODUCT_LIMIT}", str(product_limit))
 
@@ -920,7 +915,7 @@ JSON Structure:
         
         # Enforce plan-based limits
         plan_lower = (payload.plan or "Starter").lower()
-        product_limit = 12 if "pro" in plan_lower else (8 if "growth" in plan_lower else 5)
+        product_limit = 8 if "pro" in plan_lower else (5 if "growth" in plan_lower else 2)
         
         if len(products) > product_limit:
             products = products[:product_limit]
@@ -986,8 +981,8 @@ def normalize_product_prices(product: dict) -> dict:
 
 
 def normalize_compact_ad_facts(product: dict, source_url: str = "") -> dict:
-    """Bound the small verified fact set carried into the ad Director prompt."""
-    def _short_list(value, limit: int, item_chars: int = 120):
+    """Bound the verified fact set carried into the ad Director prompt (limits increased to allow deep extraction)."""
+    def _short_list(value, limit: int, item_chars: int = 500):
         if not isinstance(value, list):
             return []
         result = []
@@ -1002,11 +997,11 @@ def normalize_compact_ad_facts(product: dict, source_url: str = "") -> dict:
                 break
         return result
 
-    product["verifiedBenefits"] = _short_list(product.get("verifiedBenefits"), 4)
-    product["proofPoints"] = _short_list(product.get("proofPoints"), 4)
-    product["variantDetails"] = _short_list(product.get("variantDetails"), 3)
-    product["offerDetails"] = str(product.get("offerDetails") or "").strip()[:120]
-    product["guarantee"] = str(product.get("guarantee") or "").strip()[:100]
+    product["verifiedBenefits"] = _short_list(product.get("verifiedBenefits"), 20, 500)
+    product["proofPoints"] = _short_list(product.get("proofPoints"), 20, 500)
+    product["variantDetails"] = _short_list(product.get("variantDetails"), 20, 500)
+    product["offerDetails"] = str(product.get("offerDetails") or "").strip()[:500]
+    product["guarantee"] = str(product.get("guarantee") or "").strip()[:500]
     product["sourceUrl"] = str(product.get("sourceUrl") or source_url or "").strip()[:500]
     return product
 
@@ -1203,7 +1198,7 @@ async def api_scrape_single_product(payload: ScrapeRequest):
 Analyze the website's title, meta description, lists of found image URLs, and body text content to extract the details of the main product, SaaS tool, feature, or cloud/digital service (e.g., AWS EC2, S3, Stripe Payments, MongoDB Atlas, Salesforce CRM, etc.) shown on this page.
 
 Your output must be a valid JSON object matching the following structure. Do NOT extract multiple products or services, just the primary one. If any detail is not found, keep it as an empty string ("")—DO NOT invent fake information.
-The description MUST be strictly 200 characters or less.
+The description can be comprehensive and detailed.
 
 Identify the service provider (e.g. AWS/Amazon Web Services, Google Cloud, Microsoft, Stripe, Shopify, or the brand name itself) if the page describes a service, API, or cloud infrastructure component.
 
@@ -1215,7 +1210,7 @@ JSON Structure:
 {
   "name": "Product or Service Name (e.g., 'Amazon S3' or 'EC2')",
   "serviceProvider": "The company/platform providing this service (e.g., 'AWS' or 'Amazon Web Services', 'Google Cloud', 'Stripe', 'Salesforce')",
-  "description": "Short description (strictly 200 characters or less, rephrased for conciseness)",
+  "description": "Detailed description of the product or service. Bring as much info as it finds.",
   "price": "The ORIGINAL / MRP / regular (higher) price of the product shown on the page. Extract the numeric value only — strip all currency symbols (Rs., ₹, $, etc.) and return just the number (e.g., '249', '29.99'). Use an empty string if not found.",
   "offerPrice": "The DISCOUNTED / SALE / offer (lower) price, if shown separately from the original price. MUST be strictly less than `price` — if the page only shows one price, leave this empty. Never put a higher value here than in `price`. Strip currency symbols and return just the number (e.g., '199'). Use an empty string if no separate discounted price exists.",
   "keyBenefit": "One-liner key benefit or feature of this product/service",
@@ -1261,6 +1256,80 @@ JSON Structure:
         pass
         # print(f"GPT extraction error for single product {url}: {gpt_err}")
         raise HTTPException(status_code=500, detail=f"AI Extraction failed: {str(gpt_err)}")
+
+
+@app.post("/parse-product-text")
+async def api_parse_product_text(payload: ParseTextRequest):
+    text = payload.text or ""
+    image_urls = payload.imageUrls or []
+    if not text.strip() and not image_urls:
+        raise HTTPException(status_code=400, detail="Text or images are required")
+        
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.messages import HumanMessage
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
+        
+        system_prompt = """You are an expert product and service cataloging agent. 
+Analyze the provided unstructured text and/or images to extract the details of the main product, SaaS tool, feature, or cloud/digital service.
+
+If images are provided (like Front and Back product photos or labels), visually inspect them to extract details like ingredients, usage instructions, weight, name, etc.
+
+Your output must be a valid JSON object matching the following structure. Do NOT extract multiple products or services, just the primary one. If any detail is not found, keep it as an empty string ("")—DO NOT invent fake information.
+
+JSON Structure:
+{
+  "name": "Product Name",
+  "description": "Detailed description of the product or service. Bring as much info as it finds.",
+  "price": "The ORIGINAL / MRP price. Extract the numeric value only.",
+  "offerPrice": "The DISCOUNTED / SALE price. Extract the numeric value only.",
+  "keyBenefit": "One-liner key benefit or feature",
+  "verifiedBenefits": ["Up to 4 short, explicitly stated benefits"],
+  "proofPoints": ["Up to 4 quantitative specifications or verified claims"],
+  "offerDetails": "Exact discount, bundle, or subscription offer in 120 characters or less; empty if absent",
+  "guarantee": "Exact verified guarantee in 100 characters or less; empty if absent",
+  "variantDetails": ["Up to 3 verified pack sizes or purchase options"],
+  "specifications": [
+    {
+      "label": "Section Name (e.g., Ingredients, How to Use, Specs)",
+      "value": "Extract the FULL text from these sections."
+    }
+  ]
+}
+
+FINAL OUTPUT RULES:
+Return ONLY valid JSON.
+No Markdown block wrappers like ```json.
+No explanations.
+"""
+        
+        user_prompt = f"{system_prompt}\n\nRAW TEXT TO PARSE:\n{text}"
+        
+        message_content = [{"type": "text", "text": user_prompt}]
+        for url in image_urls:
+            if url:
+                message_content.append({"type": "image_url", "image_url": url if isinstance(url, dict) else {"url": url}})
+                
+        response = llm.invoke([HumanMessage(content=message_content)])
+        content = response.content
+        if isinstance(content, list):
+            content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+        out_text = content.strip()
+        if out_text.startswith("```json"): out_text = out_text[7:]
+        if out_text.startswith("```"): out_text = out_text[3:]
+        if out_text.endswith("```"): out_text = out_text[:-3]
+        
+        import json
+        scraped_data = json.loads(out_text.strip())
+        
+        scraped_data = normalize_compact_ad_facts(
+            normalize_product_prices(scraped_data),
+            source_url=""
+        )
+        return scraped_data
+        
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"AI Parse Text failed: {str(err)}")
 
 
 @app.post("/analyze-mix")

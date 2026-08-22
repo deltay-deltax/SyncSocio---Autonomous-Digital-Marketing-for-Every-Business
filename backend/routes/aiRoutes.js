@@ -76,6 +76,35 @@ router.post('/scrape-product', validate({ body: scrapeProductSchema }), async (r
     }
 });
 
+router.post('/parse-product-text', async (req, res) => {
+    try {
+        const { text, imageUrls } = req.body;
+        if (!text && (!imageUrls || imageUrls.length === 0)) {
+            return res.status(400).json({ error: 'Text or images are required' });
+        }
+        
+        const profile = await BrandProfile.findOne({ user: req.user._id });
+        const businessCategory = profile?.businessCategory || '';
+
+        const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+        const response = await fetch(`${aiServiceUrl}/parse-product-text`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, businessCategory, imageUrls })
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`AI Parse failed: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: 'An internal server error occurred.' });
+    }
+});
+
 router.post('/plan', validate({ body: planSchema }), async (req, res) => {
     try {
         const { mix } = req.body;

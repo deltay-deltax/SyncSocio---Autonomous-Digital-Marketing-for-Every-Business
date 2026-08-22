@@ -617,7 +617,7 @@ const Setup = () => {
           planName={selectedPlan || ''}
           creditsAdded={
             selectedPlan === 'Pro' ? 1000 :
-            selectedPlan === 'Growth' ? 400 : 80
+            selectedPlan === 'Growth' ? 400 : 160
           }
           onSuccess={handleCheckoutSuccess}
           onBack={() => setScreen('plan')}

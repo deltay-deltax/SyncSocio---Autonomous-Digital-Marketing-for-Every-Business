@@ -26,6 +26,7 @@ import AdminNotifications from './pages/AdminNotifications';
 import SupportTickets from './pages/SupportTickets';
 import AIOperations from './pages/AIOperations';
 import BrandDeepConfig from './pages/BrandDeepConfig';
+import CreativeShowcaseGallery from './pages/CreativeShowcaseGallery';
 import './App.css';
 
 // Protected Route for Admin
@@ -66,6 +67,7 @@ function App() {
             <Route path="notifications" element={<AdminNotifications />} />
             <Route path="support-tickets" element={<SupportTickets />} />
             <Route path="landing-gallery" element={<LandingGallery />} />
+            <Route path="creative-showcase-gallery" element={<CreativeShowcaseGallery />} />
             <Route path="scheduled-posts" element={<ScheduledPosts />} />
             <Route path="generations" element={<Generations />} />
             <Route path="ai-operations" element={<AIOperations />} />

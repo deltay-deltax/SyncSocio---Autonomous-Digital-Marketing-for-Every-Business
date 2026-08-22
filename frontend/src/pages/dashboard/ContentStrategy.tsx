@@ -44,6 +44,7 @@ interface GeneratedPost {
   subject?: string;
   template?: string;
   sectionType?: string;
+  layout?: string;
 }
 
 interface GlobalAvatar {
@@ -424,7 +425,7 @@ const STUDIOS: Studio[] = [
     ],
     cta: { label: "Start Creating", tint: "text-blue-600" },
     to: "/dashboard?mode=image",
-    image: "/assets/Creatives_icon/Ads.png",
+    image: "/assets/Creatives_icon/studio-image.jpg",
     hoverBorder: "hover:border-blue-400 hover:ring-1 hover:ring-blue-400",
   },
   {
@@ -2131,11 +2132,11 @@ const DashboardStrategy = () => {
       } else if (currentMode === 'carousel') {
         creditCost = currentCount * slideCount * baseImageCost;
       } else if (currentMode === 'ecomm') {
-        creditCost = ecommTotal * baseImageCost;
+        creditCost = ecommTotal * (profile?.selectedPlan?.toLowerCase().includes('pro') ? 10 : 8);
       } else if (currentMode === 'whatsapp' || currentMode === 'email') {
         creditCost = 0;  // campaigns are free
       } else if (currentMode === 'ads') {
-        creditCost = currentCount * (profile?.selectedPlan?.toLowerCase().includes('pro') ? 10 : 8);
+        creditCost = currentCount * baseImageCost;
       } else {
         creditCost = currentCount * baseImageCost;  // image / festival
       }

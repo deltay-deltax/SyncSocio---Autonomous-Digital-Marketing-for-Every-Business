@@ -893,12 +893,21 @@ def plan_ecomm_slots(product: Optional[Dict[str, Any]], count: int, is_fashion: 
     _specs = product.get("specifications", []) if product else []
     prod_specs = "\n".join([f"{s.get('key', '')}: {s.get('value', '')}" for s in _specs if isinstance(s, dict)])
     
+    has_back_image = False
+    if product:
+        has_back_image = bool(product.get("adVisualDescriptionSecondary") or (product.get("imageUrls") and len(product["imageUrls"]) > 0))
+    
     system_prompt = (
         "You are an E-Commerce Strategy Planner. Your job is to curate the perfect image gallery layout for a product.\n"
         f"You must select exactly {remaining_count} additional slots from the provided menu to accompany the Main Hero image.\n"
         "Return ONLY a JSON array of the exact strings from the menu. Do not invent new slots or modify the strings.\n"
-        "Example output: [\"Model (Front)...\", \"Size & Fit...\"]"
     )
+    if not has_back_image:
+        system_prompt += (
+            "CRITICAL: The user has NOT provided a back image for this product. You MUST AVOID selecting any slot that explicitly requires a 'Back View', 'rear silhouette', or 'Back label detail'. If you select those without a source image, the AI will heavily hallucinate the design.\n"
+        )
+    
+    system_prompt += "Example output: [\"Model (Front)...\", \"Size & Fit...\"]"
     
     user_prompt = f"Product: {prod_name}\nDescription: {prod_desc}\nBenefit: {prod_benefit}\nSpecs: {prod_specs}\n\n"
     user_prompt += "AVAILABLE SLOTS TO CHOOSE FROM (Pick exactly " + str(remaining_count) + " based on what is most relevant for this specific product):\n\n"
@@ -1170,67 +1179,301 @@ def build_carousel_slide_prompts(
     slide_count: int,
     product: Optional[Dict[str, Any]] = None,
     language: str = "english"
-) -> List[Dict[str, str]]:
-    """Uses Gemini Flash to draft content for N slides."""
+) -> Dict[str, Any]:
+    """Uses Gemini 2.5 Flash as a Creative Director to draft a strategy and slides."""
     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
 
-    block = _brand_block(brand_doc)
-    prod_info = ""
+    brand_design_guide = brand_doc.get("brandDesignGuide", "")
+    if not brand_design_guide:
+        brand_design_guide = json.dumps(_brand_block(brand_doc))
+
+    product_info = ""
     if product:
-        appearance = (product.get("adVisualDescription") or product.get("visual_description") or "").strip()
-        appearance_text = f" VERIFIED PRODUCT APPEARANCE: {appearance}" if appearance and "fail" not in appearance.lower() else ""
-        prod_info = f"\nAnchor this carousel around the product: {product.get('name')}. Benefit: {product.get('keyBenefit')}.{appearance_text}"
+        product_info = json.dumps({
+            "name": product.get("name"),
+            "description": product.get("description"),
+            "keyBenefit": product.get("keyBenefit"),
+            "specifications": product.get("specifications"),
+            "appearance": product.get("adVisualDescription") or product.get("visual_description") or ""
+        }, indent=2)
 
-    idea_info = f"\nCampaign Idea/Topic: {idea}" if idea else ""
+    idea_info = f"\n\nADDITIONAL USER DIRECTION:\n{idea}" if idea else ""
 
-    # Detect fashion category for specialised copy framing
-    _raw_cat = (
-        brand_doc.get("otherCategory")
-        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
-        else brand_doc.get("businessCategory", "")
-    ).lower()
-    _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
-                     "shoe", "accessory", "accessories", "streetwear",
-                     "ethnic", "kurta", "saree", "jewellery", "jewelry"]
-    fashion_note = ""
-    if any(k in _raw_cat for k in _FASHION_KEYS):
-        fashion_note = (
-            "\nFASHION BRAND CAROUSEL RULE: Write copy suited for fashion content — "
-            "e.g. styling guides ('5 ways to wear this'), lookbook reveals, collection drops, "
-            "'outfit of the day' concepts, fabric story, occasion dressing. "
-            "Do NOT write generic product feature lists or bland benefit bullets. "
-            "Make it aspirational, editorial, and style-forward."
-        )
+    prompt = f"""You are the Creative Director for a premium physical-product brand.
 
-    prompt = f"""{block}{prod_info}{idea_info}{fashion_note}
-You are an expert Social Media Art Director and Copywriter.
-Write the content and visual storyline for an Instagram Carousel with EXACTLY {slide_count} slides.
-Output the text in {language}.
-Make it punchy and engaging. Slide 1 must be a strong visual hook. The last slide must be the Call to Action.
-For each slide, you must provide:
-1. "text": The punchy text overlay.
-2. "visual_prompt": A highly detailed, premium description of the image for that slide. Describe the camera angle, the scene, lighting, and how the product is shown. Do NOT mention text overlays in the visual_prompt. CRITICAL UI BACKGROUND COLOR RULE: If the scene requires a studio or solid background, you MUST generate a very light, desaturated tint that complements both the primary and secondary brand colors. Never use the primary or secondary color directly as the background. Prioritize readability and visual balance.
+Create a professionally art-directed {slide_count}-slide social media carousel using the inputs below.
+The final carousel slides must be written in {language}.
 
-Output ONLY a valid JSON array of objects. Do not use Markdown formatting.
-Example output:
-[
-  {{"text": "Slide 1 text here", "visual_prompt": "A cinematic macro shot of..."}},
-  {{"text": "Slide 2 text here", "visual_prompt": "A lifestyle shot showing..."}}
-]
+INPUTS
+
+BRAND DESIGN GUIDE:
+{brand_design_guide}
+
+PRODUCT INFORMATION:
+{product_info}
+{idea_info}
+
+CREATIVE DECISION — CAROUSEL TYPE & VISUAL STYLE
+
+The user does NOT need to choose a carousel type or visual style.
+You must independently select the most appropriate CAROUSEL TYPE and VISUAL STYLE based on the PRODUCT INFORMATION and BRAND DESIGN GUIDE.
+Do not ask the user to choose.
+
+CAROUSEL TYPE defines WHAT the carousel communicates.
+You must select exactly ONE from:
+- Educational
+- Problem → Solution
+- Benefits
+- Comparison
+- Transformation
+- Product Deep Dive
+- FAQ
+- Myth → Fact
+- Social Proof
+- Offer
+
+VISUAL STYLE defines HOW the carousel looks.
+You must select exactly ONE from:
+- Minimal Premium
+- Editorial
+- Cinematic
+- Collage
+- Neo-Brutalist
+- Clinical
+- Lifestyle
+- Luxury
+- Playful
+- Bold / High-Contrast
+
+Choose the combination that best fits the product category, product information, brand identity, target audience and communication opportunity.
+Do not randomly select styles.
+Do not default to the same type or style for every product.
+The selected CAROUSEL TYPE and VISUAL STYLE must be explicitly returned inside carousel_strategy so downstream systems know the creative direction that was chosen.
+If multiple options could work, choose the one that produces the clearest and strongest {slide_count}-slide story while remaining faithful to the brand.
+
+CORE LOGIC
+CAROUSEL TYPE defines WHAT the carousel communicates, why the audience should swipe, and the intended narrative.
+VISUAL STYLE defines HOW the carousel looks, including aesthetic mood, photography language, composition and overall design character.
+BRAND DESIGN GUIDE defines the brand's visual identity. Extract and consistently apply its colors, typography, tone, spacing, graphic language, imagery style and other relevant rules.
+PRODUCT INFORMATION is the only source of truth for product facts and claims.
+If information is missing, do not invent it.
+
+DIRECTOR RESPONSIBILITY
+Think like a creative director, not a template generator.
+First determine:
+- Appropriate audience
+- Core message
+- Emotional response
+- Visual direction
+- Narrative flow
+- CTA
+- Best visual treatment for each slide
+
+Then create exactly {slide_count} slides with a strong narrative progression appropriate to the selected carousel type.
+A progression such as:
+HOOK → CONTEXT → PRODUCT → VALUE → USAGE/DETAIL → CTA
+is only a guideline.
+Do not force this structure when another narrative is more appropriate for the selected carousel type.
+Every slide must contribute a new piece of information or visual progression.
+
+VISUAL TREATMENT
+For every slide, independently select the treatment that best communicates its purpose.
+Possible treatments include:
+Product photography, Lifestyle photography, Product close-up, Typography-led, Educational graphic, Infographic, Diagram, Illustration, Collage, Abstract graphic, Comparison graphic, Product + graphic hybrid, Photography + typography hybrid.
+Do NOT use the same treatment repeatedly unless repetition is intentionally justified by the narrative.
+Do NOT assume every slide needs a product image.
+Do NOT assume every slide needs photography.
+Use typography, graphics, diagrams, illustrations or abstract compositions when they communicate the idea more effectively.
+The product should appear only when it strengthens the slide.
+
+VISUAL VARIETY
+The carousel must feel like one campaign, not {slide_count} copies of the same layout.
+Create intentional variation through:
+- Product scale
+- Product cropping
+- Camera perspective
+- Composition
+- Typography placement
+- Visual density
+- Treatment type
+- Background structure
+- Graphic elements
+- Image-to-text ratio
+Avoid repetitive centered product shots, identical layouts and unnecessary decorative elements.
+Across {slide_count} slides, avoid making the product the dominant visual on every slide unless the selected carousel type genuinely requires it.
+
+PRODUCT ACCURACY
+Whenever the product appears, preserve the supplied product exactly.
+Do not redesign, recolor, reshape, simplify or replace:
+- Packaging
+- Logo
+- Label
+- Typography on packaging
+- Product proportions
+- Cap/pump/bottle structure
+- Brand colors
+- Visible product details
+The supplied product reference has priority over assumptions.
+Never add packaging details that are not visible or provided.
+Never modify the product merely to fit the selected visual style.
+
+CLAIM & COPY RULES
+Use only information available in PRODUCT INFORMATION and BRAND DESIGN GUIDE.
+Do not invent:
+- Ingredients, Benefits, Statistics, Clinical results, Certifications, Reviews, Prices, Discounts, Features, Performance claims, Before/after results, Medical claims, Testimonials
+Do not exaggerate a factual product statement into a stronger unsupported claim.
+If the product information does not support a claim, do not use the claim.
+Keep headlines short, punchy and readable.
+Supporting copy should provide context without overcrowding the slide.
+Do not add filler copy merely to make a slide look complete.
+
+IMAGE DECISION
+For every slide, decide whether a generated photographic/product image is actually necessary.
+If an image is required, include detailed image-generation direction inside the slide paragraph covering subject, environment, composition, perspective, lighting, props and visual mood.
+If no generated photographic image is needed, explicitly write:
+"NO PHOTOGRAPHIC IMAGE REQUIRED."
+The slide should then be designed as typography, graphic, infographic, diagram, illustration or another appropriate non-photographic treatment.
+Do not generate an image simply because the product is physical.
+
+TEXT RENDERING
+All important slide copy must be explicitly identified so a downstream image-generation/design system knows exactly what text belongs on the slide.
+Keep text minimal enough to remain readable in a social-media carousel.
+Do not place important copy in visually crowded areas.
+Use the brand typography hierarchy from the BRAND DESIGN GUIDE.
+If the guide does not specify a font, choose a suitable typography direction consistent with the selected visual style without inventing a fictional brand font.
+Do not add unnecessary text solely for visual decoration.
+
+DESIGN CONSISTENCY
+Across all slides maintain:
+- Brand color system
+- Typography language
+- Graphic language
+- Spacing principles
+- Overall mood
+- Photography/lighting language
+- Premium brand character
+However, do not force identical layouts.
+Every slide should have one clear communication objective and strong visual hierarchy.
+The selected visual style should influence the entire carousel while still allowing individual slides to use different visual treatments.
+
+CTA
+The final slide must contain an appropriate CTA based on the selected CAROUSEL TYPE, product and available information.
+Do not automatically use "Shop Now".
+Possible CTA directions include: Explore, Learn More, Discover, Save This, Try It, Build Your Routine, Follow for More, Visit Profile.
+Choose the CTA based on the actual objective.
+Do not invent a purchase destination, URL, price or promotional offer.
+
+SLIDE DIRECTION
+For each slide, write ONE concise but sufficiently detailed paragraph.
+Start every paragraph exactly with:
+"Visual Treatment: [selected treatment]."
+The paragraph must contain:
+- Slide purpose
+- Exact headline
+- Supporting copy when needed
+- CTA when applicable
+- What the viewer should see
+- Product presence and placement when needed
+- Composition and background
+- Photography direction when applicable
+- Colors and typography
+- Text hierarchy and placement
+- Image-generation direction when required
+Do not use bullet points inside the paragraph.
+Each paragraph must remain a single cohesive paragraph.
+
+QUALITY CONTROL
+Before returning the JSON, verify:
+1. Exactly {slide_count} slides are present.
+2. Exactly ONE approved carousel type was selected.
+3. Exactly ONE approved visual style was selected.
+4. The selected type genuinely fits the product and brand.
+5. The selected style genuinely fits the brand and product category.
+6. Each slide has one clear idea.
+7. The narrative progresses logically.
+8. Visual treatments are intentionally selected.
+9. Visual treatments are not unnecessarily repetitive.
+10. Not every slide unnecessarily contains photography or the product.
+11. Product packaging remains accurate.
+12. No unsupported claims were introduced.
+13. Copy is concise and readable.
+14. Slides feel visually related but compositionally varied.
+15. The final slide has an appropriate CTA.
+16. Every creative_direction is exactly one paragraph.
+17. No information outside the supplied inputs has been invented.
+18. The response is valid JSON.
+
+OUTPUT
+Return ONLY valid JSON using this exact structure:
+{{
+  "carousel_strategy": {{
+    "carousel_type": "",
+    "visual_style": "",
+    "core_message": "",
+    "audience": "",
+    "emotional_direction": "",
+    "visual_vibe": "",
+    "narrative_flow": "",
+    "cta": ""
+  }},
+  "slides": [
+    {{
+      "slide_number": 1,
+      "creative_direction": ""
+    }}
+  ]
+}}
+
+FINAL OUTPUT RULES
+Return ONLY valid JSON.
+No Markdown.
+No bullet points.
+No explanations.
+No additional fields.
+Each "creative_direction" must be ONE cohesive paragraph beginning with "Visual Treatment: ...".
+If a slide does not require a generated photographic image, include "NO PHOTOGRAPHIC IMAGE REQUIRED." within that paragraph.
 """
     try:
-        response = llm.invoke([HumanMessage(content=prompt)])
-        content = response.content
-        if isinstance(content, list):
-            content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
-        text = content.strip()
-        if text.startswith("```json"): text = text[7:]
-        if text.startswith("```"): text = text[3:]
-        if text.endswith("```"): text = text[:-3]
-        return json.loads(text.strip())
+        import requests
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("[CarouselAgent] ❌ OPENAI_API_KEY missing. Falling back to Gemini.")
+            response = llm.invoke([HumanMessage(content=prompt)])
+            content = response.content
+            if isinstance(content, list):
+                content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+            text = content.strip()
+            if text.startswith("```json"): text = text[7:]
+            if text.startswith("```"): text = text[3:]
+            if text.endswith("```"): text = text[:-3]
+            return json.loads(text.strip())
+            
+        payload = {
+            "model": "gpt-4o",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7,
+            "response_format": {"type": "json_object"}
+        }
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            return json.loads(content)
+        else:
+            print(f"[CarouselAgent] ❌ OpenAI Error {resp.status_code}: {resp.text}")
+            raise Exception("OpenAI API failed")
+
     except Exception as e:
         print(f"[CarouselAgent] ❌ LLM failed: {e}")
-        return [{"text": f"Slide {i+1}", "visual_prompt": "A premium product image."} for i in range(slide_count)]
+        return {
+            "carousel_strategy": {"carousel_type": "Standard", "visual_style": "Minimal"},
+            "slides": [{"slide_number": i+1, "creative_direction": "Visual Treatment: Product photography. A premium product image."} for i in range(slide_count)]
+        }
 
 
 def build_video_prompt(brand_doc: Dict[str, Any], idea: Optional[str], aspect: str, language: str = "english") -> str:
@@ -1623,14 +1866,32 @@ Orchestrates generation for all layout types.
                     task_refs.append(res_logo)
                 
             print(f"[StrategyAgent] ✍️ Drafting {slide_count} slides in {language} for carousel {index+1}...")
-            # build_carousel_slide_prompts now returns [{"text": "...", "visual_prompt": "..."}, ...]
-            slide_data = build_carousel_slide_prompts(brand_doc, idea, slide_count, product=prod, language=language)
+            # build_carousel_slide_prompts now returns {"carousel_strategy": {}, "slides": []}
+            director_json = build_carousel_slide_prompts(brand_doc, idea, slide_count, product=prod, language=language)
+            strategy = director_json.get("carousel_strategy", {})
+            slides_data = director_json.get("slides", [])
+            
+            prod_vis = (prod.get("adVisualDescription") or prod.get("visual_description") or "") if prod else ""
+            
+            LAYER_3 = "Maintain visual consistency across all slides — brand colors, typography, spacing, lighting, graphic language, and overall style.\nOne clear idea per slide — avoid overcrowding or combining multiple messages.\nCreate a logical narrative flow — each slide should add new information and give the viewer a reason to continue swiping.\nPrioritize readability — use clear hierarchy, strong contrast, appropriate text size, and sufficient whitespace.\nUse visuals purposefully — photography, graphics, illustrations, and product imagery should only be used when they strengthen the slide's message.\nFollow the selected visual treatment exactly — if the Director specifies “NO PHOTOGRAPHIC IMAGE REQUIRED,” do not introduce photography or unnecessary product imagery.\nPreserve product and brand accuracy — maintain the exact product appearance, packaging, proportions, branding, colors, and visible details whenever the product is shown.\nCreate visual variety while maintaining consistency — avoid making every slide use the same composition, product scale, camera angle, or visual treatment.\nKeep the design intentional and premium — every visual element should serve the slide's communication; avoid decoration without purpose.\nMake the carousel feel like one unified campaign — slides should share the same visual identity while remaining individually engaging."
+            LAYER_4 = "No clutter, overcrowding, excessive decoration, or unnecessary visual elements.\nNo distorted, inaccurate, redesigned, recolored, or altered product/brand elements.\nNo unreadable, tiny, excessive, misspelled, or gibberish text.\nNo invented claims, statistics, testimonials, features, ingredients, certifications, offers, or product information.\nNo unsupported before/after transformations, guaranteed results, medical claims, or misleading visual implications.\nNo unnecessary product photography or photography when the Director specifies “NO PHOTOGRAPHIC IMAGE REQUIRED.”\nNo repetitive layouts, identical compositions, or generic template-like designs across slides.\nNo visual elements that contradict the brand design guide, selected visual style, or slide-specific creative direction."
             
             enriched_slide_prompts = []
-            for i, slide in enumerate(slide_data):
-                slide_text = slide.get("text", "")
-                vis_prompt = slide.get("visual_prompt", "A cohesive, premium carousel slide.")
-                enriched_slide_prompts.append(f"{vis_prompt}\n\nSLIDE TEXT TO INCLUDE: {slide_text}")
+            # In case LLM hallucinated format and slides_data is missing or empty, ensure a fallback loop
+            for i in range(slide_count):
+                if i < len(slides_data):
+                    direction = slides_data[i].get("creative_direction", "")
+                else:
+                    direction = f"Visual Treatment: A premium product image for slide {i+1}."
+                
+                features_product = "NO PHOTOGRAPHIC IMAGE REQUIRED" not in direction.upper()
+
+                composite_prompt = f"CAROUSEL STRATEGY:\n{json.dumps(strategy, indent=2)}\n\nCURRENT SLIDE:\n{direction}\n\nPRODUCT VISUALIZATION:\n{prod_vis}\n\nSTATIC RULES:\n{LAYER_3}\n\nNEGATIVE RULES:\n{LAYER_4}"
+                
+                enriched_slide_prompts.append({
+                    "prompt": composite_prompt,
+                    "features_product": features_product
+                })
 
             print(f"\n[StrategyAgent] 🎠 Carousel {index+1}/{count} | ref_image={'YES ✓' if task_refs else 'NONE'}")
             

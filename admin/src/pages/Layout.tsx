@@ -67,6 +67,7 @@ const NAV_SECTIONS = [
       { to: '/ai-operations', icon: BrainCircuit, label: 'AI Operations' },
       { to: '/campaigns', icon: Target, label: 'Campaigns Monitor' },
       { to: '/landing-gallery', icon: LayoutDashboard, label: 'Landing Gallery' },
+      { to: '/creative-showcase-gallery', icon: LayoutDashboard, label: 'Creative Showcase' },
     ]
   }
 ];

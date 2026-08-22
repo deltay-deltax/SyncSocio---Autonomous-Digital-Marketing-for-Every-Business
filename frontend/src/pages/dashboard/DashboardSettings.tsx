@@ -1252,8 +1252,8 @@ const DashboardSettings = () => {
                 const isGrowth = plan.includes('growth');
                 
                 const planName = isPro ? 'Pro' : isGrowth ? 'Growth' : 'Starter';
-                const planPrice = isPro ? `${symbol}${currency === 'USD' ? '45' : '3,499'}/month` : isGrowth ? `${symbol}${currency === 'USD' ? '19' : '1,499'}/month` : `${symbol}${currency === 'USD' ? '5' : '399'}/month`;
-                const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : '80 credits/month';
+                const planPrice = isPro ? `${symbol}${currency === 'USD' ? '45' : '3,499'}/month` : isGrowth ? `${symbol}${currency === 'USD' ? '19' : '1,499'}/month` : `${symbol}${currency === 'USD' ? '10' : '799'}/month`;
+                const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : '160 credits/month';
                 const planFeatures = isPro
                   ? [
                       '1,000 credits/month (125 HD images)',
@@ -1288,7 +1288,7 @@ const DashboardSettings = () => {
                       'Priority WhatsApp support'
                     ]
                   : [
-                      '80 credits/month (16 AI images)',
+                      '160 credits/month (32 AI images)',
                       'SD quality image exports',
                       '1 brand profile',
                       '50 products catalog',
@@ -1385,7 +1385,7 @@ const DashboardSettings = () => {
                           disabled={!canRenew}
                           className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                         >
-                          Renew Starter Plan ({symbol}{currency === 'USD' ? '5' : '399'})
+                          Renew Starter Plan ({symbol}{currency === 'USD' ? '10' : '799'})
                         </Button>
                         <Button 
                           onClick={() => handlePlanAction('upgrade', 'Starter')} 

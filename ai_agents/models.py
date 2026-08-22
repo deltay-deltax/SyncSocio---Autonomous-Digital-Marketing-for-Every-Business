@@ -1,6 +1,11 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 
+class ParseTextRequest(BaseModel):
+    text: Optional[str] = ""
+    businessCategory: Optional[str] = ""
+    imageUrls: Optional[List[str]] = []
+
 class RejectedItem(BaseModel):
     id: str
     prompt: Optional[str] = ""

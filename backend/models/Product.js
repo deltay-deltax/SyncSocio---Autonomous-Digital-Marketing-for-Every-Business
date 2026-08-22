@@ -34,7 +34,7 @@ const productSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    maxlength: 200,
+    maxlength: 2000,
     default: '',
   },
 
@@ -63,12 +63,12 @@ const productSchema = new mongoose.Schema({
   },
   offerDetails: {
     type: String,
-    maxlength: 120,
+    maxlength: 500,
     default: '',
   },
   guarantee: {
     type: String,
-    maxlength: 100,
+    maxlength: 500,
     default: '',
   },
   variantDetails: {

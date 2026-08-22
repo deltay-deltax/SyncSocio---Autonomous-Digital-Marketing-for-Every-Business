@@ -29,16 +29,16 @@ const plans: Plan[] = [
   {
     name: "Starter",
     badge: null,
-    creditTag: "80 Credits",
+    creditTag: "160 Credits",
     quality: "SD Quality",
     prices: {
-      INR: { basePrice: 399, originalPrice: 599 },
-      USD: { basePrice: 5, originalPrice: 8 }
+      INR: { basePrice: 799, originalPrice: 999 },
+      USD: { basePrice: 10, originalPrice: 15 }
     },
     period: "/month",
     description: "For first-time business owners ready to start creating AI content.",
     features: [
-      "80 credits / month (16 AI images)",
+      "160 credits / month (32 AI images)",
       "5 credits per image generation",
       "SD quality image exports",
       "Image, Carousel, Festival posts",
@@ -49,7 +49,7 @@ const plans: Plan[] = [
       "50 products catalog",
       "Schedule up to 30 posts",
       "🤖 Nexa AI Sales Agent (IG only)",
-      "15 AI-handled leads/month",
+      "20 AI-handled leads/month",
       "Email support",
     ],
     lockedFeatures: [

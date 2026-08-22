@@ -51,7 +51,7 @@ const formats: Format[] = [
   { id: "carousel", label: "Carousel", icon: Layers, tagline: "Swipeable multi-slide stories", accent: "from-amber-400 via-orange-500 to-rose-600", count: "3/5/7" },
   { id: "video", label: "Reel · Video", icon: Film, tagline: "AI UGC + Image-to-Video", accent: "from-rose-500 via-pink-500 to-fuchsia-600", count: "Up to 4" },
   { id: "ecomm", label: "E-Comm", icon: ShoppingBag, tagline: "Amazon & Flipkart-ready creatives", accent: "from-emerald-400 via-teal-500 to-cyan-600", count: "Hero+" },
-  { id: "festival", label: "Festival", icon: Sparkles, tagline: "40+ festivals, auto-timed drops", accent: "from-violet-500 via-purple-500 to-fuchsia-600", count: "40+" },
+  // { id: "festival", label: "Festival", icon: Sparkles, tagline: "40+ festivals, auto-timed drops", accent: "from-violet-500 via-purple-500 to-fuchsia-600", count: "40+" },
 ];
 
 type Item = { src: string; caption: string; tag: string; isVideo?: boolean };
@@ -139,7 +139,50 @@ const CreativeShowcase = () => {
   const [active, setActive] = useState<string>("image");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [enlargedIndex, setEnlargedIndex] = useState<number | null>(null);
-  const items = mocks[active];
+  const [dynamicMocks, setDynamicMocks] = useState<Record<string, Item[]>>(mocks);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGallery = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const res = await fetch(`${API_URL}/site/settings`, { cache: 'no-store' });
+        const data = await res.json();
+        console.log("CreativeShowcase fetched settings:", data);
+        if (data.success && data.settings?.creativeShowcaseGallery) {
+          const fetched = data.settings.creativeShowcaseGallery;
+          console.log("CreativeShowcase fetched gallery:", fetched);
+
+          const padArray = (fetchedArr: any[] | undefined, defaultArr: any[]) => {
+            if (!fetchedArr || fetchedArr.length === 0) return defaultArr;
+            return [...fetchedArr, ...defaultArr.slice(fetchedArr.length)];
+          };
+
+          const exactArray = (fetchedArr: any[] | undefined, defaultArr: any[]) => {
+            if (!fetchedArr || fetchedArr.length === 0) return defaultArr;
+            return fetchedArr;
+          };
+
+          const newMocks = {
+            image: padArray(fetched.image, mocks.image),
+            carousel: exactArray(fetched.carousel, mocks.carousel),
+            video: padArray(fetched.video, mocks.video),
+            ecomm: padArray(fetched.ecomm, mocks.ecomm),
+            festival: padArray(fetched.festival, mocks.festival),
+          };
+          console.log("CreativeShowcase padded mocks:", newMocks);
+          setDynamicMocks(newMocks);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dynamic showcase gallery", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGallery();
+  }, []);
+
+  const items = dynamicMocks[active];
   const current = formats.find((f) => f.id === active)!;
 
   return (
@@ -160,7 +203,7 @@ const CreativeShowcase = () => {
 
       <div className="container mx-auto px-6 relative z-10">
         {/* Editorial header */}
-        <div className="grid grid-cols-12 gap-6 items-end mb-14 max-w-6xl mx-auto">
+        <div className="grid grid-cols-12 gap-6 items-end mb-14 max-w-12xl mx-auto">
           <div className="col-span-12 lg:col-span-8">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -197,7 +240,7 @@ const CreativeShowcase = () => {
         </div>
 
         {/* Format selector — segmented control */}
-        <div className="max-w-6xl mx-auto mb-10">
+        <div className="max-w-7xl mx-auto mb-10">
           {/* Mobile Dropdown */}
           <div className="sm:hidden relative">
             <button
@@ -275,7 +318,7 @@ const CreativeShowcase = () => {
         </div>
 
         {/* Editorial split layout */}
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={active}
@@ -337,15 +380,28 @@ const CreativeShowcase = () => {
               </div>
 
               {/* RIGHT — hero + masonry */}
-              <div className={active === "carousel"
-                ? "col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-5 items-start"
-                : "col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[300px] sm:auto-rows-[150px]"}>
+              <div className={active === "image"
+                ? "col-span-12 lg:col-span-8 columns-1 sm:columns-2 gap-4 sm:gap-6"
+                : active === "carousel"
+                  ? "col-span-12 lg:col-span-8 w-full"
+                  : active === "ecomm"
+                    ? "col-span-12 lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-1.5 content-start"
+                    : "col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[300px] sm:auto-rows-[150px]"}>
                 {active === "image" ? (
                   <>
-                    <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(2)} />
-                    <Tile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => setEnlargedIndex(0)} />
-                    <Tile item={items[1]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(1)} />
-                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
+                    {items.slice(0, 4).map((item, idx) => (
+                      <div key={idx} className="relative break-inside-avoid mb-4 sm:mb-6 w-full">
+                        <Tile masonry item={item} accent={current.accent} className="w-full h-full" onClick={() => setEnlargedIndex(idx)} />
+                        {idx === 3 && items.length > 4 && (
+                          <div
+                            className="absolute inset-0 bg-black/60 rounded-2xl sm:rounded-3xl flex items-center justify-center cursor-pointer z-10"
+                            onClick={() => setEnlargedIndex(idx)}
+                          >
+                            <span className="text-white text-2xl sm:text-3xl font-black">+{items.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </>
                 ) : ["video", "festival"].includes(active) ? (
                   <>
@@ -356,25 +412,28 @@ const CreativeShowcase = () => {
                   </>
                 ) : active === "ecomm" ? (
                   <>
-                    <CarouselTile items={items.slice(0, 4)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx)} />
-                    <CarouselTile items={items.slice(4, 8)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 4)} />
-                    <CarouselTile items={items.slice(8, 10)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 8)} />
-                    <CarouselTile items={items.slice(10, 12)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onItemClick={(idx) => setEnlargedIndex(idx + 10)} />
+                    {items.slice(0, 9).map((item, idx) => (
+                      <div key={idx} className="relative w-full aspect-square">
+                        <Tile item={item} accent={current.accent} className="w-full h-full" onClick={() => setEnlargedIndex(idx)} />
+                      </div>
+                    ))}
                   </>
                 ) : active === "carousel" ? (
-                  <>
-                    {/* Left Column */}
-                    <div className="flex flex-col gap-6 sm:gap-5">
-                      <CarouselTile items={items.slice(0, 5)} accent={current.accent} className="aspect-square w-full" onItemClick={(idx) => setEnlargedIndex(idx)} />
-                      <CarouselTile items={items.slice(7, 12)} accent={current.accent} className="aspect-square w-full" onItemClick={(idx) => setEnlargedIndex(idx + 7)} />
-                      <CarouselTile items={items.slice(15, 18)} accent={current.accent} className="aspect-square w-full" onItemClick={(idx) => setEnlargedIndex(idx + 15)} />
-                    </div>
-                    {/* Right Column */}
-                    <div className="flex flex-col gap-6 sm:gap-5">
-                      <CarouselTile items={items.slice(5, 7)} accent={current.accent} className="aspect-square w-full" onItemClick={(idx) => setEnlargedIndex(idx + 5)} />
-                      <CarouselTile items={items.slice(12, 15)} accent={current.accent} className="aspect-[9/16] w-full" onItemClick={(idx) => setEnlargedIndex(idx + 12)} />
-                    </div>
-                  </>
+                  <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full">
+                    {items.slice(0, 4).map((item, idx) => (
+                      <div key={idx} className="relative w-full">
+                        <Tile masonry item={item} accent={current.accent} className="w-full" onClick={() => setEnlargedIndex(idx)} />
+                        {idx === 3 && items.length > 4 && (
+                          <div
+                            className="absolute inset-0 bg-black/60 rounded-2xl sm:rounded-3xl flex items-center justify-center cursor-pointer z-10"
+                            onClick={() => setEnlargedIndex(idx)}
+                          >
+                            <span className="text-white text-2xl sm:text-3xl font-black">+{items.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <>
                     <HeroTile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-6 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(0)} />
@@ -389,7 +448,7 @@ const CreativeShowcase = () => {
         </div>
 
         {/* Bottom proof bar */}
-        <div className="mt-14 max-w-6xl mx-auto">
+        <div className="mt-14 max-w-7xl mx-auto">
           <div className="relative rounded-3xl border border-border/40 bg-gradient-to-r from-card/80 via-card/40 to-card/80 backdrop-blur-md p-1.5 overflow-hidden">
             <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/40">
               {[
@@ -471,6 +530,7 @@ const Tile = ({
   accent,
   compact,
   wide,
+  masonry,
   onClick,
 }: {
   item: Item;
@@ -478,6 +538,7 @@ const Tile = ({
   accent: string;
   compact?: boolean;
   wide?: boolean;
+  masonry?: boolean;
   onClick?: () => void;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -487,12 +548,12 @@ const Tile = ({
       onClick={onClick}
       onMouseEnter={() => videoRef.current?.play().catch(() => { })}
       onMouseLeave={() => { if (videoRef.current) { videoRef.current.pause(); videoRef.current.currentTime = 0; } }}
-      className={`relative rounded-2xl sm:rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${className ?? ""}`}
+      className={`relative rounded-2xl sm:rounded-3xl overflow-hidden border border-border/40 group cursor-pointer ${masonry ? "break-inside-avoid" : ""} ${className ?? ""}`}
     >
       {item.isVideo || item.src.endsWith(".mp4") ? (
-        <video ref={videoRef} src={item.src} loop muted playsInline className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 bg-muted/40" />
+        <video ref={videoRef} src={item.src} loop muted playsInline className={`${masonry ? "w-full h-auto" : "absolute inset-0 w-full h-full object-cover"} transition-transform duration-700 group-hover:scale-105 bg-muted/40`} />
       ) : (
-        <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 bg-muted/40" />
+        <img src={item.src} alt={item.caption} loading="lazy" className={`${masonry ? "w-full h-auto" : "absolute inset-0 w-full h-full object-cover"} transition-transform duration-700 group-hover:scale-105 bg-muted/40`} />
       )}
       <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay`} />
 

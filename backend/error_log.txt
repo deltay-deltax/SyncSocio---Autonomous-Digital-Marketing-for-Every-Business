@@ -8,4 +8,24 @@
     at Layer.handleRequest (D:\Major_Project\backend\node_modules\router\lib\layer.js:152:17)
     at next (D:\Major_Project\backend\node_modules\router\lib\route.js:157:13)
     at protect (file:///D:/Major_Project/backend/middleware/authMiddleware.js:39:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\n
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n\n2026-08-22T10:37:10.145Z\nSyntaxError: Bad escaped character in JSON at position 8 (line 1 column 9)
+    at JSON.parse (<anonymous>)
+    at parse (D:\Major_Project\backend\node_modules\body-parser\lib\types\json.js:91:21)
+    at D:\Major_Project\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\Major_Project\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\Major_Project\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Major_Project\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n2026-08-22T10:39:52.770Z\nSyntaxError: Bad escaped character in JSON at position 8 (line 1 column 9)
+    at JSON.parse (<anonymous>)
+    at parse (D:\Major_Project\backend\node_modules\body-parser\lib\types\json.js:91:21)
+    at D:\Major_Project\backend\node_modules\body-parser\lib\read.js:162:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\Major_Project\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\Major_Project\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Major_Project\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n\n
