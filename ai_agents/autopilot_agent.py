@@ -153,7 +153,7 @@ def generate_single_autopilot_image(post: Dict[str, Any], brand_info: Dict[str, 
     prod = products_map.get(prod_id)
     if prod is None:
         print(f"[Autopilot Visuals] ⚠️  WARNING: product_id '{prod_id}' not found in products_map (known IDs: {list(products_map.keys())}). Skipping product image reference.")
-    image_ref = prod.get("imageBase64") if prod else None
+    image_ref = (prod.get("imageBase64") or (prod.get("imageUrls") and prod.get("imageUrls")[0])) if prod else None
     
     print(f"[Autopilot Visuals] Generating image for week={post.get('week')} day={post.get('day')}...")
     

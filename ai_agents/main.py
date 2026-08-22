@@ -2865,7 +2865,7 @@ async def api_generate_autopilot(request: AutopilotRequest):
                 prod["brandId"] = str(prod["brandId"])
                 
             appearance = str(prod.get("adVisualDescription") or "").strip()
-            product_image = str(prod.get("imageBase64") or "").strip()
+            product_image = str(prod.get("imageBase64") or (prod.get("imageUrls") and prod.get("imageUrls")[0]) or "").strip()
             if not appearance and product_image.startswith("http") and vision_calls_made < max_vision_calls:
                 vision_calls_made += 1
                 await db["products"].update_one(

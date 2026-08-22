@@ -4863,7 +4863,7 @@ const DashboardStrategy = () => {
                         className="text-left relative p-3 rounded-2xl border border-primary bg-primary/5 shadow-md shadow-primary/10 transition overflow-hidden"
                       >
                         <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative">
-                          <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-2" />
+                          <img src={imgSrc(p.imageBase64 || (p.imageUrls && p.imageUrls[0]) || '')} alt={p.name} className="w-full h-full object-contain p-2" />
                           <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm">
                             <CheckCircle2 size={12} />
                           </div>

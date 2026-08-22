@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import AgentActivity from '../models/AgentActivity.js';
 import ContentCalendar from '../models/ContentCalendar.js';
 import DMConversation from '../models/DMConversation.js';
+import Product from '../models/Product.js';
 import DMFlow from '../models/DMFlow.js';
 import DMFlowFollowUp from '../models/DMFlowFollowUp.js';
 import Notification from '../models/Notification.js';
@@ -441,5 +442,65 @@ export const lockExcessBrands = async (req, res) => {
   } catch (error) {
     console.error('lockExcessBrands Error:', error);
     res.status(500).json({ message: 'Server error locking brands' });
+  }
+};
+
+export const autoScanBg = async (req, res) => {
+  try {
+    const { url, metaEventId, userEmail, userPhone } = req.body;
+    if (!url) return res.status(400).json({ message: 'URL is required' });
+
+    let profile = await BrandProfile.findOne({ user: req.user._id, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: req.user._id });
+    
+    if (!profile) {
+      profile = await BrandProfile.create({ user: req.user._id, website: url, brandName: 'Processing...' });
+      await User.findByIdAndUpdate(req.user._id, { activeBrandId: profile._id });
+    } else {
+      profile = await BrandProfile.findByIdAndUpdate(profile._id, { website: url }, { new: true });
+    }
+
+    res.status(202).json({ message: 'Background scan started', profile });
+
+    // Background process
+    setTimeout(async () => {
+      try {
+        const AGENT_API = process.env.VITE_AGENT_API_URL || 'http://localhost:8000';
+        const agentRes = await fetch(`${AGENT_API}/scrape-brand-profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, metaEventId, userEmail, userPhone, plan: 'Starter' })
+        });
+        
+        if (agentRes.ok) {
+          const data = await agentRes.json();
+          
+          await BrandProfile.findByIdAndUpdate(profile._id, {
+            brandName: data.brandName || profile.brandName,
+            description: data.description || '',
+            targetAudiences: data.targetAudience ? [data.targetAudience] : [],
+            brandTone: data.toneOfVoice || '',
+            usp: data.keyBenefit || ''
+          });
+
+          if (data.extractedProducts && Array.isArray(data.extractedProducts)) {
+            for (const prod of data.extractedProducts) {
+               await Product.create({
+                 user: req.user._id,
+                 brandId: profile._id,
+                 name: prod.name,
+                 description: prod.description || '',
+                 price: prod.price || '',
+                 imageBase64: prod.imageBase64 || ''
+               });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Background scan failed:', err);
+      }
+    }, 0);
+  } catch (error) {
+    console.error('autoScanBg error:', error);
+    res.status(500).json({ message: 'Server error initiating background scan' });
   }
 };

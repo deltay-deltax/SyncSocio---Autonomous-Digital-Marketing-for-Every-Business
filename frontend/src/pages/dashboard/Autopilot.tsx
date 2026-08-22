@@ -828,7 +828,7 @@ export default function AutopilotPage() {
                           className="relative p-5 rounded-2xl border text-left flex flex-col gap-3 transition-all border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
                         >
                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-muted/30">
-                            <img src={imgSrc(prod.imageBase64)} alt={prod.name} className="w-full h-full object-cover" />
+                            <img src={imgSrc(prod.imageBase64 || (prod.imageUrls && prod.imageUrls[0]) || '')} alt={prod.name} className="w-full h-full object-cover" />
                           </div>
                           <span className="text-sm font-bold text-foreground line-clamp-1">{prod.name}</span>
 
@@ -1299,8 +1299,8 @@ export default function AutopilotPage() {
                           )}
                         >
                           <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative border border-border/50">
-                            {p.imageBase64 || (p.imageUrls && p.imageUrls[0]) ? (
-                              <img src={imgSrc(p.imageBase64 || p.imageUrls[0])} alt={p.name} className="w-full h-full object-contain p-2" />
+                            {p.imageBase64 || (p.imageUrls && p.imageUrls.length > 0) ? (
+                              <img src={imgSrc(p.imageBase64 || p.imageUrls?.[0] || "")} alt={p.name} className="w-full h-full object-contain p-2" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center"><Package className="text-muted-foreground/30" /></div>
                             )}

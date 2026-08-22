@@ -904,7 +904,7 @@ def generate_ad_creatives(
     seen_refs = set()
     
     if products and len(products) > 0:
-        prod_img = (products[0].get("imageBase64") or "").strip()
+        prod_img = (products[0].get("imageBase64") or (products[0].get("imageUrls") and products[0].get("imageUrls")[0]) or "").strip()
         if prod_img and prod_img not in seen_refs:
             if not (has_logo and prod_img == brand_logo):
                 seen_refs.add(prod_img)

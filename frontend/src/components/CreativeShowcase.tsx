@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform, MotionValue } from "framer-motion";
 import {
   Image as ImageIcon,
   Layers,
@@ -51,50 +51,14 @@ const formats: Format[] = [
   { id: "carousel", label: "Carousel", icon: Layers, tagline: "Swipeable multi-slide stories", accent: "from-amber-400 via-orange-500 to-rose-600", count: "3/5/7" },
   { id: "video", label: "Reel · Video", icon: Film, tagline: "AI UGC + Image-to-Video", accent: "from-rose-500 via-pink-500 to-fuchsia-600", count: "Up to 4" },
   { id: "ecomm", label: "E-Comm", icon: ShoppingBag, tagline: "Amazon & Flipkart-ready creatives", accent: "from-emerald-400 via-teal-500 to-cyan-600", count: "Hero+" },
-  // { id: "festival", label: "Festival", icon: Sparkles, tagline: "40+ festivals, auto-timed drops", accent: "from-violet-500 via-purple-500 to-fuchsia-600", count: "40+" },
+  { id: "festival", label: "Festival", icon: Sparkles, tagline: "40+ festivals, auto-timed drops", accent: "from-violet-500 via-purple-500 to-fuchsia-600", count: "40+" },
 ];
 
 type Item = { src: string; caption: string; tag: string; isVideo?: boolean };
 
 const mocks: Record<string, Item[]> = {
-  image: [
-    { src: "/assets/landing/static1.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static2.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static3.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static4.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static5.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static6.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static7.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static8.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static9.jpg", caption: "", tag: "" },
-    { src: "/assets/landing/static10.png", caption: "", tag: "" },
-    { src: "/assets/landing/static11.jpg", caption: "", tag: "" },
-  ],
-  carousel: [
-    // Carousel 1: car1 - car5
-    { src: "/assets/landing/car1.jpg", caption: "Focus on progress, not perfection", tag: "Slide 1/5" },
-    { src: "/assets/landing/car2.jpg", caption: "Track your milestones daily", tag: "Slide 2/5" },
-    { src: "/assets/landing/car3.jpg", caption: "Analyze your creative growth", tag: "Slide 3/5" },
-    { src: "/assets/landing/car4.jpg", caption: "Scale your organic reach", tag: "Slide 4/5" },
-    { src: "/assets/landing/car5.jpg", caption: "Save this strategy for later", tag: "Slide 5/5" },
-    // Carousel 2: car56 - car6
-    { src: "/assets/landing/car56.jpg", caption: "Behind the scenes look", tag: "Slide 1/2" },
-    { src: "/assets/landing/car6.jpg", caption: "Our full creative process", tag: "Slide 2/2" },
-    // Carousel 3: slide 1 - 5
-    { src: "/assets/landing/slide_1.jpg", caption: "5 secrets nobody tells you", tag: "Slide 1/5" },
-    { src: "/assets/landing/slide_2.jpg", caption: "Hook your audience immediately", tag: "Slide 2/5" },
-    { src: "/assets/landing/slide_3.jpg", caption: "Deliver high value content", tag: "Slide 3/5" },
-    { src: "/assets/landing/slide_4.jpg", caption: "Add a clear call to action", tag: "Slide 4/5" },
-    { src: "/assets/landing/slide_5.jpg", caption: "Share and save this post", tag: "Slide 5/5" },
-    // Carousel 4: ss1 - ss3
-    { src: "/assets/landing/ss1.jpg", caption: "Step 1: Ideation", tag: "Step 1" },
-    { src: "/assets/landing/ss2.jpg", caption: "Step 2: Design", tag: "Step 2" },
-    { src: "/assets/landing/ss3.jpg", caption: "Step 3: Publish", tag: "Step 3" },
-    // Carousel 5: lip1 - lip3
-    { src: "/assets/landing/lip1.jpg", caption: "Lip balm shade 1", tag: "Slide 1/3" },
-    { src: "/assets/landing/lip2.jpg", caption: "Lip balm shade 2", tag: "Slide 2/3" },
-    { src: "/assets/landing/lip3.jpg", caption: "Lip balm shade 3", tag: "Slide 3/3" },
-  ],
+  image: [],
+  carousel: [],
   video: [
     { src: "/assets/landing/v1.mp4", caption: "AI UGC creator speaking in Hinglish.", tag: "0:15 · UGC", isVideo: true },
     { src: "/assets/landing/v2.mp4", caption: "Trending audio synced with motion.", tag: "Reel", isVideo: true },
@@ -102,45 +66,22 @@ const mocks: Record<string, Item[]> = {
     { src: "/assets/landing/v4.mp4", caption: "Image → cinematic slow-mo splash.", tag: "Img2Video", isVideo: true },
     { src: "/assets/landing/v5.mp4", caption: "Dynamic text overlays.", tag: "Promo", isVideo: true },
     { src: "/assets/landing/v6.mp4", caption: "Unboxing experience.", tag: "UGC", isVideo: true },
-    { src: "/assets/landing/v7.mp4", caption: "Behind the scenes.", tag: "BTS", isVideo: true },
+
   ],
-  ecomm: [
-    // ecomm9 10 11 12 (for hero carousel)
-    { src: "/assets/landing/ecom9.jpg", caption: "Nothing Earbuds (Black)", tag: "Tech" },
-    { src: "/assets/landing/ecom10.jpg", caption: "Nothing Earbuds (White)", tag: "Tech" },
-    { src: "/assets/landing/ecom11.jpg", caption: "Active Noise Cancellation", tag: "Tech" },
-    { src: "/assets/landing/ecom12.jpg", caption: "24-hour battery life", tag: "Tech" },
-    // ecomm1234
-    { src: "/assets/landing/ecom1.jpg", caption: "Indulge Wisely, Indulge Smoor.", tag: "Chocolate" },
-    { src: "/assets/landing/ecom2.jpg", caption: "Premium Cocoa Beans.", tag: "Chocolate" },
-    { src: "/assets/landing/ecom3.jpg", caption: "The perfect gift box.", tag: "Chocolate" },
-    { src: "/assets/landing/ecom4.jpg", caption: "Available in 3 flavors.", tag: "Chocolate" },
-    // ecomm56
-    { src: "/assets/landing/ecom5.jpg", caption: "Beast Life Mass Gainer.", tag: "Product" },
-    { src: "/assets/landing/ecom6.jpg", caption: "High protein, low carb.", tag: "Product" },
-    // ecomm78
-    { src: "/assets/landing/ecom7.jpg", caption: "Koskii Saree Collection.", tag: "Fashion" },
-    { src: "/assets/landing/ecom8.jpg", caption: "Intricate embroidery.", tag: "Fashion" },
-  ],
-  festival: [
-    { src: "/assets/landing/festival1.jpg", caption: "Father's Day Special ✨", tag: "Father's Day" },
-    { src: "/assets/landing/festival2.jpg", caption: "Independence Day Freedom Sale.", tag: "Independence Day" },
-    { src: "/assets/landing/festival3.jpg", caption: "Eid Mubarak from the team.", tag: "Eid" },
-    { src: "/assets/landing/festival4.jpg", caption: "Onam Sadhya Essentials.", tag: "Onam" },
-    { src: "/assets/landing/festival5.jpg", caption: "Navratri special collection.", tag: "Navratri" },
-    { src: "/assets/landing/festival7.jpg", caption: "Raksha Bandhan hampers.", tag: "Rakhi" },
-    { src: "/assets/landing/festival8.jpg", caption: "Diwali drop — 30% off everything.", tag: "Diwali" },
-    { src: "/assets/landing/festival9.png", caption: "Ganesh Chaturthi modaks.", tag: "Ganesh" },
-    { src: "/assets/landing/festival10.jpg", caption: "Dussehra victory sale.", tag: "Dussehra" },
-  ],
+  ecomm: [],
+  festival: [],
 };
 
 const CreativeShowcase = () => {
-  const [active, setActive] = useState<string>("image");
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [enlargedIndex, setEnlargedIndex] = useState<number | null>(null);
+  const [enlargedIndex, setEnlargedIndex] = useState<{ format: string; index: number } | null>(null);
   const [dynamicMocks, setDynamicMocks] = useState<Record<string, Item[]>>(mocks);
   const [loading, setLoading] = useState(true);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
 
   useEffect(() => {
     const fetchGallery = async () => {
@@ -182,11 +123,23 @@ const CreativeShowcase = () => {
     fetchGallery();
   }, []);
 
-  const items = dynamicMocks[active];
-  const current = formats.find((f) => f.id === active)!;
-
   return (
-    <section id="creatives" className="relative py-28 sm:py-36 overflow-hidden">
+    <section id="creatives" className="relative pt-28 sm:pt-36 pb-32 overflow-x-clip bg-background">
+      <style>{`
+        .sleek-scroll::-webkit-scrollbar {
+          width: 5px;
+        }
+        .sleek-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sleek-scroll::-webkit-scrollbar-thumb {
+          background-color: hsl(var(--border) / 0.8);
+          border-radius: 10px;
+        }
+        .sleek-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: hsl(var(--primary));
+        }
+      `}</style>
       {/* Ambient gradients */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-32 left-1/3 w-[700px] h-[700px] rounded-full opacity-[0.10] blur-[160px] bg-primary" />
@@ -201,9 +154,9 @@ const CreativeShowcase = () => {
         />
       </div>
 
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-6 relative z-10 mb-14">
         {/* Editorial header */}
-        <div className="grid grid-cols-12 gap-6 items-end mb-14 max-w-12xl mx-auto">
+        <div className="grid grid-cols-12 gap-6 items-end max-w-12xl mx-auto">
           <div className="col-span-12 lg:col-span-8">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -238,247 +191,213 @@ const CreativeShowcase = () => {
             </p>
           </div>
         </div>
+      </div>
 
-        {/* Format selector — segmented control */}
-        <div className="max-w-7xl mx-auto mb-10">
-          {/* Mobile Dropdown */}
-          <div className="sm:hidden relative">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/50 bg-card/80 backdrop-blur-md font-black uppercase tracking-wider text-foreground"
-            >
-              <div className="flex items-center gap-3">
-                <current.icon size={18} className="text-primary" />
-                {current.label}
-              </div>
-              <ChevronDown size={18} className={`text-muted-foreground transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
-            <AnimatePresence>
-              {isMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 right-0 mt-2 p-1.5 rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl z-50 shadow-xl flex flex-col gap-1"
-                >
-                  {formats.map((f) => {
-                    const isActive = f.id === active;
-                    return (
-                      <button
-                        key={f.id}
-                        onClick={() => { setActive(f.id); setIsMenuOpen(false); }}
-                        className={`flex items-center justify-between p-3 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${isActive ? `bg-gradient-to-br ${f.accent} text-white` : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                          }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <f.icon size={14} />
-                          {f.label}
-                        </span>
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${isActive ? 'bg-white/25 text-white' : 'bg-foreground/10 text-muted-foreground'}`}>
-                          {f.count}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+      {/* Stacking Cards Container */}
+      <div ref={containerRef} className="relative z-20">
+        {formats.map((f, i) => (
+          <StackingCard
+            key={f.id}
+            format={f}
+            items={dynamicMocks[f.id]}
+            index={i}
+            totalCards={formats.length}
+            progress={scrollYProgress}
+            onEnlarge={(idx) => setEnlargedIndex({ format: f.id, index: idx })}
+          />
+        ))}
+      </div>
 
-          {/* Desktop Tabs */}
-          <div className="hidden sm:flex relative p-1.5 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-md flex-nowrap gap-1">
-            {formats.map((f) => {
-              const isActive = f.id === active;
-              return (
-                <button
-                  key={f.id}
-                  onClick={() => setActive(f.id)}
-                  className={`relative flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                  {isActive && (
-                    <motion.span
-                      layoutId="format-pill"
-                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                      className={`absolute inset-0 rounded-xl bg-gradient-to-br ${f.accent} shadow-lg shadow-primary/20`}
-                    />
-                  )}
-                  <span className="relative flex items-center gap-2">
-                    <f.icon size={14} />
-                    <span className="whitespace-nowrap">{f.label}</span>
-                    <span
-                      className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${isActive ? "bg-white/25 text-white" : "bg-muted text-muted-foreground"
-                        }`}
-                    >
-                      {f.count}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Editorial split layout */}
-        <div className="max-w-7xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={active}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.45 }}
-              className="grid grid-cols-12 gap-4 sm:gap-5"
-            >
-              {/* LEFT — meta card */}
-              <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
-                {/* Format meta */}
-                <div className="rounded-3xl border border-border/40 bg-card/60 backdrop-blur-md p-6 sm:p-7 relative overflow-hidden">
-                  <div className={`absolute -top-20 -right-20 w-48 h-48 rounded-full bg-gradient-to-br ${current.accent} opacity-20 blur-3xl`} />
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${current.accent} flex items-center justify-center shadow-lg mb-5`}>
-                    <current.icon size={22} className="text-white" />
-                  </div>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono mb-2">
-                    Format · {String(formats.findIndex(f => f.id === active) + 1).padStart(2, "0")}/{String(formats.length).padStart(2, "0")}
-                  </div>
-                  <h3 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">{current.label}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-6 font-semibold">{current.tagline}</p>
-
-                  <div className="space-y-2.5 pt-5 border-t border-border/40">
-                    {[
-                      { k: "Avg time", v: "2 min" },
-                      { k: "Languages", v: "14" },
-                      { k: "Output", v: current.count },
-                    ].map((row) => (
-                      <div key={row.k} className="flex items-center justify-between text-xs font-bold">
-                        <span className="text-muted-foreground font-mono uppercase tracking-wider">{row.k}</span>
-                        <span className="text-foreground">{row.v}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button className={`mt-6 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r ${current.accent} text-white text-xs font-black uppercase tracking-widest shadow-lg group hover:brightness-110 transition-all`}>
-                    Generate {current.label}
-                    <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform" />
-                  </button>
-                </div>
-
-                {/* Languages strip */}
-                <div className="rounded-3xl border border-border/40 bg-card/40 backdrop-blur-md p-5">
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono mb-3">
-                    Speaks fluently
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {["English", "Hinglish", "हिंदी", "தமிழ்", "ಕನ್ನಡ", "Nepali", "+8 more"].map((l) => (
-                      <span
-                        key={l}
-                        className="text-xs font-bold px-3 py-1 rounded-full bg-foreground/5 border border-border/40 text-foreground"
-                      >
-                        {l}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT — hero + masonry */}
-              <div className={active === "image"
-                ? "col-span-12 lg:col-span-8 columns-1 sm:columns-2 gap-4 sm:gap-6"
-                : active === "carousel"
-                  ? "col-span-12 lg:col-span-8 w-full"
-                  : active === "ecomm"
-                    ? "col-span-12 lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-1.5 content-start"
-                    : "col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[300px] sm:auto-rows-[150px]"}>
-                {active === "image" ? (
-                  <>
-                    {items.slice(0, 4).map((item, idx) => (
-                      <div key={idx} className="relative break-inside-avoid mb-4 sm:mb-6 w-full">
-                        <Tile masonry item={item} accent={current.accent} className="w-full h-full" onClick={() => setEnlargedIndex(idx)} />
-                        {idx === 3 && items.length > 4 && (
-                          <div
-                            className="absolute inset-0 bg-black/60 rounded-2xl sm:rounded-3xl flex items-center justify-center cursor-pointer z-10"
-                            onClick={() => setEnlargedIndex(idx)}
-                          >
-                            <span className="text-white text-2xl sm:text-3xl font-black">+{items.length - 4}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </>
-                ) : ["video", "festival"].includes(active) ? (
-                  <>
-                    <CarouselTile items={items.slice(3)} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => setEnlargedIndex(idx + 3)} />
-                    <Tile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(0)} />
-                    <Tile item={items[1]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(1)} />
-                    <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(2)} />
-                  </>
-                ) : active === "ecomm" ? (
-                  <>
-                    {items.slice(0, 9).map((item, idx) => (
-                      <div key={idx} className="relative w-full aspect-square">
-                        <Tile item={item} accent={current.accent} className="w-full h-full" onClick={() => setEnlargedIndex(idx)} />
-                      </div>
-                    ))}
-                  </>
-                ) : active === "carousel" ? (
-                  <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full">
-                    {items.slice(0, 4).map((item, idx) => (
-                      <div key={idx} className="relative w-full">
-                        <Tile masonry item={item} accent={current.accent} className="w-full" onClick={() => setEnlargedIndex(idx)} />
-                        {idx === 3 && items.length > 4 && (
-                          <div
-                            className="absolute inset-0 bg-black/60 rounded-2xl sm:rounded-3xl flex items-center justify-center cursor-pointer z-10"
-                            onClick={() => setEnlargedIndex(idx)}
-                          >
-                            <span className="text-white text-2xl sm:text-3xl font-black">+{items.length - 4}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <>
-                    <HeroTile item={items[0]} accent={current.accent} className="col-span-1 sm:col-span-6 row-span-2 sm:row-span-3" onClick={() => setEnlargedIndex(0)} />
-                    <Tile item={items[1]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => setEnlargedIndex(1)} />
-                    <Tile item={items[2]} accent={current.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" compact onClick={() => setEnlargedIndex(2)} />
-                    <Tile item={items[3]} accent={current.accent} className="col-span-1 sm:col-span-6 row-span-1 sm:row-span-2" wide onClick={() => setEnlargedIndex(3)} />
-                  </>
-                )}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Bottom proof bar */}
-        <div className="mt-14 max-w-7xl mx-auto">
-          <div className="relative rounded-3xl border border-border/40 bg-gradient-to-r from-card/80 via-card/40 to-card/80 backdrop-blur-md p-1.5 overflow-hidden">
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/40">
-              {[
-                { v: "5", l: "Formats", s: "Image · Carousel · Video · E-Comm · Festival" },
-                { v: "40+", l: "Festivals mapped", s: "Diwali, Holi, Eid, X-mas & more" },
-                { v: "14", l: "Languages", s: "English · Hinglish · Hindi · Tamil · Kannada · Nepali & 8 more" },
-                { v: "2 min", l: "Avg time", s: "Idea → ready-to-post creative" },
-              ].map((s, i) => (
-                <motion.div
-                  key={s.l}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.06 }}
-                  className="p-5 sm:p-6"
-                >
-                  <div className="text-3xl sm:text-4xl font-black gradient-text leading-none">{s.v}</div>
-                  <div className="text-xs font-black text-foreground mt-2 uppercase tracking-wider">{s.l}</div>
-                  <div className="text-[11px] text-muted-foreground mt-1 leading-snug font-medium">{s.s}</div>
-                </motion.div>
-              ))}
-            </div>
+      {/* Bottom proof bar */}
+      <div className="mt-32 max-w-7xl mx-auto px-6 relative z-10">
+        <div className="relative rounded-3xl border border-border/40 bg-gradient-to-r from-card/80 via-card/40 to-card/80 backdrop-blur-md p-1.5 overflow-hidden shadow-2xl">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/40">
+            {[
+              { v: "5", l: "Formats", s: "Image · Carousel · Video · E-Comm · Festival" },
+              { v: "40+", l: "Festivals mapped", s: "Diwali, Holi, Eid, X-mas & more" },
+              { v: "14", l: "Languages", s: "English · Hinglish · Hindi · Tamil · Kannada · Nepali & 8 more" },
+              { v: "2 min", l: "Avg time", s: "Idea → ready-to-post creative" },
+            ].map((s, i) => (
+              <motion.div
+                key={s.l}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+                className="p-5 sm:p-6"
+              >
+                <div className="text-3xl sm:text-4xl font-black gradient-text leading-none">{s.v}</div>
+                <div className="text-xs font-black text-foreground mt-2 uppercase tracking-wider">{s.l}</div>
+                <div className="text-[11px] text-muted-foreground mt-1 leading-snug font-medium">{s.s}</div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>
 
-      {enlargedIndex !== null && (
-        <Lightbox items={items} initialIndex={enlargedIndex} onClose={() => setEnlargedIndex(null)} />
+      {enlargedIndex !== null && dynamicMocks[enlargedIndex.format] && (
+        <Lightbox items={dynamicMocks[enlargedIndex.format]} initialIndex={enlargedIndex.index} onClose={() => setEnlargedIndex(null)} />
       )}
     </section>
+  );
+};
+
+const StackingCard = ({
+  format,
+  items,
+  index,
+  totalCards,
+  progress,
+  onEnlarge
+}: {
+  format: Format;
+  items: Item[];
+  index: number;
+  totalCards: number;
+  progress: MotionValue<number>;
+  onEnlarge: (idx: number) => void;
+}) => {
+  const targetScale = 1 - ((totalCards - index) * 0.05);
+  const range = [index / totalCards, 1];
+  const scale = useTransform(progress, range, [1, targetScale]);
+
+  if (!items || items.length === 0) return null;
+
+  const gridClass = ["image", "festival"].includes(format.id)
+    ? "columns-1 sm:columns-2 gap-4 sm:gap-6"
+    : format.id === "carousel"
+      ? "w-full"
+      : format.id === "ecomm"
+        ? "grid grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-1.5 content-start"
+        : "grid grid-cols-1 sm:grid-cols-6 gap-6 sm:gap-5 auto-rows-[300px] sm:auto-rows-[150px]";
+
+  return (
+    <div className="sticky top-0 h-screen w-full flex flex-col justify-start" style={{ paddingTop: `calc(12vh + ${index * 24}px)` }}>
+      <motion.div
+        style={{ scale }}
+        className="relative w-[95%] max-w-7xl mx-auto h-[78vh] rounded-[32px] sm:rounded-[40px] border border-border/20 overflow-hidden shadow-2xl p-6 sm:p-10 transform-gpu flex flex-col"
+      >
+        {/* Base opaque layer using native background, then card styling on top to preserve their exact theme without forcing black */}
+        <div className="absolute inset-0 bg-background pointer-events-none" />
+        <div className="absolute inset-0 bg-card pointer-events-none" />
+        <div className={`absolute inset-0 bg-gradient-to-br ${format.accent} opacity-[0.03] mix-blend-overlay pointer-events-none`} />
+
+        <div className="grid grid-cols-12 gap-8 h-full relative z-10 w-full">
+          <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            <div className="mb-2">
+              <div className="flex items-center gap-4 mb-5">
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${format.accent} flex items-center justify-center shadow-lg`}>
+                  <format.icon size={22} className="text-white" />
+                </div>
+                <div className="lg:hidden text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
+                  Format · {String(index + 1).padStart(2, "0")}/{String(totalCards).padStart(2, "0")}
+                </div>
+              </div>
+              
+              <div className="hidden lg:block text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono mb-2">
+                Format · {String(index + 1).padStart(2, "0")}/{String(totalCards).padStart(2, "0")}
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">{format.label}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed font-semibold">{format.tagline}</p>
+            </div>
+             
+            <div className="space-y-2.5 pt-5 border-t border-border/40 hidden sm:block">
+              {[
+                { k: "Avg time", v: "2 min" },
+                { k: "Languages", v: "14" },
+                { k: "Output", v: format.count },
+              ].map((row) => (
+                <div key={row.k} className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-muted-foreground font-mono uppercase tracking-wider">{row.k}</span>
+                  <span className="text-foreground">{row.v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-auto hidden xl:block">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono mb-3">
+                Speaks fluently
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {["English", "Hinglish", "हिंदी", "தமிழ்", "+10"].map((l) => (
+                  <span
+                    key={l}
+                    className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-foreground/5 border border-border/40 text-foreground"
+                  >
+                    {l}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <button className={`mt-auto xl:mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r ${format.accent} text-white text-xs font-black uppercase tracking-widest shadow-lg group hover:brightness-110 transition-all`}>
+              Generate {format.label}
+              <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform" />
+            </button>
+          </div>
+
+          <div className="col-span-12 lg:col-span-8 h-full overflow-y-auto sleek-scroll pb-10 pr-2">
+            <div className={gridClass}>
+              {["image", "festival"].includes(format.id) ? (
+                <>
+                  {items.slice(0, 4).map((item, idx) => (
+                    <div key={idx} className="relative break-inside-avoid mb-4 sm:mb-6 w-full">
+                      <Tile masonry item={item} accent={format.accent} className="w-full h-full" onClick={() => onEnlarge(idx)} />
+                      {idx === 3 && items.length > 4 && (
+                        <div
+                          className="absolute inset-0 bg-black/60 rounded-2xl sm:rounded-3xl flex items-center justify-center cursor-pointer z-10"
+                          onClick={() => onEnlarge(idx)}
+                        >
+                          <span className="text-white text-2xl sm:text-3xl font-black">+{items.length - 4}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
+              ) : format.id === "video" ? (
+                <>
+                  <CarouselTile items={items.slice(3)} accent={format.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onItemClick={(idx) => onEnlarge(idx + 3)} />
+                  <Tile item={items[0]} accent={format.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => onEnlarge(0)} />
+                  <Tile item={items[1]} accent={format.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => onEnlarge(1)} />
+                  <Tile item={items[2]} accent={format.accent} className="col-span-1 sm:col-span-3 row-span-2 sm:row-span-3" onClick={() => onEnlarge(2)} />
+                </>
+              ) : format.id === "ecomm" ? (
+                <>
+                  {items.slice(0, 9).map((item, idx) => (
+                    <div key={idx} className="relative w-full aspect-square">
+                      <Tile item={item} accent={format.accent} className="w-full h-full" onClick={() => onEnlarge(idx)} />
+                    </div>
+                  ))}
+                </>
+              ) : format.id === "carousel" ? (
+                <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full">
+                  {items.slice(0, 4).map((item, idx) => (
+                    <div key={idx} className="relative w-full">
+                      <Tile masonry item={item} accent={format.accent} className="w-full" onClick={() => onEnlarge(idx)} />
+                      {idx === 3 && items.length > 4 && (
+                        <div
+                          className="absolute inset-0 bg-black/60 rounded-2xl sm:rounded-3xl flex items-center justify-center cursor-pointer z-10 hover:bg-black/70 transition"
+                          onClick={() => onEnlarge(idx)}
+                        >
+                          <span className="text-white text-2xl sm:text-3xl font-black">+{items.length - 4}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <HeroTile item={items[0]} accent={format.accent} className="col-span-1 sm:col-span-6 row-span-2 sm:row-span-3" onClick={() => onEnlarge(0)} />
+                  <Tile item={items[1]} accent={format.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" onClick={() => onEnlarge(1)} />
+                  <Tile item={items[2]} accent={format.accent} className="col-span-1 sm:col-span-3 row-span-1 sm:row-span-2" compact onClick={() => onEnlarge(2)} />
+                  <Tile item={items[3]} accent={format.accent} className="col-span-1 sm:col-span-6 row-span-1 sm:row-span-2" wide onClick={() => onEnlarge(3)} />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 };
 
@@ -629,6 +548,16 @@ const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialInde
   }, [initialIndex]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') scrollByAmount(-1);
+      if (e.key === 'ArrowRight') scrollByAmount(1);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     if (!scrollRef.current) return;
     const videos = scrollRef.current.querySelectorAll('video');
     videos.forEach((vid, i) => {
@@ -713,13 +642,13 @@ const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialInde
                   src={item.src}
                   controls
                   playsInline
-                  className="max-w-full max-h-full rounded-2xl shadow-2xl"
+                  className="max-w-full max-h-full shadow-2xl"
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
                 <img
                   src={item.src}
-                  className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl cursor-default"
+                  className="max-w-full max-h-full object-contain shadow-2xl cursor-default"
                   onClick={(e) => e.stopPropagation()}
                 />
               )}

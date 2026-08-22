@@ -1617,8 +1617,9 @@ Orchestrates generation for all layout types.
                 if res_avatar:
                     task_refs.append(res_avatar)
             if listing_product:
-                if listing_product.get("imageBase64"):
-                    task_refs.append(listing_product["imageBase64"])
+                raw_listing_img = listing_product.get("imageBase64") or (listing_product.get("imageUrls") and listing_product.get("imageUrls")[0])
+                if raw_listing_img:
+                    task_refs.append(raw_listing_img)
                 if listing_product.get("imageUrls"):
                     for u in listing_product["imageUrls"][:2]:
                         resolved = _resolve_ref_image(u)
@@ -1743,8 +1744,9 @@ Orchestrates generation for all layout types.
             
             task_refs = []
             if prod:
-                if prod.get("imageBase64"):
-                    task_refs.append(prod.get("imageBase64"))
+                raw_prod_img = prod.get("imageBase64") or (prod.get("imageUrls") and prod.get("imageUrls")[0])
+                if raw_prod_img:
+                    task_refs.append(raw_prod_img)
                 elif prod.get("imageUrls") and prod["imageUrls"]:
                     task_refs.append(prod["imageUrls"][0])
             elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
@@ -1854,8 +1856,9 @@ Orchestrates generation for all layout types.
             prod = assigned_products[index]
             task_refs = []
             if prod:
-                if prod.get("imageBase64"):
-                    task_refs.append(prod.get("imageBase64"))
+                raw_prod_img = prod.get("imageBase64") or (prod.get("imageUrls") and prod.get("imageUrls")[0])
+                if raw_prod_img:
+                    task_refs.append(raw_prod_img)
                 elif prod.get("imageUrls") and prod["imageUrls"]:
                     task_refs.append(prod["imageUrls"][0])
             elif assigned_refs and index < len(assigned_refs) and assigned_refs[index]:

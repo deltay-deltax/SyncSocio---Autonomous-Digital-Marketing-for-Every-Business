@@ -1076,6 +1076,11 @@ const DashboardLayoutContent = () => {
           const data = await res.json();
           setProfile(data);
           localStorage.setItem('syncsocio_profile', JSON.stringify(data));
+          
+          if (data.userCredits !== undefined) {
+            setCredits(data.userCredits);
+            localStorage.setItem('syncsocio_credits', String(data.userCredits));
+          }
         } else if (res.status === 401) {
           console.error('Session expired or invalid. Redirecting to login.');
           localStorage.removeItem('token');

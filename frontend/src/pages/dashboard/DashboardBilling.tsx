@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, BotMessageSquare, HelpCircle, Gift, Info, X, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
@@ -146,6 +146,14 @@ const DashboardBilling = () => {
 
   const [checkoutData, setCheckoutData] = useState<any>(null);
   const [showCompareDialog, setShowCompareDialog] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutPlan = params.get('checkout');
+    if (checkoutPlan) {
+      handleSelectPlan(checkoutPlan);
+    }
+  }, [currency]);
 
   const handleSelectPlan = (planName: string) => {
     if (planName === 'Custom') {

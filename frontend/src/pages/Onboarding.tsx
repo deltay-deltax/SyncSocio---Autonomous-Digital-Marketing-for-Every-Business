@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { HexColorPicker } from "react-colorful";
 import {
@@ -250,105 +251,49 @@ const Onboarding = () => {
       setScanError('Please enter a website URL');
       return;
     }
-
+    
     setScanLoading(true);
     setScanError('');
-    setScanSuccess(false);
-
-    const statuses = [
-      'Initializing scan...',
-      'Connecting to website host...',
-      'Visiting pages and downloading HTML structure...',
-      'Parsing metadata and layout structure...',
-      'Running GPT Brand Intelligence extraction...',
-      'Rephrasing brand core and messaging...',
-      'Cataloging product offerings...'
-    ];
-
-    let statusIndex = 0;
-    setScanStatus(statuses[0]);
-    const statusInterval = setInterval(() => {
-      if (statusIndex < statuses.length - 1) {
-        statusIndex++;
-        setScanStatus(statuses[statusIndex]);
-      }
-    }, 2000);
 
     try {
-      // Get user profile from localStorage if available (since they sign up before dropping URL)
       const userProfile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
       const userEmail = userProfile?.email || undefined;
       const userPhone = userProfile?.phone || undefined;
 
-      // Track Custom Event and get eventID
       const metaEventId = trackMetaEvent('URLDropped', { website_url: scanUrl }, true);
       console.log("🔥 [TESTING] Firing Meta Pixel Event: URLDropped (Frontend)");
 
-      const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
+      const token = localStorage.getItem('token');
+      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      
+      const response = await fetch(`${BASE_URL}/profile/auto-scan-bg`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ 
           url: scanUrl, 
           metaEventId,
           userEmail,
-          userPhone,
-          plan: userProfile?.plan || 'Starter'
+          userPhone
         })
       });
 
-      clearInterval(statusInterval);
-
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || 'Failed to extract website details');
+        throw new Error('Failed to initiate auto-scan');
       }
 
-      const data = await response.json();
+      localStorage.setItem('syncsocio_review_brand_pending', 'true');
+      localStorage.setItem('syncsocio_setup_done', 'true');
+      
+      const searchParams = new URLSearchParams(window.location.search);
+      const isNewBrand = searchParams.get('new_brand') === 'true';
+      window.location.href = isNewBrand ? '/dashboard' : '/setup';
 
-      let comps = data.competitors || [];
-      while (comps.length < 2) {
-        comps.push('');
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        brandName: data.brandName || prev.brandName,
-        website: data.website || scanUrl,
-        businessCategory: data.businessCategory || prev.businessCategory,
-        mainGoal: data.mainGoal || prev.mainGoal,
-        location: {
-          country: data.location?.country || prev.location.country,
-          city: data.location?.city || prev.location.city
-        },
-        usp: data.usp || prev.usp,
-        competitors: comps.slice(0, 2),
-        targetAudiences: data.targetAudiences || prev.targetAudiences,
-        ageRange: data.ageRange || prev.ageRange,
-        genderFocus: data.genderFocus || prev.genderFocus,
-        painPoint: data.painPoint || prev.painPoint,
-        brandTone: data.brandTone || prev.brandTone,
-        visualVibe: data.visualVibe || prev.visualVibe,
-        brandKeywords: data.brandKeywords || prev.brandKeywords,
-        primaryColor: data.primaryColor || prev.primaryColor,
-        secondaryColor: data.secondaryColor || prev.secondaryColor,
-        logo: data.logo || prev.logo,
-        typography: data.typography || prev.typography
-      }));
-
-      if (data.products && Array.isArray(data.products)) {
-        setExtractedProducts(data.products);
-      }
-
-      setScanSuccess(true);
-      setScanStatus('Scan complete! Brand DNA synthesized.');
     } catch (err: any) {
-      clearInterval(statusInterval);
       console.error(err);
       setScanError(getFriendlyErrorMessage(err));
-    } finally {
       setScanLoading(false);
     }
   };
@@ -386,6 +331,43 @@ const Onboarding = () => {
 
   const handleNext = () => setStep(prev => Math.min(prev + 1, totalSteps));
   const handleBack = () => setStep(prev => Math.max(prev - 1, 0));
+
+  const submitProfileAndFinish = async () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isNewBrand = searchParams.get('new_brand') === 'true';
+
+    try {
+      const token = localStorage.getItem('token');
+      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      
+      await fetch(`${BASE_URL}/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ ...formData, createNewBrand: isNewBrand })
+      });
+
+      if (extractedProducts && extractedProducts.length > 0) {
+        for (const prod of extractedProducts) {
+          try {
+            await fetch(`${BASE_URL}/products`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({
+                name: prod.name, description: prod.description || '', price: prod.price || '',
+                offerPrice: prod.offerPrice || '', keyBenefit: prod.keyBenefit || '', imageBase64: prod.imageBase64 || ''
+              })
+            });
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      console.error('Bypass save failed', err);
+    } finally {
+      localStorage.setItem('syncsocio_profile', JSON.stringify({ ...formData, logo: '' }));
+      localStorage.setItem('syncsocio_setup_done', 'true');
+      window.location.href = isNewBrand ? '/dashboard' : '/setup';
+    }
+  };
 
   useEffect(() => {
     if (step === 12) {
@@ -505,7 +487,7 @@ const Onboarding = () => {
                   onClick={() => {
                     localStorage.setItem('syncsocio_review_brand_pending', 'true');
                     localStorage.removeItem('syncsocio_review_brand_dismissed');
-                    setStep(12);
+                    submitProfileAndFinish();
                   }}
                   className="flex items-center text-[10px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-widest px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-primary/10 border border-border/60 hover:border-primary/30 min-h-[36px] group"
                   title="Skip brand review and launch dashboard"
@@ -670,7 +652,7 @@ const Onboarding = () => {
                           onClick={() => {
                             localStorage.setItem('syncsocio_review_brand_pending', 'true');
                             localStorage.removeItem('syncsocio_review_brand_dismissed');
-                            setStep(12);
+                            submitProfileAndFinish();
                           }}
                           className="w-full bg-muted/40 hover:bg-muted/70 text-foreground border border-border/80 rounded-xl py-3.5 text-xs font-bold transition-all flex items-center justify-center gap-2 group uppercase tracking-widest active:scale-[0.98]"
                         >
@@ -737,7 +719,7 @@ const Onboarding = () => {
                   )}
 
                   <div className="mt-8 shrink-0">
-                    <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
+                    <button onClick={submitProfileAndFinish} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       CONFIRM PRODUCTS <ChevronRight size={14} className="ml-1.5 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                   </div>
@@ -1271,7 +1253,7 @@ const Onboarding = () => {
               )}
 
               {/* Step 11: Synthesis */}
-              {step === 12 && (
+              {false && step === 12 && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col h-full py-4">
                   {analyzingProgress < 5 ? (
                     <div className="flex flex-col items-center justify-center flex-grow py-8">
