@@ -113,6 +113,14 @@ const CreativeShowcase = () => {
           };
           console.log("CreativeShowcase padded mocks:", newMocks);
           setDynamicMocks(newMocks);
+
+          // Preload images into browser cache for buttery smooth rendering
+          Object.values(newMocks).flat().forEach((item) => {
+            if (item && item.src && !item.isVideo && !item.src.endsWith(".mp4")) {
+              const img = new globalThis.Image();
+              img.src = item.src;
+            }
+          });
         }
       } catch (err) {
         console.error("Failed to fetch dynamic showcase gallery", err);
