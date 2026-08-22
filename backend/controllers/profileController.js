@@ -218,8 +218,6 @@ export const switchBrand = async (req, res) => {
 };
 
 import StrategyCreative from '../models/StrategyCreative.js';
-import Product from '../models/Product.js';
-
 export const deleteBrand = async (req, res) => {
   try {
     const brandId = req.params.id;
