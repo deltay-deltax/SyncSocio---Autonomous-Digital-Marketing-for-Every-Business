@@ -71,6 +71,7 @@ const languages = [
   { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', flag: '🌺' },
   { id: 'malayalam', label: 'Malayalam (മലയാളം)', flag: '🌴' },
   { id: 'odia', label: 'Odia (ଓଡ଼ିଆ)', flag: '🐚' },
+  { id: 'odia', label: 'Odia (ଓଡ଼િଆ)', flag: '🐚' },
   { id: 'nepali', label: 'Nepali (नेपाली)', flag: '🇳🇵' },
 ];
 
@@ -79,6 +80,7 @@ interface Product {
   name: string;
   description: string;
   imageBase64: string;
+  imageUrls?: string[];
   keyBenefit?: string;
   price?: string;
 }
@@ -1297,8 +1299,8 @@ export default function AutopilotPage() {
                           )}
                         >
                           <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative border border-border/50">
-                            {p.imageBase64 ? (
-                              <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-2" />
+                            {p.imageBase64 || (p.imageUrls && p.imageUrls[0]) ? (
+                              <img src={imgSrc(p.imageBase64 || p.imageUrls[0])} alt={p.name} className="w-full h-full object-contain p-2" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center"><Package className="text-muted-foreground/30" /></div>
                             )}

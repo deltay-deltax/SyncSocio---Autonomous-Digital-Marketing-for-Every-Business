@@ -735,7 +735,8 @@ and CTA button styles specified above. Do NOT use generic terms like 'grape purp
                 creative_job = str(concept.get("creative_job") or "").strip()
                 expected_job = valid_frameworks[framework_code.casefold()]
                 if creative_job.casefold() != expected_job.casefold():
-                    raise ValueError(f"Concept {index + 1} used job '{creative_job}' instead of '{expected_job}'")
+                    print(f"[AdsAgent] Warning: Concept {index + 1} used job '{creative_job}' instead of '{expected_job}'. Auto-correcting.")
+                    creative_job = expected_job
                 composition_class = str(concept.get("composition_class") or "").strip()
                 if not composition_class:
                     raise ValueError(f"Concept {index + 1} is missing its invented composition class")
