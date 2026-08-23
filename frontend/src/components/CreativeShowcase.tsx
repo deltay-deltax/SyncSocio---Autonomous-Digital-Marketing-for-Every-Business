@@ -14,6 +14,15 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
+const optimizeCloudinaryUrl = (url: string) => {
+  if (url && url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    if (!url.includes('/upload/q_auto')) {
+      return url.replace('/upload/', '/upload/q_auto,f_auto/');
+    }
+  }
+  return url;
+};
+
 // Beautiful Unsplash fallback URLs to avoid missing local asset import compile errors
 const imgCoffee = "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=600";
 const imgJuice = "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&q=80&w=600";
@@ -118,7 +127,7 @@ const CreativeShowcase = () => {
           Object.values(newMocks).flat().forEach((item) => {
             if (item && item.src && !item.isVideo && !item.src.endsWith(".mp4")) {
               const img = new globalThis.Image();
-              img.src = item.src;
+              img.src = optimizeCloudinaryUrl(item.src);
             }
           });
         }
@@ -432,7 +441,7 @@ const HeroTile = ({
       {item.isVideo || item.src.endsWith(".mp4") ? (
         <video ref={videoRef} src={item.src} loop muted playsInline className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110 bg-muted/40" />
       ) : (
-        <img src={item.src} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110 bg-muted/40" />
+        <img src={optimizeCloudinaryUrl(item.src)} alt={item.caption} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110 bg-muted/40" />
       )}
       <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-700 mix-blend-overlay`} />
 
@@ -480,7 +489,7 @@ const Tile = ({
       {item.isVideo || item.src.endsWith(".mp4") ? (
         <video ref={videoRef} src={item.src} loop muted playsInline className={`${masonry ? "w-full h-auto" : "absolute inset-0 w-full h-full object-cover"} transition-transform duration-700 group-hover:scale-105 bg-muted/40`} />
       ) : (
-        <img src={item.src} alt={item.caption} loading="lazy" className={`${masonry ? "w-full h-auto" : "absolute inset-0 w-full h-full object-cover"} transition-transform duration-700 group-hover:scale-105 bg-muted/40`} />
+        <img src={optimizeCloudinaryUrl(item.src)} alt={item.caption} loading="lazy" className={`${masonry ? "w-full h-auto" : "absolute inset-0 w-full h-full object-cover"} transition-transform duration-700 group-hover:scale-105 bg-muted/40`} />
       )}
       <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay`} />
 
@@ -526,7 +535,7 @@ const CarouselTile = ({
             {item.isVideo || item.src.endsWith(".mp4") ? (
               <video src={item.src} loop muted playsInline className="w-full h-full object-cover bg-muted/40" />
             ) : (
-              <img src={item.src} alt={item.caption} loading="lazy" className="w-full h-full object-cover bg-muted/40" />
+              <img src={optimizeCloudinaryUrl(item.src)} alt={item.caption} loading="lazy" className="w-full h-full object-cover bg-muted/40" />
             )}
             <div className={`absolute inset-0 bg-gradient-to-tr ${accent} opacity-0 group-hover:opacity-25 transition-opacity duration-500 mix-blend-overlay pointer-events-none`} />
           </div>
@@ -655,7 +664,7 @@ const Lightbox = ({ items, initialIndex, onClose }: { items: Item[], initialInde
                 />
               ) : (
                 <img
-                  src={item.src}
+                  src={optimizeCloudinaryUrl(item.src)}
                   className="max-w-full max-h-full object-contain shadow-2xl cursor-default"
                   onClick={(e) => e.stopPropagation()}
                 />

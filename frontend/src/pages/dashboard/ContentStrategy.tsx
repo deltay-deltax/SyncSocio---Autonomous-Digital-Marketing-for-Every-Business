@@ -84,8 +84,9 @@ const aspects: { id: AspectRatio; label: string; ratio: string }[] = [
 
 const imageCounts = [1, 2, 4, 6, 8];
 const carouselCounts = [1, 2, 3];
-const carouselSlides = [1, 2, 3, 5, 7];
+const carouselSlides = [5, 7, 10];
 const videoCounts = [1, 2, 3, 4];
+const adsCounts = [3, 6, 8, 10];
 
 const platforms = ['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Shopify', 'Nykaa'];
 const ecommImageCounts = [6, 7, 8, 9];
@@ -3395,7 +3396,7 @@ const DashboardStrategy = () => {
   // BUILDER — per-mode form
   // ─────────────────────────────────────────────────────────────────────────────
   const isStandard = mode === 'image' || mode === 'carousel' || mode === 'video' || mode === 'photoshoot' || mode === 'ads';
-  const standardCounts = (mode === 'image' || mode === 'photoshoot' || mode === 'ads') ? imageCounts : mode === 'carousel' ? carouselCounts : videoCounts;
+  const standardCounts = mode === 'ads' ? adsCounts : (mode === 'image' || mode === 'photoshoot') ? imageCounts : mode === 'carousel' ? carouselCounts : videoCounts;
   const currentMode = modes.find((m) => m.id === mode)!;
 
   return (

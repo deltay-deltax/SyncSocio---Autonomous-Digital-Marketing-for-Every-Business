@@ -4,6 +4,16 @@ import { Marquee } from "@/registry/magicui/marquee"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 
+const optimizeCloudinaryUrl = (url: string, width?: number) => {
+  if (url && url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    if (!url.includes('/upload/q_auto')) {
+      const transform = width ? `/upload/q_auto,f_auto,w_${width}/` : '/upload/q_auto,f_auto/';
+      return url.replace('/upload/', transform);
+    }
+  }
+  return url;
+};
+
 export function MarqueeDemo({ images }: { images?: { src: string, alt: string }[] }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -46,7 +56,7 @@ export function MarqueeDemo({ images }: { images?: { src: string, alt: string }[
         )}
       >
         <img 
-          src={src} 
+          src={optimizeCloudinaryUrl(src, 400)} 
           alt={alt} 
           loading="lazy"
           className="w-full h-full object-cover bg-gray-100 dark:bg-gray-800"
@@ -116,7 +126,7 @@ export function MarqueeDemo({ images }: { images?: { src: string, alt: string }[
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              src={images[selectedIndex].src}
+              src={optimizeCloudinaryUrl(images[selectedIndex].src)}
               alt={images[selectedIndex].alt}
               className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl relative z-[105]"
               onClick={(e) => e.stopPropagation()}
