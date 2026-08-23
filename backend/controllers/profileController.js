@@ -463,7 +463,7 @@ export const autoScanBg = async (req, res) => {
     setTimeout(async () => {
       console.log(`[autoScanBg] Starting background scan for URL: ${url}`);
       try {
-        const AGENT_API = process.env.VITE_AGENT_API_URL || 'http://localhost:8000';
+        const AGENT_API = process.env.AI_SERVICE_URL || 'http://localhost:8000';
         console.log(`[autoScanBg] Fetching agent at ${AGENT_API}/scrape-brand-profile`);
         const agentRes = await fetch(`${AGENT_API}/scrape-brand-profile`, {
           method: 'POST',
