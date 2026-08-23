@@ -86,9 +86,9 @@ const History: React.FC = () => {
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      
       const res = await axios.get(`${API_BASE}/posts/history`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { }
       });
       setItems(res.data);
     } catch (err) {
@@ -159,8 +159,10 @@ const History: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="py-20 flex justify-center">
-            <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <div className="space-y-4 animate-pulse">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-[100px] rounded-[1.5rem] bg-muted/60 border border-border/50"></div>
+            ))}
           </div>
         ) : processedItems.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
