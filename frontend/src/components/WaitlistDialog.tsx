@@ -29,7 +29,7 @@ const WaitlistDialog = ({ open, onOpenChange, onSuccess }: WaitlistDialogProps) 
     
     try {
       const FORMSPREE_ID = import.meta.env.VITE_FORMSPREE_ID || "xwvakkjw"; // Use your new ID
-      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, { credentials: 'include',
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
