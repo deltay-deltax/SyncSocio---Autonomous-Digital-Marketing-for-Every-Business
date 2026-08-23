@@ -216,12 +216,13 @@ const AssetLibrary = () => {
   const fetchAssets = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/strategy-assets`, {
-        headers: { Authorization: `Bearer ${token}` },
+      
+      const res = await fetch(`${API_BASE}/strategy-assets`, { credentials: 'include',
+        headers: { },
       });
       if (res.ok) {
-        const data = await res.json();
+        const _rawJson32 = await res.json();
+          const data = _rawJson32 && _rawJson32.success !== undefined ? (_rawJson32.success ? _rawJson32.data : _rawJson32) : _rawJson32;
         const serverCreatives = data.creatives || [];
 
         // Use server creatives as the source of truth
@@ -246,13 +247,12 @@ const AssetLibrary = () => {
     if (selectedAssetIds.length === 0) return;
     setFetchingRecommendations(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/posts/recommend-schedule`, {
+      
+      const res = await fetch(`${API_BASE}/posts/recommend-schedule`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({
           postIds: selectedAssetIds,
           startDate,
@@ -266,7 +266,8 @@ const AssetLibrary = () => {
         throw new Error(errorData.message || 'Failed to fetch schedule recommendations');
       }
 
-      const data = await res.json();
+      const _rawJson31 = await res.json();
+        const data = _rawJson31 && _rawJson31.success !== undefined ? (_rawJson31.success ? _rawJson31.data : _rawJson31) : _rawJson31;
       const formatted = (data.recommendations || []).map((r: any) => {
         let localDateTime = '';
         if (r.scheduledAt) {
@@ -359,10 +360,10 @@ const AssetLibrary = () => {
     setAssets(updated);
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/strategy-assets/${id}`, {
+      
+      const res = await fetch(`${API_BASE}/strategy-assets/${id}`, { credentials: 'include',
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
       });
       if (!res.ok) throw new Error('Delete failed');
       await setCache(cacheKey, updated);
@@ -603,9 +604,10 @@ const AssetLibrary = () => {
 
       {/* Content */}
       {loading && assets.length === 0 ? (
-        <div className="min-h-[50vh] flex flex-col items-center justify-center">
-          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Loading creatives...</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="aspect-square rounded-2xl bg-muted/60 border border-border/50"></div>
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <motion.div

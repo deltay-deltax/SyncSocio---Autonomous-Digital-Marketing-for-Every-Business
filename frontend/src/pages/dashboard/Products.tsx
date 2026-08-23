@@ -170,14 +170,15 @@ const ProductForm: React.FC<{
     if (!link.trim()) return;
     setScraping(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/ai/scrape-product`, {
+      
+      const res = await fetch(`${API_BASE}/ai/scrape-product`, { credentials: 'include',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ url: link })
       });
       if (!res.ok) throw new Error('Scraping failed');
-      const data = await res.json();
+      const _rawJson101 = await res.json();
+        const data = _rawJson101 && _rawJson101.success !== undefined ? (_rawJson101.success ? _rawJson101.data : _rawJson101) : _rawJson101;
       
       // Clean scraped prices
       let scrapedPrice = isSaas ? (data.price || '') : cleanPriceValue(data.price || '');
@@ -508,7 +509,7 @@ const Products = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const token = localStorage.getItem('token');
+  
 
   const fetchProducts = async () => {
     // ── Step 1: Try cache first (IDB → localStorage fallback) ──────────────
@@ -540,9 +541,10 @@ const Products = () => {
     // ── Step 2: Background API refresh ─────────────────────────────────────
     try {
       console.log('[Products] Fetching →', `${API_BASE}/products`);
-      const res = await fetch(`${API_BASE}/products`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/products`, { credentials: 'include', headers: { } });
       if (res.ok) {
-        const data = await res.json();
+        const _rawJson100 = await res.json();
+          const data = _rawJson100 && _rawJson100.success !== undefined ? (_rawJson100.success ? _rawJson100.data : _rawJson100) : _rawJson100;
         const list = data.products || [];
         console.log('[Products] ✅ API:', list.length, 'products');
         setProducts(list);
@@ -567,9 +569,9 @@ const Products = () => {
     try {
       const isEdit = !!editing?._id;
       const url = isEdit ? `${API_BASE}/products/${editing!._id}` : `${API_BASE}/products`;
-      const res = await fetch(url, {
+      const res = await fetch(url, { credentials: 'include',
         method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify(p),
       });
       if (res.ok) {
@@ -586,7 +588,7 @@ const Products = () => {
     setProducts(updated);
 
     try {
-      const res = await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/products/${id}`, { credentials: 'include', method: 'DELETE', headers: { } });
       if (!res.ok) throw new Error('Delete failed');
       await idbSet(cacheKey, updated);
     } catch (e) {
