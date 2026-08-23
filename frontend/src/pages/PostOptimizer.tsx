@@ -100,7 +100,7 @@ const PostOptimizer: React.FC = () => {
     try {
       const base64 = await fileToBase64(files[0]);
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000'; // FastAPI
-      const res = await fetch(`${AGENT_API_URL}/generate-visuals`, {
+      const res = await fetch(`${AGENT_API_URL}/generate-visuals`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,7 +111,8 @@ const PostOptimizer: React.FC = () => {
       });
 
       if (!res.ok) throw new Error('Visual generation failed');
-      const data = await res.json();
+      const _rawJson18 = await res.json();
+        const data = _rawJson18 && _rawJson18.success !== undefined ? (_rawJson18.success ? _rawJson18.data : _rawJson18) : _rawJson18;
       
       let visualUrl = "";
       if (data.type === 'image') {
@@ -173,7 +174,7 @@ const PostOptimizer: React.FC = () => {
     setResult(null);
 
     try {
-      const token = localStorage.getItem('token');
+      
       const form = new FormData();
       form.append('contentType', contentType);
       form.append('description', description);
@@ -181,7 +182,7 @@ const PostOptimizer: React.FC = () => {
 
       const res = await axios.post(`${API_BASE}/posts/validate`, form, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          
           'Content-Type': 'multipart/form-data'
         },
         timeout: 120000
@@ -200,9 +201,9 @@ const PostOptimizer: React.FC = () => {
     if (!result) return;
     setIsPublishing(true);
     try {
-      const token = localStorage.getItem('token');
+      
       await axios.post(`${API_BASE}/posts/schedule/${result.analysisId}`, { platforms }, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { }
       });
       
       const targetList = [];
