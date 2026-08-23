@@ -10,6 +10,9 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  attachments: [{
+    type: String // URLs to uploaded files (S3, Cloudinary, etc.)
+  }],
   createdAt: {
     type: Date,
     default: Date.now
