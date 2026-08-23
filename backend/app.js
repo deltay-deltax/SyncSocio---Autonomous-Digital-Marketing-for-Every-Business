@@ -4,10 +4,12 @@ dns.setDefaultResultOrder('ipv4first'); // Force IPv4 globally to fix Render IPv
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import waitlistRoutes from './routes/waitlistRoutes.js';
 import instagramRoutes from './routes/instagramRoutes.js';
+import { responseFormatter } from './middleware/responseFormatter.js';
 import aiRoutes from './routes/aiRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
@@ -61,20 +63,27 @@ app.use(cors({
     'http://localhost:4173',
     'http://localhost:5174',
     'http://localhost:5175',
-    'https://www.velocitydm.com',
-    'https://velocitydm.com',
+    'https://www.syncsocio.com',
+    'https://syncsocio.com',
     process.env.FRONTEND_URL,
     process.env.FRONTEND_BASE_URL
   ].filter(Boolean),
   credentials: true
 }));
+
+// --- SECURITY FIX: Reduced payload limits to prevent OOM / DoS ---
+// Standard API payloads should never exceed a few MBs. 
+// Large file uploads should use multipart/form-data via Multer.
 app.use(express.json({ 
-  limit: '200mb',
+  limit: '5mb',
   verify: (req, res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(express.urlencoded({ limit: '200mb', extended: true, parameterLimit: 200000 }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
+// ---------------------------------------------------------------
+
+app.use(cookieParser());
 
 // Static uploads serving has been removed for security (isolated storage).
 
@@ -84,6 +93,7 @@ app.get('/webhook', verifyInstagramWebhook);
 app.post('/webhook', receiveInstagramWebhook);
 
 // Routes
+app.use('/api', responseFormatter);
 // ── Auth routes (have their own strict rate limiters applied per-route) ──
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/instagram', instagramRoutes);
@@ -104,17 +114,17 @@ app.use('/api/dashboard', authenticatedRateLimiter, dashboardRoutes);
 app.use('/api/ai', authenticatedRateLimiter, aiRoutes);
 app.use('/api/posts', authenticatedRateLimiter, postRoutes);
 app.use('/api/instagram', authenticatedRateLimiter, instagramMetricsRoutes);
-app.use('/api/dm-flows', dmFlowRoutes);
+app.use('/api/dm-flows', authenticatedRateLimiter, dmFlowRoutes);
 app.use('/api/promotions', authenticatedRateLimiter, adsRoutes);
 app.use('/api/notifications', authenticatedRateLimiter, notificationRoutes);
-app.use('/api/assets', assetRoutes);
+app.use('/api/assets', authenticatedRateLimiter, assetRoutes);
 app.use('/api/strategy-assets', authenticatedRateLimiter, strategyAssetRoutes);
 app.use('/api/products', authenticatedRateLimiter, productRoutes);
 app.use('/api/campaigns', authenticatedRateLimiter, campaignRoutes);
 app.use('/api/campaigns', authenticatedRateLimiter, emailSetupRoutes);
 app.use('/api/credits', authenticatedRateLimiter, creditsRoutes);
 app.use('/api/coupons', authenticatedRateLimiter, couponRoutes);
-app.use('/api/payment', paymentRoutes);
+app.use('/api/payment', authenticatedRateLimiter, paymentRoutes);
 app.use('/api/whatsapp', authenticatedRateLimiter, whatsappRoutes);
 app.use('/api/avatars', authenticatedRateLimiter, avatarRoutes);
 app.use('/api/nexa', authenticatedRateLimiter, nexaRoutes);
