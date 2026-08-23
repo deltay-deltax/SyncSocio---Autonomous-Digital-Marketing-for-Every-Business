@@ -520,13 +520,14 @@ const DashboardAds = () => {
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const res = await fetch(
           `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/promotions/recommendations`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
+          { headers: { } }
         );
         if (!res.ok) throw new Error('Failed to fetch recommendations');
-        const data = await res.json();
+        const _rawJson54 = await res.json();
+          const data = _rawJson54 && _rawJson54.success !== undefined ? (_rawJson54.success ? _rawJson54.data : _rawJson54) : _rawJson54;
         setRecommendations(data.recommendations || []);
         if (data.nextAnalysisAt) {
           setNextScan(
@@ -556,16 +557,34 @@ const DashboardAds = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center space-y-4">
-        <div className="relative">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Loader2 className="w-7 h-7 text-primary animate-spin" />
+      <div className="space-y-5 animate-pulse">
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="w-48 h-6 bg-muted rounded"></div>
+            <div className="w-64 h-4 bg-muted/60 rounded"></div>
           </div>
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-background animate-pulse" />
+          <div className="w-24 h-8 bg-muted rounded-full"></div>
         </div>
-        <div className="text-center space-y-1">
-          <p className="text-sm font-bold text-foreground">Ads Agent is working...</p>
-          <p className="text-xs text-muted-foreground">Scanning your last 7 days of posts for viral momentum</p>
+
+        {/* Summary Stats Skeleton */}
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 rounded-2xl bg-muted/60 border border-border/50"></div>
+          ))}
+        </div>
+
+        {/* Ad Cards Skeleton */}
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-48 rounded-xl bg-muted/60 border border-border/50 flex">
+               <div className="w-[100px] h-[100px] rounded-2xl bg-muted/80 m-6"></div>
+               <div className="flex-1 p-6 pl-0 space-y-4">
+                 <div className="w-3/4 h-4 bg-muted rounded"></div>
+                 <div className="w-1/2 h-4 bg-muted rounded"></div>
+                 <div className="w-full h-12 bg-muted/80 rounded-xl mt-4"></div>
+               </div>
+            </div>
+          ))}
         </div>
       </div>
     );
