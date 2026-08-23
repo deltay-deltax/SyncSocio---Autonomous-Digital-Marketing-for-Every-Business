@@ -30,11 +30,18 @@ const ForgotPassword = () => {
     
     try {
       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${BASE_URL}/auth/forgotpassword`, {
+      const res = await fetch(`${BASE_URL}/auth/forgotpassword`, { credentials: 'include',
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
       });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to send reset link");
+      }
+      
       setSuccess("Reset link sent! Please check your inbox securely using the generated link.");
       setCooldown(20);
     } catch (err: any) {

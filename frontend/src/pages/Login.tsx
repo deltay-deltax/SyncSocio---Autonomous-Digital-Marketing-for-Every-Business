@@ -47,20 +47,21 @@ const Login = () => {
     
     try {
       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${BASE_URL}/auth/login`, {
+      const res = await fetch(`${BASE_URL}/auth/login`, { credentials: 'include',
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password: password.trim() })
       });
-      const data = await res.json();
+      const _rawJson15 = await res.json();
+        const data = _rawJson15 && _rawJson15.success !== undefined ? (_rawJson15.success ? _rawJson15.data : _rawJson15) : _rawJson15;
       if (!res.ok) throw new Error(data.message || "Invalid credentials.");
       
-      localStorage.setItem("token", data.token);
+      
       
       // --- META REVIEW BYPASS ---
-      if (email.trim().toLowerCase() === 'supportvelocitydm@gmail.com') {
+      if (email.trim().toLowerCase() === 'support@syncsocio.com') {
         localStorage.setItem('isMetaReviewer', 'true');
-        window.location.href = "/setup";
+        navigate("/setup");
         return;
       }
       // --- END BYPASS ---
@@ -68,12 +69,13 @@ const Login = () => {
       // Fetch profile status to determine redirect
       try {
         const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-        const profRes = await fetch(`${PROFILE_URL}/profile/me`, {
-          headers: { "Authorization": `Bearer ${data.token}` }
+        const profRes = await fetch(`${PROFILE_URL}/profile/me`, { credentials: 'include',
+          headers: { }
         });
         
         if (profRes.ok) {
-          const profile = await profRes.json();
+          const _rawJson14 = await profRes.json();
+            const profile = _rawJson14 && _rawJson14.success !== undefined ? (_rawJson14.success ? _rawJson14.data : _rawJson14) : _rawJson14;
           localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
           
           // Check if the user overall has a paid plan, OR if they have set up a brand name.
@@ -82,23 +84,23 @@ const Login = () => {
 
           if (hasPaidPlan) {
             localStorage.setItem("syncsocio_setup_done", "true");
-            window.location.href = "/dashboard";
+            navigate("/dashboard");
           } else if (hasBrandSetup) {
             localStorage.setItem("syncsocio_setup_done", "false");
-            window.location.href = "/setup?step=plan";
+            navigate("/setup?step=plan");
           } else {
             localStorage.setItem("syncsocio_setup_done", "false");
-            window.location.href = "/setup";
+            navigate("/setup");
           }
         } else {
           // No profile yet, go to onboarding
           localStorage.setItem("syncsocio_setup_done", "false");
-          window.location.href = "/onboarding";
+          navigate("/onboarding");
         }
       } catch (err) {
         // Fallback to onboarding if profile check fails, reset cache
         localStorage.setItem("syncsocio_setup_done", "false");
-        window.location.href = "/onboarding";
+        navigate("/onboarding");
       }
     } catch (err: any) {
       setError(err instanceof Error ? getFriendlyErrorMessage(err) : String(err));
@@ -116,7 +118,7 @@ const Login = () => {
 
         <div className="relative z-10 max-w-md px-12">
           <Link to="/" className="flex items-center gap-2 font-display text-2xl font-bold tracking-tight mb-10">
-            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
+            <img src="/SyncSocioLogo.png" width="40" height="40" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
             <span className="text-foreground">SyncSocio</span>
           </Link>
 
@@ -191,7 +193,7 @@ const Login = () => {
           className="w-full max-w-md"
         >
           <Link to="/" className="lg:hidden flex items-center gap-2 font-display text-2xl font-bold tracking-tight mb-8">
-            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
+            <img src="/SyncSocioLogo.png" width="40" height="40" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
             <span className="text-foreground">SyncSocio</span>
           </Link>
 
@@ -209,16 +211,16 @@ const Login = () => {
 
           <form className="space-y-5" onSubmit={handleLogin}>
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
-              <Input type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
+              <label htmlFor="email" className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
+              <Input id="email" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-foreground">Password</label>
+                <label htmlFor="password" className="text-sm font-medium text-foreground">Password</label>
                 <Link to="/forgotpassword" state={{ email }} className="text-xs text-primary hover:underline">Forgot password?</Link>
               </div>
               <div className="relative">
-                <Input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20 pr-10" />
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20 pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -243,24 +245,25 @@ const Login = () => {
                   onSuccess={async (credentialResponse) => {
                     try {
                       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-                      const res = await fetch(`${BASE_URL}/auth/google`, {
+                      const res = await fetch(`${BASE_URL}/auth/google`, { credentials: 'include',
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                           idToken: credentialResponse.credential
                         })
                       });
-                      const data = await res.json();
+                      const _rawJson13 = await res.json();
+                        const data = _rawJson13 && _rawJson13.success !== undefined ? (_rawJson13.success ? _rawJson13.data : _rawJson13) : _rawJson13;
                       if (!res.ok) throw new Error(data.message || "Google login failed");
                       
                       if (data.requiresPasswordSetup) {
                         // New user - redirect to password setup
                         localStorage.setItem("tempToken", data.tempToken);
-                        window.location.href = "/set-password";
+                        navigate("/set-password");
                       } else {
                         // Existing user - normal login
-                        localStorage.setItem("token", data.token);
-                        window.location.href = "/";
+                        
+                        navigate("/");
                       }
                     } catch (err: any) {
                       setError(err instanceof Error ? getFriendlyErrorMessage(err) : String(err));
