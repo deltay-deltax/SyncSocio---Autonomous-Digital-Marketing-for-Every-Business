@@ -123,6 +123,39 @@ const DashboardLayoutContent = () => {
     return () => window.removeEventListener('storage', checkBanner);
   }, [location.pathname]);
 
+  const [showBrandSuccess, setShowBrandSuccess] = useState(false);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (profile?.brandName === 'Processing...') {
+      interval = setInterval(async () => {
+        try {
+          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+          const token = localStorage.getItem('token');
+          if (!token) return;
+          const res = await axios.get(`${apiBase}/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.data && res.data.brandName !== 'Processing...') {
+            setProfile(res.data);
+            localStorage.setItem('syncsocio_profile', JSON.stringify(res.data));
+            
+            // Update the brands array as well so the dropdown reflects the new name!
+            setBrands(prev => prev.map(b => b._id === res.data._id ? { ...b, brandName: res.data.brandName } : b));
+            
+            setShowBrandSuccess(true);
+            localStorage.setItem('syncsocio_review_brand_pending', 'true');
+            localStorage.removeItem('syncsocio_review_brand_dismissed');
+            setShowReviewBrandBanner(true);
+            
+            setTimeout(() => setShowBrandSuccess(false), 8000);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [profile?.brandName]);
+
   const handleDismissReviewBanner = () => {
     localStorage.setItem('syncsocio_review_brand_dismissed', 'true');
     setShowReviewBrandBanner(false);
@@ -1261,19 +1294,35 @@ const DashboardLayoutContent = () => {
               onClearAll={clearAllTasks}
             />
 
-            {brands.length > 0 && (
-              <select
-                value={profile?._id || ''}
-                onChange={(e) => handleSwitchBrand(e.target.value)}
-                className="hidden sm:inline-block h-8 rounded-full px-3 text-[10px] font-black uppercase tracking-widest border border-border bg-card hover:border-primary transition-all cursor-pointer outline-none mr-2 max-w-[150px] truncate"
-              >
-                {brands.map((b) => (
-                  <option key={b._id} value={b._id} disabled={b.isLocked}>
-                    {b.brandName || 'Untitled Brand'} {b.isLocked ? ' 🔒 (Locked)' : ''}
-                  </option>
-                ))}
-              </select>
-            )}
+            <AnimatePresence mode="wait">
+              {profile?.brandName === 'Processing...' ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center gap-2 h-8 rounded-full pl-2 pr-3 sm:pr-4 bg-primary/10 border border-primary/20 mr-2 shadow-sm animate-pulse max-w-[140px] sm:max-w-none overflow-hidden"
+                >
+                  <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary truncate">Processing...</span>
+                </motion.div>
+              ) : brands.length > 0 ? (
+                <motion.select
+                  key="dropdown"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  value={profile?._id || ''}
+                  onChange={(e) => handleSwitchBrand(e.target.value)}
+                  className="inline-block h-8 rounded-full px-2 sm:px-3 text-[10px] font-black uppercase tracking-widest border border-border bg-card hover:border-primary transition-all cursor-pointer outline-none mr-2 max-w-[120px] sm:max-w-[150px] truncate"
+                >
+                  {brands.map((b) => (
+                    <option key={b._id} value={b._id} disabled={b.isLocked}>
+                      {b.brandName || 'Untitled Brand'} {b.isLocked ? ' 🔒 (Locked)' : ''}
+                    </option>
+                  ))}
+                </motion.select>
+              ) : null}
+            </AnimatePresence>
 
             <button
               onClick={() => navigate('/setup?step=plan')}
@@ -1796,27 +1845,62 @@ const DashboardLayoutContent = () => {
               <div>
                 <h3 className="text-lg font-bold text-foreground">Sign out of SyncSocio?</h3>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  You will be safely logged out of your session on <span className="font-semibold text-foreground">{brandName}</span>. You can sign back in anytime.
+                  You will be safely logged out of your session on <span className="font-semibold text-foreground">{profile?.brandName || 'Untitled Brand'}</span>. You can sign back in anytime.
                 </p>
               </div>
               <div className="flex gap-2.5 pt-2">
-                <Button
-                  variant="outline"
+                <button
                   onClick={() => setShowSignoutModal(false)}
-                  className="flex-1 rounded-xl h-10 text-xs font-semibold"
+                  className="flex-1 h-12 rounded-xl font-bold text-sm bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={handleSignOut}
-                  variant="destructive"
-                  className="flex-1 rounded-xl h-10 text-xs font-bold shadow-md shadow-destructive/20"
+                  className="flex-1 h-12 rounded-xl font-bold text-sm bg-destructive text-destructive-foreground hover:brightness-110 shadow-lg shadow-destructive/20 transition-all"
                 >
                   Sign Out
-                </Button>
+                </button>
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Brand Ready Fixed Notification */}
+      <AnimatePresence>
+        {showBrandSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, x: 20 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, y: -50, scale: 0.9 }}
+            className="fixed top-24 right-6 z-[100] flex items-start gap-4 p-4 rounded-2xl border border-emerald-500/30 bg-background shadow-2xl max-w-[320px]"
+          >
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
+              <CheckCircle2 size={20} className="text-emerald-500" />
+            </div>
+            <div className="flex-1 pr-4">
+              <h4 className="text-sm font-black text-foreground">Brand Profile Ready!</h4>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed font-medium">
+                Your brand DNA has been successfully extracted. Please review and tune it in Settings to ensure top quality outputs.
+              </p>
+              <button 
+                onClick={() => {
+                  setShowBrandSuccess(false);
+                  navigate('/dashboard/settings');
+                }}
+                className="mt-3 text-[10px] font-bold uppercase tracking-widest text-emerald-600 hover:text-emerald-500 transition-colors flex items-center gap-1"
+              >
+                Review Settings <ArrowRight size={12} />
+              </button>
+            </div>
+            <button 
+              onClick={() => setShowBrandSuccess(false)}
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

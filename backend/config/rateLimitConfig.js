@@ -28,5 +28,5 @@ export const PUBLIC_RATE_LIMIT = {
 // ── Authenticated (Loose) ────────────────────────────────────────────────────
 export const AUTHENTICATED_RATE_LIMIT = {
   windowMs:       parseInt(process.env.RATE_LIMIT_AUTHENTICATED_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max:            parseInt(process.env.RATE_LIMIT_AUTHENTICATED_MAX, 10)       || 200,
+  max:            parseInt(process.env.RATE_LIMIT_AUTHENTICATED_MAX, 10)       || 1000,
 };

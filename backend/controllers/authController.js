@@ -358,15 +358,15 @@ export const startFreeTrial = async (req, res) => {
       return res.status(400).json({ message: 'Free trial has already been used on this account.' });
     }
 
-    if (!deviceFingerprint) {
-      return res.status(400).json({ message: 'Device verification failed.' });
-    }
+    // if (!deviceFingerprint) {
+    //   return res.status(400).json({ message: 'Device verification failed.' });
+    // }
 
     // Check if another user already used this fingerprint
-    const existingFingerprint = await User.findOne({ deviceFingerprint });
-    if (existingFingerprint && existingFingerprint._id.toString() !== user._id.toString()) {
-      return res.status(403).json({ message: 'Free trial has already been claimed on this device.' });
-    }
+    // const existingFingerprint = await User.findOne({ deviceFingerprint });
+    // if (existingFingerprint && existingFingerprint._id.toString() !== user._id.toString()) {
+    //   return res.status(403).json({ message: 'Free trial has already been claimed on this device.' });
+    // }
 
     // Grant 15 credits and set plan
     user.credits = (user.credits || 0) + 15;
