@@ -8,6 +8,19 @@ import { sendInvoiceEmail, generatePDFBuffer, genInvoiceNo, fmtDate, resolvePack
 import { sendMetaCapiEvent } from '../services/metaConversionsAPI.js';
 import AdminNotification from '../models/AdminNotification.js';
 
+const PLAN_PRICES = {
+  'Starter': 399,
+  'Growth': 1499,
+  'Pro': 3499
+};
+
+const TOPUP_PRICES = {
+  'Starter Top-up': 250,
+  'Value Pack': 475,
+  'Growth Pack': 1275,
+  'Pro Pack': 2730
+};
+
 export const createOrder = async (req, res) => {
   try {
     const { amount, currency = 'INR', receipt, type, plan, creditsAdded, couponCode, discountPercentage, discountAmount } = req.body;
@@ -20,6 +33,50 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: 'Minimum amount must be 1 INR (100 paise)' });
     }
 
+    // --- SECURITY FIX: VALIDATE AMOUNT AGAINST SPOOFING ---
+    let expectedBasePrice = 0;
+    if (type === 'plan_purchase' || type === 'plan_upgrade' || type === 'plan_renewal') {
+      expectedBasePrice = PLAN_PRICES[plan] || 0;
+    } else if (type === 'topup') {
+      // Find topup by credits added or plan name if passed
+      expectedBasePrice = TOPUP_PRICES[plan] || 0;
+      if (expectedBasePrice === 0) {
+        // Fallback to checking by credits amount if plan name isn't matched
+        if (creditsAdded === 50) expectedBasePrice = 250;
+        else if (creditsAdded === 100) expectedBasePrice = 475;
+        else if (creditsAdded === 300) expectedBasePrice = 1275;
+        else if (creditsAdded === 700) expectedBasePrice = 2730;
+      }
+    } else if (type === 'dm_addon_purchase') {
+      expectedBasePrice = 500; // DM addon is flat 500 INR
+    }
+
+    // Server-side discount calculation
+    let expectedFinalAmount = expectedBasePrice;
+    let actualDiscountPercentage = 0;
+    let actualDiscountAmount = 0;
+
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode, isActive: true });
+      if (coupon && (!coupon.expiryDate || coupon.expiryDate > new Date()) && coupon.timesUsed < coupon.maxUses) {
+        actualDiscountPercentage = coupon.discountPercentage;
+        actualDiscountAmount = Math.floor(expectedBasePrice * (actualDiscountPercentage / 100));
+        expectedFinalAmount = Math.max(1, expectedBasePrice - actualDiscountAmount);
+      } else {
+        return res.status(400).json({ message: 'Invalid or expired coupon code' });
+      }
+    }
+
+    // Allow 1 INR difference due to rounding
+    if (Math.abs(expectedFinalAmount - amount) > 1) {
+      console.warn(`[SECURITY] Payment amount spoofing detected! Expected: ${expectedFinalAmount}, Received: ${amount}`);
+      return res.status(400).json({ message: 'Payment amount mismatch. Please try again.' });
+    }
+
+    // Use the strictly validated amount
+    const secureAmount = expectedFinalAmount;
+    // -----------------------------------------------------
+
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.error('Razorpay keys not found in environment variables');
       return res.status(500).json({ message: 'Payment gateway configuration error' });
@@ -31,7 +88,7 @@ export const createOrder = async (req, res) => {
     });
 
     const options = {
-      amount: amount * 100, // amount in smallest currency unit
+      amount: secureAmount * 100, // amount in smallest currency unit
       currency,
       receipt: receipt || `receipt_${Date.now()}`,
     };
@@ -45,15 +102,15 @@ export const createOrder = async (req, res) => {
     // Create pending transaction in DB
     await Transaction.create({
       user: req.user._id,
-      amount,
+      amount: secureAmount, // Use the server-validated amount
       type,
       plan: plan || '',
       creditsAdded: creditsAdded || 0,
       razorpayOrderId: order.id,
       status: 'pending',
       couponCode: couponCode || '',
-      discountPercentage: discountPercentage || 0,
-      discountAmount: discountAmount || 0
+      discountPercentage: actualDiscountPercentage || 0,
+      discountAmount: actualDiscountAmount || 0
     });
 
     res.status(200).json({
