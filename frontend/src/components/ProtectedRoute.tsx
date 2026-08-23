@@ -1,10 +1,10 @@
 import { Navigate, Outlet } from 'react-router-dom';
 
 const ProtectedRoute = () => {
-  const token = localStorage.getItem('token');
+  
   const setupDone = localStorage.getItem('syncsocio_setup_done') === 'true';
 
-  if (!token) {
+  if (!localStorage.getItem('syncsocio_profile')) {
     return <Navigate to="/login" replace />;
   }
 

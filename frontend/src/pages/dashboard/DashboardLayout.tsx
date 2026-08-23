@@ -16,6 +16,7 @@ import { saveTasksToIDB, loadTasksFromIDB } from '@/lib/idb';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
 import { SiteChatbot } from '@/components/SiteChatbot';
 import { useOnboardingTour, startOnboardingTour } from '@/hooks/useOnboardingTour';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 const navGroups = [
   {
@@ -129,7 +130,7 @@ const DashboardLayoutContent = () => {
   };
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
+    
     localStorage.removeItem('syncsocio_profile');
     localStorage.removeItem('syncsocio_setup_done');
     localStorage.removeItem('syncsocio_credits');
@@ -299,7 +300,7 @@ const DashboardLayoutContent = () => {
     (async () => {
       try {
         const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${AI_BASE}/generate-strategy-images`, {
+        const res = await fetch(`${AI_BASE}/generate-strategy-images`, { credentials: 'include',
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -310,7 +311,8 @@ const DashboardLayoutContent = () => {
           throw new Error(err.detail || 'Generation failed');
         }
 
-        const data = await res.json();
+        const _rawJson80 = await res.json();
+          const data = _rawJson80 && _rawJson80.success !== undefined ? (_rawJson80.success ? _rawJson80.data : _rawJson80) : _rawJson80;
         const posts = data.posts || [];
 
         // Verify if any post failed (image/video missing or contains error message)
@@ -326,18 +328,19 @@ const DashboardLayoutContent = () => {
 
         // Deduct credits
         if (creditCost > 0 && posts.length > 0) {
-          const token = localStorage.getItem('token');
+          
           const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-          const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+          const deductRes = await fetch(`${apiBase}/credits/deduct`, { credentials: 'include',
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
+              
             },
             body: JSON.stringify({ amount: creditCost, reason: creditReason }),
           });
           if (deductRes.ok) {
-            const credData = await deductRes.json();
+            const _rawJson79 = await deductRes.json();
+              const credData = _rawJson79 && _rawJson79.success !== undefined ? (_rawJson79.success ? _rawJson79.data : _rawJson79) : _rawJson79;
             localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
             window.dispatchEvent(new StorageEvent('storage', {
               key: 'syncsocio_credits',
@@ -402,7 +405,7 @@ const DashboardLayoutContent = () => {
       try {
         const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
         const fetchPromises = requests.map(req =>
-          fetch(`${AI_BASE}/generate-strategy-images`, {
+          fetch(`${AI_BASE}/generate-strategy-images`, { credentials: 'include',
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(req),
@@ -439,18 +442,19 @@ const DashboardLayoutContent = () => {
 
         // Deduct credits
         if (creditCost > 0 && allPosts.length > 0) {
-          const token = localStorage.getItem('token');
+          
           const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-          const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+          const deductRes = await fetch(`${apiBase}/credits/deduct`, { credentials: 'include',
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
+              
             },
             body: JSON.stringify({ amount: creditCost, reason: creditReason }),
           });
           if (deductRes.ok) {
-            const credData = await deductRes.json();
+            const _rawJson78 = await deductRes.json();
+              const credData = _rawJson78 && _rawJson78.success !== undefined ? (_rawJson78.success ? _rawJson78.data : _rawJson78) : _rawJson78;
             localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
             window.dispatchEvent(new StorageEvent('storage', {
               key: 'syncsocio_credits',
@@ -499,14 +503,13 @@ const DashboardLayoutContent = () => {
 
     (async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        const response = await fetch(`${apiBase}/ai/edit-product-image`, {
+        const response = await fetch(`${apiBase}/ai/edit-product-image`, { credentials: 'include',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
+            },
           body: JSON.stringify(payload)
         });
 
@@ -515,7 +518,8 @@ const DashboardLayoutContent = () => {
           throw new Error(data.error || 'Failed to generate clone');
         }
 
-        const data = await response.json();
+        const _rawJson77 = await response.json();
+          const data = _rawJson77 && _rawJson77.success !== undefined ? (_rawJson77.success ? _rawJson77.data : _rawJson77) : _rawJson77;
         const imageSrc = data.image ? (data.image.startsWith('data:') || data.image.startsWith('http') ? data.image : `data:image/jpeg;base64,${data.image}`) : null;
 
         if (data.credits !== undefined) {
@@ -575,7 +579,7 @@ const DashboardLayoutContent = () => {
     (async () => {
       try {
         const AI_BASE = import.meta.env.VITE_AI_URL || import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${AI_BASE}/edit-strategy-media`, {
+        const response = await fetch(`${AI_BASE}/edit-strategy-media`, { credentials: 'include',
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -591,7 +595,8 @@ const DashboardLayoutContent = () => {
           throw new Error(errData.detail || 'Failed to edit media');
         }
 
-        const data = await response.json();
+        const _rawJson76 = await response.json();
+          const data = _rawJson76 && _rawJson76.success !== undefined ? (_rawJson76.success ? _rawJson76.data : _rawJson76) : _rawJson76;
         if (data.status === 'success') {
           const updatedPost = { ...previewPost, id: Math.random().toString(36).substring(7), isEdited: true };
           if (previewPost.type === 'carousel') {
@@ -655,16 +660,16 @@ const DashboardLayoutContent = () => {
     (async () => {
       let creditsDeducted = false;
       try {
-        const token = localStorage.getItem('token');
+        
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
         // 1. Deduct Credits Upfront
         if (creditCost > 0) {
-          const deductRes = await fetch(`${apiBase}/credits/deduct`, {
+          const deductRes = await fetch(`${apiBase}/credits/deduct`, { credentials: 'include',
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
+              
             },
             body: JSON.stringify({ amount: creditCost, reason: 'Sprint campaign generation' }),
           });
@@ -674,7 +679,8 @@ const DashboardLayoutContent = () => {
             throw new Error(errData.message || 'Insufficient credits for Sprint campaign');
           }
 
-          const credData = await deductRes.json();
+          const _rawJson75 = await deductRes.json();
+            const credData = _rawJson75 && _rawJson75.success !== undefined ? (_rawJson75.success ? _rawJson75.data : _rawJson75) : _rawJson75;
           localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
           window.dispatchEvent(new StorageEvent('storage', {
             key: 'syncsocio_credits',
@@ -684,12 +690,11 @@ const DashboardLayoutContent = () => {
         }
 
         // 2. Start AI Generation
-        const response = await fetch(`${apiBase}/ai/autopilot`, {
+        const response = await fetch(`${apiBase}/ai/autopilot`, { credentials: 'include',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
+            },
           body: JSON.stringify({
             language,
             weeks,
@@ -703,7 +708,8 @@ const DashboardLayoutContent = () => {
           throw new Error(errData.message || 'Failed to generate autopilot campaign');
         }
 
-        const data = await response.json();
+        const _rawJson74 = await response.json();
+          const data = _rawJson74 && _rawJson74.success !== undefined ? (_rawJson74.success ? _rawJson74.data : _rawJson74) : _rawJson74;
         if (data.status === 'success') {
           const posts = data.posts || [];
 
@@ -725,18 +731,19 @@ const DashboardLayoutContent = () => {
 
         if (creditsDeducted && creditCost > 0) {
           try {
-            const token = localStorage.getItem('token');
+            
             const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-            const refundRes = await fetch(`${apiBase}/credits/topup`, {
+            const refundRes = await fetch(`${apiBase}/credits/topup`, { credentials: 'include',
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
+                
               },
               body: JSON.stringify({ amount: creditCost }),
             });
             if (refundRes.ok) {
-              const credData = await refundRes.json();
+              const _rawJson73 = await refundRes.json();
+                const credData = _rawJson73 && _rawJson73.success !== undefined ? (_rawJson73.success ? _rawJson73.data : _rawJson73) : _rawJson73;
               localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
               window.dispatchEvent(new StorageEvent('storage', {
                 key: 'syncsocio_credits',
@@ -784,15 +791,14 @@ const DashboardLayoutContent = () => {
 
     (async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
-        const res = await fetch(`${API_BASE}/posts/smart-schedule`, {
+        const res = await fetch(`${API_BASE}/posts/smart-schedule`, { credentials: 'include',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
+            },
           body: JSON.stringify({
             postIds,
             startDate,
@@ -835,23 +841,25 @@ const DashboardLayoutContent = () => {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
         let userPlan = 'starter';
-        const profileRes = await fetch(`${apiBase}/profile/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const profileRes = await fetch(`${apiBase}/profile/me`, { credentials: 'include',
+          headers: { }
         });
         if (profileRes.ok) {
-          const pData = await profileRes.json();
+          const _rawJson72 = await profileRes.json();
+            const pData = _rawJson72 && _rawJson72.success !== undefined ? (_rawJson72.success ? _rawJson72.data : _rawJson72) : _rawJson72;
           userPlan = (pData.userPlan || 'starter').toLowerCase();
         }
 
-        const res = await fetch(`${apiBase}/profile/list`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch(`${apiBase}/profile/list`, { credentials: 'include',
+          headers: { }
         });
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson71 = await res.json();
+            const data = _rawJson71 && _rawJson71.success !== undefined ? (_rawJson71.success ? _rawJson71.data : _rawJson71) : _rawJson71;
           const fetchedBrands = data.brands || [];
           setBrands(fetchedBrands);
 
@@ -884,18 +892,18 @@ const DashboardLayoutContent = () => {
         return;
       }
 
-      const token = localStorage.getItem('token');
+      
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/profile/switch`, {
+      const res = await fetch(`${apiBase}/profile/switch`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({ brandId })
       });
       if (res.ok) {
-        const data = await res.json();
+        const _rawJson70 = await res.json();
+          const data = _rawJson70 && _rawJson70.success !== undefined ? (_rawJson70.success ? _rawJson70.data : _rawJson70) : _rawJson70;
         localStorage.setItem('syncsocio_profile', JSON.stringify(data.activeBrand));
         setProfile(data.activeBrand);
         window.location.reload();
@@ -923,20 +931,20 @@ const DashboardLayoutContent = () => {
     }
     setIsLocking(true);
     try {
-      const token = localStorage.getItem('token');
+      
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/profile/lock-excess`, {
+      const res = await fetch(`${apiBase}/profile/lock-excess`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({ keepBrandIds: downgradeSelectedBrands })
       });
       if (res.ok) {
         window.location.reload();
       } else {
-        const err = await res.json();
+        const _rawJson69 = await res.json();
+          const err = _rawJson69 && _rawJson69.success !== undefined ? (_rawJson69.success ? _rawJson69.data : _rawJson69) : _rawJson69;
         toast({
           variant: 'destructive',
           title: 'Error locking brands',
@@ -978,13 +986,14 @@ const DashboardLayoutContent = () => {
   useEffect(() => {
     const fetchCredits = async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        const res = await fetch(`${API_BASE}/credits`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch(`${API_BASE}/credits`, { credentials: 'include',
+          headers: { }
         });
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson68 = await res.json();
+            const data = _rawJson68 && _rawJson68.success !== undefined ? (_rawJson68.success ? _rawJson68.data : _rawJson68) : _rawJson68;
           const newCredits = data.credits ?? 0;
           setCredits(prev => {
             if (prev !== null && prev !== newCredits) {
@@ -1066,18 +1075,19 @@ const DashboardLayoutContent = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-        const res = await fetch(`${API_BASE}/profile/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch(`${API_BASE}/profile/me`, { credentials: 'include',
+          headers: { }
         });
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson67 = await res.json();
+            const data = _rawJson67 && _rawJson67.success !== undefined ? (_rawJson67.success ? _rawJson67.data : _rawJson67) : _rawJson67;
           setProfile(data);
           localStorage.setItem('syncsocio_profile', JSON.stringify(data));
         } else if (res.status === 401) {
           console.error('Session expired or invalid. Redirecting to login.');
-          localStorage.removeItem('token');
+          
           localStorage.removeItem('syncsocio_profile');
           window.location.href = '/login';
         } else {
@@ -1103,10 +1113,42 @@ const DashboardLayoutContent = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Waking up Agent...</p>
+      <div className="flex h-screen bg-background overflow-hidden animate-pulse">
+        {/* Sidebar Skeleton */}
+        <div className="hidden lg:flex w-72 flex-col border-r border-border/50 bg-white">
+           <div className="p-6">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-xl bg-muted/80"></div>
+                 <div className="w-24 h-6 bg-muted/80 rounded"></div>
+              </div>
+           </div>
+           <div className="px-4 mt-4 space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="w-full h-10 bg-muted/60 rounded-xl"></div>
+              ))}
+           </div>
+        </div>
+        {/* Main Content Skeleton */}
+        <div className="flex-1 flex flex-col min-w-0">
+           {/* Header Skeleton */}
+           <div className="h-16 border-b border-border/50 bg-white/50 px-6 flex items-center justify-between">
+              <div className="w-32 h-6 bg-muted rounded"></div>
+              <div className="flex items-center gap-4">
+                 <div className="w-8 h-8 bg-muted rounded-full"></div>
+                 <div className="w-8 h-8 bg-muted rounded-full"></div>
+                 <div className="w-10 h-10 bg-muted rounded-full"></div>
+              </div>
+           </div>
+           {/* Page Skeleton */}
+           <div className="flex-1 p-6 md:p-8">
+              <div className="w-64 h-8 bg-muted rounded mb-8"></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 {[1, 2, 3].map((i) => (
+                   <div key={i} className="h-40 bg-muted/60 rounded-3xl border border-border/50"></div>
+                 ))}
+              </div>
+              <div className="mt-8 h-64 bg-muted/60 rounded-3xl border border-border/50"></div>
+           </div>
         </div>
       </div>
     );
@@ -1118,7 +1160,7 @@ const DashboardLayoutContent = () => {
       <div className="p-6">
         <div className="flex items-center gap-2.5">
           <img
-            src="/SyncSocioLogo.png"
+            src="/SyncSocioLogo.png" width="40" height="40"
             alt="SyncSocio Logo"
             className="w-9 h-9 object-contain shrink-0"
           />
@@ -1540,22 +1582,24 @@ const DashboardLayoutContent = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-            <Outlet context={{
-              profile,
-              setProfile,
-              setShowNotifications,
-              backgroundTasks,
-              viewingTask,
-              startBackgroundGeneration,
-              startBackgroundAllInOne,
-              startBackgroundClone,
-              startBackgroundSchedule,
-              startBackgroundEdit,
-              startBackgroundAutopilot,
-              viewCompletedTask,
-              clearViewingTask,
-              removeTask
-            }} />
+            <ErrorBoundary>
+              <Outlet context={{
+                profile,
+                setProfile,
+                setShowNotifications,
+                backgroundTasks,
+                viewingTask,
+                startBackgroundGeneration,
+                startBackgroundAllInOne,
+                startBackgroundClone,
+                startBackgroundSchedule,
+                startBackgroundEdit,
+                startBackgroundAutopilot,
+                viewCompletedTask,
+                clearViewingTask,
+                removeTask
+              }} />
+            </ErrorBoundary>
           </div>
         </section>
       </main>

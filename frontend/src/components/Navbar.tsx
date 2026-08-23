@@ -23,8 +23,8 @@ const Navbar = () => {
 
   /* ── Auth state ─────────────────────────────────────────────── */
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem("token"));
-    const handler = () => setIsLoggedIn(!!localStorage.getItem("token"));
+    setIsLoggedIn(!!localStorage.getItem('syncsocio_profile'));
+    const handler = () => setIsLoggedIn(!!localStorage.getItem('syncsocio_profile'));
     window.addEventListener("storage", handler);
     window.addEventListener("focus", handler);
     return () => {
@@ -66,7 +66,7 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    
     localStorage.removeItem("syncsocio_profile");
     localStorage.removeItem("syncsocio_setup_done");
     window.location.href = "/login";
@@ -111,7 +111,7 @@ const Navbar = () => {
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <img
-            src="/SyncSocioLogo.png"
+            src="/SyncSocioLogo.png" width="40" height="40"
             alt="SyncSocio"
             className="w-7 h-7 object-contain shrink-0 transition-transform duration-200 group-hover:scale-110"
           />
