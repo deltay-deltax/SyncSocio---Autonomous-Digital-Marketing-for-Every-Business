@@ -2044,7 +2044,8 @@ const DashboardStrategy = () => {
           } as any);
         }
 
-        const creditCost = 140;
+        const isProPlan = profile?.selectedPlan?.toLowerCase().includes('pro');
+        const creditCost = isProPlan ? 176 : 140;
         const creditReason = 'All-in-One generation (2 images, 2 carousels of 3 slides, 4 ecomm listings, 1 AI UGC Video)';
         if (startBackgroundAllInOne) {
           const tId = await startBackgroundAllInOne(requests, creditCost, creditReason);

@@ -85,7 +85,7 @@ const Login = () => {
             window.location.href = "/dashboard";
           } else if (hasBrandSetup) {
             localStorage.setItem("syncsocio_setup_done", "false");
-            window.location.href = "/onboarding?step=plan";
+            window.location.href = "/setup";
           } else {
             localStorage.setItem("syncsocio_setup_done", "false");
             window.location.href = "/onboarding";

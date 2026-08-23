@@ -461,27 +461,48 @@ export const autoScanBg = async (req, res) => {
 
     // Background process
     setTimeout(async () => {
+      console.log(`[autoScanBg] Starting background scan for URL: ${url}`);
       try {
         const AGENT_API = process.env.VITE_AGENT_API_URL || 'http://localhost:8000';
+        console.log(`[autoScanBg] Fetching agent at ${AGENT_API}/scrape-brand-profile`);
         const agentRes = await fetch(`${AGENT_API}/scrape-brand-profile`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url, metaEventId, userEmail, userPhone, plan: 'Starter' })
         });
         
+        console.log(`[autoScanBg] Agent responded with status: ${agentRes.status}`);
+        
         if (agentRes.ok) {
           const data = await agentRes.json();
+          console.log(`[autoScanBg] Agent extracted brandName: ${data.brandName}`);
           
           await BrandProfile.findByIdAndUpdate(profile._id, {
             brandName: data.brandName || profile.brandName,
             description: data.description || '',
-            targetAudiences: data.targetAudience ? [data.targetAudience] : [],
-            brandTone: data.toneOfVoice || '',
-            usp: data.keyBenefit || ''
+            targetAudiences: data.targetAudiences || (data.targetAudience ? [data.targetAudience] : []),
+            brandTone: data.brandTone || data.toneOfVoice || '',
+            usp: data.usp || data.keyBenefit || '',
+            businessCategory: data.businessCategory || '',
+            mainGoal: data.mainGoal || '',
+            location: data.location || { country: '', city: '' },
+            logo: data.logo || '',
+            typography: data.typography || '',
+            competitors: data.competitors || [],
+            ageRange: data.ageRange || '',
+            genderFocus: data.genderFocus || '',
+            painPoint: data.painPoint || '',
+            visualVibe: data.visualVibe || '',
+            brandKeywords: data.brandKeywords || '',
+            primaryColor: data.primaryColor || '#2563EB',
+            secondaryColor: data.secondaryColor || '#60A5FA',
+            brandDesignGuide: data.brandDesignSystem ? JSON.stringify(data.brandDesignSystem) : ''
           });
 
-          if (data.extractedProducts && Array.isArray(data.extractedProducts)) {
-            for (const prod of data.extractedProducts) {
+          const productsArray = data.products || data.extractedProducts;
+          if (productsArray && Array.isArray(productsArray)) {
+            console.log(`[autoScanBg] Saving ${productsArray.length} products...`);
+            for (const prod of productsArray) {
                await Product.create({
                  user: req.user._id,
                  brandId: profile._id,
@@ -492,9 +513,21 @@ export const autoScanBg = async (req, res) => {
                });
             }
           }
+          console.log(`[autoScanBg] Background scan complete for ${url}`);
+        } else {
+          const errText = await agentRes.text();
+          console.error(`[autoScanBg] Agent returned error: ${errText}`);
+          // Fallback so it doesn't stay 'Processing...'
+          const fallbackName = new URL(url).hostname.replace('www.', '').split('.')[0];
+          await BrandProfile.findByIdAndUpdate(profile._id, { brandName: fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1) });
         }
       } catch (err) {
-        console.error('Background scan failed:', err);
+        console.error('[autoScanBg] Background scan completely failed:', err);
+        // Fallback so it doesn't stay 'Processing...'
+        try {
+          const fallbackName = new URL(url).hostname.replace('www.', '').split('.')[0];
+          await BrandProfile.findByIdAndUpdate(profile._id, { brandName: fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1) });
+        } catch (e) {}
       }
     }, 0);
   } catch (error) {

@@ -57,9 +57,14 @@ export const CreditTopup = () => {
   const [processingPlan, setProcessingPlan] = useState(false);
   const [checkoutData, setCheckoutData] = useState<any>(null);
 
+  const isTrial = !profile?.userPlan || profile?.userPlan === 'Free Trial';
   const isPlanExpired = profile?.userPlanExpiresAt && new Date(profile.userPlanExpiresAt) < new Date();
 
   const handleBuyTopup = async (creditsAmount: number, price: number) => {
+    if (isTrial) {
+       toast({ title: 'Active Plan Required', description: 'You must have an active paid plan to purchase credit top-ups.', variant: 'destructive' });
+       return;
+    }
     if (isPlanExpired) {
        setShowExpiredModal(true);
        return;

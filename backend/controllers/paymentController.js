@@ -16,6 +16,15 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: 'Amount and type are required' });
     }
 
+    if (type === 'topup') {
+      const user = await User.findById(req.user._id);
+      const isTrial = !user.plan || user.plan === 'Free Trial';
+      const isExpired = user.planExpiresAt && new Date(user.planExpiresAt) < new Date();
+      if (isTrial || isExpired) {
+        return res.status(403).json({ message: 'You must have an active paid plan to purchase credit top-ups.' });
+      }
+    }
+
     if (amount < 1) {
       return res.status(400).json({ message: 'Minimum amount must be 1 INR (100 paise)' });
     }

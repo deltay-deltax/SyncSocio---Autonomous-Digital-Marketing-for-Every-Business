@@ -286,7 +286,7 @@ const Setup = () => {
     }
     // --- END BYPASS ---
 
-    const basePrice = planName === 'Pro' ? (currency === 'USD' ? 45 : 3499) : planName === 'Growth' ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 5 : 399);
+    const basePrice = planName === 'Pro' ? (currency === 'USD' ? 45 : 3499) : planName === 'Growth' ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 10 : 799);
     let currentPrice = basePrice;
     
     if (appliedCoupon) {
@@ -591,12 +591,13 @@ const Setup = () => {
   // SCREEN 3 — CHOOSE PLAN
   // ════════════════════════════════════════════════════════════════════
   if (screen === 'plan') {
+    const hasUsedTrial = onboardingData?.freeTrialUsed || (onboardingData?.userPlan || '').toLowerCase().includes('trial');
     return (
       <Wrapper maxW="max-w-7xl" screenKey={screen}>
         <div className="-mt-12 sm:-mt-16">
           <Pricing 
             onWaitlistClick={(planName) => proceedToCheckout(planName || 'Starter')} 
-            onFreeTrialClick={handleStartFreeTrial}
+            onFreeTrialClick={hasUsedTrial ? undefined : handleStartFreeTrial}
             isTrialLoading={isStartingTrial}
           />
         </div>

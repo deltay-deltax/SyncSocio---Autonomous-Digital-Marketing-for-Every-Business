@@ -7,7 +7,7 @@ export const IMAGE_CREDITS_STARTER = [
   { feature: "Carousel Slide (per slide)", credits: 5 },
   { feature: "Image Variation / Regeneration", credits: 5 },
   { feature: "Festival Campaign Creative", credits: 5 },
-  { feature: "E-commerce Product Image", credits: 5 },
+  { feature: "E-commerce Product Image", credits: 8 },
   { feature: "AI Image Editor (Reference style)", credits: 5 },
 ];
 
@@ -17,7 +17,7 @@ export const IMAGE_CREDITS_PRO = [
   { feature: "Carousel Slide (per slide)", credits: 8 },
   { feature: "Image Variation / Regeneration", credits: 8 },
   { feature: "Festival Campaign Creative", credits: 8 },
-  { feature: "E-commerce Product Image", credits: 8 },
+  { feature: "E-commerce Product Image", credits: 10 },
   { feature: "AI Image Editor (Reference style)", credits: 8 },
 ];
 

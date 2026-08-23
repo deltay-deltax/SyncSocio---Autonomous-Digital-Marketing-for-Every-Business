@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap, X, Send, Package, BarChart2, Plus, Globe } from 'lucide-react';
+import { TrendingUp, Eye, Heart, Activity, ArrowUpRight, Sparkles, Zap, X, Send, Package, BarChart2, Plus, Globe, Coins } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -460,6 +460,13 @@ const DashboardHome = () => {
                 className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-muted hover:text-black bg-card text-muted-foreground"
               >
                 <Send size={14} className="mr-2 text-primary" /> Manage Campaign Recipients
+              </Button>
+              <Button
+                onClick={() => navigate('/dashboard/buy-credits')}
+                variant="outline"
+                className="w-full justify-start rounded-xl py-5 text-xs font-semibold border-border hover:bg-primary/10 hover:text-primary hover:border-primary/30 bg-card text-muted-foreground transition-all duration-200"
+              >
+                <Coins size={14} className="mr-2 text-primary" /> Buy More Credits
               </Button>
             </CardContent>
           </Card>

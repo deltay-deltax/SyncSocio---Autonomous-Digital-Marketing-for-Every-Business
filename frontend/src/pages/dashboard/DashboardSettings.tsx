@@ -11,6 +11,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 
 import { useRazorpay } from '../../hooks/useRazorpay';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+import { formatBrandDesignSystemToMarkdown } from '@/lib/utils';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -435,7 +436,7 @@ const DashboardSettings = () => {
         logo: scraped.logo || formData.logo,
         typography: scraped.typography || formData.typography,
         brandKeywords: Array.isArray(scraped.brandKeywords) ? scraped.brandKeywords.join(', ') : (scraped.brandKeywords || (Array.isArray(scraped.keywords) ? scraped.keywords.join(', ') : (scraped.keywords || formData.brandKeywords))),
-        brandDesignGuide: scraped.brandDesignGuide || formData.brandDesignGuide || ''
+        brandDesignGuide: formatBrandDesignSystemToMarkdown(scraped.brandDesignSystem || scraped.brandDesignGuide) || formData.brandDesignGuide || ''
       };
 
       // 3.5. Delete existing products before saving new ones
@@ -1248,12 +1249,14 @@ const DashboardSettings = () => {
 
               {(() => {
                 const plan = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
-                const isPro = plan.includes('pro');
-                const isGrowth = plan.includes('growth');
+                const isPro = plan.includes('pro') || plan.includes('agency');
+                const isGrowth = plan.includes('growth') || plan.includes('elite');
+                const isFreeTrial = plan.includes('trial');
+                const isFree = plan === 'free';
                 
-                const planName = isPro ? 'Pro' : isGrowth ? 'Growth' : 'Starter';
-                const planPrice = isPro ? `${symbol}${currency === 'USD' ? '45' : '3,499'}/month` : isGrowth ? `${symbol}${currency === 'USD' ? '19' : '1,499'}/month` : `${symbol}${currency === 'USD' ? '10' : '799'}/month`;
-                const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : '160 credits/month';
+                const planName = isPro ? 'Pro' : isGrowth ? 'Growth' : isFreeTrial ? 'Free Trial' : isFree ? 'Free' : 'Starter';
+                const planPrice = isPro ? `${symbol}${currency === 'USD' ? '45' : '3,499'}/month` : isGrowth ? `${symbol}${currency === 'USD' ? '19' : '1,499'}/month` : isFreeTrial ? 'Free' : isFree ? 'Free' : `${symbol}${currency === 'USD' ? '10' : '799'}/month`;
+                const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : isFreeTrial ? '15 credits (Trial)' : isFree ? '0 credits' : '160 credits/month';
                 const planFeatures = isPro
                   ? [
                       '1,000 credits/month (125 HD images)',
@@ -1287,6 +1290,15 @@ const DashboardSettings = () => {
                       'Best time to post analytics',
                       'Priority WhatsApp support'
                     ]
+                  : (isFreeTrial || isFree)
+                  ? [
+                      '15 credits for testing',
+                      'SD quality image exports',
+                      '1 brand profile',
+                      'Try Ecomm listing generator',
+                      'Try AI Editor',
+                      'Standard templates only'
+                    ]
                   : [
                       '160 credits/month (32 AI images)',
                       'SD quality image exports',
@@ -1303,6 +1315,32 @@ const DashboardSettings = () => {
                     ];
 
                 return (
+                  <div className="space-y-6">
+                    {/* Sleek Upgrade Banner for Non-Pro Users */}
+                    {!isPro && (
+                      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[2px] shadow-xl group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
+                        <div className="relative flex flex-col md:flex-row items-center justify-between bg-popover/90 backdrop-blur-3xl rounded-[calc(2rem-2px)] p-6 md:p-8 gap-6">
+                          <div className="flex-1 space-y-2 text-center md:text-left">
+                            <h3 className="text-2xl font-black tracking-tight bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent flex items-center justify-center md:justify-start gap-2">
+                              <Sparkles className="text-pink-500" size={24} /> Upgrade Your Plan
+                            </h3>
+                            <p className="text-muted-foreground font-medium text-sm">
+                              Unlock unlimited potential with Pro. Get 1,000 HD credits, 2 brand profiles, and unlimited Nexa sales agent conversations.
+                            </p>
+                          </div>
+                          <div className="flex shrink-0">
+                            <button
+                              onClick={() => navigate('/setup?step=plan')}
+                              className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold tracking-wide shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-2"
+                            >
+                              Upgrade Now <ArrowRight size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                   <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white relative overflow-hidden shadow-xl shadow-primary/20">
                     <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 pointer-events-none">
                       <Zap size={120} fill="currentColor" />
@@ -1347,13 +1385,18 @@ const DashboardSettings = () => {
                       </ul>
                     </div>
                   </div>
+                  </div>
                 );
               })()}
 
               {(() => {
                 const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
-                const isPro = plan.includes('pro');
-                const isGrowth = plan.includes('growth');
+                const isPro = plan.includes('pro') || plan.includes('agency');
+                const isGrowth = plan.includes('growth') || plan.includes('elite');
+                const isFreeTrial = plan.includes('trial');
+                const isFree = plan === 'free';
+                
+                const isPaidPlan = isPro || isGrowth || (!isFreeTrial && !isFree && (plan.includes('starter') || plan.length > 0));
 
                 let expiryTime = 0;
                 if (profile.userPlanExpiresAt) {
@@ -1368,55 +1411,44 @@ const DashboardSettings = () => {
                 const oneDay = 24 * 60 * 60 * 1000;
                 const canRenew = expiryTime === 0 || diff <= oneDay;
 
-                if (!isPro && !isGrowth) {
-                  return (
-                    <div className="space-y-4 pt-4 border-t border-border/40">
-                      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center ml-1 gap-2">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
-                        {!canRenew && (
-                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
-                            Renew available 1 day before expiry
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-3 w-full">
+                return (
+                  <div className="space-y-4 pt-4 border-t border-border/40">
+                    <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center ml-1 gap-2">
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
+                      {(isPaidPlan && !canRenew) && (
+                        <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
+                          Renew available 1 day before expiry
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full">
+                      {isPaidPlan ? (
                         <Button 
                           onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || 'Starter')} 
                           disabled={!canRenew}
                           className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                         >
-                          Renew Starter Plan ({symbol}{currency === 'USD' ? '10' : '799'})
+                          Renew {isPro ? 'Pro' : isGrowth ? 'Growth' : 'Starter'} Plan
                         </Button>
+                      ) : (
                         <Button 
-                          onClick={() => handlePlanAction('upgrade', 'Starter')} 
+                          onClick={() => navigate('/setup?step=plan')} 
+                          className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110"
+                        >
+                          Upgrade to Starter ({symbol}{currency === 'USD' ? '10' : '799'})
+                        </Button>
+                      )}
+                      {!isPro && (
+                        <Button 
+                          onClick={() => navigate('/setup?step=plan')} 
                           className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
                         >
-                          Upgrade to Growth ({symbol}{currency === 'USD' ? '19' : '1,499'})
+                          View All Plans & Upgrade
                         </Button>
-                      </div>
+                      )}
                     </div>
-                  );
-                } else {
-                  return (
-                    <div className="space-y-4 pt-4 border-t border-border/40">
-                      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center ml-1 gap-2">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
-                        {!canRenew && (
-                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
-                            Renew available 1 day before expiry
-                          </span>
-                        )}
-                      </div>
-                      <Button 
-                        onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || (isPro ? 'Pro' : 'Growth'))} 
-                        disabled={!canRenew}
-                        className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
-                      >
-                        Renew {isPro ? 'Pro' : 'Growth'} Plan ({symbol}{isPro ? (currency === 'USD' ? '45' : '3,499') : (currency === 'USD' ? '19' : '1,499')})
-                      </Button>
-                    </div>
-                  );
-                }
+                  </div>
+                );
               })()}
             </CardContent>
           </Card>
