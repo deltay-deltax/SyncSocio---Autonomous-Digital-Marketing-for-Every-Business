@@ -98,7 +98,7 @@ export const signup = async (req, res) => {
 
     const existingUser = await User.findOne({ email: normalizedEmail });
 
-    const isMetaReviewer = normalizedEmail === 'supportvelocitydm@gmail.com';
+    const isMetaReviewer = normalizedEmail === 'support@syncsocio.com';
 
     if (existingUser && !isMetaReviewer) {
       if (existingUser.googleId) {
@@ -134,9 +134,9 @@ export const signup = async (req, res) => {
         });
       }
 
+      res.cookie('token', generateToken(user._id), { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30*24*60*60*1000 });
       return res.status(200).json({
         message: 'Signup successful!',
-        token: generateToken(user._id),
         user,
       });
     }
@@ -182,7 +182,7 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email: email?.toLowerCase().trim() });
     
     // --- META REVIEW BYPASS ---
-    const isMetaReviewer = email?.toLowerCase().trim() === 'supportvelocitydm@gmail.com';
+    const isMetaReviewer = email?.toLowerCase().trim() === 'support@syncsocio.com';
     if (isMetaReviewer && user) {
         await BrandProfile.deleteMany({ user: user._id });
         user.activeBrandId = null;
@@ -230,7 +230,13 @@ export const login = async (req, res) => {
     ).catch(err => console.error('Notification creation failed:', err));
 
     clearAuthAttempts(email);
-    res.status(200).json({ user, token: generateToken(user._id) });
+    res.cookie('token', generateToken(user._id), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+      res.status(200).json({ user });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -337,7 +343,13 @@ export const googleLogin = async (req, res) => {
       `Authenticated successfully via Google.`
     );
     clearAuthAttempts(email);
-    res.status(200).json({ user, token: generateToken(user._id) });
+    res.cookie('token', generateToken(user._id), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+      res.status(200).json({ user });
   } catch (error) {
     console.error('Google Auth Error:', error);
     res.status(500).json({ message: 'Google Auth failed' });
@@ -495,11 +507,13 @@ export const appleLogin = async (req, res) => {
     
     if (isNewUser && !user.password) {
       // New user via Apple - require password setup
-      res.status(200).json({ 
-        user, 
-        requiresPasswordSetup: true,
-        tempToken: generateToken(user._id)
+      res.cookie('token', generateToken(user._id), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000
       });
+      res.status(200).json({ user, requiresPasswordSetup: true });
     } else {
       await createNotification(
         user._id,
@@ -508,7 +522,13 @@ export const appleLogin = async (req, res) => {
         `Authenticated successfully via Apple.`
       );
       clearAuthAttempts(email);
-      res.status(200).json({ user, token: generateToken(user._id) });
+      res.cookie('token', generateToken(user._id), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+      res.status(200).json({ user });
     }
   } catch (error) {
     console.error('Apple Auth Error:', error);
@@ -584,10 +604,10 @@ export const verifyOtp = async (req, res) => {
       });
     }
 
+    res.cookie('token', generateToken(user._id), { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30*24*60*60*1000 });
     res.status(200).json({
       message: 'Email verified successfully',
       user,
-      token: generateToken(user._id),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -734,7 +754,13 @@ export const resetPassword = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({ user, token: generateToken(user._id) });
+    res.cookie('token', generateToken(user._id), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+      res.status(200).json({ user });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -764,7 +790,13 @@ export const setPassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    res.status(200).json({ message: 'Password set successfully', token: generateToken(user._id) });
+    res.cookie('token', generateToken(user._id), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+      res.status(200).json({ message: 'Password set successfully' });
   } catch (error) {
     console.error('Set Password Error:', error);
     res.status(500).json({ message: 'Server error' });
