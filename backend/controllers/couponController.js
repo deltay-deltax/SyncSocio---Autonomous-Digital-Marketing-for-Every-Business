@@ -12,7 +12,7 @@ export const validateCoupon = async (req, res) => {
     // Fallback for demo coupons if not found in DB
     const demoCoupons = {
       'WELCOME10': 10,
-      'VELOCITY20': 20,
+      'SYNCSOCIO20': 20,
       'LAUNCH50': 50,
       'LAUNCH': 40
     };

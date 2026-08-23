@@ -798,7 +798,7 @@ Rules:
 // ── GET /api/whatsapp/webhook ─────────────────────────────────────────────────
 // Meta webhook verification handshake
 router.get('/webhook', (req, res) => {
-  const verify_token = process.env.META_WEBHOOK_VERIFY_TOKEN || 'velocity_verify_token_123';
+  const verify_token = process.env.META_WEBHOOK_VERIFY_TOKEN || 'syncsocio_verify_token_123';
   
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
