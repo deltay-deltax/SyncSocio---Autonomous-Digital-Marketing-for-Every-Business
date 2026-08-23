@@ -71,14 +71,13 @@ const ContentMix: React.FC = () => {
     setLoading(true);
     setIsLocked(false);
     try {
-      const token = localStorage.getItem('token') || '';
+      
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${API_BASE}/ai/mix`, {
+      const res = await fetch(`${API_BASE}/ai/mix`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+          }
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -89,7 +88,8 @@ const ContentMix: React.FC = () => {
         }
         throw new Error(msg);
       }
-      const data = await res.json();
+      const _rawJson36 = await res.json();
+        const data = _rawJson36 && _rawJson36.success !== undefined ? (_rawJson36.success ? _rawJson36.data : _rawJson36) : _rawJson36;
       
       console.log("\n--- Generating Mix ---");
       // ... logging
