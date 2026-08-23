@@ -614,8 +614,21 @@ const DashboardSettings = () => {
     genderFocus: profile?.genderFocus || '',
     brandKeywords: profile?.brandKeywords || '',
     visualVibe: profile?.visualVibe || '',
-    brandDesignGuide: profile?.brandDesignGuide || ''
+    brandDesignGuide: formatBrandDesignSystemToMarkdown(profile?.brandDesignGuide) || ''
   });
+
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [prevIsProcessing, setPrevIsProcessing] = useState(false);
+
+  useEffect(() => {
+    const isProcessing = formData.brandName === 'Processing...';
+    if (prevIsProcessing && !isProcessing && formData.brandName) {
+      setShowSuccess(true);
+      const t = setTimeout(() => setShowSuccess(false), 3500);
+      return () => clearTimeout(t);
+    }
+    setPrevIsProcessing(isProcessing);
+  }, [formData.brandName, prevIsProcessing]);
 
   useEffect(() => {
     if (profile) {
@@ -640,7 +653,7 @@ const DashboardSettings = () => {
         genderFocus: profile.genderFocus || '',
         brandKeywords: profile.brandKeywords || '',
         visualVibe: profile.visualVibe || '',
-        brandDesignGuide: profile.brandDesignGuide || ''
+        brandDesignGuide: formatBrandDesignSystemToMarkdown(profile.brandDesignGuide) || ''
       });
 
       const kwList = profile.brandKeywords ? profile.brandKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [];
@@ -837,42 +850,71 @@ const DashboardSettings = () => {
                     )}
                 </div>
               </div>
-              {/* Hero header */}
-              <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-primary/10 via-background to-purple-500/5 p-6 shadow-sm">
-                <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/10 blur-3xl -z-0" />
-                <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="relative group">
-                    <div
-                      className="w-20 h-20 rounded-2xl border-2 border-dashed border-border bg-background flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors relative"
-                      onClick={() => fileRef.current?.click()}
-                    >
-                      {formData.logo ? (
-                        <img src={formData.logo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
-                      ) : (
-                        <Camera size={22} className="text-muted-foreground group-hover:text-primary" />
-                      )}
-                    </div>
-                    <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleLogo} />
+              {/* Hero header / Processing State */}
+              {showSuccess ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center gap-5 p-8 rounded-[2rem] border border-emerald-500/30 bg-emerald-500/5 shadow-sm"
+                >
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={24} className="text-emerald-500" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Brand Identity</p>
-                    <h3 className="text-xl font-bold text-foreground truncate">{formData.brandName || 'Untitled Brand'}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formData.businessCategory || 'Industry not set'} · {formData.city || 'City'}, {formData.country || 'Country'}
+                  <div>
+                    <h3 className="text-lg font-black text-foreground">Brand Ready!</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Enjoy creating! Your brand DNA has been successfully extracted.
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
-                    <div className="flex items-center gap-2 w-full">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase">Profile</span>
-                      <span className="text-xs font-bold text-primary ml-auto">{completeness}%</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${completeness}%` }} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">{completeness === 100 ? 'Fully tuned 🔥' : 'Complete it for sharper outputs'}</p>
+                </motion.div>
+              ) : formData.brandName === 'Processing...' ? (
+                <div className="flex items-center gap-5 p-8 rounded-[2rem] border border-border/50 bg-primary/5 shadow-sm">
+                  <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+                  <div>
+                    <h3 className="text-lg font-black text-foreground">Extracting Brand DNA...</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Our AI agents are currently analyzing the website to build a complete brand profile. This usually takes about 60 seconds.
+                    </p>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-primary/10 via-background to-purple-500/5 p-6 shadow-sm">
+                  <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/10 blur-3xl -z-0" />
+                  <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="relative group">
+                      <div
+                        className="w-20 h-20 rounded-2xl border-2 border-dashed border-border bg-background flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors relative"
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        {formData.logo ? (
+                          <img src={formData.logo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
+                        ) : (
+                          <Camera size={22} className="text-muted-foreground group-hover:text-primary" />
+                        )}
+                      </div>
+                      <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleLogo} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Brand Identity</p>
+                      <h3 className="text-xl font-bold text-foreground truncate">{formData.brandName || 'Untitled Brand'}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formData.businessCategory || 'Industry not set'} · {formData.city || 'City'}, {formData.country || 'Country'}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase">Profile</span>
+                        <span className="text-xs font-bold text-primary ml-auto">{completeness}%</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full bg-primary transition-all duration-500" style={{ width: `${completeness}%` }} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{completeness === 100 ? 'Fully tuned 🔥' : 'Complete it for sharper outputs'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Identity */}
               <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
