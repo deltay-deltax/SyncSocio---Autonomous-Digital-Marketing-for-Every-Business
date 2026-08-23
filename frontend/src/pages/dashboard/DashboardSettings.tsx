@@ -149,19 +149,20 @@ const DashboardSettings = () => {
   const [activeBrandId, setActiveBrandId] = useState<string>('');
 
   const getAuthHeaders = (isJson = false) => ({
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
+    
     ...(isJson ? { 'Content-Type': 'application/json' } : {})
   });
 
   const fetchBrands = async () => {
     try {
-      const token = localStorage.getItem('token');
+      
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/profile/list`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${apiBase}/profile/list`, { credentials: 'include',
+        headers: { }
       });
       if (res.ok) {
-        const data = await res.json();
+        const _rawJson98 = await res.json();
+          const data = _rawJson98 && _rawJson98.success !== undefined ? (_rawJson98.success ? _rawJson98.data : _rawJson98) : _rawJson98;
         setBrands(data.brands || []);
       }
     } catch (err) {
@@ -176,8 +177,9 @@ const DashboardSettings = () => {
       setNexaLoading(true);
       try {
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        const res = await fetch(`${apiBase}/nexa/settings`, { headers: getAuthHeaders() });
-        const data = await res.json();
+        const res = await fetch(`${apiBase}/nexa/settings`, { credentials: 'include', headers: getAuthHeaders() });
+        const _rawJson97 = await res.json();
+          const data = _rawJson97 && _rawJson97.success !== undefined ? (_rawJson97.success ? _rawJson97.data : _rawJson97) : _rawJson97;
         if (res.ok && data.settings) {
           if (data.brandId) setActiveBrandId(data.brandId);
           setNexaSettings(data.settings);
@@ -205,13 +207,14 @@ const DashboardSettings = () => {
     if (activeTab === 'Plan & Billing') {
       const fetchHistory = async () => {
         try {
-          const token = localStorage.getItem('token');
+          
           const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-          const res = await fetch(`${apiBase}/payment/history`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const res = await fetch(`${apiBase}/payment/history`, { credentials: 'include',
+            headers: { }
           });
           if (res.ok) {
-            const data = await res.json();
+            const _rawJson96 = await res.json();
+              const data = _rawJson96 && _rawJson96.success !== undefined ? (_rawJson96.success ? _rawJson96.data : _rawJson96) : _rawJson96;
             setPaymentHistory(data.transactions || []);
           }
         } catch (err) {
@@ -224,18 +227,18 @@ const DashboardSettings = () => {
 
   const handleSwitchBrand = async (brandId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/profile/switch`, {
+      const res = await fetch(`${apiBase}/profile/switch`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({ brandId })
       });
       if (res.ok) {
-        const data = await res.json();
+        const _rawJson95 = await res.json();
+          const data = _rawJson95 && _rawJson95.success !== undefined ? (_rawJson95.success ? _rawJson95.data : _rawJson95) : _rawJson95;
         localStorage.setItem('syncsocio_profile', JSON.stringify(data.activeBrand));
         setProfile(data.activeBrand);
 
@@ -256,12 +259,13 @@ const DashboardSettings = () => {
   const handleInstagramConnect = async () => {
     console.log('🔄 Connect Instagram clicked. Fetching auth URL...');
     try {
-      const token = localStorage.getItem('token');
+      
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, { credentials: 'include',
+        headers: { }
       });
-      const data = await res.json();
+      const _rawJson94 = await res.json();
+        const data = _rawJson94 && _rawJson94.success !== undefined ? (_rawJson94.success ? _rawJson94.data : _rawJson94) : _rawJson94;
       console.log('🚀 Auth Response:', data);
       if (data.url) {
         console.log('➡️ Redirecting to:', data.url);
@@ -281,15 +285,15 @@ const DashboardSettings = () => {
   const handleInstagramDisconnect = async () => {
     setDisconnectingInstagram(true);
     try {
-      const token = localStorage.getItem('token');
+      
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/auth/instagram/disconnect`, {
+      const res = await fetch(`${apiBase}/auth/instagram/disconnect`, { credentials: 'include',
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          }
       });
-      const data = await res.json();
+      const _rawJson93 = await res.json();
+        const data = _rawJson93 && _rawJson93.success !== undefined ? (_rawJson93.success ? _rawJson93.data : _rawJson93) : _rawJson93;
       if (!res.ok) throw new Error(data.message || 'Failed to disconnect Instagram');
 
       const updatedProfile = {
@@ -385,10 +389,10 @@ const DashboardSettings = () => {
     try {
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const token = localStorage.getItem('token');
+      
 
       // 1. Scrape the website
-      const scrapeRes = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
+      const scrapeRes = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: formData.website })
@@ -399,7 +403,8 @@ const DashboardSettings = () => {
         throw new Error(errData.detail || 'Website scraping failed.');
       }
 
-      const scraped = await scrapeRes.json();
+      const _rawJson92 = await scrapeRes.json();
+        const scraped = _rawJson92 && _rawJson92.success !== undefined ? (_rawJson92.success ? _rawJson92.data : _rawJson92) : _rawJson92;
 
       // 2. Prepare the updated profile payload
       let comps = scraped.competitors || [];
@@ -429,11 +434,10 @@ const DashboardSettings = () => {
       };
 
       // 3.5. Delete existing products before saving new ones
-      await fetch(`${apiBase}/products`, {
+      await fetch(`${apiBase}/products`, { credentials: 'include',
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          }
       });
 
       // 4. Save newly scraped products sequentially, respecting plan limits
@@ -452,12 +456,11 @@ const DashboardSettings = () => {
         for (let i = 0; i < scrapedProducts.length; i++) {
           const prod = scrapedProducts[i];
           try {
-            await fetch(`${apiBase}/products`, {
+            await fetch(`${apiBase}/products`, { credentials: 'include',
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
+                },
               body: JSON.stringify({
                 name: prod.name,
                 description: prod.description || '',
@@ -504,17 +507,17 @@ const DashboardSettings = () => {
         targetAudiences: updatedFormData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean)
       };
 
-      const profileRes = await fetch(`${apiBase}/profile`, {
+      const profileRes = await fetch(`${apiBase}/profile`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify(profilePayload)
       });
 
       if (!profileRes.ok) throw new Error('Failed to save brand profile');
-      const updatedProfile = await profileRes.json();
+      const _rawJson91 = await profileRes.json();
+        const updatedProfile = _rawJson91 && _rawJson91.success !== undefined ? (_rawJson91.success ? _rawJson91.data : _rawJson91) : _rawJson91;
 
       // 7. Update UI state and local storage
       // Build a clean local profile from scraped data so the UI reflects new info immediately,
@@ -687,7 +690,7 @@ const DashboardSettings = () => {
   const handleUpdate = async () => {
     setUpdating(true);
     try {
-      const token = localStorage.getItem('token');
+      
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
       const payload = {
@@ -697,17 +700,17 @@ const DashboardSettings = () => {
         targetAudiences: formData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean)
       };
 
-      const res = await fetch(`${apiBase}/profile`, {
+      const res = await fetch(`${apiBase}/profile`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify(payload)
       });
 
       if (!res.ok) throw new Error('Update failed');
-      const updatedProfile = await res.json();
+      const _rawJson90 = await res.json();
+        const updatedProfile = _rawJson90 && _rawJson90.success !== undefined ? (_rawJson90.success ? _rawJson90.data : _rawJson90) : _rawJson90;
       setProfile(updatedProfile);
       localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
       localStorage.removeItem('syncsocio_review_brand_pending');
@@ -1466,11 +1469,11 @@ const DashboardSettings = () => {
                       onConfirm: async () => {
                         setConfirmModal(null);
                         try {
-                          const token = localStorage.getItem('token');
+                          
                           const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                          const res = await fetch(`${apiBase}/profile/brand/${profile?._id}`, {
+                          const res = await fetch(`${apiBase}/profile/brand/${profile?._id}`, { credentials: 'include',
                             method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}` }
+                            headers: { }
                           });
                           if (res.ok) {
                             toast({ title: 'Brand Deleted', description: 'The brand profile has been permanently removed.' });
@@ -1478,7 +1481,8 @@ const DashboardSettings = () => {
                               window.location.reload();
                             }, 1000);
                           } else {
-                            const data = await res.json();
+                            const _rawJson89 = await res.json();
+                              const data = _rawJson89 && _rawJson89.success !== undefined ? (_rawJson89.success ? _rawJson89.data : _rawJson89) : _rawJson89;
                             toast({ title: 'Deletion Failed', description: data.message || 'Failed to delete brand.', variant: 'destructive' });
                           }
                         } catch (err) {
@@ -1510,11 +1514,11 @@ const DashboardSettings = () => {
                       onConfirm: async () => {
                         setConfirmModal(null);
                         try {
-                          const token = localStorage.getItem('token');
+                          
                           const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                          const res = await fetch(`${apiBase}/profile/terminate`, {
+                          const res = await fetch(`${apiBase}/profile/terminate`, { credentials: 'include',
                             method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}` }
+                            headers: { }
                           });
                           if (res.ok) {
                             localStorage.clear();
@@ -1546,7 +1550,7 @@ const DashboardSettings = () => {
                   size="sm"
                   className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-black hover:text-white hover:border-black transition-colors"
                   onClick={() => {
-                    localStorage.removeItem('token');
+                    
                     localStorage.removeItem('syncsocio_profile');
                     localStorage.removeItem('syncsocio_setup_done');
                     window.location.href = '/login';
@@ -1575,7 +1579,7 @@ const DashboardSettings = () => {
                       setNexaForm((p: any) => ({ ...p, nexa_enabled: newVal }));
                       try {
                         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                        await fetch(`${apiBase}/nexa/settings`, {
+                        await fetch(`${apiBase}/nexa/settings`, { credentials: 'include',
                           method: 'POST', headers: getAuthHeaders(true),
                           body: JSON.stringify({ nexa_enabled: newVal }),
                         });
@@ -1810,7 +1814,7 @@ const DashboardSettings = () => {
                       setNexaSaving(true);
                       try {
                         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                        await fetch(`${apiBase}/nexa/settings`, {
+                        await fetch(`${apiBase}/nexa/settings`, { credentials: 'include',
                           method: 'POST', headers: getAuthHeaders(true),
                           body: JSON.stringify(nexaForm),
                         });
@@ -1976,11 +1980,11 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
       setProfile(updatedProfile);
     }
     localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
-    const token = localStorage.getItem('token');
+    
     try {
-      await fetch(`${apiBase}/profile/me`, {
+      await fetch(`${apiBase}/profile/me`, { credentials: 'include',
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ use_generic_email_sender: val, has_selected_email_sender: true })
       });
       toast({ title: 'Preferences saved', description: val ? 'Now sending via SyncSocio network' : 'Switched to custom domain mode' });
@@ -1993,12 +1997,13 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        
+        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, { credentials: 'include',
+          headers: { }
         });
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson88 = await res.json();
+            const data = _rawJson88 && _rawJson88.success !== undefined ? (_rawJson88.success ? _rawJson88.data : _rawJson88) : _rawJson88;
           if (data.step) setStep(data.step);
           if (data.email_from) setFromEmail(data.email_from);
           if (data.domain) setDomain(data.domain);
@@ -2019,12 +2024,13 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
     if (step !== 2) return;
     const interval = setInterval(async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        
+        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, { credentials: 'include',
+          headers: { }
         });
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson87 = await res.json();
+            const data = _rawJson87 && _rawJson87.success !== undefined ? (_rawJson87.success ? _rawJson87.data : _rawJson87) : _rawJson87;
           if (data.step >= 3 && data.verified) {
             setStep(3);
             if (data.verified_at) setVerifiedAt(data.verified_at);
@@ -2054,13 +2060,14 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
     }
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiBase}/campaigns/email-setup/start`, {
+      
+      const res = await fetch(`${apiBase}/campaigns/email-setup/start`, { credentials: 'include',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ from_email: fromEmail })
       });
-      const data = await res.json();
+      const _rawJson86 = await res.json();
+        const data = _rawJson86 && _rawJson86.success !== undefined ? (_rawJson86.success ? _rawJson86.data : _rawJson86) : _rawJson86;
       if (!res.ok) throw new Error(data.message || 'Failed to start setup');
       setDomain(data.domain);
       setDnsRecords(data.dns_records || []);
@@ -2076,12 +2083,13 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
   const handleVerify = async () => {
     setVerifying(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiBase}/campaigns/email-setup/verify`, {
+      
+      const res = await fetch(`${apiBase}/campaigns/email-setup/verify`, { credentials: 'include',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        headers: { 'Content-Type': 'application/json', }
       });
-      const data = await res.json();
+      const _rawJson85 = await res.json();
+        const data = _rawJson85 && _rawJson85.success !== undefined ? (_rawJson85.success ? _rawJson85.data : _rawJson85) : _rawJson85;
       if (!res.ok) throw new Error(data.message || 'Verification failed');
       if (data.verified) {
         setStep(3);
@@ -2145,8 +2153,9 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
+      <div className="space-y-5 animate-pulse">
+        <div className="h-[200px] bg-muted/60 rounded-[2rem] border border-border/50"></div>
+        <div className="h-[400px] bg-muted/60 rounded-[2rem] border border-border/50"></div>
       </div>
     );
   }
@@ -2880,12 +2889,12 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
     }
     setSavingManual(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiBase}/whatsapp/callback`, {
+      
+      const res = await fetch(`${apiBase}/whatsapp/callback`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          
         },
         body: JSON.stringify({
           isManualConfig: true,
@@ -2894,7 +2903,8 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
         }),
       });
 
-      const data = await res.json();
+      const _rawJson84 = await res.json();
+        const data = _rawJson84 && _rawJson84.success !== undefined ? (_rawJson84.success ? _rawJson84.data : _rawJson84) : _rawJson84;
       if (!res.ok) throw new Error(data.message || 'Failed to save configuration.');
 
       const updatedProfile = {
@@ -2931,14 +2941,14 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
     } else if (code) {
       setLoading(true);
       // Exchange code for token
-      const token = localStorage.getItem('token');
+      
       const redirectUri = window.location.origin + window.location.pathname; // Should be http://localhost:5173/dashboard/settings
 
-      fetch(`${apiBase}/whatsapp/callback`, {
+      fetch(`${apiBase}/whatsapp/callback`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          
         },
         body: JSON.stringify({
           code,
@@ -2996,10 +3006,10 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
   const handleSyncTemplates = async () => {
     try {
       toast({ title: 'Syncing Templates', description: 'Submitting templates to Meta. Please wait...' });
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiBase}/whatsapp/sync-templates`, {
+      
+      const res = await fetch(`${apiBase}/whatsapp/sync-templates`, { credentials: 'include',
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { },
       });
       if (!res.ok) throw new Error('Failed to sync templates');
       toast({ title: 'Templates Synced', description: 'Your templates have been submitted for review.' });
@@ -3011,10 +3021,10 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiBase}/whatsapp/disconnect`, {
+      
+      const res = await fetch(`${apiBase}/whatsapp/disconnect`, { credentials: 'include',
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { },
       });
       if (!res.ok) throw new Error('Failed to disconnect');
 
