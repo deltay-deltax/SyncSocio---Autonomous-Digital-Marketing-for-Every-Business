@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, HelpCircle, MessageSquare, Reply, Clock, User } from 'lucide-react';
+import { Search, Paperclip, X, Image as ImageIcon, HelpCircle, MessageSquare, Reply, Clock, User } from 'lucide-react';
 import { format } from 'date-fns';
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/support/admin/tickets`;
@@ -10,6 +10,7 @@ interface Message {
   sender: 'user' | 'ai' | 'admin';
   content: string;
   createdAt: string;
+  attachments?: string[];
 }
 
 interface Ticket {
@@ -234,7 +235,22 @@ export default function SupportTickets() {
                         <span className="capitalize">{msg.sender === 'ai' ? 'AI Agent' : msg.sender === 'admin' ? 'You (Admin)' : 'User'}</span>
                         <span>{format(new Date(msg.createdAt), 'h:mm a')}</span>
                       </div>
+                      
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {msg.attachments.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-24 h-24 rounded overflow-hidden border">
+                              {url.match(/\.(mp4|mov|avi)$/i) ? (
+                                <video src={url} className="w-full h-full object-cover" />
+                              ) : (
+                                <img src={url} alt="Attachment" className="w-full h-full object-cover" />
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 ))}
