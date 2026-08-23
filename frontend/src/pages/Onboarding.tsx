@@ -285,7 +285,7 @@ const Onboarding = () => {
       console.log("🔥 [TESTING] Firing Meta Pixel Event: URLDropped (Frontend)");
 
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
+      const response = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -301,11 +301,13 @@ const Onboarding = () => {
       clearInterval(statusInterval);
 
       if (!response.ok) {
-        const errData = await response.json();
+        const _rawJson17 = await response.json();
+          const errData = _rawJson17 && _rawJson17.success !== undefined ? (_rawJson17.success ? _rawJson17.data : _rawJson17) : _rawJson17;
         throw new Error(errData.detail || 'Failed to extract website details');
       }
 
-      const data = await response.json();
+      const _rawJson16 = await response.json();
+        const data = _rawJson16 && _rawJson16.success !== undefined ? (_rawJson16.success ? _rawJson16.data : _rawJson16) : _rawJson16;
 
       let comps = data.competitors || [];
       while (comps.length < 2) {
@@ -444,7 +446,7 @@ const Onboarding = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full border border-dashed border-primary/[0.04] pointer-events-none" />
 
           <div className="flex items-center space-x-2.5 p-10 pb-0 relative z-10">
-            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-9 h-9 object-contain shrink-0" />
+            <img src="/SyncSocioLogo.png" width="40" height="40" alt="SyncSocio Logo" className="w-9 h-9 object-contain shrink-0" />
             <h1 className="text-lg font-black tracking-tight text-foreground uppercase">SyncSocio</h1>
           </div>
 
@@ -490,7 +492,7 @@ const Onboarding = () => {
               </button>
             ) : (
               <Link to="/" className="md:hidden flex items-center gap-2 font-display text-xl font-bold tracking-tight text-foreground">
-                <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-6 h-6 object-contain shrink-0" />
+                <img src="/SyncSocioLogo.png" width="40" height="40" alt="SyncSocio Logo" className="w-6 h-6 object-contain shrink-0" />
                 <span>SyncSocio</span>
               </Link>
             )}
@@ -523,10 +525,10 @@ const Onboarding = () => {
 
               <button
                 onClick={() => {
-                  localStorage.removeItem('token');
+                  
                   localStorage.removeItem('syncsocio_profile');
                   localStorage.removeItem('syncsocio_setup_done');
-                  window.location.href = '/login';
+                  navigate('/login');
                 }}
                 className="flex items-center text-[10px] font-black text-muted-foreground hover:text-destructive transition-all uppercase tracking-widest group px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-destructive/10 min-h-[36px]"
               >
@@ -1411,14 +1413,13 @@ const Onboarding = () => {
                                   const searchParams = new URLSearchParams(window.location.search);
                                   const isNewBrand = searchParams.get('new_brand') === 'true';
 
-                                  const token = localStorage.getItem('token');
+                                  
                                   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-                                  const res = await fetch(`${BASE_URL}/profile`, {
+                                  const res = await fetch(`${BASE_URL}/profile`, { credentials: 'include',
                                     method: 'POST',
                                     headers: {
                                       'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`
-                                    },
+                                      },
                                     body: JSON.stringify({ ...formData, createNewBrand: isNewBrand })
                                   });
                                   if (!res.ok) throw new Error('Failed to save profile');
@@ -1427,12 +1428,11 @@ const Onboarding = () => {
                                   if (extractedProducts && extractedProducts.length > 0) {
                                     for (const prod of extractedProducts) {
                                       try {
-                                        await fetch(`${BASE_URL}/products`, {
+                                        await fetch(`${BASE_URL}/products`, { credentials: 'include',
                                           method: 'POST',
                                           headers: {
                                             'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${token}`
-                                          },
+                                            },
                                           body: JSON.stringify({
                                             name: prod.name,
                                             description: prod.description || '',
@@ -1453,7 +1453,7 @@ const Onboarding = () => {
                                   } catch (storageErr) {
                                     console.warn('Could not save profile to localStorage:', storageErr);
                                   }
-                                  window.location.href = isNewBrand ? "/dashboard" : "/setup";
+                                  navigate(isNewBrand ? "/dashboard" : "/setup");
                                 } catch (err) {
                                   console.error(err);
                                   try {
@@ -1463,7 +1463,7 @@ const Onboarding = () => {
                                   }
                                   const searchParams = new URLSearchParams(window.location.search);
                                   const isNewBrand = searchParams.get('new_brand') === 'true';
-                                  window.location.href = isNewBrand ? "/dashboard" : "/setup";
+                                  navigate(isNewBrand ? "/dashboard" : "/setup");
                                 } finally {
                                   setIsSubmitting(false);
                                 }
