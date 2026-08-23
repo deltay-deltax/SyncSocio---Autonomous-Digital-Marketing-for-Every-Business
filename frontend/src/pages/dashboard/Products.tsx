@@ -565,7 +565,7 @@ const ProductForm: React.FC<{
                 <input
                   value={backUrlInput}
                   onChange={(e) => setBackUrlInput(e.target.value)}
-                  placeholder="Paste Back Image URL..."
+                  placeholder="Paste Back Image URL (Optional) Required for Ecomm Lisiting..."
                   className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 <Button

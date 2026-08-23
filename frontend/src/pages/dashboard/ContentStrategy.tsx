@@ -2049,6 +2049,10 @@ const DashboardStrategy = () => {
         const creditReason = 'All-in-One generation (2 images, 2 carousels of 3 slides, 4 ecomm listings, 1 AI UGC Video)';
         if (startBackgroundAllInOne) {
           const tId = await startBackgroundAllInOne(requests, creditCost, creditReason);
+          if (!tId) {
+            setStage('builder');
+            return;
+          }
           setCurrentTaskId(tId);
           setAdTemplate(null);
           setIdea('');
@@ -2229,6 +2233,10 @@ const DashboardStrategy = () => {
 
       if (startBackgroundGeneration) {
         const tId = await startBackgroundGeneration(payload, creditCost, creditReason, currentMode);
+        if (!tId) {
+          setStage('builder');
+          return;
+        }
         setCurrentTaskId(tId);
         setAdTemplate(null);
         setSaasFormatId(null);
