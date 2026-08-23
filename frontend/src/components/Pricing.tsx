@@ -262,11 +262,11 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
                         </span>
                         <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
                           <Sparkles size={11} className="text-primary" />
-                          3 Free Creatives
+                          7 Free Creatives
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        15 credits included • No credit card required • Instant access
+                        35 credits included • No credit card required • Instant access
                       </p>
                     </div>
                   </div>

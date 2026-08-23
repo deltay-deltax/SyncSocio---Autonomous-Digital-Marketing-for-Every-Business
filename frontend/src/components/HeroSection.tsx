@@ -65,7 +65,7 @@ const HeroSection = ({ onWaitlistClick }: HeroSectionProps) => {
                   size="lg"
                   className="gradient-bg text-primary-foreground border-0 text-sm md:text-base px-6 py-5 md:px-8 md:py-6 hover-lift w-fit"
                 >
-                  Claim 3 Free Creatives
+                  Claim 7 Free Creatives
                   <ArrowRight size={18} className="ml-2" />
                 </Button>
               </Link>

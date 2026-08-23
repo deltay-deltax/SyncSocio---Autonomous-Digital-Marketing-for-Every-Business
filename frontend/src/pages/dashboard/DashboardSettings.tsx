@@ -1298,7 +1298,7 @@ const DashboardSettings = () => {
 
                   const planName = isPro ? 'Pro' : isGrowth ? 'Growth' : isFreeTrial ? 'Free Trial' : isFree ? 'Free' : 'Starter';
                   const planPrice = isPro ? `${symbol}${currency === 'USD' ? '45' : '3,499'}/month` : isGrowth ? `${symbol}${currency === 'USD' ? '19' : '1,499'}/month` : isFreeTrial ? 'Free' : isFree ? 'Free' : `${symbol}${currency === 'USD' ? '10' : '799'}/month`;
-                  const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : isFreeTrial ? '15 credits (Trial)' : isFree ? '0 credits' : '160 credits/month';
+                  const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : isFreeTrial ? '35 credits (Trial)' : isFree ? '0 credits' : '160 credits/month';
                   const planFeatures = isPro
                     ? [
                       '1,000 credits/month (125 HD images)',
@@ -1333,7 +1333,7 @@ const DashboardSettings = () => {
                       ]
                       : (isFreeTrial || isFree)
                         ? [
-                          '15 credits for testing',
+                          '35 credits for testing (7 creatives)',
                           'SD quality image exports',
                           '1 brand profile',
                           'Try Ecomm listing generator',

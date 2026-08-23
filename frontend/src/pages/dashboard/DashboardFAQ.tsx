@@ -93,7 +93,7 @@ const FAQS = [
   },
   {
     q: "Is there a free trial available?",
-    a: "Yes! We offer a Free Trial with 3 Free Creatives (15 credits) with no credit card required, so you can test our AI generation tools immediately.",
+    a: "Yes! We offer a Free Trial with 7 Free Creatives (35 credits) with no credit card required, so you can test our AI generation tools immediately.",
   },
   {
     q: "Is my content and data secure?",

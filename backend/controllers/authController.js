@@ -368,8 +368,8 @@ export const startFreeTrial = async (req, res) => {
     //   return res.status(403).json({ message: 'Free trial has already been claimed on this device.' });
     // }
 
-    // Grant 15 credits and set plan
-    user.credits = (user.credits || 0) + 15;
+    // Grant 35 credits and set plan
+    user.credits = (user.credits || 0) + 35;
     user.plan = 'Free Trial';
     user.freeTrialUsed = true;
     user.deviceFingerprint = deviceFingerprint;
