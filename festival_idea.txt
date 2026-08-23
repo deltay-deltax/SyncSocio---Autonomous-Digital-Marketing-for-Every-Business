@@ -1,0 +1,11 @@
+953: const [festival, setFestival] = useState<string>('diwali');
+954: const [tone, setTone] = useState<string>('Festive sale');
+955: 
+956: // ── WhatsApp / Email
+957: const [generateImage, setGenerateImage] = useState<boolean>(true);
+958: const [productPick, setProductPick] = useState<string>('');
+959: const [campaignGoal, setCampaignGoal] = useState<string>('discover');
+960: const [campaignAngle, setCampaignAngle] = useState<string>('auto');
+961: const [recipients, setRecipients] = useState<string[]>([]);
+962: const [newRecipient, setNewRecipient] = useState('');
+963: const [whatsappCountryCode, setWhatsappCountryCode] = useState('+91');

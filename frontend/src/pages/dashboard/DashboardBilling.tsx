@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, BotMessageSquare, HelpCircle, Gift, Info, X, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
@@ -30,15 +30,15 @@ const plans: Plan[] = [
   {
     name: "Starter",
     badge: null,
-    creditTag: "80 Credits",
+    creditTag: "160 Credits",
     prices: {
-      INR: { basePrice: 399, originalPrice: 599 },
-      USD: { basePrice: 5, originalPrice: 8 }
+      INR: { basePrice: 799, originalPrice: 999 },
+      USD: { basePrice: 10, originalPrice: 15 }
     },
     period: "/month",
     description: "For first-time business owners ready to start creating AI content.",
     features: [
-      "80 credits / month (16 AI images)",
+      "160 credits / month (32 AI images)",
       "5 credits per image generation",
       "SD quality image exports",
       "Image, Carousel, Festival posts",
@@ -49,7 +49,7 @@ const plans: Plan[] = [
       "50 products catalog",
       "Schedule up to 30 posts",
       "🤖 Nexa AI Sales Agent (IG only)",
-      "15 AI-handled leads/month",
+      "20 AI-handled leads/month",
       "Email support",
     ],
     lockedFeatures: [
@@ -146,6 +146,14 @@ const DashboardBilling = () => {
 
   const [checkoutData, setCheckoutData] = useState<any>(null);
   const [showCompareDialog, setShowCompareDialog] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutPlan = params.get('checkout');
+    if (checkoutPlan) {
+      handleSelectPlan(checkoutPlan);
+    }
+  }, [currency]);
 
   const handleSelectPlan = (planName: string) => {
     if (planName === 'Custom') {

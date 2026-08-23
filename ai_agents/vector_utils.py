@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -6,12 +7,18 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+@lru_cache(maxsize=1)
+def _get_client():
+    """Create the Gemini client only when an embedding is requested."""
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise RuntimeError("GOOGLE_API_KEY is required to generate embeddings")
+    return genai.Client(api_key=api_key)
 
 async def get_embedding(text: str):
     """Generates a 768-dimension embedding for the given text using Gemini."""
     try:
-        response = client.models.embed_content(
+        response = _get_client().models.embed_content(
             model="models/gemini-embedding-001", 
             contents=text,
             config=types.EmbedContentConfig(output_dimensionality=768)

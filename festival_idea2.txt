@@ -1,0 +1,21 @@
+4608: setFestival(data.festival.id);
+4609: setIdea(data.prompt);
+4610: setCount(data.imageCount);
+4611: setTone(data.postType);
+4612: if (data.language) {
+4613: setLanguage(data.language);
+4614: }
+4615: if (data.product) {
+4616: setSelectedProducts([data.product]);
+4617: } else {
+4618: setSelectedProducts([]);
+4619: }
+4620: 
+4621: // Determine layout and aspect ratio overrides
+4622: let layoutOverride = 'image';
+4623: let aspectOverride = aspect;
+4624: 
+4625: if (data.postType === 'Story') {
+4626: aspectOverride = '9:16';
+4627: }
+4628: 

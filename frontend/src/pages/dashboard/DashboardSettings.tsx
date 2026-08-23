@@ -11,6 +11,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 
 import { useRazorpay } from '../../hooks/useRazorpay';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+import { formatBrandDesignSystemToMarkdown } from '@/lib/utils';
 
 const InstagramIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -44,6 +45,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -81,7 +90,6 @@ const voiceTones = [
   'Inspirational',
   'Luxury & Premium'
 ];
-const typographyOptions = ['Sans Serif Modern', 'Serif Classic', 'Display Bold', 'Handwritten', 'Mono Tech'];
 const growthGoals = [
   'Grow followers',
   'Sell products / get orders',
@@ -149,20 +157,19 @@ const DashboardSettings = () => {
   const [activeBrandId, setActiveBrandId] = useState<string>('');
 
   const getAuthHeaders = (isJson = false) => ({
-    
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
     ...(isJson ? { 'Content-Type': 'application/json' } : {})
   });
 
   const fetchBrands = async () => {
     try {
-      
+      const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/profile/list`, { credentials: 'include',
-        headers: { }
+      const res = await fetch(`${apiBase}/profile/list`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        const _rawJson98 = await res.json();
-          const data = _rawJson98 && _rawJson98.success !== undefined ? (_rawJson98.success ? _rawJson98.data : _rawJson98) : _rawJson98;
+        const data = await res.json();
         setBrands(data.brands || []);
       }
     } catch (err) {
@@ -177,9 +184,8 @@ const DashboardSettings = () => {
       setNexaLoading(true);
       try {
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-        const res = await fetch(`${apiBase}/nexa/settings`, { credentials: 'include', headers: getAuthHeaders() });
-        const _rawJson97 = await res.json();
-          const data = _rawJson97 && _rawJson97.success !== undefined ? (_rawJson97.success ? _rawJson97.data : _rawJson97) : _rawJson97;
+        const res = await fetch(`${apiBase}/nexa/settings`, { headers: getAuthHeaders() });
+        const data = await res.json();
         if (res.ok && data.settings) {
           if (data.brandId) setActiveBrandId(data.brandId);
           setNexaSettings(data.settings);
@@ -198,7 +204,7 @@ const DashboardSettings = () => {
             demo_booking_link: data.settings.demo_booking_link || '',
           }));
         }
-      } catch {}
+      } catch { }
       setNexaLoading(false);
     })();
   }, []);
@@ -207,14 +213,13 @@ const DashboardSettings = () => {
     if (activeTab === 'Plan & Billing') {
       const fetchHistory = async () => {
         try {
-          
+          const token = localStorage.getItem('token');
           const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-          const res = await fetch(`${apiBase}/payment/history`, { credentials: 'include',
-            headers: { }
+          const res = await fetch(`${apiBase}/payment/history`, {
+            headers: { 'Authorization': `Bearer ${token}` }
           });
           if (res.ok) {
-            const _rawJson96 = await res.json();
-              const data = _rawJson96 && _rawJson96.success !== undefined ? (_rawJson96.success ? _rawJson96.data : _rawJson96) : _rawJson96;
+            const data = await res.json();
             setPaymentHistory(data.transactions || []);
           }
         } catch (err) {
@@ -227,18 +232,18 @@ const DashboardSettings = () => {
 
   const handleSwitchBrand = async (brandId: string) => {
     try {
-      
+      const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/profile/switch`, { credentials: 'include',
+      const res = await fetch(`${apiBase}/profile/switch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          },
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ brandId })
       });
       if (res.ok) {
-        const _rawJson95 = await res.json();
-          const data = _rawJson95 && _rawJson95.success !== undefined ? (_rawJson95.success ? _rawJson95.data : _rawJson95) : _rawJson95;
+        const data = await res.json();
         localStorage.setItem('syncsocio_profile', JSON.stringify(data.activeBrand));
         setProfile(data.activeBrand);
 
@@ -259,13 +264,12 @@ const DashboardSettings = () => {
   const handleInstagramConnect = async () => {
     console.log('🔄 Connect Instagram clicked. Fetching auth URL...');
     try {
-      
+      const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, { credentials: 'include',
-        headers: { }
+      const res = await fetch(`${apiBase}/auth/instagram/auth?relink=true`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      const _rawJson94 = await res.json();
-        const data = _rawJson94 && _rawJson94.success !== undefined ? (_rawJson94.success ? _rawJson94.data : _rawJson94) : _rawJson94;
+      const data = await res.json();
       console.log('🚀 Auth Response:', data);
       if (data.url) {
         console.log('➡️ Redirecting to:', data.url);
@@ -285,15 +289,15 @@ const DashboardSettings = () => {
   const handleInstagramDisconnect = async () => {
     setDisconnectingInstagram(true);
     try {
-      
+      const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      const res = await fetch(`${apiBase}/auth/instagram/disconnect`, { credentials: 'include',
+      const res = await fetch(`${apiBase}/auth/instagram/disconnect`, {
         method: 'DELETE',
         headers: {
-          }
+          'Authorization': `Bearer ${token}`
+        }
       });
-      const _rawJson93 = await res.json();
-        const data = _rawJson93 && _rawJson93.success !== undefined ? (_rawJson93.success ? _rawJson93.data : _rawJson93) : _rawJson93;
+      const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to disconnect Instagram');
 
       const updatedProfile = {
@@ -349,10 +353,10 @@ const DashboardSettings = () => {
     const isGrowth = currentPlan.toLowerCase().includes('growth');
 
     if (actionType === 'renew') {
-       amount = isPro ? (currency === 'USD' ? 45 : 3499) : isGrowth ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 5 : 399);
-       planStr = currentPlan;
-       creditsAdded = isPro ? 1000 : isGrowth ? 400 : 80;
-       typeStr = 'plan_renewal';
+      amount = isPro ? (currency === 'USD' ? 45 : 3499) : isGrowth ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 5 : 399);
+      planStr = currentPlan;
+      creditsAdded = isPro ? 1000 : isGrowth ? 400 : 80;
+      typeStr = 'plan_renewal';
     } else if (actionType === 'upgrade') {
       amount = isPro ? (currency === 'USD' ? 45 : 3499) : (currency === 'USD' ? 19 : 1499);
       planStr = isPro ? 'Pro' : 'Growth';
@@ -389,13 +393,16 @@ const DashboardSettings = () => {
     try {
       const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-      
+      const token = localStorage.getItem('token');
 
       // 1. Scrape the website
-      const scrapeRes = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, { credentials: 'include',
+      const scrapeRes = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: formData.website })
+        body: JSON.stringify({
+          url: formData.website,
+          plan: profile?.selectedPlan || 'Starter'
+        })
       });
 
       if (!scrapeRes.ok) {
@@ -403,8 +410,7 @@ const DashboardSettings = () => {
         throw new Error(errData.detail || 'Website scraping failed.');
       }
 
-      const _rawJson92 = await scrapeRes.json();
-        const scraped = _rawJson92 && _rawJson92.success !== undefined ? (_rawJson92.success ? _rawJson92.data : _rawJson92) : _rawJson92;
+      const scraped = await scrapeRes.json();
 
       // 2. Prepare the updated profile payload
       let comps = scraped.competitors || [];
@@ -430,14 +436,15 @@ const DashboardSettings = () => {
         logo: scraped.logo || formData.logo,
         typography: scraped.typography || formData.typography,
         brandKeywords: Array.isArray(scraped.brandKeywords) ? scraped.brandKeywords.join(', ') : (scraped.brandKeywords || (Array.isArray(scraped.keywords) ? scraped.keywords.join(', ') : (scraped.keywords || formData.brandKeywords))),
-        brandDesignGuide: scraped.brandDesignGuide || formData.brandDesignGuide || ''
+        brandDesignGuide: formatBrandDesignSystemToMarkdown(scraped.brandDesignSystem || scraped.brandDesignGuide) || formData.brandDesignGuide || ''
       };
 
       // 3.5. Delete existing products before saving new ones
-      await fetch(`${apiBase}/products`, { credentials: 'include',
+      await fetch(`${apiBase}/products`, {
         method: 'DELETE',
         headers: {
-          }
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       // 4. Save newly scraped products sequentially, respecting plan limits
@@ -447,7 +454,7 @@ const DashboardSettings = () => {
       const isPro = planName.includes('pro') || planName.includes('agency');
       const isGrowth = planName.includes('growth') || planName.includes('elite');
       const productLimit = isPro ? 500 : isGrowth ? 200 : 50;
-      
+
       if (scrapedProducts.length > productLimit) {
         scrapedProducts = scrapedProducts.slice(0, productLimit);
       }
@@ -456,17 +463,24 @@ const DashboardSettings = () => {
         for (let i = 0; i < scrapedProducts.length; i++) {
           const prod = scrapedProducts[i];
           try {
-            await fetch(`${apiBase}/products`, { credentials: 'include',
+            await fetch(`${apiBase}/products`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                },
+                'Authorization': `Bearer ${token}`
+              },
               body: JSON.stringify({
                 name: prod.name,
                 description: prod.description || '',
                 price: prod.price || '',
                 offerPrice: prod.offerPrice || '',
                 keyBenefit: prod.keyBenefit || '',
+                verifiedBenefits: prod.verifiedBenefits || [],
+                proofPoints: prod.proofPoints || [],
+                offerDetails: prod.offerDetails || '',
+                guarantee: prod.guarantee || '',
+                variantDetails: prod.variantDetails || [],
+                sourceUrl: prod.sourceUrl || formData.website || '',
                 imageBase64: prod.imageBase64 || ''
               })
             });
@@ -507,17 +521,17 @@ const DashboardSettings = () => {
         targetAudiences: updatedFormData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean)
       };
 
-      const profileRes = await fetch(`${apiBase}/profile`, { credentials: 'include',
+      const profileRes = await fetch(`${apiBase}/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          },
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(profilePayload)
       });
 
       if (!profileRes.ok) throw new Error('Failed to save brand profile');
-      const _rawJson91 = await profileRes.json();
-        const updatedProfile = _rawJson91 && _rawJson91.success !== undefined ? (_rawJson91.success ? _rawJson91.data : _rawJson91) : _rawJson91;
+      const updatedProfile = await profileRes.json();
 
       // 7. Update UI state and local storage
       // Build a clean local profile from scraped data so the UI reflects new info immediately,
@@ -600,8 +614,21 @@ const DashboardSettings = () => {
     genderFocus: profile?.genderFocus || '',
     brandKeywords: profile?.brandKeywords || '',
     visualVibe: profile?.visualVibe || '',
-    brandDesignGuide: profile?.brandDesignGuide || ''
+    brandDesignGuide: formatBrandDesignSystemToMarkdown(profile?.brandDesignGuide) || ''
   });
+
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [prevIsProcessing, setPrevIsProcessing] = useState(false);
+
+  useEffect(() => {
+    const isProcessing = formData.brandName === 'Processing...';
+    if (prevIsProcessing && !isProcessing && formData.brandName) {
+      setShowSuccess(true);
+      const t = setTimeout(() => setShowSuccess(false), 3500);
+      return () => clearTimeout(t);
+    }
+    setPrevIsProcessing(isProcessing);
+  }, [formData.brandName, prevIsProcessing]);
 
   useEffect(() => {
     if (profile) {
@@ -626,7 +653,7 @@ const DashboardSettings = () => {
         genderFocus: profile.genderFocus || '',
         brandKeywords: profile.brandKeywords || '',
         visualVibe: profile.visualVibe || '',
-        brandDesignGuide: profile.brandDesignGuide || ''
+        brandDesignGuide: formatBrandDesignSystemToMarkdown(profile.brandDesignGuide) || ''
       });
 
       const kwList = profile.brandKeywords ? profile.brandKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [];
@@ -637,6 +664,18 @@ const DashboardSettings = () => {
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const fileType = file.type.toLowerCase();
+    if (fileType === 'image/webp' || fileType === 'image/svg+xml') {
+      setAlertModal({
+        isOpen: true,
+        title: 'Unsupported Logo Format',
+        message: 'Could not update logo. Please upload a JPG or PNG image.',
+        type: 'error'
+      });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => updateField('logo', reader.result as string);
     reader.readAsDataURL(file);
@@ -690,7 +729,7 @@ const DashboardSettings = () => {
   const handleUpdate = async () => {
     setUpdating(true);
     try {
-      
+      const token = localStorage.getItem('token');
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
       const payload = {
@@ -700,17 +739,17 @@ const DashboardSettings = () => {
         targetAudiences: formData.targetAudiences.split(',').map((s: string) => s.trim()).filter(Boolean)
       };
 
-      const res = await fetch(`${apiBase}/profile`, { credentials: 'include',
+      const res = await fetch(`${apiBase}/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          },
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
 
       if (!res.ok) throw new Error('Update failed');
-      const _rawJson90 = await res.json();
-        const updatedProfile = _rawJson90 && _rawJson90.success !== undefined ? (_rawJson90.success ? _rawJson90.data : _rawJson90) : _rawJson90;
+      const updatedProfile = await res.json();
       setProfile(updatedProfile);
       localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
       localStorage.removeItem('syncsocio_review_brand_pending');
@@ -743,8 +782,8 @@ const DashboardSettings = () => {
           planName={checkoutData.planName}
           creditsAdded={checkoutData.creditsAdded}
           onSuccess={() => {
-             toast({ title: 'Success!', description: `Successfully processed your plan.` });
-             setTimeout(() => window.location.reload(), 1500);
+            toast({ title: 'Success!', description: `Successfully processed your plan.` });
+            setTimeout(() => window.location.reload(), 1500);
           }}
           onBack={() => setCheckoutData(null)}
         />
@@ -811,42 +850,71 @@ const DashboardSettings = () => {
                     )}
                 </div>
               </div>
-              {/* Hero header */}
-              <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-primary/10 via-background to-purple-500/5 p-6 shadow-sm">
-                <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/10 blur-3xl -z-0" />
-                <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="relative group">
-                    <div
-                      className="w-20 h-20 rounded-2xl border-2 border-dashed border-border bg-background flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors relative"
-                      onClick={() => fileRef.current?.click()}
-                    >
-                      {formData.logo ? (
-                        <img src={formData.logo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
-                      ) : (
-                        <Camera size={22} className="text-muted-foreground group-hover:text-primary" />
-                      )}
-                    </div>
-                    <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleLogo} />
+              {/* Hero header / Processing State */}
+              {showSuccess ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center gap-5 p-8 rounded-[2rem] border border-emerald-500/30 bg-emerald-500/5 shadow-sm"
+                >
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={24} className="text-emerald-500" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Brand Identity</p>
-                    <h3 className="text-xl font-bold text-foreground truncate">{formData.brandName || 'Untitled Brand'}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formData.businessCategory || 'Industry not set'} · {formData.city || 'City'}, {formData.country || 'Country'}
+                  <div>
+                    <h3 className="text-lg font-black text-foreground">Brand Ready!</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Enjoy creating! Your brand DNA has been successfully extracted.
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
-                    <div className="flex items-center gap-2 w-full">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase">Profile</span>
-                      <span className="text-xs font-bold text-primary ml-auto">{completeness}%</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${completeness}%` }} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">{completeness === 100 ? 'Fully tuned 🔥' : 'Complete it for sharper outputs'}</p>
+                </motion.div>
+              ) : formData.brandName === 'Processing...' ? (
+                <div className="flex items-center gap-5 p-8 rounded-[2rem] border border-border/50 bg-primary/5 shadow-sm">
+                  <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+                  <div>
+                    <h3 className="text-lg font-black text-foreground">Extracting Brand DNA...</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Our AI agents are currently analyzing the website to build a complete brand profile. This usually takes about 60 seconds.
+                    </p>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-primary/10 via-background to-purple-500/5 p-6 shadow-sm">
+                  <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/10 blur-3xl -z-0" />
+                  <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="relative group">
+                      <div
+                        className="w-20 h-20 rounded-2xl border-2 border-dashed border-border bg-background flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors relative"
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        {formData.logo ? (
+                          <img src={formData.logo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
+                        ) : (
+                          <Camera size={22} className="text-muted-foreground group-hover:text-primary" />
+                        )}
+                      </div>
+                      <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleLogo} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Brand Identity</p>
+                      <h3 className="text-xl font-bold text-foreground truncate">{formData.brandName || 'Untitled Brand'}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formData.businessCategory || 'Industry not set'} · {formData.city || 'City'}, {formData.country || 'Country'}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase">Profile</span>
+                        <span className="text-xs font-bold text-primary ml-auto">{completeness}%</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full bg-primary transition-all duration-500" style={{ width: `${completeness}%` }} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{completeness === 100 ? 'Fully tuned 🔥' : 'Complete it for sharper outputs'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Identity */}
               <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
@@ -929,7 +997,15 @@ const DashboardSettings = () => {
                     LIVE BRAND GRADIENT PREVIEW
                   </div>
                   <Field label="Typography" icon={<Type size={11} />}>
-                    <ChipGroup options={typographyOptions} value={formData.typography} onChange={v => updateField('typography', v)} />
+                    <Input
+                      value={formData.typography}
+                      onChange={e => updateField('typography', e.target.value)}
+                      placeholder="Exact fonts, e.g. WindsorEF, Ano"
+                      className="font-medium"
+                    />
+                    <p className="text-[10px] text-muted-foreground px-1">
+                      Use exact detected family names when available; generic style labels are only fallbacks.
+                    </p>
                   </Field>
                   <Field label="Visual Vibe" icon={<Palette size={11} />}>
                     <ChipGroup options={visualVibes} value={formData.visualVibe} onChange={v => updateField('visualVibe', v)} />
@@ -941,6 +1017,7 @@ const DashboardSettings = () => {
                       guide={formData.brandDesignGuide}
                       brandName={formData.brandName}
                       primaryColor={formData.primaryColor}
+                      onChange={(newGuide) => updateField('brandDesignGuide', newGuide)}
                     />
                   )}
                 </CardContent>
@@ -1135,97 +1212,98 @@ const DashboardSettings = () => {
 
                   {/* WhatsApp Business Connection */}
                   <WhatsAppConnectionCard profile={profile} setProfile={setProfile} />
-              </div>
-            </CardContent>
+                </div>
+              </CardContent>
             </Card>
           )}
 
-        {activeTab === 'Posting Preferences' && (
-          <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-            <CardHeader className="p-8 pb-2">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-600">Posting Preferences</CardTitle>
-              <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-emerald-500/10 rounded-full w-fit">
-                <CheckCircle2 size={12} className="text-emerald-600" />
-                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider italic">Synchronized from Onboarding</span>
-              </div>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              <div className="grid md:grid-cols-2 gap-4">
-                <InfoItem icon={Clock} label="Posting Frequency" value={profile.postingFrequency || 'Daily'} />
-                <InfoItem icon={Layers} label="Content Formats" value={profile.contentTypes || []} />
-                <InfoItem icon={Globe} label="Target Platforms" value={profile.socialPlatforms || ['Instagram', 'Facebook']} />
-                <InfoItem icon={Target} label="Primary Call-to-Action" value={profile.primaryCTA || 'Visit Link'} />
-              </div>
+          {activeTab === 'Posting Preferences' && (
+            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+              <CardHeader className="p-8 pb-2">
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-600">Posting Preferences</CardTitle>
+                <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-emerald-500/10 rounded-full w-fit">
+                  <CheckCircle2 size={12} className="text-emerald-600" />
+                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider italic">Synchronized from Onboarding</span>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <InfoItem icon={Clock} label="Posting Frequency" value={profile.postingFrequency || 'Daily'} />
+                  <InfoItem icon={Layers} label="Content Formats" value={profile.contentTypes || []} />
+                  <InfoItem icon={Globe} label="Target Platforms" value={profile.socialPlatforms || ['Instagram', 'Facebook']} />
+                  <InfoItem icon={Target} label="Primary Call-to-Action" value={profile.primaryCTA || 'Visit Link'} />
+                </div>
 
-              <div className="p-5 rounded-2xl bg-muted/20 border border-border/40 mt-4">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Topic Constraints</p>
-                <p className="text-sm font-bold text-foreground opacity-60">
-                  {profile.painPoint ? `Addressing: ${profile.painPoint}` : 'No specific constraints set.'}
-                </p>
-              </div>
+                <div className="p-5 rounded-2xl bg-muted/20 border border-border/40 mt-4">
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Topic Constraints</p>
+                  <p className="text-sm font-bold text-foreground opacity-60">
+                    {profile.painPoint ? `Addressing: ${profile.painPoint}` : 'No specific constraints set.'}
+                  </p>
+                </div>
 
-              <div className="p-5 rounded-2xl bg-muted/30 border border-emerald-500/20 text-emerald-700/60 text-[11px] font-medium leading-relaxed italic">
-                Note: These settings are locked based on your initial agent training. To modify your posting DNA, please contact support for a profile reset.
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                <div className="p-5 rounded-2xl bg-muted/30 border border-emerald-500/20 text-emerald-700/60 text-[11px] font-medium leading-relaxed italic">
+                  Note: These settings are locked based on your initial agent training. To modify your posting DNA, please contact support for a profile reset.
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-        {activeTab === 'Plan & Billing' && (
-          <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-            <CardHeader className="p-8 pb-2">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Membership Status</CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 space-y-8">
-              <div className="space-y-3">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 ml-1">Payment History</p>
-                {paymentHistory.length === 0 && (
-                   <p className="text-xs text-muted-foreground ml-1">No transactions found.</p>
-                )}
-                {paymentHistory.map((tx: any) => (
-                  <div key={tx._id} className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/5">
-                    <div className="flex items-center gap-3">
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", tx.status === 'completed' ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600")}>
-                        {tx.status === 'completed' ? <CheckCircle2 size={18} /> : <X size={18} />}
+          {activeTab === 'Plan & Billing' && (
+            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+              <CardHeader className="p-8 pb-2">
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Membership Status</CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 space-y-8">
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 ml-1">Payment History</p>
+                  {paymentHistory.length === 0 && (
+                    <p className="text-xs text-muted-foreground ml-1">No transactions found.</p>
+                  )}
+                  {paymentHistory.map((tx: any) => (
+                    <div key={tx._id} className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/5">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", tx.status === 'completed' ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600")}>
+                          {tx.status === 'completed' ? <CheckCircle2 size={18} /> : <X size={18} />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-foreground">{tx.type === 'topup' ? 'Credit Top-up' : tx.type === 'plan_upgrade' ? 'Plan Upgrade' : tx.plan ? `${tx.plan} Plan` : 'Payment'}</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">
+                            {tx.status} • {new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-black text-foreground">{tx.type === 'topup' ? 'Credit Top-up' : tx.type === 'plan_upgrade' ? 'Plan Upgrade' : tx.plan ? `${tx.plan} Plan` : 'Payment'}</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">
-                          {tx.status} • {new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                      <div className="text-right">
+                        <span className="block text-xs font-black text-foreground">₹{tx.amount}</span>
+                        {tx.creditsAdded > 0 && (
+                          <span className={cn(
+                            "block text-[10px] font-bold",
+                            tx.status === 'completed' ? "text-emerald-600" :
+                              tx.status === 'failed' ? "text-red-500/70 line-through" :
+                                "text-muted-foreground"
+                          )}>
+                            +{tx.creditsAdded} credits
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right">
-                       <span className="block text-xs font-black text-foreground">₹{tx.amount}</span>
-                       {tx.creditsAdded > 0 && (
-                         <span className={cn(
-                           "block text-[10px] font-bold",
-                           tx.status === 'completed' ? "text-emerald-600" : 
-                           tx.status === 'failed' ? "text-red-500/70 line-through" : 
-                           "text-muted-foreground"
-                         )}>
-                           +{tx.creditsAdded} credits
-                         </span>
-                       )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              {(() => {
-                const plan = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
-                const isPro = plan.includes('pro');
-                const isGrowth = plan.includes('growth');
-                
-                const planName = isPro ? 'Pro' : isGrowth ? 'Growth' : 'Starter';
-                const planPrice = isPro ? `${symbol}${currency === 'USD' ? '45' : '3,499'}/month` : isGrowth ? `${symbol}${currency === 'USD' ? '19' : '1,499'}/month` : `${symbol}${currency === 'USD' ? '5' : '399'}/month`;
-                const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : '80 credits/month';
-                const planFeatures = isPro
-                  ? [
+                {(() => {
+                  const plan = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
+                  const isPro = plan.includes('pro') || plan.includes('agency');
+                  const isGrowth = plan.includes('growth') || plan.includes('elite');
+                  const isFreeTrial = plan.includes('trial');
+                  const isFree = plan === 'free';
+
+                  const planName = isPro ? 'Pro' : isGrowth ? 'Growth' : isFreeTrial ? 'Free Trial' : isFree ? 'Free' : 'Starter';
+                  const planPrice = isPro ? `${symbol}${currency === 'USD' ? '45' : '3,499'}/month` : isGrowth ? `${symbol}${currency === 'USD' ? '19' : '1,499'}/month` : isFreeTrial ? 'Free' : isFree ? 'Free' : `${symbol}${currency === 'USD' ? '10' : '799'}/month`;
+                  const planCredits = isPro ? '1,000 credits/month' : isGrowth ? '400 credits/month' : isFreeTrial ? '35 credits (Trial)' : isFree ? '0 credits' : '160 credits/month';
+                  const planFeatures = isPro
+                    ? [
                       '1,000 credits/month (125 HD images)',
                       'HD quality image exports',
                       '2,000 email sends/month',
-                      '2 brand profiles',
                       '500 products catalog',
                       'All content formats unlocked',
                       'Video & Reels (up to 30/mo)',
@@ -1236,334 +1314,362 @@ const DashboardSettings = () => {
                       'Best time to post analytics',
                       'Dedicated WhatsApp support'
                     ]
-                  : isGrowth
-                  ? [
-                      '400 credits/month (80 AI images)',
-                      'SD quality image exports',
-                      '500 email sends/month',
-                      '1 brand profile',
-                      '200 products catalog',
-                      'All content formats unlocked',
-                      'Clone Mode & Sprint (bulk gen)',
-                      'Video & Reels (up to 8/mo)',
-                      'DM Automation (IG + WA)',
-                      'Nexa AI Sales Agent',
-                      'Nexa: Razorpay + UPI payments',
-                      'WhatsApp Campaign (Meta self-paid)',
-                      'Best time to post analytics',
-                      'Priority WhatsApp support'
-                    ]
-                  : [
-                      '80 credits/month (16 AI images)',
-                      'SD quality image exports',
-                      '1 brand profile',
-                      '50 products catalog',
-                      'Image, Carousel, Festival posts',
-                      'Ecomm listing generator',
-                      'Photoshoot mode',
-                      'AI Editor (1 edit/post)',
-                      'Schedule up to 20 posts',
-                      '🤖 Nexa AI Sales Agent (IG only)',
-                      '20 AI-handled leads/month',
-                      'Email support'
-                    ];
+                    : isGrowth
+                      ? [
+                        '400 credits/month (80 AI images)',
+                        'SD quality image exports',
+                        '500 email sends/month',
+                        '1 brand profile',
+                        '200 products catalog',
+                        'All content formats unlocked',
+                        'Clone Mode & Sprint (bulk gen)',
+                        'Video & Reels (up to 8/mo)',
+                        'DM Automation (IG + WA)',
+                        'Nexa AI Sales Agent',
+                        'Nexa: Razorpay + UPI payments',
+                        'WhatsApp Campaign (Meta self-paid)',
+                        'Best time to post analytics',
+                        'Priority WhatsApp support'
+                      ]
+                      : (isFreeTrial || isFree)
+                        ? [
+                          '35 credits for testing (7 creatives)',
+                          'SD quality image exports',
+                          '1 brand profile',
+                          'Try Ecomm listing generator',
+                          'Try AI Editor',
+                          'Standard templates only'
+                        ]
+                        : [
+                          '160 credits/month (32 AI images)',
+                          'SD quality image exports',
+                          '1 brand profile',
+                          '50 products catalog',
+                          'Image, Carousel, Festival posts',
+                          'Ecomm listing generator',
+                          'Photoshoot mode',
+                          'AI Editor (1 edit/post)',
+                          'Schedule up to 20 posts',
+                          '🤖 Nexa AI Sales Agent (IG only)',
+                          '20 AI-handled leads/month',
+                          'Email support'
+                        ];
 
-                return (
-                  <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white relative overflow-hidden shadow-xl shadow-primary/20">
-                    <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 pointer-events-none">
-                      <Zap size={120} fill="currentColor" />
+                  return (
+                    <div className="space-y-6">
+                      {/* Sleek Upgrade Banner for Non-Pro Users */}
+                      {!isPro && (
+                        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[2px] shadow-xl group">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
+                          <div className="relative flex flex-col md:flex-row items-center justify-between bg-popover/90 backdrop-blur-3xl rounded-[calc(2rem-2px)] p-6 md:p-8 gap-6">
+                            <div className="flex-1 space-y-2 text-center md:text-left">
+                              <h3 className="text-2xl font-black tracking-tight bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent flex items-center justify-center md:justify-start gap-2">
+                                <Sparkles className="text-pink-500" size={24} /> Upgrade Your Plan
+                              </h3>
+                              <p className="text-muted-foreground font-medium text-sm">
+                                Unlock unlimited potential with Pro. Get 1,000 HD credits, 2 brand profiles, and unlimited Nexa sales agent conversations.
+                              </p>
+                            </div>
+                            <div className="flex shrink-0">
+                              <button
+                                onClick={() => navigate('/setup?step=plan')}
+                                className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold tracking-wide shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-2"
+                              >
+                                Upgrade Now <ArrowRight size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white relative overflow-hidden shadow-xl shadow-primary/20">
+                        <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12 pointer-events-none">
+                          <Zap size={120} fill="currentColor" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-2 opacity-70">Active Strategy Plan</p>
+                        <h3 className="text-3xl font-black tracking-tighter mb-4">SyncSocio {planName}</h3>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
+                            <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Status</p>
+                            <p className="text-xs font-black">ACTIVE</p>
+                          </div>
+                          <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
+                            <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Price</p>
+                            <p className="text-xs font-black">{planPrice}</p>
+                          </div>
+                          <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
+                            <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Credits</p>
+                            <p className="text-xs font-black">{planCredits}</p>
+                          </div>
+                          <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
+                            <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Next Bill</p>
+                            <p className="text-xs font-black">
+                              {profile.userPlanExpiresAt
+                                ? new Date(profile.userPlanExpiresAt).toLocaleDateString()
+                                : profile.createdAt
+                                  ? new Date(new Date(profile.createdAt).setDate(new Date(profile.createdAt).getDate() + 30)).toLocaleDateString()
+                                  : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-white/10">
+                          <p className="text-[10px] font-black uppercase opacity-60 mb-2.5 tracking-wider">Plan Features & DNA</p>
+                          <ul className="grid sm:grid-cols-2 gap-2 text-xs font-semibold opacity-90">
+                            {planFeatures.map((f, i) => (
+                              <li key={i} className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                                {f}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] mb-2 opacity-70">Active Strategy Plan</p>
-                    <h3 className="text-3xl font-black tracking-tighter mb-4">SyncSocio {planName}</h3>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
-                        <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Status</p>
-                        <p className="text-xs font-black">ACTIVE</p>
-                      </div>
-                      <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
-                        <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Price</p>
-                        <p className="text-xs font-black">{planPrice}</p>
-                      </div>
-                      <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
-                        <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Credits</p>
-                        <p className="text-xs font-black">{planCredits}</p>
-                      </div>
-                      <div className="px-4 py-2.5 bg-white/10 rounded-xl backdrop-blur-md">
-                        <p className="text-[8px] font-black uppercase opacity-60 mb-0.5">Next Bill</p>
-                        <p className="text-xs font-black">
-                          {profile.userPlanExpiresAt 
-                            ? new Date(profile.userPlanExpiresAt).toLocaleDateString() 
-                            : profile.createdAt 
-                              ? new Date(new Date(profile.createdAt).setDate(new Date(profile.createdAt).getDate() + 30)).toLocaleDateString()
-                              : 'N/A'}
-                        </p>
-                      </div>
-                    </div>
+                  );
+                })()}
 
-                    <div className="pt-4 border-t border-white/10">
-                      <p className="text-[10px] font-black uppercase opacity-60 mb-2.5 tracking-wider">Plan Features & DNA</p>
-                      <ul className="grid sm:grid-cols-2 gap-2 text-xs font-semibold opacity-90">
-                        {planFeatures.map((f, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                );
-              })()}
+                {(() => {
+                  const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
+                  const isPro = plan.includes('pro') || plan.includes('agency');
+                  const isGrowth = plan.includes('growth') || plan.includes('elite');
+                  const isFreeTrial = plan.includes('trial');
+                  const isFree = plan === 'free';
 
-              {(() => {
-                const plan = (profile.userPlan || profile.selectedPlan || '').toLowerCase();
-                const isPro = plan.includes('pro');
-                const isGrowth = plan.includes('growth');
+                  const isPaidPlan = isPro || isGrowth || (!isFreeTrial && !isFree && (plan.includes('starter') || plan.length > 0));
 
-                let expiryTime = 0;
-                if (profile.userPlanExpiresAt) {
-                  expiryTime = new Date(profile.userPlanExpiresAt).getTime();
-                } else if (profile.createdAt) {
-                  const created = new Date(profile.createdAt);
-                  created.setDate(created.getDate() + 30);
-                  expiryTime = created.getTime();
-                }
+                  let expiryTime = 0;
+                  if (profile.userPlanExpiresAt) {
+                    expiryTime = new Date(profile.userPlanExpiresAt).getTime();
+                  } else if (profile.createdAt) {
+                    const created = new Date(profile.createdAt);
+                    created.setDate(created.getDate() + 30);
+                    expiryTime = created.getTime();
+                  }
 
-                const diff = expiryTime - new Date().getTime();
-                const oneDay = 24 * 60 * 60 * 1000;
-                const canRenew = expiryTime === 0 || diff <= oneDay;
+                  const diff = expiryTime - new Date().getTime();
+                  const oneDay = 24 * 60 * 60 * 1000;
+                  const canRenew = expiryTime === 0 || diff <= oneDay;
 
-                if (!isPro && !isGrowth) {
                   return (
                     <div className="space-y-4 pt-4 border-t border-border/40">
                       <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center ml-1 gap-2">
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
-                        {!canRenew && (
+                        {(isPaidPlan && !canRenew) && (
                           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
                             Renew available 1 day before expiry
                           </span>
                         )}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-3 w-full">
-                        <Button 
-                          onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || 'Starter')} 
-                          disabled={!canRenew}
-                          className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
-                        >
-                          Renew Starter Plan ({symbol}{currency === 'USD' ? '5' : '399'})
-                        </Button>
-                        <Button 
-                          onClick={() => handlePlanAction('upgrade', 'Starter')} 
-                          className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
-                        >
-                          Upgrade to Growth ({symbol}{currency === 'USD' ? '19' : '1,499'})
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div className="space-y-4 pt-4 border-t border-border/40">
-                      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center ml-1 gap-2">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Subscription Actions</p>
-                        {!canRenew && (
-                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">
-                            Renew available 1 day before expiry
-                          </span>
+                        {isPaidPlan ? (
+                          <Button
+                            onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || 'Starter')}
+                            disabled={!canRenew}
+                            className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                          >
+                            Renew {isPro ? 'Pro' : isGrowth ? 'Growth' : 'Starter'} Plan
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => navigate('/setup?step=plan')}
+                            className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110"
+                          >
+                            Upgrade to Starter ({symbol}{currency === 'USD' ? '10' : '799'})
+                          </Button>
+                        )}
+                        {!isPro && (
+                          <Button
+                            onClick={() => navigate('/setup?step=plan')}
+                            className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
+                          >
+                            View All Plans & Upgrade
+                          </Button>
                         )}
                       </div>
-                      <Button 
-                        onClick={() => handlePlanAction('renew', profile.userPlan || profile.selectedPlan || (isPro ? 'Pro' : 'Growth'))} 
-                        disabled={!canRenew}
-                        className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
-                      >
-                        Renew {isPro ? 'Pro' : 'Growth'} Plan ({symbol}{isPro ? (currency === 'USD' ? '45' : '3,499') : (currency === 'USD' ? '19' : '1,499')})
-                      </Button>
                     </div>
                   );
-                }
-              })()}
-            </CardContent>
-          </Card>
-        )}
+                })()}
+              </CardContent>
+            </Card>
+          )}
 
-        {activeTab === 'Legal & Privacy' && (
-          <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-            <CardHeader className="p-8 pb-2">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Legal & Privacy</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Review legal terms and data practices before using automations.</p>
-            </CardHeader>
-            <CardContent className="p-8 space-y-5">
-              <div className="grid md:grid-cols-2 gap-4">
-                <Link
-                  to="/terms"
-                  state={{ from: 'settings' }}
-                  className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                        <FileText size={18} />
+          {activeTab === 'Legal & Privacy' && (
+            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+              <CardHeader className="p-8 pb-2">
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Legal & Privacy</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">Review legal terms and data practices before using automations.</p>
+              </CardHeader>
+              <CardContent className="p-8 space-y-5">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Link
+                    to="/terms"
+                    state={{ from: 'settings' }}
+                    className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                          <FileText size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-foreground">Terms of Use</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">Service scope, rights, responsibilities, limits.</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-black text-foreground">Terms of Use</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Service scope, rights, responsibilities, limits.</p>
-                      </div>
+                      <ExternalLink size={16} className="text-muted-foreground" />
                     </div>
-                    <ExternalLink size={16} className="text-muted-foreground" />
-                  </div>
-                </Link>
+                  </Link>
 
-                <Link
-                  to="/privacy"
-                  state={{ from: 'settings' }}
-                  className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                        <ShieldCheck size={18} />
+                  <Link
+                    to="/privacy"
+                    state={{ from: 'settings' }}
+                    className="block rounded-2xl border border-border/50 bg-muted/10 p-5 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                          <ShieldCheck size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-foreground">Privacy Policy</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">Data collection, usage, retention, and rights.</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-black text-foreground">Privacy Policy</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Data collection, usage, retention, and rights.</p>
-                      </div>
+                      <ExternalLink size={16} className="text-muted-foreground" />
                     </div>
-                    <ExternalLink size={16} className="text-muted-foreground" />
+                  </Link>
+                </div>
+
+                <div className="rounded-2xl border border-border/40 bg-muted/5 p-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Compliance Note</p>
+                  <p className="mt-2 text-[12px] text-muted-foreground leading-relaxed">
+                    Automation features such as Instagram comment triggers, story mention replies, and DM responses rely on connected Meta permissions and platform policies.
+                    Review these documents before enabling campaigns for production use.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'Danger Zone' && (
+            <Card className="rounded-[2rem] border-destructive/20 overflow-hidden shadow-sm">
+              <CardHeader className="p-8 pb-2"><CardTitle className="text-sm font-black uppercase tracking-widest text-destructive">Danger Zone</CardTitle></CardHeader>
+              <CardContent className="p-8 space-y-4">
+
+                <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Trash2 size={18} className="text-destructive" />
+                    <p className="text-sm font-black text-foreground">Delete Current Brand</p>
                   </div>
-                </Link>
-              </div>
-
-              <div className="rounded-2xl border border-border/40 bg-muted/5 p-5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Compliance Note</p>
-                <p className="mt-2 text-[12px] text-muted-foreground leading-relaxed">
-                  Automation features such as Instagram comment triggers, story mention replies, and DM responses rely on connected Meta permissions and platform policies.
-                  Review these documents before enabling campaigns for production use.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === 'Danger Zone' && (
-          <Card className="rounded-[2rem] border-destructive/20 overflow-hidden shadow-sm">
-            <CardHeader className="p-8 pb-2"><CardTitle className="text-sm font-black uppercase tracking-widest text-destructive">Danger Zone</CardTitle></CardHeader>
-            <CardContent className="p-8 space-y-4">
-
-              <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
-                <div className="flex items-center gap-3">
-                  <Trash2 size={18} className="text-destructive" />
-                  <p className="text-sm font-black text-foreground">Delete Current Brand</p>
-                </div>
-                <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently delete this brand profile, its products, conversations, and settings. This action cannot be reversed.</p>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
-                  onClick={async () => {
-                    setConfirmModal({
-                      isOpen: true,
-                      title: 'DELETE BRAND',
-                      message: `You are about to permanently delete the brand profile "${profile?.brandName}". This will erase all products, automations, and conversation history tied to this brand. Are you sure?`,
-                      onConfirm: async () => {
-                        setConfirmModal(null);
-                        try {
-                          
-                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                          const res = await fetch(`${apiBase}/profile/brand/${profile?._id}`, { credentials: 'include',
-                            method: 'DELETE',
-                            headers: { }
-                          });
-                          if (res.ok) {
-                            toast({ title: 'Brand Deleted', description: 'The brand profile has been permanently removed.' });
-                            setTimeout(() => {
-                              window.location.reload();
-                            }, 1000);
-                          } else {
-                            const _rawJson89 = await res.json();
-                              const data = _rawJson89 && _rawJson89.success !== undefined ? (_rawJson89.success ? _rawJson89.data : _rawJson89) : _rawJson89;
-                            toast({ title: 'Deletion Failed', description: data.message || 'Failed to delete brand.', variant: 'destructive' });
+                  <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently delete this brand profile, its products, conversations, and settings. This action cannot be reversed.</p>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
+                    onClick={async () => {
+                      setConfirmModal({
+                        isOpen: true,
+                        title: 'DELETE BRAND',
+                        message: `You are about to permanently delete the brand profile "${profile?.brandName}". This will erase all products, automations, and conversation history tied to this brand. Are you sure?`,
+                        onConfirm: async () => {
+                          setConfirmModal(null);
+                          try {
+                            const token = localStorage.getItem('token');
+                            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                            const res = await fetch(`${apiBase}/profile/brand/${profile?._id}`, {
+                              method: 'DELETE',
+                              headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                              toast({ title: 'Brand Deleted', description: 'The brand profile has been permanently removed.' });
+                              setTimeout(() => {
+                                window.location.reload();
+                              }, 1000);
+                            } else {
+                              const data = await res.json();
+                              toast({ title: 'Deletion Failed', description: data.message || 'Failed to delete brand.', variant: 'destructive' });
+                            }
+                          } catch (err) {
+                            console.error("Brand deletion failed:", err);
                           }
-                        } catch (err) {
-                          console.error("Brand deletion failed:", err);
                         }
-                      }
-                    });
-                  }}
-                >
-                  Delete Brand
-                </Button>
-              </div>
-
-              <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
-                <div className="flex items-center gap-3">
-                  <Trash2 size={18} className="text-destructive" />
-                  <p className="text-sm font-black text-foreground">Terminate Account</p>
+                      });
+                    }}
+                  >
+                    Delete Brand
+                  </Button>
                 </div>
-                <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently erase your digital entity, synthesis weights, and all associated analytics. This action cannot be reversed.</p>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
-                  onClick={async () => {
-                    setConfirmModal({
-                      isOpen: true,
-                      title: 'CRITICAL ACTION',
-                      message: 'This will permanently delete your account, your brand identity, and ALL metrics. This cannot be undone. Are you absolutely sure?',
-                      onConfirm: async () => {
-                        setConfirmModal(null);
-                        try {
-                          
-                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                          const res = await fetch(`${apiBase}/profile/terminate`, { credentials: 'include',
-                            method: 'DELETE',
-                            headers: { }
-                          });
-                          if (res.ok) {
-                            localStorage.clear();
-                            window.location.href = '/';
-                          } else {
-                            setAlertModal({ isOpen: true, title: 'Termination Failed', message: 'Failed to terminate account. Please try again.', type: 'error' });
+
+                <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/[0.02] space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Trash2 size={18} className="text-destructive" />
+                    <p className="text-sm font-black text-foreground">Terminate Account</p>
+                  </div>
+                  <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">Permanently erase your digital entity, synthesis weights, and all associated analytics. This action cannot be reversed.</p>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-xl shadow-lg shadow-destructive/20"
+                    onClick={async () => {
+                      setConfirmModal({
+                        isOpen: true,
+                        title: 'CRITICAL ACTION',
+                        message: 'This will permanently delete your account, your brand identity, and ALL metrics. This cannot be undone. Are you absolutely sure?',
+                        onConfirm: async () => {
+                          setConfirmModal(null);
+                          try {
+                            const token = localStorage.getItem('token');
+                            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+                            const res = await fetch(`${apiBase}/profile/terminate`, {
+                              method: 'DELETE',
+                              headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                              localStorage.clear();
+                              window.location.href = '/';
+                            } else {
+                              setAlertModal({ isOpen: true, title: 'Termination Failed', message: 'Failed to terminate account. Please try again.', type: 'error' });
+                            }
+                          } catch (err) {
+                            console.error("Termination failed:", err);
                           }
-                        } catch (err) {
-                          console.error("Termination failed:", err);
                         }
-                      }
-                    });
-                  }}
-                >
-                  Erase My Entity
-                </Button>
-              </div>
-
-              <div className="p-6 rounded-2xl border border-border space-y-3 group hover:border-primary/20 transition-all">
-                <div className="flex items-center gap-3">
-                  <RefreshCw size={18} className="text-muted-foreground" />
-                  <p className="text-sm font-black text-foreground">Sign Out</p>
+                      });
+                    }}
+                  >
+                    Erase My Entity
+                  </Button>
                 </div>
-                <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">
-                  Safely log out of your current session. You will need to re-authenticate to access Mission Control.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-black hover:text-white hover:border-black transition-colors"
-                  onClick={() => {
-                    
-                    localStorage.removeItem('syncsocio_profile');
-                    localStorage.removeItem('syncsocio_setup_done');
-                    window.location.href = '/login';
-                  }}
-                >
-                  Secure Logout
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {activeTab === 'Nexa AI Setup' && (
+                <div className="p-6 rounded-2xl border border-border space-y-3 group hover:border-primary/20 transition-all">
+                  <div className="flex items-center gap-3">
+                    <RefreshCw size={18} className="text-muted-foreground" />
+                    <p className="text-sm font-black text-foreground">Sign Out</p>
+                  </div>
+                  <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">
+                    Safely log out of your current session. You will need to re-authenticate to access Mission Control.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[10px] font-black uppercase tracking-widest h-10 px-6 rounded-xl border-border text-foreground hover:bg-black hover:text-white hover:border-black transition-colors"
+                    onClick={() => {
+                      localStorage.removeItem('token');
+                      localStorage.removeItem('syncsocio_profile');
+                      localStorage.removeItem('syncsocio_setup_done');
+                      window.location.href = '/login';
+                    }}
+                  >
+                    Secure Logout
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'Nexa AI Setup' && (
             <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
               <CardHeader className="p-8 pb-2 flex flex-row items-center justify-between">
                 <div>
@@ -1579,12 +1685,12 @@ const DashboardSettings = () => {
                       setNexaForm((p: any) => ({ ...p, nexa_enabled: newVal }));
                       try {
                         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                        await fetch(`${apiBase}/nexa/settings`, { credentials: 'include',
+                        await fetch(`${apiBase}/nexa/settings`, {
                           method: 'POST', headers: getAuthHeaders(true),
                           body: JSON.stringify({ nexa_enabled: newVal }),
                         });
                         toast({ title: newVal ? '⚡ Nexa Agent Activated (Online)' : '⏸️ Nexa Agent Paused (Offline)' });
-                      } catch {}
+                      } catch { }
                     }}
                     className={cn(
                       "flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-bold transition-all shadow-sm active:scale-95",
@@ -1604,73 +1710,73 @@ const DashboardSettings = () => {
                 </div>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
-                
+
                 {/* Payment Integrations */}
                 <div className="bg-muted/10 border border-border/60 rounded-3xl p-6 shadow-sm space-y-6">
                   <div>
                     <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
-                       Payment Collection
+                      Payment Collection
                     </h3>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Razorpay — Growth+ only */}
                       {(() => {
                         const nexaPlan = (profile?.userPlan || profile?.selectedPlan || '').toLowerCase();
                         return nexaPlan.includes('growth') || nexaPlan.includes('pro') || nexaPlan.includes('agency');
                       })() && (
-                      <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-3">
-                        <label className="text-xs font-bold text-foreground">Razorpay API</label>
-                        <div className="space-y-2">
-                          <Input 
-                            placeholder="Key ID (rzp_live_...)" 
-                            value={nexaForm.razorpay_key_id}
-                            onChange={e => setNexaForm((p: any) => ({ ...p, razorpay_key_id: e.target.value }))}
-                            className="text-xs bg-muted/30"
-                          />
-                          <Input 
-                            type="password"
-                            placeholder="Key Secret" 
-                            value={nexaForm.razorpay_key_secret}
-                            onChange={e => setNexaForm((p: any) => ({ ...p, razorpay_key_secret: e.target.value }))}
-                            className="text-xs bg-muted/30"
-                          />
-                          {activeBrandId && (
-                            <div className="mt-4 p-3.5 bg-muted/20 border border-border/40 rounded-xl space-y-1.5">
-                              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Razorpay Webhook URL</label>
-                              <div className="flex items-center gap-2 bg-background border border-border/50 rounded-lg p-1 pl-2.5">
-                                <code className="text-[10px] text-primary flex-1 min-w-0 truncate select-all">
-                                  https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/{activeBrandId}
-                                </code>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-7 px-2.5 text-[11px] font-bold shrink-0 text-primary hover:bg-primary/10"
-                                  onClick={() => {
-                                    const url = `https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/${activeBrandId}`;
-                                    navigator.clipboard.writeText(url);
-                                    toast({ title: 'Webhook URL Copied!' });
-                                  }}
-                                >
-                                  <Copy size={11} className="mr-1" /> Copy
-                                </Button>
-                              </div>
-                              <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
-                                Paste this in your Razorpay Webhook Settings. Select <b>payment_link.paid</b> event.<br/>
-                                <b>Important:</b> Paste your <b>Key Secret</b> into the "Secret" field in Razorpay!
-                              </p>
+                          <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-3">
+                            <label className="text-xs font-bold text-foreground">Razorpay API</label>
+                            <div className="space-y-2">
+                              <Input
+                                placeholder="Key ID (rzp_live_...)"
+                                value={nexaForm.razorpay_key_id}
+                                onChange={e => setNexaForm((p: any) => ({ ...p, razorpay_key_id: e.target.value }))}
+                                className="text-xs bg-muted/30"
+                              />
+                              <Input
+                                type="password"
+                                placeholder="Key Secret"
+                                value={nexaForm.razorpay_key_secret}
+                                onChange={e => setNexaForm((p: any) => ({ ...p, razorpay_key_secret: e.target.value }))}
+                                className="text-xs bg-muted/30"
+                              />
+                              {activeBrandId && (
+                                <div className="mt-4 p-3.5 bg-muted/20 border border-border/40 rounded-xl space-y-1.5">
+                                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Razorpay Webhook URL</label>
+                                  <div className="flex items-center gap-2 bg-background border border-border/50 rounded-lg p-1 pl-2.5">
+                                    <code className="text-[10px] text-primary flex-1 min-w-0 truncate select-all">
+                                      https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/{activeBrandId}
+                                    </code>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-2.5 text-[11px] font-bold shrink-0 text-primary hover:bg-primary/10"
+                                      onClick={() => {
+                                        const url = `https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/${activeBrandId}`;
+                                        navigator.clipboard.writeText(url);
+                                        toast({ title: 'Webhook URL Copied!' });
+                                      }}
+                                    >
+                                      <Copy size={11} className="mr-1" /> Copy
+                                    </Button>
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                                    Paste this in your Razorpay Webhook Settings. Select <b>payment_link.paid</b> event.<br />
+                                    <b>Important:</b> Paste your <b>Key Secret</b> into the "Secret" field in Razorpay!
+                                  </p>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                      )}
+                          </div>
+                        )}
 
                       {/* UPI & COD */}
                       <div className="space-y-4">
                         <div className="bg-background border border-border/40 rounded-2xl p-4 space-y-4">
                           <div className="space-y-2">
                             <label className="text-xs font-bold text-foreground">UPI ID</label>
-                            <Input 
-                              placeholder="brand@upi or 9XXXXXXXXX@paytm" 
+                            <Input
+                              placeholder="brand@upi or 9XXXXXXXXX@paytm"
                               value={nexaForm.upi_id}
                               onChange={e => setNexaForm((p: any) => ({ ...p, upi_id: e.target.value }))}
                               className="text-xs bg-muted/30"
@@ -1694,9 +1800,9 @@ const DashboardSettings = () => {
                                 <span className="text-[10px] text-muted-foreground max-w-[140px] leading-tight mb-2">
                                   Upload a QR code. The AI will send this image if a customer asks for it.
                                 </span>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   className="h-7 text-[10px] uppercase font-bold"
                                   onClick={() => qrFileRef.current?.click()}
                                 >
@@ -1714,7 +1820,7 @@ const DashboardSettings = () => {
                             <span className="text-[10px] text-muted-foreground">Allow manual COD orders</span>
                           </div>
                           <button onClick={() => setNexaForm((p: any) => ({ ...p, cod_enabled: !p.cod_enabled }))}>
-                            {nexaForm.cod_enabled 
+                            {nexaForm.cod_enabled
                               ? <CheckCircle2 size={24} className="text-emerald-500" />
                               : <Pause size={24} className="text-muted-foreground" />}
                           </button>
@@ -1728,12 +1834,12 @@ const DashboardSettings = () => {
                   {/* Negotiation Bounds */}
                   <div>
                     <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
-                       Negotiation Bounds
+                      Negotiation Bounds
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-muted-foreground">Min Discount % (Floor)</label>
-                        <Input 
+                        <Input
                           type="number" min={0} max={50}
                           value={nexaForm.min_discount}
                           onChange={e => setNexaForm((p: any) => ({ ...p, min_discount: Number(e.target.value) }))}
@@ -1742,7 +1848,7 @@ const DashboardSettings = () => {
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-muted-foreground">Max Discount % (Limit)</label>
-                        <Input 
+                        <Input
                           type="number" min={0} max={50}
                           value={nexaForm.max_discount}
                           onChange={e => setNexaForm((p: any) => ({ ...p, max_discount: Number(e.target.value) }))}
@@ -1755,7 +1861,7 @@ const DashboardSettings = () => {
                   {/* Business Context & Knowledge Base */}
                   <div className="space-y-4 pt-4 border-t border-border/40">
                     <h3 className="text-sm font-bold flex items-center gap-2">
-                       Business Context &amp; Store Policies
+                      Business Context &amp; Store Policies
                     </h3>
 
                     {/* Demo / Meeting Booking Link */}
@@ -1778,7 +1884,7 @@ const DashboardSettings = () => {
 
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-muted-foreground">General information Nexa should know</label>
-                      <textarea 
+                      <textarea
                         className="w-full h-32 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                         placeholder="e.g. We ship worldwide in 3-5 days. No returns on sale items. We use eco-friendly packaging..."
                         value={nexaForm.business_context}
@@ -1790,7 +1896,7 @@ const DashboardSettings = () => {
                   {nexaSettings?.knowledge_base && nexaSettings.knowledge_base.length > 0 && (
                     <div className="space-y-4 pt-4 border-t border-border/40">
                       <h3 className="text-sm font-bold flex items-center gap-2">
-                         Auto-Learned Knowledge Base (FAQs)
+                        Auto-Learned Knowledge Base (FAQs)
                       </h3>
                       <p className="text-xs text-muted-foreground">These Q&A pairs were automatically learned by Nexa when you replied to escalated customer questions.</p>
                       <div className="space-y-3">
@@ -1809,12 +1915,12 @@ const DashboardSettings = () => {
 
 
                   {/* Save Button */}
-                  <Button 
+                  <Button
                     onClick={async () => {
                       setNexaSaving(true);
                       try {
                         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-                        await fetch(`${apiBase}/nexa/settings`, { credentials: 'include',
+                        await fetch(`${apiBase}/nexa/settings`, {
                           method: 'POST', headers: getAuthHeaders(true),
                           body: JSON.stringify(nexaForm),
                         });
@@ -1835,111 +1941,111 @@ const DashboardSettings = () => {
             </Card>
           )}
 
-        {/* ─── EMAIL SETUP TAB ───────────────────────────────────────────────────────────── */}
-        {activeTab === 'Email Setup' && (
-          <EmailSetupWizard profile={profile} setProfile={setProfile} />
-        )}
+          {/* ─── EMAIL SETUP TAB ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'Email Setup' && (
+            <EmailSetupWizard profile={profile} setProfile={setProfile} />
+          )}
 
+        </div>
       </div>
-    </div>
 
-    <AnimatePresence>
-      {confirmModal && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setConfirmModal(null)}
-            className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-2xl shadow-primary/10 overflow-hidden"
-          >
-            <div className="p-6 border-b border-border/40">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-primary/10 text-primary">
-                  <Sparkles size={20} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">
-                    {confirmModal.title || 'Are you sure?'}
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-widest font-black">Confirmation Required</p>
+      <AnimatePresence>
+        {confirmModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmModal(null)}
+              className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-2xl shadow-primary/10 overflow-hidden"
+            >
+              <div className="p-6 border-b border-border/40">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-primary/10 text-primary">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      {confirmModal.title || 'Are you sure?'}
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-widest font-black">Confirmation Required</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="p-6">
-              <p className="text-sm font-medium text-foreground leading-relaxed">{confirmModal.message}</p>
-            </div>
-            <div className="p-4 bg-muted/30 flex gap-3 justify-end border-t border-border/40">
-              <Button variant="outline" onClick={() => setConfirmModal(null)} className="rounded-xl h-10 px-6 font-bold text-xs uppercase tracking-wider">Cancel</Button>
-              <Button onClick={confirmModal.onConfirm} className="rounded-xl h-10 px-6 font-bold text-xs uppercase tracking-wider bg-primary hover:bg-primary/90 text-primary-foreground">Proceed</Button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+              <div className="p-6">
+                <p className="text-sm font-medium text-foreground leading-relaxed">{confirmModal.message}</p>
+              </div>
+              <div className="p-4 bg-muted/30 flex gap-3 justify-end border-t border-border/40">
+                <Button variant="outline" onClick={() => setConfirmModal(null)} className="rounded-xl h-10 px-6 font-bold text-xs uppercase tracking-wider">Cancel</Button>
+                <Button onClick={confirmModal.onConfirm} className="rounded-xl h-10 px-6 font-bold text-xs uppercase tracking-wider bg-primary hover:bg-primary/90 text-primary-foreground">Proceed</Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-    <AnimatePresence>
-      {alertModal && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => {
-              if (alertModal.onClose) alertModal.onClose();
-              setAlertModal(null);
-            }}
-            className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-2xl shadow-primary/10 overflow-hidden"
-          >
-            <div className="p-6 border-b border-border/40">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-2xl flex items-center justify-center",
-                  alertModal.type === 'success' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
-                )}>
-                  {alertModal.type === 'success' ? <CheckCircle2 size={20} /> : <X size={20} />}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">
-                    {alertModal.title}
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-widest font-black">System Notification</p>
+      <AnimatePresence>
+        {alertModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                if (alertModal.onClose) alertModal.onClose();
+                setAlertModal(null);
+              }}
+              className="fixed inset-0 bg-background/40 backdrop-blur-md z-[100]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-2xl shadow-primary/10 overflow-hidden"
+            >
+              <div className="p-6 border-b border-border/40">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-2xl flex items-center justify-center",
+                    alertModal.type === 'success' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                  )}>
+                    {alertModal.type === 'success' ? <CheckCircle2 size={20} /> : <X size={20} />}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      {alertModal.title}
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-widest font-black">System Notification</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="p-6">
-              <p className="text-sm font-medium text-foreground leading-relaxed">{alertModal.message}</p>
-            </div>
-            <div className="p-4 bg-muted/30 flex justify-end border-t border-border/40">
-              <Button 
-                onClick={() => {
-                  if (alertModal.onClose) alertModal.onClose();
-                  setAlertModal(null);
-                }}
-                className={cn(
-                  "rounded-xl h-10 px-8 font-bold text-xs uppercase tracking-wider text-white",
-                  alertModal.type === 'success' ? "bg-emerald-500 hover:bg-emerald-600" : "bg-rose-500 hover:bg-rose-600"
-                )}
-              >
-                Okay
-              </Button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+              <div className="p-6">
+                <p className="text-sm font-medium text-foreground leading-relaxed">{alertModal.message}</p>
+              </div>
+              <div className="p-4 bg-muted/30 flex justify-end border-t border-border/40">
+                <Button
+                  onClick={() => {
+                    if (alertModal.onClose) alertModal.onClose();
+                    setAlertModal(null);
+                  }}
+                  className={cn(
+                    "rounded-xl h-10 px-8 font-bold text-xs uppercase tracking-wider text-white",
+                    alertModal.type === 'success' ? "bg-emerald-500 hover:bg-emerald-600" : "bg-rose-500 hover:bg-rose-600"
+                  )}
+                >
+                  Okay
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
     </div >
   );
@@ -1947,7 +2053,7 @@ const DashboardSettings = () => {
 
 // \u2500\u2500 EmailSetupWizard Component \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-const PERSONAL_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','yahoo.in','rediffmail.com','icloud.com','live.com','msn.com','aol.com'];
+const PERSONAL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'yahoo.in', 'rediffmail.com', 'icloud.com', 'live.com', 'msn.com', 'aol.com'];
 
 const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: (p: any) => void }) => {
   const { toast } = useToast();
@@ -1980,11 +2086,11 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
       setProfile(updatedProfile);
     }
     localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
-    
+    const token = localStorage.getItem('token');
     try {
-      await fetch(`${apiBase}/profile/me`, { credentials: 'include',
+      await fetch(`${apiBase}/profile/me`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ use_generic_email_sender: val, has_selected_email_sender: true })
       });
       toast({ title: 'Preferences saved', description: val ? 'Now sending via SyncSocio network' : 'Switched to custom domain mode' });
@@ -1997,13 +2103,12 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        
-        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, { credentials: 'include',
-          headers: { }
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
-          const _rawJson88 = await res.json();
-            const data = _rawJson88 && _rawJson88.success !== undefined ? (_rawJson88.success ? _rawJson88.data : _rawJson88) : _rawJson88;
+          const data = await res.json();
           if (data.step) setStep(data.step);
           if (data.email_from) setFromEmail(data.email_from);
           if (data.domain) setDomain(data.domain);
@@ -2024,13 +2129,12 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
     if (step !== 2) return;
     const interval = setInterval(async () => {
       try {
-        
-        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, { credentials: 'include',
-          headers: { }
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiBase}/campaigns/email-setup/status`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
-          const _rawJson87 = await res.json();
-            const data = _rawJson87 && _rawJson87.success !== undefined ? (_rawJson87.success ? _rawJson87.data : _rawJson87) : _rawJson87;
+          const data = await res.json();
           if (data.step >= 3 && data.verified) {
             setStep(3);
             if (data.verified_at) setVerifiedAt(data.verified_at);
@@ -2043,7 +2147,7 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
           }
           if (data.dns_records) setDnsRecords(data.dns_records);
         }
-      } catch {}
+      } catch { }
     }, 2 * 60 * 1000);
     return () => clearInterval(interval);
   }, [step, profile, setProfile]);
@@ -2060,14 +2164,13 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
     }
     setSubmitting(true);
     try {
-      
-      const res = await fetch(`${apiBase}/campaigns/email-setup/start`, { credentials: 'include',
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/campaigns/email-setup/start`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ from_email: fromEmail })
       });
-      const _rawJson86 = await res.json();
-        const data = _rawJson86 && _rawJson86.success !== undefined ? (_rawJson86.success ? _rawJson86.data : _rawJson86) : _rawJson86;
+      const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to start setup');
       setDomain(data.domain);
       setDnsRecords(data.dns_records || []);
@@ -2083,13 +2186,12 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
   const handleVerify = async () => {
     setVerifying(true);
     try {
-      
-      const res = await fetch(`${apiBase}/campaigns/email-setup/verify`, { credentials: 'include',
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/campaigns/email-setup/verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', }
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       });
-      const _rawJson85 = await res.json();
-        const data = _rawJson85 && _rawJson85.success !== undefined ? (_rawJson85.success ? _rawJson85.data : _rawJson85) : _rawJson85;
+      const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Verification failed');
       if (data.verified) {
         setStep(3);
@@ -2118,7 +2220,7 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
   const formatDnsDisplay = (raw: any) => {
     if (!raw) return [];
     const purposes = ['Mail server routing', 'Email authentication (DKIM 1)', 'Email authentication (DKIM 2)'];
-    return ['mail_cname','dkim1','dkim2'].map((key, i) => ({
+    return ['mail_cname', 'dkim1', 'dkim2'].map((key, i) => ({
       type: 'CNAME',
       host: raw[key]?.host || '',
       value: raw[key]?.data || '',
@@ -2153,9 +2255,8 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
 
   if (loading) {
     return (
-      <div className="space-y-5 animate-pulse">
-        <div className="h-[200px] bg-muted/60 rounded-[2rem] border border-border/50"></div>
-        <div className="h-[400px] bg-muted/60 rounded-[2rem] border border-border/50"></div>
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -2188,14 +2289,14 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
                     <div className={cn(
                       'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition-all shrink-0',
                       isDone ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' :
-                      isActive ? 'bg-primary/15 text-primary border border-primary/30 ring-1 ring-primary/20' :
-                      'bg-muted/80 text-muted-foreground border border-border/50'
+                        isActive ? 'bg-primary/15 text-primary border border-primary/30 ring-1 ring-primary/20' :
+                          'bg-muted/80 text-muted-foreground border border-border/50'
                     )}>
                       <span className={cn(
                         'w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-extrabold shrink-0',
                         isDone ? 'bg-emerald-500 text-white' :
-                        isActive ? 'bg-primary text-white' :
-                        'bg-muted-foreground/20 text-muted-foreground'
+                          isActive ? 'bg-primary text-white' :
+                            'bg-muted-foreground/20 text-muted-foreground'
                       )}>
                         {isDone ? <CheckCheck size={10} /> : sNum}
                       </span>
@@ -2244,248 +2345,248 @@ const EmailSetupWizard = ({ profile, setProfile }: { profile: any, setProfile?: 
 
       {/* ─── STEP 1 ─────────────────────────────────────── */}
       {hasSelectedSender && !useGeneric && (
-      <>
-      <AnimatePresence mode="wait">
-        {step === 1 && (
-          <motion.div key="step1" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <Inbox size={14} className="text-primary" /> Your Sending Email
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Enter the email address you want to send campaigns from. This must be a business email — your domain will be authenticated with SendGrid so emails land in inboxes, not spam.
-                </p>
-
-                <div className="space-y-2">
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    Sending Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={fromEmail}
-                    onChange={e => setFromEmail(e.target.value.toLowerCase())}
-                    onKeyDown={e => e.key === 'Enter' && handleStart()}
-                    placeholder="hello@yourbrand.com"
-                    className="w-full h-11 rounded-xl border border-border/60 bg-background px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                  />
-                </div>
-
-                {/* Warning banner */}
-                <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
-                  <AlertTriangle size={14} className="text-amber-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-amber-700">Gmail and personal emails not supported</p>
-                    <p className="text-[11px] text-amber-600/80 mt-0.5">
-                      Use a business email like <span className="font-mono">hello@yourbrand.com</span>. 
-                      Get one free at <a href="https://www.zoho.com/mail/" target="_blank" rel="noreferrer" className="underline">zoho.com/mail</a> or 
-                      Google Workspace from ₹125/month.
+        <>
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div key="step1" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Inbox size={14} className="text-primary" /> Your Sending Email
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Enter the email address you want to send campaigns from. This must be a business email — your domain will be authenticated with SendGrid so emails land in inboxes, not spam.
                     </p>
-                  </div>
-                </div>
 
-                <button
-                  onClick={handleStart}
-                  disabled={submitting || !fromEmail}
-                  className={cn(
-                    'w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all',
-                    'bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20',
-                    (submitting || !fromEmail) && 'opacity-50 cursor-not-allowed'
-                  )}
-                >
-                  {submitting ? (
-                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Setting up...</>
-                  ) : (
-                    <>Continue <ArrowRight size={16} /></>
-                  )}
-                </button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* \u2500\u2500\u2500 STEP 2 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
-        {step === 2 && (
-          <motion.div key="step2" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-4">
-            <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                    <Shield size={14} className="text-primary" /> Add DNS Records
-                  </CardTitle>
-                  <button onClick={copyAllCsv} className="flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 transition">
-                    <Copy size={11} /> Copy all as CSV
-                  </button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Add these <strong>3 CNAME records</strong> to your domain registrar for{' '}
-                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-foreground">{domain}</code>:
-                  </p>
-                </div>
-
-                {/* DNS Records Table */}
-                <div className="rounded-2xl border border-border/50 overflow-hidden">
-                  <div className="grid grid-cols-[60px_1fr_1fr_40px] gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/30 px-4 py-2.5 border-b border-border/40">
-                    <span>Type</span>
-                    <span>Host</span>
-                    <span>Value</span>
-                    <span className="text-right">Status</span>
-                  </div>
-                  {dnsRecords.map((record: any, i: number) => (
-                    <div key={i} className="grid grid-cols-[60px_1fr_1fr_40px] gap-2 px-4 py-3 border-b border-border/30 last:border-b-0 items-center hover:bg-muted/10 transition-colors">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-foreground">{record.type}</span>
-                      </div>
-                      
-                      {/* Host with Copy */}
-                      <div className="min-w-0 pr-2 group/host flex items-start justify-between gap-1">
-                        <div className="min-w-0">
-                          <code className="text-[11px] font-mono text-foreground/80 break-all leading-tight block">{record.host || '—'}</code>
-                          <span className="text-[9px] text-muted-foreground/60">{record.purpose}</span>
-                        </div>
-                        <button
-                          onClick={() => copyRow(record.host, `host-${i}`)}
-                          className="w-6 h-6 rounded-lg hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary transition opacity-0 group-hover/host:opacity-100 shrink-0"
-                          title="Copy Host"
-                        >
-                          {copiedRow === `host-${i}` ? <CheckCheck size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                      
-                      {/* Value with Copy */}
-                      <div className="min-w-0 pr-2 group/val flex items-start justify-between gap-1">
-                        <div className="min-w-0">
-                          <code className="text-[11px] font-mono text-foreground/80 break-all leading-tight block">{record.value || '—'}</code>
-                        </div>
-                        <button
-                          onClick={() => copyRow(record.value, `val-${i}`)}
-                          className="w-6 h-6 rounded-lg hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary transition opacity-0 group-hover/val:opacity-100 shrink-0"
-                          title="Copy Value"
-                        >
-                          {copiedRow === `val-${i}` ? <CheckCheck size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                      
-                      {/* Status */}
-                      <div className="flex justify-end items-center pr-1">
-                        {record.valid
-                          ? <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center"><CheckCircle2 size={12} className="text-emerald-500" /></div>
-                          : <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-400" title="Pending verification" />
-                        }
-                      </div>
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        Sending Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={fromEmail}
+                        onChange={e => setFromEmail(e.target.value.toLowerCase())}
+                        onKeyDown={e => e.key === 'Enter' && handleStart()}
+                        placeholder="hello@yourbrand.com"
+                        className="w-full h-11 rounded-xl border border-border/60 bg-background px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                      />
                     </div>
-                  ))}
-                </div>
 
-                {/* Status legend */}
-                <div className="flex items-center gap-4 text-[11px] font-medium text-muted-foreground">
-                  <span className="flex items-center gap-1"><CheckCircle2 size={11} className="text-emerald-500" /> Verified</span>
-                  <span className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full border-2 border-amber-400" /> Pending</span>
-                </div>
-
-                {/* Registrar links */}
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Where to add these?</p>
-                  <div className="flex flex-wrap gap-2">
-                    {REGISTRAR_LINKS.map(r => (
-                      <a key={r.name} href={r.url} target="_blank" rel="noreferrer"
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center gap-1">
-                        {r.name} <ExternalLink size={10} className="opacity-50" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-2 space-y-3">
-                  <button
-                    onClick={handleVerify}
-                    disabled={verifying}
-                    className={cn(
-                      'w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all',
-                      'bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20',
-                      verifying && 'opacity-60 cursor-not-allowed'
-                    )}
-                  >
-                    {verifying ? (
-                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Checking records...</>
-                    ) : (
-                      <><CheckCircle2 size={16} /> I've added them — Verify now</>
-                    )}
-                  </button>
-                  <p className="text-center text-[11px] text-muted-foreground">
-                    ⏱ Checking automatically every 10 min in background · DNS can take up to 48 hours
-                  </p>
-                  <button
-                    onClick={() => { setStep(1); setDnsRecords([]); }}
-                    className="w-full text-[11px] font-semibold text-muted-foreground hover:text-foreground transition text-center"
-                  >
-                    ← Change sending email
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* \u2500\u2500\u2500 STEP 3 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
-        {step === 3 && (
-          <motion.div key="step3" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-            <Card className="rounded-[2rem] border-emerald-500/20 overflow-hidden shadow-sm">
-              <CardContent className="p-8 space-y-6">
-                {/* Success hero */}
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 size={32} className="text-emerald-500" />
-                  </div>
-                  <h3 className="text-xl font-black text-foreground">Email domain verified!</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Your campaigns will now send from:</p>
-                  <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20">
-                    <Mail size={14} className="text-primary" />
-                    <code className="text-sm font-bold text-primary font-mono">{fromEmail}</code>
-                  </div>
-                  {verifiedAt && (
-                    <p className="text-[11px] text-muted-foreground/60 mt-2">
-                      Verified {new Date(verifiedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  )}
-                </div>
-
-                {/* Status badges */}
-                <div className="grid grid-cols-1 gap-3">
-                  {[
-                    { icon: CheckCircle2, label: 'Deliverability', value: 'Professional', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
-                    { icon: Shield, label: 'Spam protection', value: 'Active — DKIM + CNAME', color: 'text-blue-600', bg: 'bg-blue-500/10' },
-                    { icon: Zap, label: 'DKIM signing', value: 'Enabled', color: 'text-violet-600', bg: 'bg-violet-500/10' },
-                  ].map(item => (
-                    <div key={item.label} className="flex items-center gap-4 p-4 rounded-2xl bg-muted/10 border border-border/30">
-                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', item.bg)}>
-                        <item.icon size={16} className={item.color} />
-                      </div>
+                    {/* Warning banner */}
+                    <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+                      <AlertTriangle size={14} className="text-amber-600 mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{item.label}</p>
-                        <p className="text-sm font-bold text-foreground">{item.value}</p>
+                        <p className="text-xs font-semibold text-amber-700">Gmail and personal emails not supported</p>
+                        <p className="text-[11px] text-amber-600/80 mt-0.5">
+                          Use a business email like <span className="font-mono">hello@yourbrand.com</span>.
+                          Get one free at <a href="https://www.zoho.com/mail/" target="_blank" rel="noreferrer" className="underline">zoho.com/mail</a> or
+                          Google Workspace from ₹125/month.
+                        </p>
                       </div>
-                      <CheckCircle2 size={14} className="text-emerald-500 ml-auto" />
                     </div>
-                  ))}
-                </div>
 
-                <a
-                  href="/dashboard/strategy?mode=email"
-                  className="w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20 transition-all"
-                >
-                  Start sending campaigns <ArrowRight size={16} />
-                </a>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-        </AnimatePresence>
+                    <button
+                      onClick={handleStart}
+                      disabled={submitting || !fromEmail}
+                      className={cn(
+                        'w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all',
+                        'bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20',
+                        (submitting || !fromEmail) && 'opacity-50 cursor-not-allowed'
+                      )}
+                    >
+                      {submitting ? (
+                        <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Setting up...</>
+                      ) : (
+                        <>Continue <ArrowRight size={16} /></>
+                      )}
+                    </button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* \u2500\u2500\u2500 STEP 2 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+            {step === 2 && (
+              <motion.div key="step2" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-4">
+                <Card className="rounded-[2rem] border-border/50 overflow-hidden shadow-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <Shield size={14} className="text-primary" /> Add DNS Records
+                      </CardTitle>
+                      <button onClick={copyAllCsv} className="flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 transition">
+                        <Copy size={11} /> Copy all as CSV
+                      </button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Add these <strong>3 CNAME records</strong> to your domain registrar for{' '}
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-foreground">{domain}</code>:
+                      </p>
+                    </div>
+
+                    {/* DNS Records Table */}
+                    <div className="rounded-2xl border border-border/50 overflow-hidden">
+                      <div className="grid grid-cols-[60px_1fr_1fr_40px] gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/30 px-4 py-2.5 border-b border-border/40">
+                        <span>Type</span>
+                        <span>Host</span>
+                        <span>Value</span>
+                        <span className="text-right">Status</span>
+                      </div>
+                      {dnsRecords.map((record: any, i: number) => (
+                        <div key={i} className="grid grid-cols-[60px_1fr_1fr_40px] gap-2 px-4 py-3 border-b border-border/30 last:border-b-0 items-center hover:bg-muted/10 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-foreground">{record.type}</span>
+                          </div>
+
+                          {/* Host with Copy */}
+                          <div className="min-w-0 pr-2 group/host flex items-start justify-between gap-1">
+                            <div className="min-w-0">
+                              <code className="text-[11px] font-mono text-foreground/80 break-all leading-tight block">{record.host || '—'}</code>
+                              <span className="text-[9px] text-muted-foreground/60">{record.purpose}</span>
+                            </div>
+                            <button
+                              onClick={() => copyRow(record.host, `host-${i}`)}
+                              className="w-6 h-6 rounded-lg hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary transition opacity-0 group-hover/host:opacity-100 shrink-0"
+                              title="Copy Host"
+                            >
+                              {copiedRow === `host-${i}` ? <CheckCheck size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                            </button>
+                          </div>
+
+                          {/* Value with Copy */}
+                          <div className="min-w-0 pr-2 group/val flex items-start justify-between gap-1">
+                            <div className="min-w-0">
+                              <code className="text-[11px] font-mono text-foreground/80 break-all leading-tight block">{record.value || '—'}</code>
+                            </div>
+                            <button
+                              onClick={() => copyRow(record.value, `val-${i}`)}
+                              className="w-6 h-6 rounded-lg hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary transition opacity-0 group-hover/val:opacity-100 shrink-0"
+                              title="Copy Value"
+                            >
+                              {copiedRow === `val-${i}` ? <CheckCheck size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                            </button>
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex justify-end items-center pr-1">
+                            {record.valid
+                              ? <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center"><CheckCircle2 size={12} className="text-emerald-500" /></div>
+                              : <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-400" title="Pending verification" />
+                            }
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Status legend */}
+                    <div className="flex items-center gap-4 text-[11px] font-medium text-muted-foreground">
+                      <span className="flex items-center gap-1"><CheckCircle2 size={11} className="text-emerald-500" /> Verified</span>
+                      <span className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full border-2 border-amber-400" /> Pending</span>
+                    </div>
+
+                    {/* Registrar links */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Where to add these?</p>
+                      <div className="flex flex-wrap gap-2">
+                        {REGISTRAR_LINKS.map(r => (
+                          <a key={r.name} href={r.url} target="_blank" rel="noreferrer"
+                            className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center gap-1">
+                            {r.name} <ExternalLink size={10} className="opacity-50" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 space-y-3">
+                      <button
+                        onClick={handleVerify}
+                        disabled={verifying}
+                        className={cn(
+                          'w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all',
+                          'bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20',
+                          verifying && 'opacity-60 cursor-not-allowed'
+                        )}
+                      >
+                        {verifying ? (
+                          <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Checking records...</>
+                        ) : (
+                          <><CheckCircle2 size={16} /> I've added them — Verify now</>
+                        )}
+                      </button>
+                      <p className="text-center text-[11px] text-muted-foreground">
+                        ⏱ Checking automatically every 10 min in background · DNS can take up to 48 hours
+                      </p>
+                      <button
+                        onClick={() => { setStep(1); setDnsRecords([]); }}
+                        className="w-full text-[11px] font-semibold text-muted-foreground hover:text-foreground transition text-center"
+                      >
+                        ← Change sending email
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* \u2500\u2500\u2500 STEP 3 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+            {step === 3 && (
+              <motion.div key="step3" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+                <Card className="rounded-[2rem] border-emerald-500/20 overflow-hidden shadow-sm">
+                  <CardContent className="p-8 space-y-6">
+                    {/* Success hero */}
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle2 size={32} className="text-emerald-500" />
+                      </div>
+                      <h3 className="text-xl font-black text-foreground">Email domain verified!</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Your campaigns will now send from:</p>
+                      <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20">
+                        <Mail size={14} className="text-primary" />
+                        <code className="text-sm font-bold text-primary font-mono">{fromEmail}</code>
+                      </div>
+                      {verifiedAt && (
+                        <p className="text-[11px] text-muted-foreground/60 mt-2">
+                          Verified {new Date(verifiedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Status badges */}
+                    <div className="grid grid-cols-1 gap-3">
+                      {[
+                        { icon: CheckCircle2, label: 'Deliverability', value: 'Professional', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+                        { icon: Shield, label: 'Spam protection', value: 'Active — DKIM + CNAME', color: 'text-blue-600', bg: 'bg-blue-500/10' },
+                        { icon: Zap, label: 'DKIM signing', value: 'Enabled', color: 'text-violet-600', bg: 'bg-violet-500/10' },
+                      ].map(item => (
+                        <div key={item.label} className="flex items-center gap-4 p-4 rounded-2xl bg-muted/10 border border-border/30">
+                          <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', item.bg)}>
+                            <item.icon size={16} className={item.color} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{item.label}</p>
+                            <p className="text-sm font-bold text-foreground">{item.value}</p>
+                          </div>
+                          <CheckCircle2 size={14} className="text-emerald-500 ml-auto" />
+                        </div>
+                      ))}
+                    </div>
+
+                    <a
+                      href="/dashboard/strategy?mode=email"
+                      className="w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] shadow-md shadow-primary/20 transition-all"
+                    >
+                      Start sending campaigns <ArrowRight size={16} />
+                    </a>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </>
       )}
     </div>
@@ -2499,139 +2600,202 @@ const BrandDesignGuidePill = ({
   guide,
   brandName,
   primaryColor,
+  onChange,
 }: {
   guide: string;
   brandName: string;
   primaryColor: string;
+  onChange?: (guide: string) => void;
 }) => {
-  const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(guide);
 
-  // Parse markdown into sections for structured display
-  const sections = guide
-    .split(/^## /m)
-    .filter(Boolean)
-    .map((s) => {
-      const lines = s.trim().split('\n');
-      const title = lines[0].replace(/^\d+\.\s*/, '').trim();
-      const body = lines.slice(1).join('\n').trim();
-      return { title, body };
-    });
+  useEffect(() => {
+    setEditValue(guide);
+  }, [guide]);
+
+  const handleSave = () => {
+    onChange?.(editValue);
+    setIsEditing(false);
+  };
+
+  const normalizedGuide = (isEditing ? editValue : guide).trim();
+  const sectionSource = normalizedGuide
+    .replace(/^#(?!#)\s+[^\n]+\n*/m, '')
+    .replace(/[ \t]+(?=##(?!#)\s+)/g, '\n\n')
+    .trim();
+  const hasMarkdownSections = /^##\s+/m.test(sectionSource);
+  const sections = hasMarkdownSections
+    ? sectionSource
+      .split(/^##\s+/m)
+      .filter(Boolean)
+      .map((section) => {
+        const lines = section.trim().split('\n');
+        const rawTitle = lines[0].replace(/^\d+\.\s*/, '').trim();
+        const inlineBody = rawTitle.match(/^([^()]+?)\s*\((.+)\)\.?$/);
+        return {
+          title: inlineBody ? inlineBody[1].trim() : rawTitle,
+          body: [inlineBody?.[2], ...lines.slice(1)].filter(Boolean).join('\n').trim(),
+        };
+      })
+    : [];
+
+  const cleanGuideText = (value: string) => value
+    .replace(/^[-*]\s+/, '')
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/`/g, '')
+    .trim();
 
   return (
-    <>
-      {/* Pill trigger */}
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all text-sm font-semibold text-primary w-full justify-between group"
-      >
-        <span className="flex items-center gap-2">
-          <BookOpen size={14} className="text-primary" />
-          Brand Design Guide
-        </span>
-        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-white opacity-90">
-          AI-Generated
-        </span>
-      </button>
+    <Dialog onOpenChange={(open) => { if (!open) setIsEditing(false); }}>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="flex cursor-pointer items-center gap-2 px-4 py-3 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-semibold text-primary w-full justify-between group"
+          aria-label={'Open ' + (brandName || 'brand') + ' design guide'}
+        >
+          <span className="flex items-center gap-2">
+            <BookOpen size={14} className="text-primary" />
+            Brand Design Guide
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="hidden sm:inline text-[11px] font-bold text-primary/80 group-hover:text-primary">
+              {onChange ? 'View & Edit guide' : 'View guide'}
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-white opacity-90">
+              AI-Generated
+            </span>
+          </span>
+        </button>
+      </DialogTrigger>
 
-      {/* Modal */}
-      <AnimatePresence>
-        {open && createPortal(
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
-            onClick={() => setOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 20, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-              className="w-full max-w-2xl max-h-[85vh] rounded-3xl border border-border/60 bg-background shadow-2xl flex flex-col overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
+      <DialogContent className="flex h-[85dvh] max-h-[48rem] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-background p-0 shadow-2xl">
+        <DialogHeader
+          className="shrink-0 px-7 py-5 border-b border-border/50 text-left"
+          style={{ background: 'linear-gradient(135deg, ' + primaryColor + '18, ' + primaryColor + '08)' }}
+        >
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
               <div
-                className="flex items-center justify-between px-7 py-5 border-b border-border/50"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}18, ${primaryColor}08)` }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: primaryColor }}
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                <BookOpen size={16} className="text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-black text-foreground pr-8">
+                  {brandName || 'Brand'} Design Guide
+                </DialogTitle>
+                <DialogDescription className="text-[11px] font-medium pr-8">
+                  Exact visual direction used by AI Ad Creatives
+                </DialogDescription>
+              </div>
+            </div>
+            {onChange && (
+              <div className="flex items-center gap-2 mr-6">
+                {isEditing ? (
+                  <>
+                    <Button size="sm" variant="outline" className="h-8 text-xs px-3" onClick={() => { setIsEditing(false); setEditValue(guide); }}>Cancel</Button>
+                    <Button size="sm" className="h-8 text-xs px-3" onClick={handleSave}>Save</Button>
+                  </>
+                ) : (
+                  <Button size="sm" variant="outline" className="h-8 text-xs px-3" onClick={() => setIsEditing(true)}>Edit Guide</Button>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogHeader>
+
+        <div
+          className="min-h-0 flex-1 touch-pan-y overscroll-contain overflow-y-auto px-7 py-6 space-y-5"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          {isEditing ? (
+            <div className="flex flex-col h-full space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Raw Guide Source</Label>
+              <Textarea
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                className="flex-1 font-mono text-xs p-4 rounded-xl border border-primary/20 bg-primary/5 focus-visible:ring-primary/40 resize-none"
+                placeholder="Enter markdown brand guidelines here..."
+              />
+            </div>
+          ) : sections.length > 0 ? (
+            sections.map((section, i) => (
+              <section key={section.title + '-' + i} className="space-y-2">
+                <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                  <span
+                    className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black text-white"
                     style={{ background: primaryColor }}
                   >
-                    <BookOpen size={16} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-foreground">{brandName}</p>
-                    <p className="text-[11px] text-muted-foreground font-medium">Brand Design Guide · AI-Generated</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setOpen(false)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="overflow-y-auto flex-1 px-7 py-6 space-y-5">
-                {sections.length > 0 ? (
-                  sections.map((section, i) => (
-                    <div key={i} className="space-y-2">
-                      <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                        <span
-                          className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black text-white"
-                          style={{ background: primaryColor }}
+                    {i + 1}
+                  </span>
+                  {cleanGuideText(section.title)}
+                </h3>
+                <div className="rounded-xl bg-muted/40 border border-border/40 px-4 py-3">
+                  {section.body.split('\n').filter(line => line.trim() && line.trim() !== '---').map((line, j, bodyLines) => {
+                    const trimmedLine = line.trim();
+                    const isSubheading = /^###\s+/.test(trimmedLine);
+                    const isBullet = /^\s*[-*]\s+/.test(line);
+                    const isTableRow = /^\|.*\|$/.test(trimmedLine);
+                    const isTableDivider = /^\|(?:\s*:?-+:?\s*\|)+$/.test(trimmedLine);
+                    const text = cleanGuideText(line);
+                    if (isTableDivider) return null;
+                    if (isSubheading) {
+                      return (
+                        <h4 key={j} className="pt-2 text-[12px] font-extrabold text-foreground first:pt-0">
+                          {cleanGuideText(trimmedLine.replace(/^###\s+/, ''))}
+                        </h4>
+                      );
+                    }
+                    if (isTableRow) {
+                      const cells = trimmedLine.slice(1, -1).split('|').map(cell => cleanGuideText(cell));
+                      const nextLine = bodyLines[j + 1]?.trim() || '';
+                      const isHeader = /^\|(?:\s*:?-+:?\s*\|)+$/.test(nextLine);
+                      return (
+                        <div
+                          key={j}
+                          className={cn(
+                            'grid gap-3 border-b border-border/40 py-2 text-[12px] last:border-b-0',
+                            isHeader ? 'font-extrabold text-foreground' : 'text-foreground/80'
+                          )}
+                          style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }}
                         >
-                          {i + 1}
-                        </span>
-                        {section.title}
-                      </h3>
-                      <div className="rounded-xl bg-muted/40 border border-border/40 px-4 py-3">
-                        {section.body.split('\n').filter(Boolean).map((line, j) => {
-                          const isBullet = line.startsWith('- ') || line.startsWith('* ');
-                          const isBold = line.startsWith('**') && line.includes('**', 2);
-                          if (isBullet) {
-                            return (
-                              <div key={j} className="flex items-start gap-2 text-[13px] text-foreground/85 leading-relaxed py-0.5">
-                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: primaryColor }} />
-                                <span dangerouslySetInnerHTML={{
-                                  __html: line.replace(/^[-*]\s/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                }} />
-                              </div>
-                            );
-                          }
-                          return (
-                            <p key={j} className="text-[13px] text-foreground/80 leading-relaxed py-0.5"
-                              dangerouslySetInnerHTML={{
-                                __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                              }}
-                            />
-                          );
-                        })}
+                          {cells.map((cell, cellIndex) => <span key={cellIndex}>{cell}</span>)}
+                        </div>
+                      );
+                    }
+                    return isBullet ? (
+                      <div key={j} className="flex items-start gap-2 text-[13px] text-foreground/85 leading-relaxed py-0.5">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: primaryColor }} />
+                        <span>{text}</span>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <pre className="text-[12px] text-foreground/80 leading-relaxed whitespace-pre-wrap font-mono">
-                    {guide}
-                  </pre>
-                )}
+                    ) : (
+                      <p key={j} className="text-[13px] text-foreground/80 leading-relaxed py-0.5">
+                        {text}
+                      </p>
+                    );
+                  })}
+                </div>
+              </section>
+            ))
+          ) : (
+            <div className="rounded-xl bg-muted/40 border border-border/40 px-5 py-4">
+              <p className="text-[13px] text-foreground/85 leading-6 whitespace-pre-wrap">
+                {cleanGuideText(normalizedGuide)}
+              </p>
+            </div>
+          )}
 
-                <p className="text-center text-[11px] text-muted-foreground pt-2">
-                  🤖 Auto-generated from your scraped brand data · Used only by AI Ad Creatives
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>,
-          document.body
-        )}
-      </AnimatePresence>
-    </>
+          {!isEditing && (
+            <p className="text-center text-[11px] text-muted-foreground pt-2">
+              Auto-generated from verified brand data · Used by AI Ad Creatives
+            </p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -2745,8 +2909,8 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
           className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       </button>
 
@@ -2771,7 +2935,7 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
               style={{ backgroundColor: draft }}
             >
               <div className="absolute inset-0 flex items-center justify-between px-4">
-                <span 
+                <span
                   className="text-xs font-black uppercase tracking-widest drop-shadow-sm transition-colors"
                   style={{ color: textColor }}
                 >
@@ -2784,7 +2948,7 @@ const ColorPicker = ({ value, onChange }: { value: string; onChange: (v: string)
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
                     fill="none" stroke={textColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
@@ -2869,7 +3033,7 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
   const [showManualForm, setShowManualForm] = useState(profile.whatsappPhoneId === 'pending_setup' || profile.whatsappWABAId === 'pending_setup');
   // Prevent the OAuth code exchange from firing more than once (StrictMode double-render guard)
   const oauthProcessed = useRef(false);
-  
+
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
   const FB_APP_ID = import.meta.env.VITE_FB_APP_ID || '1491990322515220';
 
@@ -2889,12 +3053,12 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
     }
     setSavingManual(true);
     try {
-      
-      const res = await fetch(`${apiBase}/whatsapp/callback`, { credentials: 'include',
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/whatsapp/callback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           isManualConfig: true,
@@ -2903,8 +3067,7 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
         }),
       });
 
-      const _rawJson84 = await res.json();
-        const data = _rawJson84 && _rawJson84.success !== undefined ? (_rawJson84.success ? _rawJson84.data : _rawJson84) : _rawJson84;
+      const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to save configuration.');
 
       const updatedProfile = {
@@ -2941,14 +3104,14 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
     } else if (code) {
       setLoading(true);
       // Exchange code for token
-      
+      const token = localStorage.getItem('token');
       const redirectUri = window.location.origin + window.location.pathname; // Should be http://localhost:5173/dashboard/settings
 
-      fetch(`${apiBase}/whatsapp/callback`, { credentials: 'include',
+      fetch(`${apiBase}/whatsapp/callback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           code,
@@ -2956,31 +3119,31 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
           redirectUri
         }),
       })
-      .then(res => res.json().then(data => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (!ok) throw new Error(data.message || 'Connection failed');
-        
-        const updatedProfile = {
-          ...profile,
-          whatsappIsConnected: true,
-          whatsappPhoneId: data.profile?.whatsappPhoneId || 'pending_setup',
-          whatsappWABAId: data.profile?.whatsappWABAId || 'pending_setup',
-          whatsappNumber: data.profile?.whatsappNumber || profile.whatsappNumber || '',
-        };
-        setProfile(updatedProfile);
-        localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok) throw new Error(data.message || 'Connection failed');
 
-        const displayNumber = data.profile?.whatsappNumber || data.profile?.whatsappPhoneId || 'your account';
-        toast({ title: '✅ WhatsApp Connected!', description: `Connected: ${displayNumber}` });
-      })
-      .catch((err: any) => {
-        toast({ title: 'Connection Failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
-      })
-      .finally(() => {
-        setLoading(false);
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      });
+          const updatedProfile = {
+            ...profile,
+            whatsappIsConnected: true,
+            whatsappPhoneId: data.profile?.whatsappPhoneId || 'pending_setup',
+            whatsappWABAId: data.profile?.whatsappWABAId || 'pending_setup',
+            whatsappNumber: data.profile?.whatsappNumber || profile.whatsappNumber || '',
+          };
+          setProfile(updatedProfile);
+          localStorage.setItem('syncsocio_profile', JSON.stringify(updatedProfile));
+
+          const displayNumber = data.profile?.whatsappNumber || data.profile?.whatsappPhoneId || 'your account';
+          toast({ title: '✅ WhatsApp Connected!', description: `Connected: ${displayNumber}` });
+        })
+        .catch((err: any) => {
+          toast({ title: 'Connection Failed', description: getFriendlyErrorMessage(err), variant: 'destructive' });
+        })
+        .finally(() => {
+          setLoading(false);
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        });
     }
   }, []);
 
@@ -2989,7 +3152,7 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
 
     const configId = '27762552940069627';
     const redirectUri = window.location.origin + window.location.pathname; // http://localhost:5173/dashboard/settings
-    
+
     // We must pass the exact extras stringified
     const extras = JSON.stringify({
       feature: 'whatsapp_embedded_signup',
@@ -2999,17 +3162,17 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
     });
 
     const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&config_id=${configId}&extras=${encodeURIComponent(extras)}&scope=whatsapp_business_management,whatsapp_business_messaging,business_management`;
-    
+
     window.location.href = oauthUrl;
   };
 
   const handleSyncTemplates = async () => {
     try {
       toast({ title: 'Syncing Templates', description: 'Submitting templates to Meta. Please wait...' });
-      
-      const res = await fetch(`${apiBase}/whatsapp/sync-templates`, { credentials: 'include',
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/whatsapp/sync-templates`, {
         method: 'POST',
-        headers: { },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to sync templates');
       toast({ title: 'Templates Synced', description: 'Your templates have been submitted for review.' });
@@ -3021,10 +3184,10 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
-      
-      const res = await fetch(`${apiBase}/whatsapp/disconnect`, { credentials: 'include',
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiBase}/whatsapp/disconnect`, {
         method: 'DELETE',
-        headers: { },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to disconnect');
 
@@ -3048,7 +3211,7 @@ const WhatsAppConnectionCard = ({ profile, setProfile }: { profile: any; setProf
   if (profile.whatsappIsConnected) {
     return (
       <div className="flex flex-col gap-4 p-4 sm:p-6 rounded-2xl bg-muted/30 border border-border/50">
-        
+
         {/* Billing Warning */}
         <div className="flex items-start gap-3 p-3.5 sm:p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-400">
           <AlertCircle size={18} className="shrink-0 mt-0.5" />

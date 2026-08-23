@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { EditorProvider, useEditor } from '@/contexts/EditorContext';
-import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot, Gift, LogOut, CreditCard, ArrowRight } from 'lucide-react';
+import { Home, Rss, BarChart3, Target, Calendar, Settings, Rocket, Pause, Bell, Menu, Sparkles, X, Zap, TrendingUp, MessageSquare, CheckCircle2, Clock, User, Upload, MessageCircle, HelpCircle, Library, ShoppingBag, Coins, Lock, Paintbrush, AlertCircle, Bot, Gift, LogOut, CreditCard, ArrowRight, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -124,6 +124,39 @@ const DashboardLayoutContent = () => {
     return () => window.removeEventListener('storage', checkBanner);
   }, [location.pathname]);
 
+  const [showBrandSuccess, setShowBrandSuccess] = useState(false);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (profile?.brandName === 'Processing...') {
+      interval = setInterval(async () => {
+        try {
+          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+          const token = localStorage.getItem('token');
+          if (!token) return;
+          const res = await axios.get(`${apiBase}/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.data && res.data.brandName !== 'Processing...') {
+            setProfile(res.data);
+            localStorage.setItem('syncsocio_profile', JSON.stringify(res.data));
+            
+            // Update the brands array as well so the dropdown reflects the new name!
+            setBrands(prev => prev.map(b => b._id === res.data._id ? { ...b, brandName: res.data.brandName } : b));
+            
+            setShowBrandSuccess(true);
+            localStorage.setItem('syncsocio_review_brand_pending', 'true');
+            localStorage.removeItem('syncsocio_review_brand_dismissed');
+            setShowReviewBrandBanner(true);
+            
+            setTimeout(() => setShowBrandSuccess(false), 8000);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [profile?.brandName]);
+
   const handleDismissReviewBanner = () => {
     localStorage.setItem('syncsocio_review_brand_dismissed', 'true');
     setShowReviewBrandBanner(false);
@@ -172,7 +205,8 @@ const DashboardLayoutContent = () => {
           });
 
           if (hasInterrupted) {
-            axios.post(`${import.meta.env.VITE_API_URL}/api/ai/log-client-error`, {
+            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+            axios.post(`${apiBase}/ai/log-client-error`, {
               provider: 'OTHER',
               endpoint: 'client-generation',
               errorMessage: 'Page refresh interruption'
@@ -1085,6 +1119,11 @@ const DashboardLayoutContent = () => {
             const data = _rawJson67 && _rawJson67.success !== undefined ? (_rawJson67.success ? _rawJson67.data : _rawJson67) : _rawJson67;
           setProfile(data);
           localStorage.setItem('syncsocio_profile', JSON.stringify(data));
+
+          if (data.userCredits !== undefined) {
+            setCredits(data.userCredits);
+            localStorage.setItem('syncsocio_credits', String(data.userCredits));
+          }
         } else if (res.status === 401) {
           console.error('Session expired or invalid. Redirecting to login.');
           
@@ -1297,49 +1336,72 @@ const DashboardLayoutContent = () => {
               onClearAll={clearAllTasks}
             />
 
-            {brands.length > 0 && (
-              <select
-                value={profile?._id || ''}
-                onChange={(e) => handleSwitchBrand(e.target.value)}
-                className="hidden sm:inline-block h-8 rounded-full px-3 text-[10px] font-black uppercase tracking-widest border border-border bg-card hover:border-primary transition-all cursor-pointer outline-none mr-2 max-w-[150px] truncate"
-              >
-                {brands.map((b) => (
-                  <option key={b._id} value={b._id} disabled={b.isLocked}>
-                    {b.brandName || 'Untitled Brand'} {b.isLocked ? ' 🔒 (Locked)' : ''}
-                  </option>
-                ))}
-              </select>
-            )}
+            <AnimatePresence mode="wait">
+              {profile?.brandName === 'Processing...' ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center gap-2 h-8 rounded-full pl-2 pr-3 sm:pr-4 bg-primary/10 border border-primary/20 mr-2 shadow-sm animate-pulse max-w-[140px] sm:max-w-none overflow-hidden"
+                >
+                  <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary truncate">Processing...</span>
+                </motion.div>
+              ) : brands.length > 0 ? (
+                <motion.select
+                  key="dropdown"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  value={profile?._id || ''}
+                  onChange={(e) => handleSwitchBrand(e.target.value)}
+                  className="inline-block h-8 rounded-full px-2 sm:px-3 text-[10px] font-black uppercase tracking-widest border border-border bg-card hover:border-primary transition-all cursor-pointer outline-none mr-2 max-w-[120px] sm:max-w-[150px] truncate"
+                >
+                  {brands.map((b) => (
+                    <option key={b._id} value={b._id} disabled={b.isLocked}>
+                      {b.brandName || 'Untitled Brand'} {b.isLocked ? ' 🔒 (Locked)' : ''}
+                    </option>
+                  ))}
+                </motion.select>
+              ) : null}
+            </AnimatePresence>
 
             <button
-              onClick={() => navigate('/dashboard/buy-credits')}
-              className="flex items-center gap-1 sm:gap-2 bg-primary/5 border border-primary/10 p-2 sm:px-3 sm:py-1.5 rounded-full mr-1 sm:mr-2 hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+              onClick={() => navigate('/setup?step=plan')}
+              className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-emerald-500 to-emerald-400 border border-emerald-400/50 p-2 sm:px-3 sm:py-1.5 rounded-full mr-1 sm:mr-2 hover:brightness-110 transition-all duration-200 cursor-pointer shadow-sm shadow-emerald-500/20"
             >
-              <Coins size={14} className="text-primary" />
-              <span className="hidden sm:inline text-[10px] font-black text-primary uppercase tracking-widest">Buy</span>
+              <Sparkles size={14} className="text-white" />
+              <span className="hidden sm:inline text-[10px] font-black text-white uppercase tracking-widest drop-shadow-sm">Upgrade</span>
             </button>
 
-            {/* ── Credits Badge ──────────────────────────────── */}
+            {/* ── Credits Badge & Buy Button ──────────────────────────────── */}
             {credits !== null && (
-              <div
+              <button
                 id="tour-nav-credits"
-                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border mr-1 transition-all duration-300 cursor-default select-none ${credits < 50
-                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
+                onClick={() => navigate('/dashboard/buy-credits')}
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border mr-1 transition-all duration-300 hover:brightness-95 active:scale-95 cursor-pointer select-none group shadow-sm ${credits < 50
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 hover:bg-rose-500/20'
                   : credits < 200
-                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
-                    : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700'
+                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 hover:bg-amber-500/20'
+                    : 'bg-gradient-to-r from-violet-500/10 to-blue-500/10 border-violet-400/20 text-violet-700 hover:opacity-80'
                   } ${creditsAnim ? 'scale-110' : 'scale-100'}`}
-                title={`${credits} credits remaining`}
+                title="Buy more credits"
               >
                 <Zap
-                  size={11}
+                  size={12}
                   className={`fill-current shrink-0 ${credits < 50 ? 'text-rose-500' : credits < 200 ? 'text-amber-500' : 'text-violet-500'
                     }`}
                 />
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  {credits.toLocaleString()} <span className="hidden sm:inline opacity-60 font-bold normal-case tracking-normal">cr</span>
+                <span className="text-[10.5px] font-black uppercase tracking-widest flex items-center">
+                  {credits.toLocaleString()} <span className="hidden sm:inline opacity-60 font-bold normal-case tracking-normal ml-1 mr-1">cr</span>
                 </span>
-              </div>
+                <div className={`flex items-center justify-center w-4 h-4 rounded-full ml-0.5 ${credits < 50 ? 'bg-rose-500/20 text-rose-600 group-hover:bg-rose-500 group-hover:text-white' :
+                    credits < 200 ? 'bg-amber-500/20 text-amber-700 group-hover:bg-amber-500 group-hover:text-white' :
+                      'bg-violet-500/15 text-violet-700 group-hover:bg-violet-500 group-hover:text-white'
+                  } transition-colors`}>
+                  <Plus size={10} strokeWidth={4} />
+                </div>
+              </button>
             )}
 
             <button
@@ -1374,7 +1436,7 @@ const DashboardLayoutContent = () => {
               <AnimatePresence>
                 {showProfileMenu && (
                   <>
-                    <div 
+                    <div
                       className="fixed inset-0 z-40"
                       onClick={() => setShowProfileMenu(false)}
                     />
@@ -1499,7 +1561,7 @@ const DashboardLayoutContent = () => {
                   <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600/[0.08] via-primary/[0.07] to-amber-500/[0.08] border border-primary/20 p-3.5 sm:p-4 shadow-sm shadow-primary/5 backdrop-blur-sm">
                     {/* Subtle decorative glow */}
                     <div className="absolute -right-8 -top-8 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-                    
+
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 relative z-10">
                       <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1 w-full sm:w-auto">
                         <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary mt-0.5 sm:mt-0 shadow-sm">
@@ -1804,7 +1866,7 @@ const DashboardLayoutContent = () => {
             </p>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowOutOfCreditsModal(false)}>Cancel</Button>
-              <Button className="flex-1 gradient-bg text-white border-0" onClick={() => { setShowOutOfCreditsModal(false); navigate('/dashboard/settings?tab=Plan%20%26%20Billing'); }}>Buy Plan</Button>
+              <Button className="flex-1 gradient-bg text-white border-0" onClick={() => { setShowOutOfCreditsModal(false); navigate('/dashboard/buy-credits'); }}>Buy Credits</Button>
             </div>
           </div>
         </div>
@@ -1827,27 +1889,62 @@ const DashboardLayoutContent = () => {
               <div>
                 <h3 className="text-lg font-bold text-foreground">Sign out of SyncSocio?</h3>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  You will be safely logged out of your session on <span className="font-semibold text-foreground">{brandName}</span>. You can sign back in anytime.
+                  You will be safely logged out of your session on <span className="font-semibold text-foreground">{profile?.brandName || 'Untitled Brand'}</span>. You can sign back in anytime.
                 </p>
               </div>
               <div className="flex gap-2.5 pt-2">
-                <Button
-                  variant="outline"
+                <button
                   onClick={() => setShowSignoutModal(false)}
-                  className="flex-1 rounded-xl h-10 text-xs font-semibold"
+                  className="flex-1 h-12 rounded-xl font-bold text-sm bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={handleSignOut}
-                  variant="destructive"
-                  className="flex-1 rounded-xl h-10 text-xs font-bold shadow-md shadow-destructive/20"
+                  className="flex-1 h-12 rounded-xl font-bold text-sm bg-destructive text-destructive-foreground hover:brightness-110 shadow-lg shadow-destructive/20 transition-all"
                 >
                   Sign Out
-                </Button>
+                </button>
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Brand Ready Fixed Notification */}
+      <AnimatePresence>
+        {showBrandSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, x: 20 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, y: -50, scale: 0.9 }}
+            className="fixed top-24 right-6 z-[100] flex items-start gap-4 p-4 rounded-2xl border border-emerald-500/30 bg-background shadow-2xl max-w-[320px]"
+          >
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
+              <CheckCircle2 size={20} className="text-emerald-500" />
+            </div>
+            <div className="flex-1 pr-4">
+              <h4 className="text-sm font-black text-foreground">Brand Profile Ready!</h4>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed font-medium">
+                Your brand DNA has been successfully extracted. Please review and tune it in Settings to ensure top quality outputs.
+              </p>
+              <button 
+                onClick={() => {
+                  setShowBrandSuccess(false);
+                  navigate('/dashboard/settings');
+                }}
+                className="mt-3 text-[10px] font-bold uppercase tracking-widest text-emerald-600 hover:text-emerald-500 transition-colors flex items-center gap-1"
+              >
+                Review Settings <ArrowRight size={12} />
+              </button>
+            </div>
+            <button 
+              onClick={() => setShowBrandSuccess(false)}
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

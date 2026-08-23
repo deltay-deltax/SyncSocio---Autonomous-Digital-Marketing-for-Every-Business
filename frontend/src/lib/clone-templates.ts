@@ -814,13 +814,14 @@ export interface CloneTemplate {
 }
 
 export interface Product {
-    _id?: string;
-    name: string;
-    imageBase64: string;
-    description?: string;
-    keyBenefit?: string;
-    price?: string;
-    offerPrice?: string;
+  _id: string;
+  name: string;
+  description?: string;
+  price?: string;
+  imageBase64: string;
+  imageUrls?: string[];
+  keyBenefit?: string;
+  offerPrice?: string;
 }
 
 export const CLONE_PRODUCTS: Product[] = [];

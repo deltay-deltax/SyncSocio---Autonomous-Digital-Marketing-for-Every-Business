@@ -23,6 +23,7 @@ from typing import List, Optional, Dict, Any
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 import json
+from ad_creative_agent import generate_ad_creatives
 
 from fal_visual_engine import (
     generate_fal_image_gpt2,
@@ -59,27 +60,103 @@ ASPECT_TO_FAL_SIZE: Dict[str, str] = {
 }
 
 
-# ──────────────────────────────────────────────
-# E-comm: Shot-type rotation (8 unique shots)
-# ──────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# E-COMM LISTING: Reverse-engineered 9-slot framework (Physical Product + Fashion)
+# Matches the architecture used by makelocalads.com (analysed Aug 2026)
+# ──────────────────────────────────────────────────────────────────────────────
 
-ECOMM_PRESERVATION_RULES = (
-    " The uploaded product image is the source of truth. Preserve the uploaded product exactly. "
-    "Do NOT redesign, recreate or reinterpret the product. "
-    "Preserve exactly: logo, mascot / character, typography, printed artwork, label graphics, packaging colors, "
-    "packaging proportions, package shape, cap / lid / seal, textures, shadows on the product, reflections on the product, "
-    "print alignment, and branding. "
-    "Do NOT: invent graphics, invent labels, invent packaging details, modernize branding, improve logos, "
-    "replace fonts, rewrite packaging text, change the mascot, change the package shape, move branding, "
-    "or remove product information. If any packaging detail is unclear, preserve it rather than hallucinating new details. "
-    "The product should remain visually identical to the uploaded image. Only modify what is required by the selected shot type. "
-    "Background, lighting, environment, camera angle, props and composition may change. "
-    "The product itself should remain unchanged unless the user explicitly requests a specific edit. "
-    "All packaging text should remain crisp and readable. All logos should remain sharp. All mascots should remain identical. "
-    "Generate a premium commercial marketplace product image suitable for Amazon, Flipkart, Shopify and Meesho. "
-    "The output should look like a professionally photographed studio image while preserving the uploaded product exactly. "
-    "Avoid blur. Avoid AI artifacts. Avoid warped geometry. Avoid distorted packaging. Avoid distorted text. "
-    "Avoid inconsistent branding. Produce an ultra-sharp, photorealistic, high-quality product image suitable for export at 1500x1500 pixels."
+# 9 slot template for physical products (supplements, skincare, electronics, food, FMCG)
+PHYSICAL_PRODUCT_SLOTS: List[str] = [
+    # slot 0 — Main Hero
+    "Show the exact [PRODUCT_NAME] on a pure white background. Use clean commercial lighting, "
+    "sharp focus, and a thumbnail-friendly three-quarter angle. The product must fill most of the "
+    "square frame, fully visible, with no loose props, text, badges, or graphics.",
+    # slot 1 — Benefit callouts
+    "Create a benefit-led product image with the product hero on a clean light background. Add "
+    "concise callouts for the top 3–4 key benefits or USPs. Keep language supportive, not "
+    "medicinal. Make the product label prominent.",
+    # slot 2 — Ingredients / Materials
+    "Highlight the key active ingredients or materials visually: product in center with neat "
+    "ingredient callouts or tasteful botanical/icon illustrations. Do not imply medical treatment "
+    "or guaranteed results.",
+    # slot 3 — Safety / Free-From / Certifications
+    "Feature dietary fit, free-from details, or certification icons in a clean icon grid beside "
+    "the product. Prioritize the most shopper-critical claims. Make it easy to scan for shoppers "
+    "with specific dietary restrictions or safety requirements.",
+    # slot 4 — Value / Bundle / Quantity
+    "Show the value or bundle story: multiple units or pack contents arranged neatly. Emphasize "
+    "daily-use routine or replenishment without making unverified savings or duration claims that "
+    "are not provided in the product information.",
+    # slot 5 — Lifestyle / Routine Context
+    "Create a routine-context or lifestyle image showing the product in its natural use "
+    "environment. The scene should feel calm, aspirational, and adult wellness-oriented — "
+    "suggesting an easy daily habit while avoiding dosage instructions or medical claims.",
+    # slot 6 — Texture / Macro Detail
+    "Show a close-up macro image focusing on texture, material quality, or product detail. "
+    "Communicate the product's physical form, format, and sensory qualities in a visually "
+    "appetizing but supplement-appropriate and commercially neutral way.",
+    # slot 7 — Label / Dimension / Technical
+    "Create a label-detail or dimensions image clearly showing the product's front and/or side "
+    "label, key certification icons, branding, and size or quantity markings. This helps shoppers "
+    "verify exactly what they are buying.",
+    # slot 8 — Usage / Care / Safety Reminders
+    "Create a step-by-step how-to-use or safety reminder image. Show usage infographic steps or "
+    "safety icons in a calm, practical, non-alarming tone. Keep the product prominent throughout.",
+]
+
+# 9 slot template for fashion / apparel
+FASHION_APPAREL_SLOTS: List[str] = [
+    # slot 0 — Main Hero
+    "Show the [PRODUCT_NAME] alone on a pure white background, front-facing on a clean ghost "
+    "mannequin or neatly folded flat. No props, no text, no badges. Sharp focus. Product fills "
+    "most of the square frame with clean edges.",
+    # slot 1 — Model Worn (Front)
+    "Create a polished model image showing the garment worn front-facing in a simple neutral "
+    "studio setting. Focus on the silhouette, fit, fabric drape, and the main design elements. "
+    "Lighting should be clean and even to render the fabric accurately.",
+    # slot 2 — Design Detail Close-Up
+    "Feature a close-up detail image of the garment's most distinctive design element — "
+    "embroidery, print, embellishment, or fabric texture. This should communicate the craft, "
+    "quality, and visual contrast that justify the purchase.",
+    # slot 3 — Lifestyle Styled Scene
+    "Show a lifestyle daily-wear or occasion scene with the garment styled for a casual outing, "
+    "festive moment, or workday. Pair simply with neutral accessories. The scene should feel "
+    "authentic, aspirational, and relatable to the target audience.",
+    # slot 4 — Feature Callout Labels
+    "Create a feature callout image using clean product photography with small labels pointing to "
+    "key visible attributes: fabric type, fit, neckline, sleeve length, garment length, and any "
+    "special craft or finishing detail. Use tasteful typography with arrows on the actual garment areas.",
+    # slot 5 — Back View
+    "Show the back view of the garment on a model or ghost mannequin. Highlight the back "
+    "neckline, back design or detailing, hem finish, and overall back silhouette to give shoppers "
+    "a complete 360-degree picture.",
+    # slot 6 — Finishing Details Close-Up
+    "Create a close-up image of the finishing details — cuffs, hem borders, side slits, "
+    "stitching, buttons, placket, or trim — to reassure shoppers about construction quality "
+    "beyond the front-facing hero shot.",
+    # slot 7 — Size & Fit Support
+    "Design a size and fit support image showing the garment on a model in a neutral forward-facing "
+    "pose with a simple size range note or fit description overlay. Help online shoppers choose "
+    "their size confidently without a physical try-on.",
+    # slot 8 — Care & Origin Info
+    "Create a care and origin information image with the garment neatly folded on a clean surface. "
+    "Include concise care instructions, fabric composition, net quantity, and country of origin. "
+    "Keep the tone premium and practical as a final trust-and-maintenance support image.",
+]
+
+# Static guardrails appended to EVERY E-Comm prompt (identical across all 9 slots)
+ECOMM_CONSISTENCY_RULE = (
+    "CONSISTENCY RULE: Keep the product's shape, materials, colors, proportions, label details, packaging details, "
+    "and overall visual identity consistent with this description. If no packaging images are provided, do not assume or invent fake packaging."
+)
+
+ECOMM_SAFETY_GUARDRAIL = (
+    "COMMERCIAL GUARDRAIL: Keep generated image prompts policy-safe and commercially neutral. Avoid explicit sexual "
+    "content, nudity, graphic violence, self-harm, hate, harassment, illegal activity, deception, "
+    "regulated goods misuse, unsafe instructions, or professional medical/legal/financial advice. "
+    "Treat minors and vulnerable groups with extra care. For sensitive products, avoid dosage, "
+    "treatment claims, guaranteed results, or depictions of risky use; prefer neutral "
+    "product-focused lifestyle scenes. Premium e-commerce product photography. Do not include random watermarks, chaotic layouts, or unreadable distorted text."
 )
 
 # ──────────────────────────────────────────────
@@ -381,6 +458,7 @@ def _brand_block(bd: Dict[str, Any]) -> str:
     headline       = ""
     website        = bd.get("website", "")
     logo           = bd.get("logo", "")
+    fonts          = ", ".join(bd.get("fonts", [])) if isinstance(bd.get("fonts"), list) else bd.get("fonts", "")
 
     location       = bd.get("location")
     country        = "Unknown"
@@ -399,6 +477,7 @@ def _brand_block(bd: Dict[str, Any]) -> str:
         f"Brand tone: {brand_tone}.\n"
         f"Visual style: {visual_vibe}.\n"
         f"Primary color: {primary_color}. Secondary: {secondary_color}.\n"
+        f"Brand Typography/Fonts: {fonts if fonts else 'Standard modern fonts'}.\n"
         f"Target audience: {target_audience}.\n"
         f"Key message: {headline}.\n"
         f"Product: {product_name}. USP: {usp}.\n"
@@ -434,11 +513,13 @@ def build_image_prompt(
 
     product_block = ""
     if product:
+        appearance = (product.get("adVisualDescription") or product.get("visual_description") or "").strip()
+        appearance_text = f"\nVERIFIED PRODUCT APPEARANCE: {appearance}" if appearance and "fail" not in appearance.lower() else ""
         product_block = f"""
 Featured Product: {product.get('name', '')}
 Price: {product.get('offerPrice', '') or product.get('price', '')}
 Key Benefit: {product.get('keyBenefit', '')}
-Description: {product.get('description', '')}
+Description: {product.get('description', '')}{appearance_text}
 
 Make this specific product the **hero** of the ad.
 Anchor the visual to this exact product.
@@ -631,9 +712,11 @@ def generate_instagram_caption_and_hashtags(
     index: int = 0,
     trigger_keyword: Optional[str] = "",
 ) -> str:
-    """Uses Gemini Flash to generate an engaging Instagram caption with relevant hashtags."""
+    print(f"[CaptionAgent] ✍️ Generating caption for {layout} with idea: '{idea}' (Keyword: '{trigger_keyword}')")
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.8)
+        import os
+        api_key = os.getenv("GOOGLE_API_KEY")
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.8, google_api_key=api_key)
         brand_name = brand_doc.get("brandName", "Brand")
         brand_block = _brand_block(brand_doc)
         
@@ -678,12 +761,16 @@ def generate_instagram_caption_and_hashtags(
             "Generate the caption now."
         )
         
+        print(f"[CaptionAgent] 📡 Calling Gemini 2.5 Flash API...")
         response = llm.invoke([SystemMessage(content=sys_msg), HumanMessage(content=user_msg)])
+        print(f"[CaptionAgent] ✅ Gemini responded successfully.")
         content = response.content
         if isinstance(content, list):
             content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
         return content.strip()
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"[CaptionAgent] ❌ Failed to generate caption via Gemini: {e}")
         default_captions = [
             "Your next obsession is here ✨ #glowup #d2c",
@@ -767,7 +854,252 @@ def refine_campaign_copy(brand_doc: Dict[str, Any], subject: str, body: str, ins
         }
 
 
-def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], platform: str, count: int, is_fashion: bool, layout: str, idea: str = "") -> List[str]:
+def _is_fashion_brand(brand_doc: Dict[str, Any]) -> bool:
+    """Returns True if brand's category is fashion / apparel."""
+    raw = (
+        brand_doc.get("otherCategory")
+        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
+        else brand_doc.get("businessCategory", "")
+    ).lower()
+    keys = ["fashion", "apparel", "clothing", "garment", "footwear",
+            "shoe", "accessory", "accessories", "streetwear",
+            "ethnic", "kurta", "saree", "jewellery", "jewelry"]
+    return any(k in raw for k in keys)
+
+
+def plan_ecomm_slots(product: Optional[Dict[str, Any]], count: int, is_fashion: bool) -> List[str]:
+    """
+    Uses Gemini to intelligently select the `count` most relevant slots from the full pool of 9
+    based on the specific product's features. Slot 1 is always forced.
+    """
+    pool = FASHION_APPAREL_SLOTS if is_fashion else PHYSICAL_PRODUCT_SLOTS
+    
+    # If they want all slots or more, just return the whole pool
+    if count >= len(pool):
+        return pool[:count]
+        
+    # Slot 1 (Main Hero) is ALWAYS required
+    selected = [pool[0]]
+    remaining_count = count - 1
+    
+    if remaining_count <= 0:
+        return selected
+
+    available_pool = pool[1:]
+    
+    prod_name = product.get("name", "Flagship product") if product else "Flagship product"
+    prod_desc = (product.get("description", "") if product else "")[:300]
+    prod_benefit = (product.get("keyBenefit", "") if product else "")[:200]
+    _specs = product.get("specifications", []) if product else []
+    prod_specs = "\n".join([f"{s.get('key', '')}: {s.get('value', '')}" for s in _specs if isinstance(s, dict)])
+    
+    has_back_image = False
+    if product:
+        has_back_image = bool(product.get("adVisualDescriptionSecondary") or (product.get("imageUrls") and len(product["imageUrls"]) > 0))
+    
+    system_prompt = (
+        "You are an E-Commerce Strategy Planner. Your job is to curate the perfect image gallery layout for a product.\n"
+        f"You must select exactly {remaining_count} additional slots from the provided menu to accompany the Main Hero image.\n"
+        "Return ONLY a JSON array of the exact strings from the menu. Do not invent new slots or modify the strings.\n"
+    )
+    if not has_back_image:
+        system_prompt += (
+            "CRITICAL: The user has NOT provided a back image for this product. You MUST AVOID selecting any slot that explicitly requires a 'Back View', 'rear silhouette', or 'Back label detail'. If you select those without a source image, the AI will heavily hallucinate the design.\n"
+        )
+    
+    system_prompt += "Example output: [\"Model (Front)...\", \"Size & Fit...\"]"
+    
+    user_prompt = f"Product: {prod_name}\nDescription: {prod_desc}\nBenefit: {prod_benefit}\nSpecs: {prod_specs}\n\n"
+    user_prompt += "AVAILABLE SLOTS TO CHOOSE FROM (Pick exactly " + str(remaining_count) + " based on what is most relevant for this specific product):\n\n"
+    user_prompt += "\n\n".join(available_pool)
+    
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.messages import SystemMessage, HumanMessage
+        import os, json
+        
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2, google_api_key=os.getenv("GOOGLE_API_KEY"))
+        response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+        raw = response.content.strip()
+        
+        start_idx = raw.find('[')
+        end_idx = raw.rfind(']')
+        if start_idx != -1 and end_idx != -1:
+            raw = raw[start_idx:end_idx+1]
+        
+        chosen_slots = json.loads(raw)
+        
+        # Verify the LLM returned exactly strings that exist in our pool
+        valid_chosen = [s for s in available_pool if any(s.startswith(c[:20]) for c in chosen_slots)]
+        
+        # If it failed to return enough valid ones, fallback to sequential
+        if len(valid_chosen) < remaining_count:
+            valid_chosen = valid_chosen + [s for s in available_pool if s not in valid_chosen]
+            
+        selected.extend(valid_chosen[:remaining_count])
+        
+    except Exception as e:
+        print(f"[EcommPlanner] ⚠️ Planning failed ({e}). Falling back to sequential slots.")
+        selected.extend(available_pool[:remaining_count])
+        
+    return selected
+
+
+def generate_ecomm_idea_briefs(
+    brand_doc: Dict[str, Any],
+    product: Optional[Dict[str, Any]],
+    platform: str,
+    count: int,
+    is_fashion: bool,
+    idea: Optional[str] = None,
+    language: str = "english",
+    has_avatar: bool = False,
+) -> tuple[List[str], List[str]]:
+    """
+    Director LLM: takes the appropriate slot template list (first `count` slots) and
+    calls Gemini Flash ONCE to produce product-specific, constraint-bound idea briefs
+    for every slot in a single JSON array response.
+
+    Returns: Tuple of (idea_briefs_list, slot_templates_list)
+    """
+    # Generate dynamic slots using LLM Planner instead of strict slicing
+    print(f"[EcommPlanner] 🧠 Planning {count} optimal e-commerce slots for {product.get('name', 'product') if product else 'product'}...")
+    slot_templates = plan_ecomm_slots(product, count, is_fashion)
+
+    # Apply Amazon vs non-Amazon rule for slot 0 (Main Hero)
+    slot_templates = list(slot_templates)
+    if platform != "Amazon":
+        slot_templates[0] = slot_templates[0].replace(
+            "on a pure white background",
+            f"on a clean, premium studio background appropriate for {platform}"
+        )
+
+    # Build product intelligence block
+    prod_name    = (product.get("name", "") if product else "") or brand_doc.get("brandName", "the product")
+    prod_desc    = (product.get("description", "") if product else "")[:300]
+    prod_benefit = (product.get("keyBenefit", "") if product else "")[:200]
+    prod_vision  = (product.get("adVisualDescription", "") if product else "")[:600]
+    prod_vision_sec = (product.get("adVisualDescriptionSecondary", "") if product else "")[:600]
+    if prod_vision_sec:
+        prod_vision += f"\n\nBACK/SECONDARY VIEW DESCRIPTION:\n{prod_vision_sec}"
+    prod_price   = (product.get("price", "") if product else "")
+    _specs = product.get("specifications", []) if product else []
+    prod_specs = "\n".join([f"{s.get('key', '')}: {s.get('value', '')}" for s in _specs if isinstance(s, dict)])
+
+    
+    # Build brand DNA block
+    brand_name      = brand_doc.get("brandName", "Brand")
+    category        = (
+        brand_doc.get("otherCategory")
+        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
+        else brand_doc.get("businessCategory", "General")
+    )
+    primary_color   = brand_doc.get("primaryColor", "#000000")
+    secondary_color = brand_doc.get("secondaryColor", "#FFFFFF")
+    visual_vibe     = brand_doc.get("visualVibe", "Clean Minimal")
+    brand_font      = brand_doc.get("typography", "Clean Sans-Serif")
+    brand_design_guide = brand_doc.get("brandDesignGuide", "")
+
+    platform_context = PLATFORM_RULES.get(platform, "Clean, premium, commercial product photography.")
+
+    numbered_slots = ""
+    for i, tmpl in enumerate(slot_templates):
+        slot_label = tmpl.split(".")[0][:80] if "." in tmpl else tmpl[:80]
+        numbered_slots += f"\n\nSLOT {i+1}/{count}:\n{tmpl}"
+
+    idea_block = f"\n\nADDITIONAL DIRECTION FROM USER: {idea}" if idea and idea.strip() else ""
+
+    system_prompt = (
+        "You are an expert E-Commerce Art Director generating product listing image briefs.\n"
+        "Your briefs should be commercially neutral, constraint-bound, and visually specific — "
+        "exactly like the ones used by top marketplace sellers on Amazon India.\n"
+        "IMPORTANT: You must ensure that EXACTLY ONE generated slot (e.g., the Ingredients or Detail slot) explicitly instructs the generative engine to 'use the back/label product image reference'. For all other slots, instruct it to use the 'front product image reference'.\n"
+        f"Return ONLY a valid JSON array of exactly {count} strings. No markdown, no explanation."
+
+    )
+
+    user_prompt = f"""Generate exactly {count} product-specific image briefs for this e-commerce listing.
+
+BRAND DNA & DESIGN LANGUAGE:
+- Brand Name: {brand_name}
+- Category: {category}
+- Visual Vibe: {visual_vibe}
+- Primary Color: {primary_color}
+- Secondary Color: {secondary_color}
+- Typography: {brand_font}
+
+COMPREHENSIVE BRAND DESIGN GUIDE:
+{brand_design_guide}
+
+PRODUCT INTELLIGENCE:
+- Product Name: {prod_name}
+- Description: {prod_desc}
+- Key Benefit: {prod_benefit}
+- Packaging / Visual: {prod_vision}
+- Price: {prod_price}
+- Specifications: {prod_specs}
+
+
+PLATFORM: {platform}
+- Platform aesthetic: {platform_context}
+
+FRAMEWORK: {"FASHION_APPAREL" if is_fashion else "PHYSICAL_PRODUCT"}
+{idea_block}
+
+SLOT TEMPLATES TO ADAPT:
+{numbered_slots}
+
+RULES FOR EACH BRIEF (Write 4-6 dense, highly specific sentences per slot):
+1. COMPOSITION & HERO: Start with an action verb (Show / Create / Feature / Highlight). Substitute the ACTUAL product name, colors, materials, and ingredients from Product Intelligence above.
+2. BACKGROUND & LIGHTING: Explicitly define the background. For Amazon, Slot 1 MUST be pure white (#FFFFFF). However, for ALL subsequent slots (Slot 2-9), NEVER use a plain white background. Instead, you MUST STRICTLY FOLLOW THE UI BACKGROUND COLOR RULE: Generate a very light, desaturated tint that complements both the primary and secondary brand colors. Never use the primary or secondary color directly as the background. Prioritize readability and visual balance (e.g., "very light, desaturated warm grey-pink backdrop", "soft washed-out mint gradient").
+3. HEADLINES, TYPOGRAPHY & OVERLAYS (Crucial): For any slot with text, explicitly define a strong HEADLINE (e.g., "KEY INGREDIENTS", "DIETARY FIT", "3-PACK CONTENTS"). Mention the font style (e.g., "{brand_font}"), the exact text color using hex codes (e.g., "text in {primary_color}"), and text placement. If applicable, add a subtle CTA or badge (e.g., "a pill-shaped badge reading 'Vegan Friendly'").
+4. INGREDIENT PROPS & VISUALS: Do not just say "add icons". When describing ingredients or flavors, explicitly command the visual engine to draw realistic supporting props (e.g., "subtle green botanical leaves", "ashwagandha root sticks", "sliced oranges", "water droplets"). Integrate these props beautifully around the product to elevate the premium feel.
+5. MAXIMIZE ECOMM INFO: This is a premium e-commerce listing, so pack the images with highly informative text. Instruct the visual engine to list a substantial amount of key ingredients (e.g., 4-6 primary ingredients) rather than just one or two, along with step-by-step usage instructions and key specifications. Cram the image with detailed text callouts, rich lists, and infographics so the shopper gets a comprehensive view without it becoming an unreadable wall of text.
+6. AMAZON MAIN IMAGE: Slot 1 (Main Hero) on Amazon MUST explicitly state "on a pure white background (#FFFFFF)" and "no text, no badges, no props".
+7. NO INVENTIONS: Only reference benefits, ingredients, or certifications verified in Product Intelligence. Never invent claims, competitor facts, certifications, savings amounts, or guaranteed results.
+8. MODELS: For fashion slots showing models: do NOT describe specific model skin tone or ethnicity.
+9. LANGUAGE: Write ALL output descriptions strictly in {language}.
+{f"10. AVATAR / VIRTUAL MODEL: The user has provided a specific virtual model/avatar. For any slot where a human model is naturally required or appropriate, you MUST explicitly design the scene around using this model." if has_avatar else ""}
+
+Return ONLY a JSON array of {count} strings: ["brief1", "brief2", ...]"""
+
+    try:
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3,
+                                      google_api_key=os.getenv("GOOGLE_API_KEY"))
+        response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+        raw = response.content
+        if isinstance(raw, list):
+            raw = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in raw)
+        raw = raw.strip()
+        if raw.startswith("```json"): raw = raw[7:]
+        if raw.startswith("```"): raw = raw[3:]
+        if raw.endswith("```"): raw = raw[:-3]
+        briefs = json.loads(raw.strip())
+        if isinstance(briefs, list) and len(briefs) == count:
+            print(f"[EcommDirector] ✅ Generated {count} idea briefs for {prod_name} on {platform}")
+            return briefs, slot_templates
+    except Exception as e:
+        print(f"[EcommDirector] ⚠️ LLM brief generation failed: {e}. Falling back to templates.")
+
+    # Fallback: return raw templates with product name substituted
+    return [t.replace("[PRODUCT_NAME]", prod_name) for t in slot_templates], slot_templates
+
+
+def assemble_ecomm_final_prompt(idea_brief: str, product_vision_desc: str) -> str:
+    """
+    Assembles the final prompt exactly like makelocalads.com:
+    [idea brief] + [product visual description] + [static consistency rule] + [static safety guardrail]
+    """
+    parts = [idea_brief.strip()]
+    if product_vision_desc and product_vision_desc.strip():
+        parts.append("PRODUCT REFERENCE DETAILS: " + product_vision_desc.strip())
+    parts.append(ECOMM_CONSISTENCY_RULE)
+    parts.append(ECOMM_SAFETY_GUARDRAIL)
+    return "\n\n".join(parts)
+
+
+def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]], platform: str, count: int, 
+is_fashion: bool, layout: str, idea: str = "", language: str = "english") -> List[str]:
     try:
         brand_name = brand_doc.get("brandName", "Brand")
         prod_name = product.get("name", "Flagship product") if product else "Flagship product"
@@ -813,6 +1145,11 @@ def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]
         else:
             user_prompt += "Plan a highly engaging sequence of shots suited for this brand's aesthetic.\n\n"
             
+        user_prompt += f"IMPORTANT LANGUAGE RULE: Write ALL directions and angle descriptions strictly in {language}.\n\n"
+            
+        if layout != "ecomm":
+            user_prompt += f"CRITICAL RULE ON BACKGROUNDS: Since you are planning {count} shots, you MUST strictly follow the UI BACKGROUND COLOR RULE for any shots that require a simple or solid background. Generate a very light, desaturated tint that complements both the primary and secondary brand colors. Never use the primary or secondary color directly as the background. Prioritize readability and visual balance.\n\n"
+            
         user_prompt += f"Output EXACTLY {count} labels in a JSON array."
         
         llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.4, google_api_key=os.getenv("GOOGLE_API_KEY"))
@@ -834,153 +1171,6 @@ def plan_image_shots(brand_doc: Dict[str, Any], product: Optional[Dict[str, Any]
     
     return ["Classic White Background"] + [f"Dynamic Angle {i}" for i in range(2, count + 1)]
 
-def build_ecomm_image_prompt(
-    brand_doc: Dict[str, Any],
-    product: Optional[Dict[str, Any]],
-    platform: str,
-    shot_label: str,
-    shot_index: int,
-    total_count: int,
-    ref_image: Optional[str] = None,
-    language: str = "english",
-    idea: Optional[str] = None,
-    avatar_url: Optional[str] = None,
-) -> tuple:
-    """
-    Dedicated E-comm listing prompt builder.
-    Returns (prompt_str, caption_str) for this specific image.
-
-    Strategy: Shot-type rotation guarantees compositional variety across N images.
-    Each image gets a unique SHOT directive from ECOMM_SHOT_TYPES (8 unique shots).
-    For counts > 8, shots cycle with warm/cool tone variant suffixes.
-    """
-    # ── 1. Brand DNA block ──────────────────────────────────────────
-    brand_name      = brand_doc.get("brandName", "Brand")
-    category        = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "General"))
-    brand_tone      = brand_doc.get("brandTone", "Modern & Engaging")
-    visual_vibe     = brand_doc.get("visualVibe", "Clean Minimal")
-    primary_color   = brand_doc.get("primaryColor", "#2563EB")
-    secondary_color = brand_doc.get("secondaryColor", "#60A5FA")
-    target_audience = ", ".join(brand_doc.get("targetAudiences", [])) or "General audience"
-    usp             = brand_doc.get("usp", "")
-    main_goal       = brand_doc.get("mainGoal", "")
-
-    brand_line = (
-        f"BRAND: {brand_name} — {category}. "
-        f"Tone: {brand_tone}. "
-        f"Colors: {primary_color} / {secondary_color}. "
-        f"Visual style: {visual_vibe}. "
-        f"Target: {target_audience}."
-        + (f" USP: {usp}." if usp else "")
-    )
-
-    # ── 2. Product DNA block ────────────────────────────────────────
-    if product:
-        p_name    = product.get("name", "") or brand_name
-        p_desc    = product.get("description", "")
-        p_benefit = product.get("keyBenefit", "")
-        product_line = (
-            f"PRODUCT: {p_name}"
-            + (f' | "{p_desc}"' if p_desc else "")
-            + (f" | Benefit: {p_benefit}" if p_benefit else "")
-            + ". Use the reference image to accurately stylize the product, but adapt it fully to the new composition and scene."
-        )
-        caption_product = p_name
-    else:
-        product_line = f"PRODUCT: {brand_name} flagship product. Brand packaging as hero."
-        caption_product = brand_name
-
-    # ── 3. Detect fashion/apparel category ──────────────────────────────
-    _raw_cat = (
-        brand_doc.get("otherCategory")
-        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
-        else brand_doc.get("businessCategory", "")
-    ).lower()
-    _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
-                     "shoe", "accessory", "accessories", "streetwear",
-                     "ethnic", "kurta", "saree", "jewellery", "jewelry"]
-    is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
-
-    # ── 4. Platform rule ────────────────────────────────────────────
-    if platform == "Amazon" and shot_index == 0:
-        # Amazon Main Image: Strict isolation rules, white background, no text
-        platform_line = (
-            "PLATFORM (Amazon Main Image): White or very light grey background required. "
-            "Product fully isolated. No lifestyle elements. Clean edges. Meets Amazon main image policy."
-        )
-        text_instruction = "No text overlays, no logos added, no watermarks (Amazon main image compliance)."
-    else:
-        # Amazon Secondary Images & All Other Platforms: Info-graphics, overlays, styled backgrounds allowed
-        if platform == "Amazon":
-            platform_line = (
-                "PLATFORM (Amazon Secondary Image): Lifestyle, or styled composition allowed. "
-                "Visually rich backgrounds and context allowed for secondary listings."
-            )
-        else:
-            platform_rule = PLATFORM_RULES.get(platform, "Clean, premium, commercial product photography.")
-            platform_line = f"PLATFORM ({platform}): {platform_rule}"
-        
-        if is_fashion:
-            text_instruction = "No text overlays, no typographic elements, no text, no watermarks."
-        else:
-            text_instruction = (
-                "Include professional, clean typographic text overlays highlighting key product benefits "
-                "or features as appropriate. "
-                "No generic watermarks or external logos."
-            )
-
-    # ── 5. Shot-type directive (agent planned) ──────────────────────────
-    shot_line  = f"SHOT {shot_index + 1}/{total_count} — {shot_label}: Compose the visual to perfectly capture this specific shot angle."
-    caption    = f"{caption_product} · {shot_label} ({platform}) ✨"
-
-    # ── 5. Ref-image instruction ────────────────────────────────────
-    ref_line = f"\nREFERENCE: Visually adapt the attached product into the scene perfectly." if ref_image else ""
-    if avatar_url:
-        ref_line += (
-            "\n\nREF IMAGES PROVIDED: You have received a human model avatar reference image and a product reference image. "
-            "Apply the product exactly as shown onto the provided human model. "
-            "Ensure the model's face, ethnicity, and identity remain EXACTLY as pictured in the avatar reference image!"
-        )
-
-    # ── 6. Final closing instruction ────────────────────────────────
-    closing = (
-        "Premium marketplace product listing image. "
-        "Photorealistic, commercial photography quality. "
-        f"{text_instruction} "
-        f"Any text overlays or words shown in the image must be in {language}. "
-        "Everything must look ultra-realistic."
-    )
-
-    # ── Detect fashion/apparel category ─────────────────────────────────
-    _raw_cat = (
-        brand_doc.get("otherCategory")
-        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
-        else brand_doc.get("businessCategory", "")
-    ).lower()
-    _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
-                     "shoe", "accessory", "accessories", "streetwear",
-                     "ethnic", "kurta", "saree", "jewellery", "jewelry"]
-    is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
-    
-    fashion_note = ""
-    if is_fashion and (platform != "Amazon" or shot_index > 0):
-        # Amazon Main image (shot_index 0) requires pure white background isolation.
-        # But for secondary shots and other platforms, apply the fashion lifestyle directive.
-        fashion_note = (
-            "\nFASHION BRAND DIRECTIVE: This is a fashion/apparel product. The image MUST look like a high-end fashion editorial or premium e-commerce lookbook shot. "
-            "Show the product dynamically worn or styled by a model in an aspirational, highly aesthetic lifestyle context. "
-            "Include elements of premium branding where appropriate (e.g., luxury packaging, stylish hang tags, or high-end unboxing elements). "
-            "Focus on garment fit, texture, styling, and dynamic poses. Do NOT isolate the product on a boring plain background."
-        )
-
-    idea_line = ""
-    if shot_index > 0 and idea and idea.strip():
-        idea_line = f"\nCAMPAIGN IDEA / OPTIONAL INSTRUCTIONS: {idea}"
-    prompt = f"{brand_line}\n{product_line}\n{platform_line}\n{shot_line}{ref_line}{idea_line}\n{closing}{fashion_note}"
-
-    print(f"[EcommAgent] 📸 Planning Shot {shot_index + 1}/{total_count} - {shot_label}")
-
-    return prompt, caption
 
 
 def build_carousel_slide_prompts(
@@ -989,57 +1179,301 @@ def build_carousel_slide_prompts(
     slide_count: int,
     product: Optional[Dict[str, Any]] = None,
     language: str = "english"
-) -> List[str]:
-    """Uses Gemini Flash to draft content for N slides."""
+) -> Dict[str, Any]:
+    """Uses Gemini 2.5 Flash as a Creative Director to draft a strategy and slides."""
     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
 
-    block = _brand_block(brand_doc)
-    prod_info = ""
+    brand_design_guide = brand_doc.get("brandDesignGuide", "")
+    if not brand_design_guide:
+        brand_design_guide = json.dumps(_brand_block(brand_doc))
+
+    product_info = ""
     if product:
-        prod_info = f"\nAnchor this carousel around the product: {product.get('name')}. Benefit: {product.get('keyBenefit')}."
+        product_info = json.dumps({
+            "name": product.get("name"),
+            "description": product.get("description"),
+            "keyBenefit": product.get("keyBenefit"),
+            "specifications": product.get("specifications"),
+            "appearance": product.get("adVisualDescription") or product.get("visual_description") or ""
+        }, indent=2)
 
-    idea_info = f"\nCampaign Idea/Topic: {idea}" if idea else ""
+    idea_info = f"\n\nADDITIONAL USER DIRECTION:\n{idea}" if idea else ""
 
-    # Detect fashion category for specialised copy framing
-    _raw_cat = (
-        brand_doc.get("otherCategory")
-        if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory")
-        else brand_doc.get("businessCategory", "")
-    ).lower()
-    _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear",
-                     "shoe", "accessory", "accessories", "streetwear",
-                     "ethnic", "kurta", "saree", "jewellery", "jewelry"]
-    fashion_note = ""
-    if any(k in _raw_cat for k in _FASHION_KEYS):
-        fashion_note = (
-            "\nFASHION BRAND CAROUSEL RULE: Write copy suited for fashion content — "
-            "e.g. styling guides ('5 ways to wear this'), lookbook reveals, collection drops, "
-            "'outfit of the day' concepts, fabric story, occasion dressing. "
-            "Do NOT write generic product feature lists or bland benefit bullets. "
-            "Make it aspirational, editorial, and style-forward."
-        )
+    prompt = f"""You are the Creative Director for a premium physical-product brand.
 
-    prompt = f"""{block}{prod_info}{idea_info}{fashion_note}
-Write the text for an Instagram Carousel with EXACTLY {slide_count} slides.
-Output the text in {language}.
-Make it punchy and engaging. Slide 1 is the hook. The last slide is the Call to Action.
-Output ONLY a valid JSON array of strings, where each string is the text for one slide. Do not use Markdown formatting.
-Example output:
-["Slide 1 text here", "Slide 2 text here"]
+Create a professionally art-directed {slide_count}-slide social media carousel using the inputs below.
+The final carousel slides must be written in {language}.
+
+INPUTS
+
+BRAND DESIGN GUIDE:
+{brand_design_guide}
+
+PRODUCT INFORMATION:
+{product_info}
+{idea_info}
+
+CREATIVE DECISION — CAROUSEL TYPE & VISUAL STYLE
+
+The user does NOT need to choose a carousel type or visual style.
+You must independently select the most appropriate CAROUSEL TYPE and VISUAL STYLE based on the PRODUCT INFORMATION and BRAND DESIGN GUIDE.
+Do not ask the user to choose.
+
+CAROUSEL TYPE defines WHAT the carousel communicates.
+You must select exactly ONE from:
+- Educational
+- Problem → Solution
+- Benefits
+- Comparison
+- Transformation
+- Product Deep Dive
+- FAQ
+- Myth → Fact
+- Social Proof
+- Offer
+
+VISUAL STYLE defines HOW the carousel looks.
+You must select exactly ONE from:
+- Minimal Premium
+- Editorial
+- Cinematic
+- Collage
+- Neo-Brutalist
+- Clinical
+- Lifestyle
+- Luxury
+- Playful
+- Bold / High-Contrast
+
+Choose the combination that best fits the product category, product information, brand identity, target audience and communication opportunity.
+Do not randomly select styles.
+Do not default to the same type or style for every product.
+The selected CAROUSEL TYPE and VISUAL STYLE must be explicitly returned inside carousel_strategy so downstream systems know the creative direction that was chosen.
+If multiple options could work, choose the one that produces the clearest and strongest {slide_count}-slide story while remaining faithful to the brand.
+
+CORE LOGIC
+CAROUSEL TYPE defines WHAT the carousel communicates, why the audience should swipe, and the intended narrative.
+VISUAL STYLE defines HOW the carousel looks, including aesthetic mood, photography language, composition and overall design character.
+BRAND DESIGN GUIDE defines the brand's visual identity. Extract and consistently apply its colors, typography, tone, spacing, graphic language, imagery style and other relevant rules.
+PRODUCT INFORMATION is the only source of truth for product facts and claims.
+If information is missing, do not invent it.
+
+DIRECTOR RESPONSIBILITY
+Think like a creative director, not a template generator.
+First determine:
+- Appropriate audience
+- Core message
+- Emotional response
+- Visual direction
+- Narrative flow
+- CTA
+- Best visual treatment for each slide
+
+Then create exactly {slide_count} slides with a strong narrative progression appropriate to the selected carousel type.
+A progression such as:
+HOOK → CONTEXT → PRODUCT → VALUE → USAGE/DETAIL → CTA
+is only a guideline.
+Do not force this structure when another narrative is more appropriate for the selected carousel type.
+Every slide must contribute a new piece of information or visual progression.
+
+VISUAL TREATMENT
+For every slide, independently select the treatment that best communicates its purpose.
+Possible treatments include:
+Product photography, Lifestyle photography, Product close-up, Typography-led, Educational graphic, Infographic, Diagram, Illustration, Collage, Abstract graphic, Comparison graphic, Product + graphic hybrid, Photography + typography hybrid.
+Do NOT use the same treatment repeatedly unless repetition is intentionally justified by the narrative.
+Do NOT assume every slide needs a product image.
+Do NOT assume every slide needs photography.
+Use typography, graphics, diagrams, illustrations or abstract compositions when they communicate the idea more effectively.
+The product should appear only when it strengthens the slide.
+
+VISUAL VARIETY
+The carousel must feel like one campaign, not {slide_count} copies of the same layout.
+Create intentional variation through:
+- Product scale
+- Product cropping
+- Camera perspective
+- Composition
+- Typography placement
+- Visual density
+- Treatment type
+- Background structure
+- Graphic elements
+- Image-to-text ratio
+Avoid repetitive centered product shots, identical layouts and unnecessary decorative elements.
+Across {slide_count} slides, avoid making the product the dominant visual on every slide unless the selected carousel type genuinely requires it.
+
+PRODUCT ACCURACY
+Whenever the product appears, preserve the supplied product exactly.
+Do not redesign, recolor, reshape, simplify or replace:
+- Packaging
+- Logo
+- Label
+- Typography on packaging
+- Product proportions
+- Cap/pump/bottle structure
+- Brand colors
+- Visible product details
+The supplied product reference has priority over assumptions.
+Never add packaging details that are not visible or provided.
+Never modify the product merely to fit the selected visual style.
+
+CLAIM & COPY RULES
+Use only information available in PRODUCT INFORMATION and BRAND DESIGN GUIDE.
+Do not invent:
+- Ingredients, Benefits, Statistics, Clinical results, Certifications, Reviews, Prices, Discounts, Features, Performance claims, Before/after results, Medical claims, Testimonials
+Do not exaggerate a factual product statement into a stronger unsupported claim.
+If the product information does not support a claim, do not use the claim.
+Keep headlines short, punchy and readable.
+Supporting copy should provide context without overcrowding the slide.
+Do not add filler copy merely to make a slide look complete.
+
+IMAGE DECISION
+For every slide, decide whether a generated photographic/product image is actually necessary.
+If an image is required, include detailed image-generation direction inside the slide paragraph covering subject, environment, composition, perspective, lighting, props and visual mood.
+If no generated photographic image is needed, explicitly write:
+"NO PHOTOGRAPHIC IMAGE REQUIRED."
+The slide should then be designed as typography, graphic, infographic, diagram, illustration or another appropriate non-photographic treatment.
+Do not generate an image simply because the product is physical.
+
+TEXT RENDERING
+All important slide copy must be explicitly identified so a downstream image-generation/design system knows exactly what text belongs on the slide.
+Keep text minimal enough to remain readable in a social-media carousel.
+Do not place important copy in visually crowded areas.
+Use the brand typography hierarchy from the BRAND DESIGN GUIDE.
+If the guide does not specify a font, choose a suitable typography direction consistent with the selected visual style without inventing a fictional brand font.
+Do not add unnecessary text solely for visual decoration.
+
+DESIGN CONSISTENCY
+Across all slides maintain:
+- Brand color system
+- Typography language
+- Graphic language
+- Spacing principles
+- Overall mood
+- Photography/lighting language
+- Premium brand character
+However, do not force identical layouts.
+Every slide should have one clear communication objective and strong visual hierarchy.
+The selected visual style should influence the entire carousel while still allowing individual slides to use different visual treatments.
+
+CTA
+The final slide must contain an appropriate CTA based on the selected CAROUSEL TYPE, product and available information.
+Do not automatically use "Shop Now".
+Possible CTA directions include: Explore, Learn More, Discover, Save This, Try It, Build Your Routine, Follow for More, Visit Profile.
+Choose the CTA based on the actual objective.
+Do not invent a purchase destination, URL, price or promotional offer.
+
+SLIDE DIRECTION
+For each slide, write ONE concise but sufficiently detailed paragraph.
+Start every paragraph exactly with:
+"Visual Treatment: [selected treatment]."
+The paragraph must contain:
+- Slide purpose
+- Exact headline
+- Supporting copy when needed
+- CTA when applicable
+- What the viewer should see
+- Product presence and placement when needed
+- Composition and background
+- Photography direction when applicable
+- Colors and typography
+- Text hierarchy and placement
+- Image-generation direction when required
+Do not use bullet points inside the paragraph.
+Each paragraph must remain a single cohesive paragraph.
+
+QUALITY CONTROL
+Before returning the JSON, verify:
+1. Exactly {slide_count} slides are present.
+2. Exactly ONE approved carousel type was selected.
+3. Exactly ONE approved visual style was selected.
+4. The selected type genuinely fits the product and brand.
+5. The selected style genuinely fits the brand and product category.
+6. Each slide has one clear idea.
+7. The narrative progresses logically.
+8. Visual treatments are intentionally selected.
+9. Visual treatments are not unnecessarily repetitive.
+10. Not every slide unnecessarily contains photography or the product.
+11. Product packaging remains accurate.
+12. No unsupported claims were introduced.
+13. Copy is concise and readable.
+14. Slides feel visually related but compositionally varied.
+15. The final slide has an appropriate CTA.
+16. Every creative_direction is exactly one paragraph.
+17. No information outside the supplied inputs has been invented.
+18. The response is valid JSON.
+
+OUTPUT
+Return ONLY valid JSON using this exact structure:
+{{
+  "carousel_strategy": {{
+    "carousel_type": "",
+    "visual_style": "",
+    "core_message": "",
+    "audience": "",
+    "emotional_direction": "",
+    "visual_vibe": "",
+    "narrative_flow": "",
+    "cta": ""
+  }},
+  "slides": [
+    {{
+      "slide_number": 1,
+      "creative_direction": ""
+    }}
+  ]
+}}
+
+FINAL OUTPUT RULES
+Return ONLY valid JSON.
+No Markdown.
+No bullet points.
+No explanations.
+No additional fields.
+Each "creative_direction" must be ONE cohesive paragraph beginning with "Visual Treatment: ...".
+If a slide does not require a generated photographic image, include "NO PHOTOGRAPHIC IMAGE REQUIRED." within that paragraph.
 """
     try:
-        response = llm.invoke([HumanMessage(content=prompt)])
-        content = response.content
-        if isinstance(content, list):
-            content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
-        text = content.strip()
-        if text.startswith("```json"): text = text[7:]
-        if text.startswith("```"): text = text[3:]
-        if text.endswith("```"): text = text[:-3]
-        return json.loads(text.strip())
+        import requests
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("[CarouselAgent] ❌ OPENAI_API_KEY missing. Falling back to Gemini.")
+            response = llm.invoke([HumanMessage(content=prompt)])
+            content = response.content
+            if isinstance(content, list):
+                content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+            text = content.strip()
+            if text.startswith("```json"): text = text[7:]
+            if text.startswith("```"): text = text[3:]
+            if text.endswith("```"): text = text[:-3]
+            return json.loads(text.strip())
+            
+        payload = {
+            "model": "gpt-4o",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7,
+            "response_format": {"type": "json_object"}
+        }
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            return json.loads(content)
+        else:
+            print(f"[CarouselAgent] ❌ OpenAI Error {resp.status_code}: {resp.text}")
+            raise Exception("OpenAI API failed")
+
     except Exception as e:
         print(f"[CarouselAgent] ❌ LLM failed: {e}")
-        return [f"Slide {i+1}" for i in range(slide_count)]
+        return {
+            "carousel_strategy": {"carousel_type": "Standard", "visual_style": "Minimal"},
+            "slides": [{"slide_number": i+1, "creative_direction": "Visual Treatment: Product photography. A premium product image."} for i in range(slide_count)]
+        }
 
 
 def build_video_prompt(brand_doc: Dict[str, Any], idea: Optional[str], aspect: str, language: str = "english") -> str:
@@ -1136,86 +1570,84 @@ Orchestrates generation for all layout types.
     assigned_products = assign_products(products, count) if products else [None] * count
     assigned_refs = select_ref_images(ref_images, count) if not products else [None] * count
 
-    # ── E-COMM ─────────────────────────────────
+    # ── E-COMM ─────────────────────────────────────────────────────────────────
+    # New architecture (Aug 2026): reverse-engineered 9-slot framework matching
+    # makelocalads.com — idea brief + product vision desc + static guardrails
+    # ──────────────────────────────────────────────────────────────────────────
     if layout == "ecomm":
         fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
         plat = platform or "Shopify"
-        
-        # ── 1. Plan Shots (Agentic Orchestration) ──
-        _raw_cat = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")).lower()
-        _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear", "shoe", "accessory", "accessories", "streetwear", "ethnic", "kurta", "saree", "jewellery", "jewelry"]
-        is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
-        
-        planned_shots = plan_image_shots(
-            brand_doc=brand_doc, 
-            product=products[0] if products else None, 
-            platform=plat, 
-            count=count, 
+        is_fashion = _is_fashion_brand(brand_doc)
+
+        # The single product used for this listing
+        listing_product = products[0] if products else None
+        if assigned_products:
+            listing_product = assigned_products[0]
+
+        prod_vision = (
+            (listing_product.get("adVisualDescription") or listing_product.get("visual_description") or "")
+            if listing_product else ""
+        ).strip()
+        prod_vision_sec = (listing_product.get("adVisualDescriptionSecondary") or "") if listing_product else ""
+        if prod_vision_sec:
+            prod_vision += f"\n\nBACK/SECONDARY VIEW DESCRIPTION:\n{prod_vision_sec.strip()}"
+
+        # ── Step 1: Director LLM generates all `count` idea briefs in ONE call ──
+        print(f"[EcommAgent] 🎯 Generating {count} idea briefs via Director ({plat}, fashion={is_fashion})...")
+        idea_briefs, chosen_slot_templates = generate_ecomm_idea_briefs(
+            brand_doc=brand_doc,
+            product=listing_product,
+            platform=plat,
+            count=count,
             is_fashion=is_fashion,
-            layout="ecomm",
-            idea=idea
+            idea=idea,
+            language=language,
+            has_avatar=bool(avatar_url),
         )
 
-        # For e-comm, if products provided use them; else use ref images as visual anchor
-        # We cycle products and ref images across the N images so they align dynamically
+        # ── Step 2: Build task list (prompt assembly + reference images) ──
         tasks = []
-        for i in range(count):
-            prod_for_ecomm = assigned_products[i] if (assigned_products and i < len(assigned_products)) else None
-            shot_label = planned_shots[i] if i < len(planned_shots) else "Dynamic Product Shot"
-            
-            # Cost optimisation: pass only product image + logo (not all scraped ref_images)
+        for i, brief in enumerate(idea_briefs):
+            final_prompt = assemble_ecomm_final_prompt(brief, prod_vision)
+
+            # Reference images: avatar first (if any), then product image
             task_refs = []
-            
-            # 1. First, if an avatar is passed, it is the primary anchor reference for the model
             if avatar_url:
                 res_avatar = _resolve_ref_image(avatar_url)
-                if res_avatar: task_refs.append(res_avatar)
-                
-            # 2. Add product image
-            if prod_for_ecomm:
-                if prod_for_ecomm.get("imageBase64"):
-                    task_refs.append(prod_for_ecomm["imageBase64"])
-            elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
-                task_refs.append(assigned_refs[i])
-                
-            # 3. Add brand logo
-            if brand_doc.get("logo"):
-                res_logo = _resolve_ref_image(brand_doc.get("logo"))
-                if res_logo and res_logo not in task_refs:
-                    task_refs.append(res_logo)
+                if res_avatar:
+                    task_refs.append(res_avatar)
+            if listing_product:
+                raw_listing_img = listing_product.get("imageBase64") or (listing_product.get("imageUrls") and listing_product.get("imageUrls")[0])
+                if raw_listing_img:
+                    task_refs.append(raw_listing_img)
+                if listing_product.get("imageUrls"):
+                    for u in listing_product["imageUrls"][:2]:
+                        resolved = _resolve_ref_image(u)
+                        if resolved and resolved not in task_refs:
+                            task_refs.append(resolved)
+            elif assigned_refs and assigned_refs[0]:
+                task_refs.append(assigned_refs[0])
 
-            prompt, caption = build_ecomm_image_prompt(
-                brand_doc=brand_doc,
-                product=prod_for_ecomm,
-                platform=plat,
-                shot_label=shot_label,
-                shot_index=i,
-                total_count=count,
-                ref_image=task_refs[0] if task_refs else None,
-                language=language,
-                idea=idea,
-                avatar_url=avatar_url,
-            )
-            tasks.append((prompt, caption, task_refs, i))
+            # Extract the actual short label from the chosen slot template
+            raw_template = chosen_slot_templates[i] if i < len(chosen_slot_templates) else f"Slot {i+1}"
+            label = raw_template.split(".")[0][:80] if "." in raw_template else raw_template[:80]
+            label = label.split(":")[0].strip() if ":" in label else label.strip()
 
+            prod_name = (listing_product.get("name", "") if listing_product else "") or brand_doc.get("brandName", "")
+            caption = f"{prod_name} · {label} ({plat}) ✨"
+            tasks.append((final_prompt, caption, task_refs, i))
+
+        # ── Step 3: Parallel FAL execution ──
         def run_ecomm_task(task):
             prompt, caption, task_ref, index = task
             try:
-                img_count = len(task_ref) if task_ref else 0
-                img_types = []
-                for idx, img in enumerate(task_ref or []):
-                    if isinstance(img, str) and img.startswith('http'):
-                        img_types.append(f"[{idx}] URL: {img[:80]}")
-                    elif isinstance(img, str):
-                        img_types.append(f"[{idx}] base64 ({len(img)//1024}KB)")
-                # print(f"\\n[EcommAgent DEBUG] 🖼 Task {index+1}: Passing {img_count} image(s) to FAL:")
-                # for t in img_types: print(f"  {t}")
                 result = generate_fal_image_gpt2(
                     prompt=prompt,
                     image=task_ref,
                     image_size=fal_size,
                     quality=img_quality,
                 )
+                print(f"[EcommAgent] ✅ Slot {index+1}/{count} done")
                 return {
                     "image":   result["image"],
                     "caption": caption,
@@ -1223,7 +1655,7 @@ Orchestrates generation for all layout types.
                     "index":   index
                 }
             except Exception as e:
-                print(f"[EcommAgent] ❌ Shot {index+1} failed: {e}")
+                print(f"[EcommAgent] ❌ Slot {index+1} failed: {e}")
                 return {
                     "image":   None,
                     "caption": caption,
@@ -1232,158 +1664,63 @@ Orchestrates generation for all layout types.
                     "index":   index
                 }
 
-        print(f"[StrategyAgent] 🚀 Running E-comm generations in parallel...")
+        print(f"[EcommAgent] 🚀 Firing {count} FAL calls in parallel ({plat})...")
         with ThreadPoolExecutor(max_workers=count) as executor:
             thread_results = list(executor.map(run_ecomm_task, tasks))
-            
+
         thread_results.sort(key=lambda x: x["index"])
         for r in thread_results:
             del r["index"]
             results.append(r)
 
     # ── IMAGE ──────────────────────────────────
-    elif layout == "image":
-        fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "portrait_2_3")
+    elif layout in ("image", "festival"):
+        fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
 
-        # Mix of agent-planned camera angles + 10 templates if ad_template is None
-        mixed_directives = []
-        if ad_template is None:
-            _raw_cat = (brand_doc.get("otherCategory") if brand_doc.get("businessCategory") == "Other" and brand_doc.get("otherCategory") else brand_doc.get("businessCategory", "")).lower()
-            _FASHION_KEYS = ["fashion", "apparel", "clothing", "garment", "footwear", "shoe", "accessory", "accessories", "streetwear", "ethnic", "kurta", "saree", "jewellery", "jewelry"]
-            is_fashion = any(k in _raw_cat for k in _FASHION_KEYS)
-            
-            template_directives = [t["directive"] for t in AD_TEMPLATE_DIRECTIVES.values()]
-            
-            num_angles = math.ceil(count * 5 / 8)
-            num_templates = count - num_angles
-            
-            planned_angles = plan_image_shots(
+        print(f"\n[StrategyAgent] 🎨 Generating {count} organic {layout}s via Ad Creative Agent...")
+        try:
+            director_concepts = generate_ad_creatives(
                 brand_doc=brand_doc,
-                product=products[0] if products else None,
-                platform=platform or "Instagram",
-                count=num_angles if num_angles > 0 else 1,
-                is_fashion=is_fashion,
-                layout="image",
-                idea=idea
+                products=products,
+                count=count,
+                campaign_goal="festival" if layout == "festival" else "auto",
+                campaign_angle="auto",
+                idea=idea or "",
+                aspect_ratio=aspect_ratio,
+                ref_images=assigned_refs,
+                language=language,
+                post_format="image",
+                user_plan=user_plan
             )
-            
-            shuffled_templates = template_directives.copy()
-            random.shuffle(shuffled_templates)
-            templates_sampled = [shuffled_templates[i % len(template_directives)] for i in range(num_templates)]
-            
-            mixed_directives = planned_angles[:num_angles] + templates_sampled
-            random.shuffle(mixed_directives)
+        except Exception as e:
+            print(f"[StrategyAgent] ❌ Art Director failed: {e}")
+            director_concepts = []
 
-        # Determine template per image:
-        #   ad_template == -1  → all 8 variants (templates 1–8, one per image)
-        #   ad_template 1-10  → every image uses this specific template
-        #   ad_template None  → no template, model decides composition
-        def _template_for(i: int) -> Optional[int]:
-            if ad_template == -1:           # all-8-variants mode
-                return (i % 8) + 1         # cycles 1→8 → templates 1..8
-            return ad_template              # None or specific template for all
-
-        tasks = []
-        for i in range(count):
-            prod = assigned_products[i]
-            
-            # Cost optimisation: pass only product image + logo (not all scraped ref_images)
-            task_refs = []
-            if prod:
-                if prod.get("imageBase64"):
-                    task_refs.append(prod.get("imageBase64"))
-            elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
-                task_refs.append(assigned_refs[i])
-            if brand_doc.get("logo"):
-                res_logo = _resolve_ref_image(brand_doc.get("logo"))
-                if res_logo and res_logo not in task_refs:
-                    task_refs.append(res_logo)
-
-            t_id = _template_for(i)
-            c_dir = None
-            if ad_template is None:
-                c_dir = mixed_directives[i]
-                t_id = None
-
-            prompt = build_image_prompt(
-                brand_doc, idea, aspect_ratio,
-                product=prod, ad_template=t_id,
-                language=language, custom_directive=c_dir,
-                text_mode=text_mode,
-            )
-            tasks.append((prompt, task_refs, i, prod, t_id, c_dir))
-
-        def run_image_task(task):
-            prompt, refs, index, prod, t_id, c_dir = task
-            template_label = None
-            if t_id and t_id in AD_TEMPLATE_DIRECTIVES:
-                template_label = AD_TEMPLATE_DIRECTIVES[t_id]["label"]
-            elif c_dir:
-                # Find if c_dir matches any template directive
-                for tid, tval in AD_TEMPLATE_DIRECTIVES.items():
-                    if tval["directive"] == c_dir:
-                        template_label = tval["label"]
-                        break
-                if not template_label:
-                    template_label = c_dir.replace("Use a ", "").replace("Use an ", "").replace("Use ", "").strip(".")
-
-            print(f"\n[StrategyAgent] 🖼  Image {index+1}/{count} | ref_image={'YES ✓ (' + str(len(refs)) + ')' if refs else 'NONE'} | template={template_label or 'None'}")
-            
-            # Generate custom Instagram caption + hashtags using Gemini
+        for i, concept in enumerate(director_concepts):
+            prod = assigned_products[i] if i < len(assigned_products) else None
+            # Always generate a rich Instagram caption with proper hashtags.
+            # For festival, merge the Director's short caption into the idea for extra context.
+            caption_idea = idea
+            if layout == "festival" and concept.get("caption"):
+                caption_idea = f"{idea or ''} | {concept.get('caption', '')}".strip(" |")
             caption = generate_instagram_caption_and_hashtags(
                 brand_doc=brand_doc,
                 product=prod,
-                layout="image",
-                idea=idea,
+                layout=layout,
+                idea=caption_idea,
                 language=language,
-                template_label=template_label,
-                index=index,
+                template_label=concept.get("angle", "Organic Post"),
+                index=i,
                 trigger_keyword=comment_keyword,
             )
             
-            try:
-                img_count = len(refs) if refs else 0
-                img_types = []
-                for idx, img in enumerate(refs or []):
-                    if isinstance(img, str) and img.startswith('http'):
-                        img_types.append(f"[{idx}] URL: {img[:80]}")
-                    elif isinstance(img, str):
-                        img_types.append(f"[{idx}] base64 ({len(img)//1024}KB)")
-                print(f"\n[ImageAgent DEBUG] 🖼 Task {index+1}: Passing {img_count} image(s) to FAL:")
-                for t in img_types: print(f"  {t}")
-                result = generate_fal_image_gpt2(
-                    prompt=prompt,
-                    image=refs,
-                    image_size=fal_size,
-                    quality=img_quality,
-                )
-                return {
-                    "image":    result["image"],
-                    "caption":  caption,
-                    "type":     "image",
-                    "template": template_label,
-                    "index":    index
-                }
-            except Exception as e:
-                print(f"[StrategyAgent] ❌ Image {index+1} failed: {e}")
-                return {
-                    "image":    None,
-                    "caption":  caption,
-                    "type":     "image",
-                    "error":    str(e),
-                    "index":    index
-                }
+            results.append({
+                "image":    concept.get("image"),
+                "caption":  caption,
+                "type":     "image",
+                "template": concept.get("angle", "Organic Post")
+            })
 
-        print(f"[StrategyAgent] 🚀 Running static image generations in parallel...")
-        with ThreadPoolExecutor(max_workers=count) as executor:
-            thread_results = list(executor.map(run_image_task, tasks))
-            
-        thread_results.sort(key=lambda x: x["index"])
-        for r in thread_results:
-            del r["index"]
-            results.append(r)
-
-    # ── PHOTOSHOOT ─────────────────────────────────
     elif layout == "photoshoot":
         fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
         tasks = []
@@ -1407,8 +1744,11 @@ Orchestrates generation for all layout types.
             
             task_refs = []
             if prod:
-                if prod.get("imageBase64"):
-                    task_refs.append(prod.get("imageBase64"))
+                raw_prod_img = prod.get("imageBase64") or (prod.get("imageUrls") and prod.get("imageUrls")[0])
+                if raw_prod_img:
+                    task_refs.append(raw_prod_img)
+                elif prod.get("imageUrls") and prod["imageUrls"]:
+                    task_refs.append(prod["imageUrls"][0])
             elif assigned_refs and i < len(assigned_refs) and assigned_refs[i]:
                 task_refs.append(assigned_refs[i])
             if brand_doc.get("logo"):
@@ -1470,7 +1810,7 @@ Orchestrates generation for all layout types.
 
         # Use the selected product image or the reference image passed from the 3 boxes.
         ref = ref_images[0] if (ref_images and ref_images[0]) else None
-        hero_image = ref if ref else (prod.get("imageBase64") if prod else None)
+        hero_image = ref if ref else ((prod.get("imageBase64") or (prod.get("imageUrls") and prod["imageUrls"][0])) if prod else None)
 
         if hero_image and not hero_image.startswith("http") and not hero_image.startswith("data:"):
             hero_image = "data:image/jpeg;base64," + hero_image
@@ -1509,14 +1849,18 @@ Orchestrates generation for all layout types.
     # ── CAROUSEL ───────────────────────────────
     elif layout == "carousel":
         fal_size = ASPECT_TO_FAL_SIZE.get(aspect_ratio, "square_hd")
+
+        print(f"\n[StrategyAgent] 🎨 Generating Director Brief for {count} carousels natively...")
+
         def run_carousel_task(index):
             prod = assigned_products[index]
-            
-            # Cost optimisation: pass only product image + logo (not all scraped ref_images)
             task_refs = []
             if prod:
-                if prod.get("imageBase64"):
-                    task_refs.append(prod.get("imageBase64"))
+                raw_prod_img = prod.get("imageBase64") or (prod.get("imageUrls") and prod.get("imageUrls")[0])
+                if raw_prod_img:
+                    task_refs.append(raw_prod_img)
+                elif prod.get("imageUrls") and prod["imageUrls"]:
+                    task_refs.append(prod["imageUrls"][0])
             elif assigned_refs and index < len(assigned_refs) and assigned_refs[index]:
                 task_refs.append(assigned_refs[index])
             if brand_doc.get("logo"):
@@ -1524,26 +1868,44 @@ Orchestrates generation for all layout types.
                 if res_logo and res_logo not in task_refs:
                     task_refs.append(res_logo)
                 
-            # 1. Draft the text via LLM
             print(f"[StrategyAgent] ✍️ Drafting {slide_count} slides in {language} for carousel {index+1}...")
-            slide_texts = build_carousel_slide_prompts(brand_doc, idea, slide_count, product=prod, language=language)
+            # build_carousel_slide_prompts now returns {"carousel_strategy": {}, "slides": []}
+            director_json = build_carousel_slide_prompts(brand_doc, idea, slide_count, product=prod, language=language)
+            strategy = director_json.get("carousel_strategy", {})
+            slides_data = director_json.get("slides", [])
             
-            base_image_prompt = build_image_prompt(
-                brand_doc, idea, aspect_ratio, product=prod, ad_template=None, campaign_mode=None, language=language, custom_directive="Design a cohesive, premium carousel slide. Embed the SLIDE TEXT directly in the image layout."
-            )
-            enriched_slide_prompts = [f"{base_image_prompt}\n\nSLIDE TEXT TO INCLUDE: {text}" for text in slide_texts]
+            prod_vis = (prod.get("adVisualDescription") or prod.get("visual_description") or "") if prod else ""
+            
+            LAYER_3 = "Maintain visual consistency across all slides — brand colors, typography, spacing, lighting, graphic language, and overall style.\nOne clear idea per slide — avoid overcrowding or combining multiple messages.\nCreate a logical narrative flow — each slide should add new information and give the viewer a reason to continue swiping.\nPrioritize readability — use clear hierarchy, strong contrast, appropriate text size, and sufficient whitespace.\nUse visuals purposefully — photography, graphics, illustrations, and product imagery should only be used when they strengthen the slide's message.\nFollow the selected visual treatment exactly — if the Director specifies “NO PHOTOGRAPHIC IMAGE REQUIRED,” do not introduce photography or unnecessary product imagery.\nPreserve product and brand accuracy — maintain the exact product appearance, packaging, proportions, branding, colors, and visible details whenever the product is shown.\nCreate visual variety while maintaining consistency — avoid making every slide use the same composition, product scale, camera angle, or visual treatment.\nKeep the design intentional and premium — every visual element should serve the slide's communication; avoid decoration without purpose.\nMake the carousel feel like one unified campaign — slides should share the same visual identity while remaining individually engaging."
+            LAYER_4 = "No clutter, overcrowding, excessive decoration, or unnecessary visual elements.\nNo distorted, inaccurate, redesigned, recolored, or altered product/brand elements.\nNo unreadable, tiny, excessive, misspelled, or gibberish text.\nNo invented claims, statistics, testimonials, features, ingredients, certifications, offers, or product information.\nNo unsupported before/after transformations, guaranteed results, medical claims, or misleading visual implications.\nNo unnecessary product photography or photography when the Director specifies “NO PHOTOGRAPHIC IMAGE REQUIRED.”\nNo repetitive layouts, identical compositions, or generic template-like designs across slides.\nNo visual elements that contradict the brand design guide, selected visual style, or slide-specific creative direction."
+            
+            enriched_slide_prompts = []
+            # In case LLM hallucinated format and slides_data is missing or empty, ensure a fallback loop
+            for i in range(slide_count):
+                if i < len(slides_data):
+                    direction = slides_data[i].get("creative_direction", "")
+                else:
+                    direction = f"Visual Treatment: A premium product image for slide {i+1}."
+                
+                features_product = "NO PHOTOGRAPHIC IMAGE REQUIRED" not in direction.upper()
+
+                composite_prompt = f"CAROUSEL STRATEGY:\n{json.dumps(strategy, indent=2)}\n\nCURRENT SLIDE:\n{direction}\n\nPRODUCT VISUALIZATION:\n{prod_vis}\n\nSTATIC RULES:\n{LAYER_3}\n\nNEGATIVE RULES:\n{LAYER_4}"
+                
+                enriched_slide_prompts.append({
+                    "prompt": composite_prompt,
+                    "features_product": features_product
+                })
 
             print(f"\n[StrategyAgent] 🎠 Carousel {index+1}/{count} | ref_image={'YES ✓' if task_refs else 'NONE'}")
-            if prod: print(f"                   Product: {prod.get('name')}")
-
-            # Generate custom Instagram caption + hashtags using Gemini
+            
+            template_label = "Carousel Storyline"
             caption = generate_instagram_caption_and_hashtags(
                 brand_doc=brand_doc,
                 product=prod,
                 layout="carousel",
                 idea=idea,
                 language=language,
-                template_label="Carousel Post",
+                template_label=template_label,
                 index=index,
                 trigger_keyword=comment_keyword,
             )
@@ -1567,7 +1929,7 @@ Orchestrates generation for all layout types.
                     quality=img_quality,
                 )
                 return {
-                    "slides":  slides,          # list of {image: base64}
+                    "slides":  slides,
                     "caption": caption,
                     "type":    "carousel",
                     "index":   index
@@ -1591,7 +1953,6 @@ Orchestrates generation for all layout types.
             del r["index"]
             results.append(r)
 
-    # ── VIDEO ──────────────────────────────────
     elif layout == "video":
         if video_kind == "ai-ugc":
             # Generate script and avatar description if they are empty
@@ -1647,7 +2008,7 @@ Output ONLY valid JSON. No markdown formatting.
             if prod: print(f"                   Product: {prod.get('name')}")
             try:
                 # Extract product image or reference image if available
-                ref = prod.get("imageBase64") if prod else (assigned_refs[index] if index < len(assigned_refs) else None)
+                ref = (prod.get("imageBase64") or (prod.get("imageUrls") and prod["imageUrls"][0])) if prod else (assigned_refs[index] if index < len(assigned_refs) and assigned_refs[index] else None)
                 if ref and not ref.startswith("http") and not ref.startswith("data:"):
                     ref = "data:image/jpeg;base64," + ref
 

@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useCanonical } from './hooks/useCanonical';
 import Index from './pages/LandingPage';
@@ -18,7 +18,7 @@ import BookDemo from './pages/BookDemo';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MetaPixel } from './components/MetaPixel';
 
-// Dashboard imports (Lazy loaded for code splitting)
+// Dashboard imports (Lazy Loaded)
 const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
 const DashboardHome = lazy(() => import('./pages/dashboard/DashboardHome'));
 const DashboardFeed = lazy(() => import('./pages/dashboard/DashboardFeed'));
@@ -41,10 +41,9 @@ const Products = lazy(() => import('./pages/dashboard/Products'));
 const CreditsExplainer = lazy(() => import('./pages/CreditsExplainer'));
 const CreditTopup = lazy(() => import('./pages/dashboard/CreditTopup'));
 const DashboardBilling = lazy(() => import('./pages/dashboard/DashboardBilling'));
-const Support = lazy(() => import('./pages/dashboard/Support').then(module => ({ default: module.Support })));
+const Support = lazy(() => import('./pages/dashboard/Support').then(m => ({ default: m.Support })));
 import { Toaster } from './components/ui/toaster';
 import { CurrencyProvider } from './contexts/CurrencyContext';
-import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Thin component to call useCanonical inside BrowserRouter context
 function CanonicalUpdater() {
@@ -52,57 +51,14 @@ function CanonicalUpdater() {
   return null;
 }
 
-const GlobalSkeleton = () => (
-  <div className="flex h-screen w-full bg-background overflow-hidden">
-    <div className="w-64 border-r border-border bg-card p-4 hidden md:flex flex-col gap-4">
-      <div className="h-8 w-32 bg-muted rounded-md animate-pulse mb-8" />
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="h-10 w-full bg-muted/50 rounded-md animate-pulse" />
-      ))}
-    </div>
-    <div className="flex-1 flex flex-col min-w-0">
-      <div className="h-16 border-b border-border bg-card/50 flex items-center px-6 gap-4">
-        <div className="h-6 w-48 bg-muted rounded-md animate-pulse" />
-        <div className="ml-auto h-8 w-8 bg-muted rounded-full animate-pulse" />
-      </div>
-      <div className="flex-1 p-6 space-y-6 overflow-hidden">
-        <div className="h-10 w-1/4 bg-muted rounded-md animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-32 bg-card border border-border rounded-xl animate-pulse" />
-          ))}
-        </div>
-        <div className="h-64 bg-card border border-border rounded-xl animate-pulse" />
-      </div>
-    </div>
+const LoadingScreen = () => (
+  <div className="flex h-screen w-full items-center justify-center bg-background">
+    <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
   </div>
 );
 
 function App() {
   useEffect(() => {
-    // Global media error fallback to handle broken images/videos gracefully
-    const handleMediaError = (e: Event) => {
-      const target = e.target as HTMLElement;
-      const fallbackUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxyZWN0IHg9IjMiIHk9IjMiIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgcng9IjIiIHJ5PSIyIi8+PGNpcmNsZSBjeD0iOC41IiBjeT0iOC41IiByPSIxLjUiLz48cG9seWxpbmUgcG9pbnRzPSIyMSAxNSAxNiAxMCA1IDIxIi8+PGxpbmUgeDE9IjMiIHkxPSIzIiB4Mj0iMjEiIHkyPSIyMSIvPjwvc3ZnPg==';
-      
-      if (target.tagName === 'IMG') {
-        const img = target as HTMLImageElement;
-        if (!img.src.startsWith('data:image/svg+xml')) {
-          img.src = fallbackUrl;
-          img.classList.add('opacity-50');
-        }
-      } else if (target.tagName === 'VIDEO') {
-        const vid = target as HTMLVideoElement;
-        if (!vid.poster || !vid.poster.startsWith('data:image/svg+xml')) {
-          vid.poster = fallbackUrl;
-          vid.classList.add('opacity-50');
-        }
-      }
-    };
-    
-    // Capture phase is required because error events don't bubble
-    window.addEventListener('error', handleMediaError, true);
-
     // Clear out any old bloated localStorage caches that were causing QuotaExceededError
     try {
       localStorage.removeItem('syncsocio_generated_assets');
@@ -122,7 +78,7 @@ function App() {
       sessionStorage.setItem('velocity_visit_tracked', 'true');
       
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      fetch(`${API_BASE}/analytics/visit`, { credentials: 'include',
+      fetch(`${API_BASE}/analytics/visit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,8 +89,6 @@ function App() {
         }),
       }).catch(err => console.error('Failed to track visit:', err));
     }
-    
-    return () => window.removeEventListener('error', handleMediaError, true);
   }, []);
 
   return (
@@ -142,10 +96,9 @@ function App() {
       <BrowserRouter>
         <CanonicalUpdater />
         <MetaPixel />
-        <ErrorBoundary>
-          <Suspense fallback={<GlobalSkeleton />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
+        <Suspense fallback={<LoadingScreen />}>
+          <Routes>
+            <Route path="/" element={<Index />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -192,9 +145,8 @@ function App() {
             <Route path="/:username/:slug" element={<AssetPage />} />
 
             <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
+          </Routes>
+        </Suspense>
         <Toaster />
       </BrowserRouter>
     </CurrencyProvider>

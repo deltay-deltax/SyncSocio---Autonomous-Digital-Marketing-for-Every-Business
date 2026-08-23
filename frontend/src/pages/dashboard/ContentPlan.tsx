@@ -405,15 +405,7 @@ const ContentPlan: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div /> {/* Spacer for flex-between */}
-          <Button
-            onClick={regenerate}
-            disabled={generating}
-            variant="outline"
-            className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest border-border gap-2 bg-white hover:bg-muted"
-          >
-            <Wand2 size={13} />
-            Regenerate
-          </Button>
+
         </div>
 
         <motion.div

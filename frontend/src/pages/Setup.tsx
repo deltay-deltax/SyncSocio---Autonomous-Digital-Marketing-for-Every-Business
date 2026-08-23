@@ -286,7 +286,7 @@ const Setup = () => {
     }
     // --- END BYPASS ---
 
-    const basePrice = planName === 'Pro' ? (currency === 'USD' ? 45 : 3499) : planName === 'Growth' ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 5 : 399);
+    const basePrice = planName === 'Pro' ? (currency === 'USD' ? 45 : 3499) : planName === 'Growth' ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 10 : 799);
     let currentPrice = basePrice;
     
     if (appliedCoupon) {
@@ -467,12 +467,21 @@ const Setup = () => {
                   <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
 
                   {step.status === 'active' && i === 1 && (
-                    <Button
-                      onClick={() => setScreen('instagram')}
-                      className="mt-3 gradient-bg text-primary-foreground border-0 text-xs px-5 h-9"
-                    >
-                      Connect Instagram Account →
-                    </Button>
+                    <div className="flex items-center gap-2 mt-3">
+                      <Button
+                        onClick={() => setScreen('instagram')}
+                        className="gradient-bg text-primary-foreground border-0 text-xs px-5 h-9 rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                      >
+                        Connect Instagram Account →
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setScreen('plan')}
+                        className="text-xs px-5 h-9 rounded-xl border border-border/80 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all"
+                      >
+                        Skip
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -581,12 +590,13 @@ const Setup = () => {
   // SCREEN 3 — CHOOSE PLAN
   // ════════════════════════════════════════════════════════════════════
   if (screen === 'plan') {
+    const hasUsedTrial = onboardingData?.freeTrialUsed || (onboardingData?.userPlan || '').toLowerCase().includes('trial');
     return (
       <Wrapper maxW="max-w-7xl" screenKey={screen}>
         <div className="-mt-12 sm:-mt-16">
           <Pricing 
             onWaitlistClick={(planName) => proceedToCheckout(planName || 'Starter')} 
-            onFreeTrialClick={handleStartFreeTrial}
+            onFreeTrialClick={hasUsedTrial ? undefined : handleStartFreeTrial}
             isTrialLoading={isStartingTrial}
           />
         </div>
@@ -607,7 +617,7 @@ const Setup = () => {
           planName={selectedPlan || ''}
           creditsAdded={
             selectedPlan === 'Pro' ? 1000 :
-            selectedPlan === 'Growth' ? 400 : 80
+            selectedPlan === 'Growth' ? 400 : 160
           }
           onSuccess={handleCheckoutSuccess}
           onBack={() => setScreen('plan')}

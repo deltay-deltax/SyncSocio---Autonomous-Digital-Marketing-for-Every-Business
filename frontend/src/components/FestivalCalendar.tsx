@@ -1180,8 +1180,8 @@ Ensure a clean layout, ${brand.visualStyle || 'modern premium'} aesthetic, and b
                           className="h-20 flex items-center justify-between px-3 py-2 border border-primary bg-primary/5 ring-1 ring-primary rounded-2xl cursor-pointer relative overflow-hidden group transition duration-200"
                         >
                           <div className="flex items-center gap-2.5 overflow-hidden">
-                            {chosenProduct.imageBase64 ? (
-                              <img src={imgSrc(chosenProduct.imageBase64)} className="w-10 h-10 rounded-lg object-contain bg-white border border-border/40 shrink-0" alt="" />
+                            {chosenProduct.imageBase64 || (chosenProduct.imageUrls && chosenProduct.imageUrls[0]) ? (
+                              <img src={imgSrc(chosenProduct.imageBase64 || chosenProduct.imageUrls[0])} className="w-10 h-10 rounded-lg object-contain bg-white border border-border/40 shrink-0" alt="" />
                             ) : (
                               <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                                 <Package size={16} className="text-muted-foreground/30" />
@@ -1330,8 +1330,8 @@ Ensure a clean layout, ${brand.visualStyle || 'modern premium'} aesthetic, and b
                           )}
                         >
                           <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-2 relative">
-                            {p.imageBase64 ? (
-                              <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-2" />
+                            {p.imageBase64 || (p.imageUrls && p.imageUrls[0]) ? (
+                              <img src={imgSrc(p.imageBase64 || p.imageUrls[0])} alt={p.name} className="w-full h-full object-contain p-2" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Package className="text-muted-foreground/30" />

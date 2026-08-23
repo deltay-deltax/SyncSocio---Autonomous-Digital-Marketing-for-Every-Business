@@ -145,18 +145,18 @@ export const signup = async (req, res) => {
     if (existingUser) {
       existingUser.name = name;
       existingUser.password = hashedPassword;
-      existingUser.isVerified = false;
-      existingUser.otpCode = hashedOtp;
-      existingUser.otpExpiry = otpExpiry;
+      existingUser.isVerified = true;
+      existingUser.otpCode = undefined;
+      existingUser.otpExpiry = undefined;
       user = await existingUser.save();
     } else {
       user = await User.create({
         name,
         email: normalizedEmail,
         password: hashedPassword,
-        isVerified: false,
-        otpCode: hashedOtp,
-        otpExpiry,
+        isVerified: true,
+        otpCode: undefined,
+        otpExpiry: undefined,
       });
     }
 
@@ -165,11 +165,15 @@ export const signup = async (req, res) => {
       .then(() => console.log(`[DEV MODE] OTP for ${user.email} is ${otp}`))
       .catch(mailError => console.error('OTP email send failed:', mailError));
 
+    const token = generateToken(user._id);
     res.status(existingUser ? 200 : 201).json({
-      message: 'OTP sent to your email. Please verify to complete signup.',
-      email: user.email,
-      requiresOtp: true,
-      otpExpiresAt: user.otpExpiry,
+      message: 'Signup successful',
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -366,18 +370,18 @@ export const startFreeTrial = async (req, res) => {
       return res.status(400).json({ message: 'Free trial has already been used on this account.' });
     }
 
-    if (!deviceFingerprint) {
-      return res.status(400).json({ message: 'Device verification failed.' });
-    }
+    // if (!deviceFingerprint) {
+    //   return res.status(400).json({ message: 'Device verification failed.' });
+    // }
 
     // Check if another user already used this fingerprint
-    const existingFingerprint = await User.findOne({ deviceFingerprint });
-    if (existingFingerprint && existingFingerprint._id.toString() !== user._id.toString()) {
-      return res.status(403).json({ message: 'Free trial has already been claimed on this device.' });
-    }
+    // const existingFingerprint = await User.findOne({ deviceFingerprint });
+    // if (existingFingerprint && existingFingerprint._id.toString() !== user._id.toString()) {
+    //   return res.status(403).json({ message: 'Free trial has already been claimed on this device.' });
+    // }
 
-    // Grant 15 credits and set plan
-    user.credits = (user.credits || 0) + 15;
+    // Grant 35 credits and set plan
+    user.credits = (user.credits || 0) + 35;
     user.plan = 'Free Trial';
     user.freeTrialUsed = true;
     user.deviceFingerprint = deviceFingerprint;

@@ -1,0 +1,326 @@
+[
+  {
+    "url": "https://makelocalads.com/api/trpc/brands.create?batch=1",
+    "method": "POST",
+    "payload": {
+      "0": {
+        "orgId": "62f84ee9-c45f-4e41-8868-bcf0bb1ec033",
+        "name": "Olipop",
+        "websiteUrl": "https://drinkolipop.com/",
+        "sellingCountries": []
+      }
+    }
+  },
+  {
+    "url": "https://makelocalads.com/api/url-style-snapshot",
+    "method": "POST",
+    "payload": {
+      "brandId": "976010ab-a63a-42a0-9e74-a69350a241d3",
+      "url": "https://drinkolipop.com/"
+    }
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/products.startProductIngestion?batch=1",
+    "method": "POST",
+    "payload": {
+      "0": {
+        "orgId": "62f84ee9-c45f-4e41-8868-bcf0bb1ec033",
+        "brandId": "976010ab-a63a-42a0-9e74-a69350a241d3",
+        "sourceUrl": "https://drinkolipop.com/products/classic-grape"
+      }
+    }
+  },
+  {
+    "url": "https://do.featurebase.app/v1/messenger/widget/ping",
+    "method": "POST",
+    "payload": {
+      "visits": [
+        {
+          "url": "https://makelocalads.com/app/fdfcaad1-1542-44ff-a267-cc38b91f44b8?tab=about",
+          "pageTitle": "LocalAds",
+          "visitedAt": "2026-08-17T13:27:01.491Z"
+        }
+      ],
+      "outboundCheckedAt": "2026-08-17T13:26:19.350Z",
+      "$pageUrl": "https://makelocalads.com/app/fdfcaad1-1542-44ff-a267-cc38b91f44b8?tab=about"
+    }
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/products.saveDraftProduct?batch=1",
+    "method": "POST",
+    "payload": {
+      "0": {
+        "offeringId": "fdfcaad1-1542-44ff-a267-cc38b91f44b8",
+        "extraction": {
+          "name": "OLIPOP Classic Grape",
+          "kind": "physical",
+          "summary": "A prebiotic soda that gives classic grape flavor a modern upgrade, made with real concord grape juice, a hint of lime, and 9g of dietary fiber.",
+          "productTruth": {
+            "brand": "OLIPOP",
+            "flavor": "Classic Grape",
+            "images": [
+              "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261142-5e249136-b15e-4ab1-9afd-e35badfee29d.webp",
+              "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261170-1475e9c2-6eb6-4f93-8c91-af15cd43f6b7.png",
+              "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261125-fbea94b8-6dae-4bd1-bfdc-3cc997ac0087.webp",
+              "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261044-63854194-4bb4-4832-9d59-2885c610a445.webp",
+              "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261155-3a07674d-3e62-42a1-a762-e9e180988ed6.png",
+              "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261187-fc65f001-76ae-4632-b96e-5941a66fc459.jpg",
+              "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261195-22140ea6-c19f-4d0e-8747-e6efc0deca32.png"
+            ],
+            "sodium": "30mg",
+            "protein": "0g",
+            "calories": 50,
+            "totalFat": "0g",
+            "addedSugars": "1g",
+            "description": "Sweet-tart concord grape juice, kissed with lime. Made from real concord grape juice with a hint of lime to create the perfect blend of sweet and tart, our Classic Grape is the nostalgic flavor you know and love—all grown up.",
+            "hasNSFWRisk": false,
+            "ingredients": [
+              "Carbonated Water",
+              "OLISMART (Cassava Root Fiber, Chicory Root Inulin, Jerusalem Artichoke Inulin, Nopal Cactus*, Marshmallow Root*, Calendula Flower*, Kudzu Root*)",
+              "Concord Grape Juice Concentrate",
+              "Cassava Root Syrup",
+              "Apple Juice Concentrate",
+              "Tartaric Acid (From Grapes)",
+              "Quince Juice Concentrate",
+              "Lime Juice Concentrate",
+              "Stevia Leaf*",
+              "Himalayan Pink Salt",
+              "Natural Flavors"
+            ],
+            "taxonomyTag": "product:beverage:soda",
+            "totalSugars": "5g",
+            "dietaryFiber": "9g",
+            "dietaryClaims": [
+              "Vegan",
+              "Gluten Free",
+              "Non-GMO",
+              "Less Sugar",
+              "Digestive Health Support"
+            ],
+            "nutritionFacts": "1 Can (355mL)",
+            "variantSummary": {
+              "count": 2,
+              "attributes": {
+                "purchaseType": [
+                  "One Time",
+                  "Subscription"
+                ]
+              }
+            },
+            "totalCarbohydrate": "16g",
+            "nutritionFacts heat": null,
+            "storageInstructions": "Keep refrigerated"
+          },
+          "images": [
+            "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261142-5e249136-b15e-4ab1-9afd-e35badfee29d.webp",
+            "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261170-1475e9c2-6eb6-4f93-8c91-af15cd43f6b7.png",
+            "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261125-fbea94b8-6dae-4bd1-bfdc-3cc997ac0087.webp",
+            "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261044-63854194-4bb4-4832-9d59-2885c610a445.webp",
+            "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261155-3a07674d-3e62-42a1-a762-e9e180988ed6.png",
+            "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261187-fc65f001-76ae-4632-b96e-5941a66fc459.jpg",
+            "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261195-22140ea6-c19f-4d0e-8747-e6efc0deca32.png"
+          ],
+          "variants": [
+            {
+              "name": "OLIPOP Classic Grape - 12 Pack - One Time",
+              "brand": "OLIPOP",
+              "label": "12 Pack - One Time",
+              "price": "$35.99",
+              "flavor": "Classic Grape",
+              "images": [
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261142-5e249136-b15e-4ab1-9afd-e35badfee29d.webp",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261170-1475e9c2-6eb6-4f93-8c91-af15cd43f6b7.png",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261125-fbea94b8-6dae-4bd1-bfdc-3cc997ac0087.webp",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261044-63854194-4bb4-4832-9d59-2885c610a445.webp",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261155-3a07674d-3e62-42a1-a762-e9e180988ed6.png",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261187-fc65f001-76ae-4632-b96e-5941a66fc459.jpg",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261195-22140ea6-c19f-4d0e-8747-e6efc0deca32.png"
+              ],
+              "sodium": "30mg",
+              "protein": "0g",
+              "calories": 50,
+              "totalFat": "0g",
+              "variantKey": "purchaseType=One Time",
+              "addedSugars": "1g",
+              "description": "Sweet-tart concord grape juice, kissed with lime. Made from real concord grape juice with a hint of lime to create the perfect blend of sweet and tart, our Classic Grape is the nostalgic flavor you know and love—all grown up.",
+              "hasNSFWRisk": false,
+              "ingredients": [
+                "Carbonated Water",
+                "OLISMART (Cassava Root Fiber, Chicory Root Inulin, Jerusalem Artichoke Inulin, Nopal Cactus*, Marshmallow Root*, Calendula Flower*, Kudzu Root*)",
+                "Concord Grape Juice Concentrate",
+                "Cassava Root Syrup",
+                "Apple Juice Concentrate",
+                "Tartaric Acid (From Grapes)",
+                "Quince Juice Concentrate",
+                "Lime Juice Concentrate",
+                "Stevia Leaf*",
+                "Himalayan Pink Salt",
+                "Natural Flavors"
+              ],
+              "taxonomyTag": "product:beverage:soda",
+              "totalSugars": "5g",
+              "dietaryFiber": "9g",
+              "purchaseType": "One Time",
+              "variantLabel": "12 Pack - One Time",
+              "dietaryClaims": [
+                "Vegan",
+                "Gluten Free",
+                "Non-GMO",
+                "Less Sugar",
+                "Digestive Health Support"
+              ],
+              "nutritionFacts": "1 Can (355mL)",
+              "totalCarbohydrate": "16g",
+              "variantAttributes": {
+                "purchaseType": "One Time"
+              },
+              "nutritionFacts heat": null,
+              "storageInstructions": "Keep refrigerated"
+            },
+            {
+              "name": "OLIPOP Classic Grape - 12 Pack - Subscribe & Save",
+              "brand": "OLIPOP",
+              "label": "12 Pack - Subscribe & Save",
+              "price": "$30.59",
+              "flavor": "Classic Grape",
+              "images": [
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261142-5e249136-b15e-4ab1-9afd-e35badfee29d.webp",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261170-1475e9c2-6eb6-4f93-8c91-af15cd43f6b7.png",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261125-fbea94b8-6dae-4bd1-bfdc-3cc997ac0087.webp",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261044-63854194-4bb4-4832-9d59-2885c610a445.webp",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261155-3a07674d-3e62-42a1-a762-e9e180988ed6.png",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261187-fc65f001-76ae-4632-b96e-5941a66fc459.jpg",
+                "https://localads.t3.storage.dev/product-images/fdfcaad1-1542-44ff-a267-cc38b91f44b8/1786973261195-22140ea6-c19f-4d0e-8747-e6efc0deca32.png"
+              ],
+              "sodium": "30mg",
+              "protein": "0g",
+              "calories": 50,
+              "totalFat": "0g",
+              "variantKey": "purchaseType=Subscription",
+              "addedSugars": "1g",
+              "description": "Sweet-tart concord grape juice, kissed with lime. Made from real concord grape juice with a hint of lime to create the perfect blend of sweet and tart, our Classic Grape is the nostalgic flavor you know and love—all grown up.",
+              "hasNSFWRisk": false,
+              "ingredients": [
+                "Carbonated Water",
+                "OLISMART (Cassava Root Fiber, Chicory Root Inulin, Jerusalem Artichoke Inulin, Nopal Cactus*, Marshmallow Root*, Calendula Flower*, Kudzu Root*)",
+                "Concord Grape Juice Concentrate",
+                "Cassava Root Syrup",
+                "Apple Juice Concentrate",
+                "Tartaric Acid (From Grapes)",
+                "Quince Juice Concentrate",
+                "Lime Juice Concentrate",
+                "Stevia Leaf*",
+                "Himalayan Pink Salt",
+                "Natural Flavors"
+              ],
+              "taxonomyTag": "product:beverage:soda",
+              "totalSugars": "5g",
+              "dietaryFiber": "9g",
+              "purchaseType": "Subscription",
+              "variantLabel": "12 Pack - Subscribe & Save",
+              "dietaryClaims": [
+                "Vegan",
+                "Gluten Free",
+                "Non-GMO",
+                "Less Sugar",
+                "Digestive Health Support"
+              ],
+              "nutritionFacts": "1 Can (355mL)",
+              "totalCarbohydrate": "16g",
+              "variantAttributes": {
+                "purchaseType": "Subscription"
+              },
+              "nutritionFacts heat": null,
+              "storageInstructions": "Keep refrigerated"
+            }
+          ]
+        },
+        "startVisualDescription": true,
+        "classifyBuyingArchetypes": true
+      }
+    }
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/productAudiences.approveRecommendation?batch=1",
+    "method": "POST",
+    "payload": {
+      "0": {
+        "offeringId": "fdfcaad1-1542-44ff-a267-cc38b91f44b8",
+        "audienceId": "7951625e-9714-42be-b6c6-699474bd7ae6"
+      }
+    }
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/productAudiences.approveRecommendation?batch=1",
+    "method": "POST",
+    "payload": {
+      "0": {
+        "offeringId": "fdfcaad1-1542-44ff-a267-cc38b91f44b8",
+        "audienceId": "e63fcaf2-27e8-4b88-8a7c-56e63c19cbcc"
+      }
+    }
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/productAudiences.approveRecommendation?batch=1",
+    "method": "POST",
+    "payload": {
+      "0": {
+        "offeringId": "fdfcaad1-1542-44ff-a267-cc38b91f44b8",
+        "audienceId": "0d50aed6-a711-4541-823c-9fa71ae68cf2"
+      }
+    }
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/products.activateProduct?batch=1",
+    "method": "POST",
+    "payload": {
+      "0": {
+        "offeringId": "fdfcaad1-1542-44ff-a267-cc38b91f44b8"
+      }
+    }
+  },
+  {
+    "url": "https://do.featurebase.app/v1/messenger/widget/ping",
+    "method": "POST",
+    "payload": {
+      "visits": [
+        {
+          "url": "https://makelocalads.com/app/fdfcaad1-1542-44ff-a267-cc38b91f44b8?tab=studio&type=ad-campaigns-v2&section=creatives",
+          "pageTitle": "LocalAds",
+          "visitedAt": "2026-08-17T13:28:23.987Z"
+        }
+      ],
+      "outboundCheckedAt": "2026-08-17T13:27:07.002Z",
+      "$pageUrl": "https://makelocalads.com/app/fdfcaad1-1542-44ff-a267-cc38b91f44b8?tab=studio&type=ad-campaigns-v2&section=creatives"
+    }
+  },
+  {
+    "url": "https://makelocalads.com/api/trpc/adCampaignsV2.createCampaign?batch=1",
+    "method": "POST",
+    "payload": {
+      "0": {
+        "offeringId": "fdfcaad1-1542-44ff-a267-cc38b91f44b8",
+        "mode": "guided",
+        "audienceId": null,
+        "goal": "consider",
+        "language": "English",
+        "creativeCount": 3
+      }
+    }
+  },
+  {
+    "url": "https://do.featurebase.app/v1/messenger/widget/ping",
+    "method": "POST",
+    "payload": {
+      "visits": [
+        {
+          "url": "https://makelocalads.com/app/fdfcaad1-1542-44ff-a267-cc38b91f44b8?tab=studio&type=ad-campaigns-v2&section=creatives&campaignId=b90774ce-3740-4166-9d9c-c1a9d6ccaab9",
+          "pageTitle": "LocalAds",
+          "visitedAt": "2026-08-17T13:28:42.488Z"
+        }
+      ],
+      "outboundCheckedAt": "2026-08-17T13:28:29.728Z",
+      "$pageUrl": "https://makelocalads.com/app/fdfcaad1-1542-44ff-a267-cc38b91f44b8?tab=studio&type=ad-campaigns-v2&section=creatives&campaignId=b90774ce-3740-4166-9d9c-c1a9d6ccaab9"
+    }
+  }
+]

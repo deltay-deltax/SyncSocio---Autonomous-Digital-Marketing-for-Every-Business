@@ -43,7 +43,7 @@ const topups = [
 ];
 
 const planPrices = {
-  Starter: { INR: 399, USD: 5 },
+  Starter: { INR: 799, USD: 10 },
   Growth: { INR: 1499, USD: 19 },
   Pro: { INR: 3499, USD: 45 }
 };
@@ -57,9 +57,14 @@ export const CreditTopup = () => {
   const [processingPlan, setProcessingPlan] = useState(false);
   const [checkoutData, setCheckoutData] = useState<any>(null);
 
+  const isTrial = !profile?.userPlan || profile?.userPlan === 'Free Trial';
   const isPlanExpired = profile?.userPlanExpiresAt && new Date(profile.userPlanExpiresAt) < new Date();
 
   const handleBuyTopup = async (creditsAmount: number, price: number) => {
+    if (isTrial) {
+       toast({ title: 'Active Plan Required', description: 'You must have an active paid plan to purchase credit top-ups.', variant: 'destructive' });
+       return;
+    }
     if (isPlanExpired) {
        setShowExpiredModal(true);
        return;

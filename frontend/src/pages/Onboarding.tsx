@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { HexColorPicker } from "react-colorful";
 import {
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { getFriendlyErrorMessage } from '@/lib/errorHandler';
+import { formatBrandDesignSystemToMarkdown } from '@/lib/utils';
 import { trackMetaEvent } from '@/utils/metaPixel';
 
 // ── Professional Color Picker — centered modal, portal-rendered, never clipped ──
@@ -208,6 +210,7 @@ interface LeftPanelContent {
 }
 
 const Onboarding = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -250,45 +253,29 @@ const Onboarding = () => {
       setScanError('Please enter a website URL');
       return;
     }
-
+    
     setScanLoading(true);
     setScanError('');
-    setScanSuccess(false);
-
-    const statuses = [
-      'Initializing scan...',
-      'Connecting to website host...',
-      'Visiting pages and downloading HTML structure...',
-      'Parsing metadata and layout structure...',
-      'Running GPT Brand Intelligence extraction...',
-      'Rephrasing brand core and messaging...',
-      'Cataloging product offerings...'
-    ];
-
-    let statusIndex = 0;
-    setScanStatus(statuses[0]);
-    const statusInterval = setInterval(() => {
-      if (statusIndex < statuses.length - 1) {
-        statusIndex++;
-        setScanStatus(statuses[statusIndex]);
-      }
-    }, 2000);
 
     try {
-      // Get user profile from localStorage if available (since they sign up before dropping URL)
       const userProfile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
       const userEmail = userProfile?.email || undefined;
       const userPhone = userProfile?.phone || undefined;
+      const planName = userProfile?.userPlan || userProfile?.selectedPlan || 'Starter';
 
-      // Track Custom Event and get eventID
       const metaEventId = trackMetaEvent('URLDropped', { website_url: scanUrl }, true);
       console.log("🔥 [TESTING] Firing Meta Pixel Event: URLDropped (Frontend)");
 
-      const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, { credentials: 'include',
+      const token = localStorage.getItem('token');
+      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || "http://localhost:8000";
+      
+      // Initialize the profile instantly on backend so the user has an activeBrandId
+      const initRes = await fetch(`${BASE_URL}/profile/auto-scan-bg`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ 
           url: scanUrl, 
@@ -298,58 +285,99 @@ const Onboarding = () => {
         })
       });
 
-      clearInterval(statusInterval);
-
-      if (!response.ok) {
-        const _rawJson17 = await response.json();
-          const errData = _rawJson17 && _rawJson17.success !== undefined ? (_rawJson17.success ? _rawJson17.data : _rawJson17) : _rawJson17;
-        throw new Error(errData.detail || 'Failed to extract website details');
+      if (!initRes.ok) {
+        throw new Error('Failed to initiate auto-scan');
       }
 
-      const _rawJson16 = await response.json();
-        const data = _rawJson16 && _rawJson16.success !== undefined ? (_rawJson16.success ? _rawJson16.data : _rawJson16) : _rawJson16;
+      // Fire and forget the Python scraper just like DashboardSettings.tsx
+      (async () => {
+        try {
+          console.log("[Onboarding BG] Starting python agent scrape...");
+          const scrapeRes = await fetch(`${AGENT_API_URL}/scrape-brand-profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: scanUrl, plan: planName })
+          });
+          
+          if (!scrapeRes.ok) throw new Error('Scrape failed');
+          const scraped = await scrapeRes.json();
+          
+          let comps = scraped.competitors || [];
+          while (comps.length < 2) comps.push('');
 
-      let comps = data.competitors || [];
-      while (comps.length < 2) {
-        comps.push('');
-      }
+          const payload = {
+            website: scanUrl,
+            brandName: scraped.brandName || 'Processing...',
+            businessCategory: scraped.businessCategory || '',
+            city: scraped.location?.city || '',
+            country: scraped.location?.country || '',
+            brandTone: scraped.brandTone || '',
+            usp: scraped.usp || '',
+            mainGoal: scraped.mainGoal || '',
+            competitors: comps.slice(0, 2).join(', '),
+            targetAudiences: Array.isArray(scraped.targetAudiences) ? scraped.targetAudiences.join(', ') : (scraped.targetAudiences || ''),
+            painPoint: scraped.painPoint || '',
+            primaryColor: scraped.primaryColor || '#2563EB',
+            secondaryColor: scraped.secondaryColor || '#60A5FA',
+            logo: scraped.logo || '',
+            typography: scraped.typography || '',
+            brandKeywords: Array.isArray(scraped.brandKeywords) ? scraped.brandKeywords.join(', ') : (scraped.brandKeywords || (Array.isArray(scraped.keywords) ? scraped.keywords.join(', ') : (scraped.keywords || ''))),
+            brandDesignGuide: formatBrandDesignSystemToMarkdown(scraped.brandDesignSystem || scraped.brandDesignGuide) || ''
+          };
 
-      setFormData(prev => ({
-        ...prev,
-        brandName: data.brandName || prev.brandName,
-        website: data.website || scanUrl,
-        businessCategory: data.businessCategory || prev.businessCategory,
-        mainGoal: data.mainGoal || prev.mainGoal,
-        location: {
-          country: data.location?.country || prev.location.country,
-          city: data.location?.city || prev.location.city
-        },
-        usp: data.usp || prev.usp,
-        competitors: comps.slice(0, 2),
-        targetAudiences: data.targetAudiences || prev.targetAudiences,
-        ageRange: data.ageRange || prev.ageRange,
-        genderFocus: data.genderFocus || prev.genderFocus,
-        painPoint: data.painPoint || prev.painPoint,
-        brandTone: data.brandTone || prev.brandTone,
-        visualVibe: data.visualVibe || prev.visualVibe,
-        brandKeywords: data.brandKeywords || prev.brandKeywords,
-        primaryColor: data.primaryColor || prev.primaryColor,
-        secondaryColor: data.secondaryColor || prev.secondaryColor,
-        logo: data.logo || prev.logo,
-        typography: data.typography || prev.typography
-      }));
+          console.log("[Onboarding BG] Saving profile details via API...");
+          await fetch(`${BASE_URL}/profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(payload)
+          });
 
-      if (data.products && Array.isArray(data.products)) {
-        setExtractedProducts(data.products);
-      }
+          console.log("[Onboarding BG] Deleting old products...");
+          await fetch(`${BASE_URL}/products`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
 
-      setScanSuccess(true);
-      setScanStatus('Scan complete! Brand DNA synthesized.');
+          let scrapedProducts = scraped.products || [];
+          const isPro = planName.toLowerCase().includes('pro') || planName.toLowerCase().includes('agency');
+          const isGrowth = planName.toLowerCase().includes('growth') || planName.toLowerCase().includes('elite');
+          const productLimit = isPro ? 500 : isGrowth ? 200 : 50;
+          
+          if (scrapedProducts.length > productLimit) {
+            scrapedProducts = scrapedProducts.slice(0, productLimit);
+          }
+
+          console.log(`[Onboarding BG] Saving ${scrapedProducts.length} products...`);
+          for (const prod of scrapedProducts) {
+            await fetch(`${BASE_URL}/products`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({
+                name: prod.name,
+                description: prod.description || '',
+                price: prod.price || '',
+                imageBase64: prod.imageBase64 || ''
+              })
+            });
+          }
+          console.log("[Onboarding BG] Scrape and save completed successfully!");
+        } catch (e) {
+          console.error("[Onboarding BG] Error during background scrape:", e);
+        }
+      })();
+
+      localStorage.setItem('syncsocio_review_brand_pending', 'true');
+      localStorage.setItem('syncsocio_setup_done', 'true');
+      
+      const searchParams = new URLSearchParams(window.location.search);
+      const isNewBrand = searchParams.get('new_brand') === 'true';
+      
+      // Navigate via react-router to keep the background fetch alive!
+      navigate(isNewBrand ? '/dashboard' : '/setup');
+
     } catch (err: any) {
-      clearInterval(statusInterval);
       console.error(err);
       setScanError(getFriendlyErrorMessage(err));
-    } finally {
       setScanLoading(false);
     }
   };
@@ -387,6 +415,43 @@ const Onboarding = () => {
 
   const handleNext = () => setStep(prev => Math.min(prev + 1, totalSteps));
   const handleBack = () => setStep(prev => Math.max(prev - 1, 0));
+
+  const submitProfileAndFinish = async () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isNewBrand = searchParams.get('new_brand') === 'true';
+
+    try {
+      const token = localStorage.getItem('token');
+      const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      
+      await fetch(`${BASE_URL}/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ ...formData, createNewBrand: isNewBrand })
+      });
+
+      if (extractedProducts && extractedProducts.length > 0) {
+        for (const prod of extractedProducts) {
+          try {
+            await fetch(`${BASE_URL}/products`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({
+                name: prod.name, description: prod.description || '', price: prod.price || '',
+                offerPrice: prod.offerPrice || '', keyBenefit: prod.keyBenefit || '', imageBase64: prod.imageBase64 || ''
+              })
+            });
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      console.error('Bypass save failed', err);
+    } finally {
+      localStorage.setItem('syncsocio_profile', JSON.stringify({ ...formData, logo: '' }));
+      localStorage.setItem('syncsocio_setup_done', 'true');
+      window.location.href = isNewBrand ? '/dashboard' : '/setup';
+    }
+  };
 
   useEffect(() => {
     if (step === 12) {
@@ -427,12 +492,12 @@ const Onboarding = () => {
   const progressPercent = (step / (totalSteps - 1)) * 100;
 
   return (
-    <div className="min-h-screen bg-background flex items-start justify-center p-2 sm:p-4 md:p-8 transition-colors duration-500 overflow-y-auto scroll-touch relative">
+    <div className="min-h-screen bg-background flex flex-col items-center p-4 md:p-8 transition-colors duration-500 overflow-y-auto scroll-touch relative">
       {/* Ambient background blobs */}
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-primary/[0.03] blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-primary/[0.04] blur-[80px] pointer-events-none" />
 
-      <div className="bg-card rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_25px_80px_-20px_hsl(221_83%_53%/0.1),0_0_0_1px_hsl(220_15%_90%/0.8)] w-full max-w-[1080px] flex flex-col md:flex-row overflow-hidden relative z-10 transition-all duration-500 my-2 sm:my-4">
+      <div className="bg-card rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_25px_80px_-20px_hsl(221_83%_53%/0.1),0_0_0_1px_hsl(220_15%_90%/0.8)] w-full max-w-[1080px] flex flex-col md:flex-row overflow-hidden relative z-10 transition-all duration-500 my-auto">
 
         {/* Left Panel */}
         <div className="w-full md:w-5/12 hidden md:flex flex-col justify-between overflow-hidden relative" style={{ background: 'linear-gradient(180deg, hsl(214 100% 97%) 0%, hsl(221 83% 53% / 0.06) 100%)' }}>
@@ -446,7 +511,7 @@ const Onboarding = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full border border-dashed border-primary/[0.04] pointer-events-none" />
 
           <div className="flex items-center space-x-2.5 p-10 pb-0 relative z-10">
-            <img src="/SyncSocioLogo.png" width="40" height="40" alt="SyncSocio Logo" className="w-9 h-9 object-contain shrink-0" />
+            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-9 h-9 object-contain shrink-0" />
             <h1 className="text-lg font-black tracking-tight text-foreground uppercase">SyncSocio</h1>
           </div>
 
@@ -492,7 +557,7 @@ const Onboarding = () => {
               </button>
             ) : (
               <Link to="/" className="md:hidden flex items-center gap-2 font-display text-xl font-bold tracking-tight text-foreground">
-                <img src="/SyncSocioLogo.png" width="40" height="40" alt="SyncSocio Logo" className="w-6 h-6 object-contain shrink-0" />
+                <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-6 h-6 object-contain shrink-0" />
                 <span>SyncSocio</span>
               </Link>
             )}
@@ -506,7 +571,7 @@ const Onboarding = () => {
                   onClick={() => {
                     localStorage.setItem('syncsocio_review_brand_pending', 'true');
                     localStorage.removeItem('syncsocio_review_brand_dismissed');
-                    setStep(12);
+                    submitProfileAndFinish();
                   }}
                   className="flex items-center text-[10px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-widest px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-primary/10 border border-border/60 hover:border-primary/30 min-h-[36px] group"
                   title="Skip brand review and launch dashboard"
@@ -525,10 +590,10 @@ const Onboarding = () => {
 
               <button
                 onClick={() => {
-                  
+                  localStorage.removeItem('token');
                   localStorage.removeItem('syncsocio_profile');
                   localStorage.removeItem('syncsocio_setup_done');
-                  navigate('/login');
+                  window.location.href = '/login';
                 }}
                 className="flex items-center text-[10px] font-black text-muted-foreground hover:text-destructive transition-all uppercase tracking-widest group px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-destructive/10 min-h-[36px]"
               >
@@ -671,7 +736,7 @@ const Onboarding = () => {
                           onClick={() => {
                             localStorage.setItem('syncsocio_review_brand_pending', 'true');
                             localStorage.removeItem('syncsocio_review_brand_dismissed');
-                            setStep(12);
+                            submitProfileAndFinish();
                           }}
                           className="w-full bg-muted/40 hover:bg-muted/70 text-foreground border border-border/80 rounded-xl py-3.5 text-xs font-bold transition-all flex items-center justify-center gap-2 group uppercase tracking-widest active:scale-[0.98]"
                         >
@@ -738,7 +803,7 @@ const Onboarding = () => {
                   )}
 
                   <div className="mt-8 shrink-0">
-                    <button onClick={handleNext} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
+                    <button onClick={submitProfileAndFinish} className="w-full gradient-bg text-white rounded-xl py-4 text-sm font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center group uppercase tracking-[0.1em] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/25 hover:brightness-110">
                       CONFIRM PRODUCTS <ChevronRight size={14} className="ml-1.5 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                   </div>
@@ -1272,7 +1337,7 @@ const Onboarding = () => {
               )}
 
               {/* Step 11: Synthesis */}
-              {step === 12 && (
+              {false && step === 12 && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col h-full py-4">
                   {analyzingProgress < 5 ? (
                     <div className="flex flex-col items-center justify-center flex-grow py-8">
@@ -1413,13 +1478,14 @@ const Onboarding = () => {
                                   const searchParams = new URLSearchParams(window.location.search);
                                   const isNewBrand = searchParams.get('new_brand') === 'true';
 
-                                  
+                                  const token = localStorage.getItem('token');
                                   const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-                                  const res = await fetch(`${BASE_URL}/profile`, { credentials: 'include',
+                                  const res = await fetch(`${BASE_URL}/profile`, {
                                     method: 'POST',
                                     headers: {
                                       'Content-Type': 'application/json',
-                                      },
+                                      'Authorization': `Bearer ${token}`
+                                    },
                                     body: JSON.stringify({ ...formData, createNewBrand: isNewBrand })
                                   });
                                   if (!res.ok) throw new Error('Failed to save profile');
@@ -1428,11 +1494,12 @@ const Onboarding = () => {
                                   if (extractedProducts && extractedProducts.length > 0) {
                                     for (const prod of extractedProducts) {
                                       try {
-                                        await fetch(`${BASE_URL}/products`, { credentials: 'include',
+                                        await fetch(`${BASE_URL}/products`, {
                                           method: 'POST',
                                           headers: {
                                             'Content-Type': 'application/json',
-                                            },
+                                            'Authorization': `Bearer ${token}`
+                                          },
                                           body: JSON.stringify({
                                             name: prod.name,
                                             description: prod.description || '',
@@ -1453,7 +1520,7 @@ const Onboarding = () => {
                                   } catch (storageErr) {
                                     console.warn('Could not save profile to localStorage:', storageErr);
                                   }
-                                  navigate(isNewBrand ? "/dashboard" : "/setup");
+                                  window.location.href = isNewBrand ? "/dashboard" : "/setup";
                                 } catch (err) {
                                   console.error(err);
                                   try {
@@ -1463,7 +1530,7 @@ const Onboarding = () => {
                                   }
                                   const searchParams = new URLSearchParams(window.location.search);
                                   const isNewBrand = searchParams.get('new_brand') === 'true';
-                                  navigate(isNewBrand ? "/dashboard" : "/setup");
+                                  window.location.href = isNewBrand ? "/dashboard" : "/setup";
                                 } finally {
                                   setIsSubmitting(false);
                                 }

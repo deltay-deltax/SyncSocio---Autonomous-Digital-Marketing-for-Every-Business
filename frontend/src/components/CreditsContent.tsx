@@ -61,7 +61,7 @@ export const CreditsContent = () => {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Starter (80 Cr)
+            Starter (160 Cr)
           </button>
           <button
             onClick={() => setActiveTab('growth')}
@@ -231,7 +231,7 @@ export const CreditsContent = () => {
 
         {/* Tab Contents */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {activeTab === 'brand' ? (
+          {activeTab === 'starter' ? (
             <>
               {/* Brand - Option A */}
               <div className="rounded-2xl p-5 border border-border/60 bg-card/40 flex flex-col justify-between">
@@ -241,21 +241,21 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>40 Static Ads</span>
+                      <span>32 Static Ads</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>40 Stories</span>
+                      <span>32 Stories</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>13 Carousels (3 slides each)</span>
+                      <span>10 Carousels (3 slides each)</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or Mix</li>
                     <li className="flex items-start gap-2 text-foreground font-medium bg-muted/30 p-2.5 rounded-xl border border-border/40">
-                      <span>20 Static Ads + 5 Carousels (3 slides) + 10 Stories</span>
+                      <span>16 Static Ads + 4 Carousels (3 slides) + 4 Stories</span>
                     </li>
                   </ul>
                 </div>
@@ -269,12 +269,12 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-violet-500 mt-0.5">•</span>
-                      <span>1 Product Video (8 sec) + 24 Static Ads</span>
+                      <span>1 Product Video (8 sec) + 16 Static Ads</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-violet-500 mt-0.5">•</span>
-                      <span>1 AI UGC Video (8 sec) + 24 Static Ads</span>
+                      <span>1 AI UGC Video (8 sec) + 16 Static Ads</span>
                     </li>
                   </ul>
                 </div>
@@ -296,7 +296,7 @@ export const CreditsContent = () => {
                       <p>• 2 Carousels (3 slides each)</p>
                       <p>• 4 Ecomm Listings</p>
                       <p>• 1 AI UGC Video</p>
-                      <p className="text-[10px] text-muted-foreground/60 mt-1 italic">+ 12 Static Ads with remaining credits</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-1 italic">+ 4 Static Ads with remaining credits</p>
                     </li>
                   </ul>
                 </div>
@@ -312,12 +312,12 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>70 Static Ads</span>
+                      <span>80 Static Ads</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>23 Full Carousels (3 slides)</span>
+                      <span>26 Full Carousels (3 slides)</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or Mix</li>
                     <li className="flex items-start gap-2 text-foreground font-medium bg-muted/30 p-2.5 rounded-xl border border-border/40">
@@ -335,12 +335,12 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-violet-500 mt-0.5">•</span>
-                      <span>5 Product Videos (8 sec) + 30 Static Ads</span>
+                      <span>2 Product Videos (8 sec) + 48 Static Ads</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-violet-500 mt-0.5">•</span>
-                      <span>5 AI UGC Videos (8 sec) + 30 Static Ads</span>
+                      <span>3 AI UGC Videos (8 sec) + 32 Static Ads</span>
                     </li>
                   </ul>
                 </div>
@@ -358,10 +358,11 @@ export const CreditsContent = () => {
                     </li>
                     <li className="border-t border-border/40 pt-2.5 text-[11px] text-muted-foreground space-y-1">
                       <p className="font-semibold text-foreground">Includes:</p>
-                      <p>• 10 Images</p>
-                      <p>• 10 Carousels (3 slides each)</p>
-                      <p>• 20 Ecomm Listings</p>
-                      <p>• 5 AI UGC Videos</p>
+                      <p>• 4 Images</p>
+                      <p>• 4 Carousels (3 slides each)</p>
+                      <p>• 8 Ecomm Listings</p>
+                      <p>• 2 AI UGC Videos</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-1 italic">+ 24 Static Ads with remaining credits</p>
                     </li>
                   </ul>
                 </div>
@@ -377,16 +378,16 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>175 HD Static Ads</span>
+                      <span>125 HD Static Ads</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
-                      <span>58 HD Carousels (3 slides each)</span>
+                      <span>41 HD Carousels (3 slides each)</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or Mix</li>
                     <li className="flex items-start gap-2 text-foreground font-medium bg-muted/30 p-2.5 rounded-xl border border-border/40">
-                      <span>70 Static Ads + 30 Carousels + 50 Stories</span>
+                      <span>50 HD Static Ads + 15 HD Carousels (3 slides) + 30 HD Stories</span>
                     </li>
                   </ul>
                 </div>
@@ -400,12 +401,12 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-violet-500 mt-0.5">•</span>
-                      <span>12 Product Videos (8 sec) + 55 Static Ads</span>
+                      <span>5 Product Videos (8 sec) + 75 HD Static Ads</span>
                     </li>
                     <li className="text-[10px] uppercase font-bold text-muted-foreground/45 pl-3">Or</li>
                     <li className="flex items-start gap-2">
                       <span className="text-violet-500 mt-0.5">•</span>
-                      <span>12 AI UGC Videos (8 sec) + 55 Static Ads</span>
+                      <span>5 AI UGC Videos (8 sec) + 75 HD Static Ads</span>
                     </li>
                   </ul>
                 </div>
@@ -419,15 +420,15 @@ export const CreditsContent = () => {
                   <ul className="space-y-2.5 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span className="font-bold text-foreground">7 Full Drops ({dropCost * 7} cr)</span>
+                      <span className="font-bold text-foreground">5 Full Drops ({dropCost * 5} cr)</span>
                     </li>
                     <li className="border-t border-border/40 pt-2.5 text-[11px] text-muted-foreground space-y-1">
-                      <p className="font-semibold text-foreground">Includes (spread across up to 8 brands):</p>
-                      <p>• 24 Images</p>
-                      <p>• 24 Carousels (3 slides each)</p>
-                      <p>• 48 Ecomm Listings</p>
-                      <p>• 12 AI UGC Videos</p>
-                      <p className="text-[10px] text-muted-foreground/60 mt-1 italic">+ remaining 70 cr for extra ads</p>
+                      <p className="font-semibold text-foreground">Includes (spread across up to 5 brands):</p>
+                      <p>• 10 Images</p>
+                      <p>• 10 Carousels (3 slides each)</p>
+                      <p>• 20 Ecomm Listings</p>
+                      <p>• 5 AI UGC Videos</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-1 italic">+ 15 HD Static Ads with remaining credits</p>
                     </li>
                   </ul>
                 </div>
@@ -450,7 +451,7 @@ export const CreditsContent = () => {
           <div className="divide-y divide-border/40">
             <div className="grid grid-cols-3 p-4">
               <div className="font-bold text-foreground">Starter</div>
-              <div className="text-center font-mono font-bold text-primary">80 Credits</div>
+              <div className="text-center font-mono font-bold text-primary">160 Credits</div>
               <div className="text-right font-mono font-bold text-primary">5 cr</div>
             </div>
             <div className="grid grid-cols-3 p-4">

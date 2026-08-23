@@ -10,13 +10,13 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    host: true,
+    host: 'localhost',
     port: 5173,
     strictPort: true,
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
 })

@@ -1298,7 +1298,11 @@ export const getSiteSettings = async (req, res) => {
 
 export const updateSiteSettings = async (req, res) => {
   try {
-    const { domeGalleryImages } = req.body;
+    const { domeGalleryImages, creativeShowcaseGallery } = req.body;
+    
+    console.log('[updateSiteSettings] Request body keys:', Object.keys(req.body));
+    console.log('[updateSiteSettings] creativeShowcaseGallery received:', JSON.stringify(creativeShowcaseGallery, null, 2));
+
     let settings = await SiteSettings.findOne();
     if (!settings) {
       settings = new SiteSettings();
@@ -1308,7 +1312,14 @@ export const updateSiteSettings = async (req, res) => {
       settings.domeGalleryImages = domeGalleryImages;
     }
     
+    if (creativeShowcaseGallery !== undefined) {
+      settings.creativeShowcaseGallery = creativeShowcaseGallery;
+      settings.markModified('creativeShowcaseGallery');
+      console.log('[updateSiteSettings] marked modified. current value before save:', JSON.stringify(settings.creativeShowcaseGallery, null, 2));
+    }
+    
     await settings.save();
+    console.log('[updateSiteSettings] Saved successfully');
     return res.status(200).json({ success: true, settings, message: 'Settings updated successfully' });
   } catch (error) {
     console.error('Error updating site settings:', error);

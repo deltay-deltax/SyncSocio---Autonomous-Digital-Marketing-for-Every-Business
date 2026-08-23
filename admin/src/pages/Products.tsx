@@ -18,7 +18,7 @@ export default function Products() {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api`;
       
       let url = `${API_URL}/admin/products?page=${page}&limit=20`;
       if (search) url += `&search=${encodeURIComponent(search)}`;

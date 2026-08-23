@@ -81,7 +81,7 @@ const FAQS = [
   // ── Plans, Credits & Billing ──────────────────────────────────────────────
   {
     q: "How do credits work?",
-    a: "Credits are consumed each time you generate AI content — one image, one carousel, one video, or one caption batch each costs credits. The Starter plan comes with 80 credits/month (16 AI images), Growth comes with 400 credits/month (80 AI images), and Pro comes with 1,000 credits/month (125 HD images). If you run out, you can buy top-up packs of 50, 100, 300, or 700 credits at any time.",
+    a: "Credits are consumed each time you generate AI content — one image, one carousel, one video, or one caption batch each costs credits. The Starter plan comes with 160 credits/month (32 AI images), Growth comes with 400 credits/month (80 AI images), and Pro comes with 1,000 credits/month (125 HD images). If you run out, you can buy top-up packs of 50, 100, 300, or 700 credits at any time.",
   },
   {
     q: "Do unused credits roll over to the next month?",
@@ -93,7 +93,7 @@ const FAQS = [
   },
   {
     q: "Is there a free trial available?",
-    a: "Yes! We offer a Free Trial with 3 Free Creatives (15 credits) with no credit card required, so you can test our AI generation tools immediately.",
+    a: "Yes! We offer a Free Trial with 7 Free Creatives (35 credits) with no credit card required, so you can test our AI generation tools immediately.",
   },
   {
     q: "Is my content and data secure?",

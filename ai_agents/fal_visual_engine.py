@@ -74,6 +74,31 @@ def generate_fal_image_flux_legacy(prompt: str, image: str = None, aspect_ratio:
         raise e
 
 
+def maximize_image_quality(image_url: str) -> str:
+    """Passes the raw generated image through the Aura-SR upscaler to maximize quality."""
+    try:
+        api_key = os.getenv("FAL_API_KEY") or os.getenv("FAL_KEY")
+        if not api_key:
+            return image_url
+        os.environ["FAL_KEY"] = api_key
+            
+        print(f"  [Quality Maximizer] Upscaling image via ESRGAN (2K JPEG)...")
+        result = fal_client.subscribe(
+            "fal-ai/esrgan",
+            arguments={
+                "image_url": image_url,
+                "scale": 2,
+                "output_format": "jpeg"
+            }
+        )
+        if result and "image" in result and "url" in result["image"]:
+            print(f"  [Quality Maximizer] Success! Returning maximized image.")
+            return result["image"]["url"]
+        return image_url
+    except Exception as e:
+        print(f"  [Quality Maximizer] Warning: Upscaling failed ({e}), returning original.")
+        return image_url
+
 def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "portrait_4_3", quality: str = "medium"):
     """
     Static image generation using GPT-Image-2 via FAL.ai.
@@ -224,6 +249,10 @@ def generate_fal_image_gpt2(prompt: str, image: any = None, image_size: str = "p
         # Extract image URL and convert to base64 for consistent return shape
         if result and "images" in result and len(result["images"]) > 0:
             image_url = result["images"][0]["url"]
+            
+            # QUALITY MAXIMIZATION PASS
+            image_url = maximize_image_quality(image_url)
+            
             # Return the Fal CDN URL directly — no need to download and re-encode.
             # Storing the raw base64 (3-5 MB per image) causes OOM on multi-post runs.
             # All downstream callers (Seedance stage-2, strategy agent, autopilot)
@@ -378,6 +407,10 @@ def generate_fal_carousel_ideogram(base_prompt: str, image: any = None, count: i
             # Return the Fal CDN URL directly — avoids downloading 3-5 MB per slide
             if result and "images" in result and len(result["images"]) > 0:
                 image_url = result["images"][0]["url"]
+                
+                # QUALITY MAXIMIZATION PASS
+                image_url = maximize_image_quality(image_url)
+                
                 return {"image": image_url, "status": "success", "index": i}
             else:
                 raise Exception(f"No image data for slide {i+1}")

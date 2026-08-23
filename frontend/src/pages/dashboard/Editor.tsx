@@ -15,9 +15,11 @@ type Uploaded = { url: string; name: string; base64?: string; info?: string } | 
 interface Product {
   _id?: string;
   name: string;
-  imageBase64: string;
-  isCustomUpload?: boolean;
   description?: string;
+  price?: string;
+  imageBase64: string;
+  imageUrls?: string[];
+  isCustomUpload?: boolean;
   keyBenefit?: string;
 }
 
@@ -214,9 +216,9 @@ export default function EditorPage() {
   const selectProduct = (p: Product) => {
     const info = [p.name, p.description, p.keyBenefit].filter(Boolean).join(" - ");
     setProdImage({
-      url: imgSrc(p.imageBase64),
+      url: imgSrc(p.imageBase64 || (p.imageUrls && p.imageUrls[0]) || ''),
       name: p.name,
-      base64: p.imageBase64,
+      base64: p.imageBase64 || (p.imageUrls && p.imageUrls[0]) || '',
       info: info
     });
     setShowProductModal(false);
@@ -457,8 +459,8 @@ export default function EditorPage() {
                       className="text-left relative p-3 rounded-2xl border border-border transition overflow-hidden bg-card hover:bg-muted/50 hover:border-primary/40 hover:shadow-md group"
                     >
                       <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-3 relative flex items-center justify-center group-hover:bg-muted/80 transition">
-                        {p.imageBase64 ? (
-                          <img src={imgSrc(p.imageBase64)} alt={p.name} className="w-full h-full object-contain p-2 mix-blend-multiply dark:mix-blend-normal" />
+                        {p.imageBase64 || (p.imageUrls && p.imageUrls.length > 0) ? (
+                          <img src={imgSrc(p.imageBase64 || p.imageUrls?.[0] || "")} alt={p.name} className="w-full h-full object-contain p-2 mix-blend-multiply dark:mix-blend-normal" />
                         ) : (
                           <Package className="text-muted-foreground/30 h-10 w-10" />
                         )}

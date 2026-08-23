@@ -116,7 +116,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
             <p className="mt-2 text-sm text-muted-foreground">
               {isDemo
                 ? "We'll reach out shortly to schedule your demo call."
-                : "We'll deliver your 3 free creatives within 24 hours."}
+                : "We'll deliver your 7 free creatives within 24 hours."}
             </p>
             <button
               onClick={onClose}
@@ -128,7 +128,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
         ) : (
           <>
             <h3 className="font-display text-2xl font-bold">
-              {isDemo ? "Book a demo call" : "Claim your 3 free creatives"}
+              {isDemo ? "Book a demo call" : "Claim your 7 free creatives"}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               {isDemo

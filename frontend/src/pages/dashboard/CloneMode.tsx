@@ -319,7 +319,8 @@ export default function ClonePage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {products.map((p) => {
                     const sel = product?._id === p._id;
-                    const imgSrc = p.imageBase64.startsWith('data:') || p.imageBase64.startsWith('http') ? p.imageBase64 : `data:image/jpeg;base64,${p.imageBase64}`;
+                    const rawImg = p.imageBase64 || (p.imageUrls && p.imageUrls[0]) || "";
+                    const imgSrc = rawImg.startsWith('data:') || rawImg.startsWith('http') ? rawImg : (rawImg ? `data:image/jpeg;base64,${rawImg}` : "");
                     return (
                       <button
                         key={p._id || p.name}
@@ -328,8 +329,12 @@ export default function ClonePage() {
                           sel ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
                         }`}
                       >
-                        <div className="aspect-square bg-muted">
-                          <img src={imgSrc} alt={p.name} className="w-full h-full object-cover" />
+                        <div className="aspect-square bg-muted relative">
+                          {imgSrc ? (
+                            <img src={imgSrc} alt={p.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
+                          )}
                         </div>
                         <div className="p-2 text-xs font-semibold truncate bg-card">{p.name}</div>
                       </button>
@@ -419,12 +424,7 @@ export default function ClonePage() {
                     >
                       Tweak inputs
                     </button>
-                    <button
-                      onClick={generate}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary/90"
-                    >
-                      <Wand2 className="h-4 w-4" /> Regenerate
-                    </button>
+
                   </>
                 ) : (
                   <button

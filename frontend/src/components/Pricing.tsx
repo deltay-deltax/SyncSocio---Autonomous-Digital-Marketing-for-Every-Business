@@ -6,6 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { ImageCompareDialog } from "@/components/ImageCompareDialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type Plan = {
   name: string;
@@ -29,16 +30,16 @@ const plans: Plan[] = [
   {
     name: "Starter",
     badge: null,
-    creditTag: "80 Credits",
+    creditTag: "160 Credits",
     quality: "SD Quality",
     prices: {
-      INR: { basePrice: 399, originalPrice: 599 },
-      USD: { basePrice: 5, originalPrice: 8 }
+      INR: { basePrice: 799, originalPrice: 999 },
+      USD: { basePrice: 10, originalPrice: 15 }
     },
     period: "/month",
     description: "For first-time business owners ready to start creating AI content.",
     features: [
-      "80 credits / month (16 AI images)",
+      "160 credits / month (32 AI images)",
       "5 credits per image generation",
       "SD quality image exports",
       "Image, Carousel, Festival posts",
@@ -49,7 +50,7 @@ const plans: Plan[] = [
       "50 products catalog",
       "Schedule up to 30 posts",
       "🤖 Nexa AI Sales Agent (IG only)",
-      "15 AI-handled leads/month",
+      "20 AI-handled leads/month",
       "Email support",
     ],
     lockedFeatures: [
@@ -187,6 +188,7 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { currency, symbol, setCurrency } = useCurrency();
   const [eliteImageMode, setEliteImageMode] = useState<'SD' | 'HD'>('SD');
   const [showCompareDialog, setShowCompareDialog] = useState(false);
@@ -260,11 +262,11 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
                         </span>
                         <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
                           <Sparkles size={11} className="text-primary" />
-                          3 Free Creatives
+                          7 Free Creatives
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        15 credits included • No credit card required • Instant access
+                        35 credits included • No credit card required • Instant access
                       </p>
                     </div>
                   </div>
@@ -424,42 +426,6 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
             <span>Credits explained</span>
           </Link>
         </div>
-
-        {/* Credit Topups */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mt-24 max-w-4xl mx-auto text-center border-t border-border/50 pt-16"
-        >
-          <h3 className="text-2xl font-bold mb-2">Need extra credits?</h3>
-          <p className="text-sm text-muted-foreground mb-10">Get instant top-ups to power your creative campaigns without upgrading your monthly plan.</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {topups.map((topup) => {
-              const topupPrices = topup.prices[currency];
-              return (
-                <div key={topup.credits} className="glass-card rounded-2xl p-6 flex flex-col justify-between hover-lift transition-all text-center">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider mb-2 block">{topup.name}</span>
-                    <h4 className="text-2xl font-black text-foreground mb-1">{topup.credits} Credits</h4>
-                    <p className="text-xs text-muted-foreground mb-4">{symbol}{topupPrices.per_credit} / credit</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-foreground mb-4">{symbol}{topupPrices.price}</p>
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-xl py-4 font-semibold text-xs border-border hover:bg-primary hover:text-white transition-all h-10 flex items-center justify-center"
-                      onClick={() => onWaitlistClick()}
-                    >
-                      Buy Top-up
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
       </div>
       <ImageCompareDialog open={showCompareDialog} onOpenChange={setShowCompareDialog} />
     </section>

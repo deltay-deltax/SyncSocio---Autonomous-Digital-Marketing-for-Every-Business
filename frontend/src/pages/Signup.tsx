@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Sparkles, Users, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
@@ -77,44 +77,43 @@ const Signup = () => {
   const strength = checkPasswordStrength(password);
 
   const handlePostAuthSuccess = async (token: string) => {
-    
+    localStorage.setItem("token", token);
 
     // --- META REVIEW BYPASS ---
     if (email.trim().toLowerCase() === 'supportvelocitydm@gmail.com') {
       localStorage.setItem('isMetaReviewer', 'true');
-      navigate("/setup");
+      window.location.href = "/setup";
       return;
     }
     // --- END BYPASS ---
 
     try {
       const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const profRes = await fetch(`${PROFILE_URL}/profile/me`, { credentials: 'include',
-        headers: { }
+      const profRes = await fetch(`${PROFILE_URL}/profile/me`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
       if (profRes.ok) {
-        const _rawJson28 = await profRes.json();
-          const profile = _rawJson28 && _rawJson28.success !== undefined ? (_rawJson28.success ? _rawJson28.data : _rawJson28) : _rawJson28;
+        const profile = await profRes.json();
         const hasBrandSetup = profile.brandName && profile.brandName.trim() !== '';
         
         if (profile.userPlan && profile.userPlan !== 'Free') {
           localStorage.setItem("syncsocio_setup_done", "true");
-          navigate("/dashboard");
+          window.location.href = "/dashboard";
         } else if (hasBrandSetup) {
           localStorage.setItem("syncsocio_setup_done", "false");
-          navigate("/setup?step=plan");
+          window.location.href = "/setup";
         } else {
           localStorage.setItem("syncsocio_setup_done", "false");
-          navigate("/setup");
+          window.location.href = "/onboarding";
         }
       } else {
         localStorage.setItem("syncsocio_setup_done", "false");
-        navigate("/onboarding");
+        window.location.href = "/onboarding";
       }
     } catch (err) {
       localStorage.setItem("syncsocio_setup_done", "false");
-      navigate("/onboarding");
+      window.location.href = "/onboarding";
     }
   };
   
@@ -133,7 +132,7 @@ const Signup = () => {
     setLoading(true);
     try {
       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${BASE_URL}/auth/signup`, { credentials: 'include',
+      const res = await fetch(`${BASE_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -142,8 +141,7 @@ const Signup = () => {
           password
         })
       });
-      const _rawJson27 = await res.json();
-        const data = _rawJson27 && _rawJson27.success !== undefined ? (_rawJson27.success ? _rawJson27.data : _rawJson27) : _rawJson27;
+      const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Something went wrong.");
 
       if (data.requiresOtp) {
@@ -189,7 +187,7 @@ const Signup = () => {
       const metaEventId = trackMetaEvent('CompleteRegistration', {}, false);
       console.log("🔥 [TESTING] Firing Meta Pixel Event: CompleteRegistration (Frontend via OTP)");
       
-      const res = await fetch(`${BASE_URL}/auth/verify-otp`, { credentials: 'include',
+      const res = await fetch(`${BASE_URL}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -199,8 +197,7 @@ const Signup = () => {
         })
       });
 
-      const _rawJson26 = await res.json();
-        const data = _rawJson26 && _rawJson26.success !== undefined ? (_rawJson26.success ? _rawJson26.data : _rawJson26) : _rawJson26;
+      const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.message || "OTP verification failed");
@@ -230,14 +227,13 @@ const Signup = () => {
 
     try {
       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${BASE_URL}/auth/resend-otp`, { credentials: 'include',
+      const res = await fetch(`${BASE_URL}/auth/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: verificationEmail })
       });
 
-      const _rawJson25 = await res.json();
-        const data = _rawJson25 && _rawJson25.success !== undefined ? (_rawJson25.success ? _rawJson25.data : _rawJson25) : _rawJson25;
+      const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || "Unable to resend OTP.");
       }
@@ -259,7 +255,7 @@ const Signup = () => {
 
         <div className="relative z-10 max-w-md px-12">
           <Link to="/" className="flex items-center gap-2 font-display text-2xl font-bold tracking-tight mb-10">
-            <img src="/SyncSocioLogo.png" width="40" height="40" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
+            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
             <span className="text-foreground">SyncSocio</span>
           </Link>
 
@@ -334,7 +330,7 @@ const Signup = () => {
           className="w-full max-w-md"
         >
           <Link to="/" className="lg:hidden flex items-center gap-2 font-display text-2xl font-bold tracking-tight mb-8">
-            <img src="/SyncSocioLogo.png" width="40" height="40" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
+            <img src="/SyncSocioLogo.png" alt="SyncSocio Logo" className="w-8 h-8 object-contain shrink-0" />
             <span className="text-foreground">SyncSocio</span>
           </Link>
 
@@ -418,13 +414,13 @@ const Signup = () => {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="email" className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
-              <Input id="email" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="new-password" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
+                  <Input type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="new-password" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20" />
                 </div>
                 <div>
-                  <label htmlFor="password" className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
                   <div className="relative">
-                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="Min 8 characters" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20 pr-10" />
+                    <Input type={showPassword ? "text" : "password"} placeholder="Min 8 characters" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="h-12 bg-card border-border focus:ring-2 focus:ring-primary/20 pr-10" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -482,7 +478,7 @@ const Signup = () => {
                           const metaEventId = trackMetaEvent('CompleteRegistration', {}, false);
                           console.log("🔥 [TESTING] Firing Meta Pixel Event: CompleteRegistration (Frontend via Google)");
                           const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-                          const res = await fetch(`${BASE_URL}/auth/google`, { credentials: 'include',
+                          const res = await fetch(`${BASE_URL}/auth/google`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
@@ -491,18 +487,17 @@ const Signup = () => {
                               metaEventId
                             })
                           });
-                          const _rawJson24 = await res.json();
-                            const data = _rawJson24 && _rawJson24.success !== undefined ? (_rawJson24.success ? _rawJson24.data : _rawJson24) : _rawJson24;
+                          const data = await res.json();
                           if (!res.ok) throw new Error(data.message || "Google login failed");
                           
                           if (data.requiresPasswordSetup) {
                             // New user - redirect to password setup
                             localStorage.setItem("tempToken", data.tempToken);
-                            navigate("/set-password");
+                            window.location.href = "/set-password";
                           } else {
                             // Existing user
-                            
-                            navigate("/onboarding");
+                            localStorage.setItem("token", data.token);
+                            window.location.href = "/onboarding";
                           }
                         } catch (err: any) {
                           setError(getFriendlyErrorMessage(err));

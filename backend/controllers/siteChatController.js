@@ -27,7 +27,7 @@ Tagline: "Your brand, posting itself. Every single day."
 Core value: Drop your URL, and watch your brand come to life in minutes. We automate content creation (images, carousels, festival posts, reels) and customer interaction (DM Automation, Nexa AI Sales Agent).
 
 # Current Offer
-We offer "3 Free Creatives" to anyone who signs up right now.
+We offer "7 Free Creatives" (35 credits) to anyone who signs up right now.
 
 # Pricing Plans
 1. Starter: 399 INR / $5 per month

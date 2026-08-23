@@ -1,0 +1,130 @@
+[
+  {
+    "path": "root.log.entries[23].response.content.text",
+    "value": "import{s as e}from\"./chunk-Bj-mKKzh.js\";import{_ as t}from\"./removable-DC9RkJ90.js\";import{a as n,i as r,n as i,r as a,s as o,t as s}from\"./download-image-CM3766Qd.js\";import{t as c}from\"./useMutation-BiOlXEQ4.js\";import{i as l,r as u}from\"./bundle-mjs-D-PCtmfB.js\";import{h as d,p as f}from\"./chunk-UVKPFVEO-BjDUBYsF.js\";import{n as p,t as m}from\"./createLucideIcon-C5GN4jIh.js\";import{t as h}from\"./arrow-right-tmGYlriY.js\";import{t as g}from\"./arrow-up-BvQLZ3rx.js\";import{t as _}from\"./check-BQYJ..."
+  },
+  {
+    "path": "root.log.entries[24].response.content.text",
+    "value": "const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=[\"assets/browser-DowZ-D1y.js\",\"assets/chunk-Bj-mKKzh.js\"])))=>i.map(i=>d[i]);\nimport{s as e,t}from\"./chunk-Bj-mKKzh.js\";import{i as n}from\"./bundle-mjs-D-PCtmfB.js\";import{t as r}from\"./preload-helper-DeiOTZKJ.js\";import{t as i}from\"./shim-Don1Nemn.js\";var a=e(n(),1);function o(e,t){if(!e)throw Error(typeof t==`string`?t:`${t.displayName} not found`)}var[s,c,l]=((e,t)=>{let{assertCtxFn:n=o}=t||{},r=a.createContext(void 0);return r.displayNa..."
+  },
+  {
+    "path": "root.log.entries[25].request.url",
+    "value": "https://makelocalads.com/assets/prompt-input-D87ouTXN.js"
+  },
+  {
+    "path": "root.log.entries[25].request.headers[2].value",
+    "value": "/assets/prompt-input-D87ouTXN.js"
+  },
+  {
+    "path": "root.log.entries[25].response.content.text",
+    "value": "import{s as e}from\"./chunk-Bj-mKKzh.js\";import{i as t,r as n}from\"./bundle-mjs-D-PCtmfB.js\";import{n as r,t as i}from\"./createLucideIcon-C5GN4jIh.js\";import\"./select-l86b4lKB.js\";import{t as a}from\"./image-zpE5GPOI.js\";import{t as o}from\"./plus-DgOVsni6.js\";import{t as s}from\"./x-bSi3-ojA.js\";import{t as c}from\"./spinner-Buo9ocaT.js\";import{o as l}from\"./button-Bg7qd-lT.js\";import{t as u}from\"./dist-YVwgqf5J.js\";import{n as d}from\"./dist-Ewqmdnxk.js\";import{r as f,t as p}from\"./dist-D-t4S6cb.js\"..."
+  },
+  {
+    "path": "root.log.entries[146].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"id\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"name\":\"Win the comparison campaign\",\"description\":\"\",\"generationStatus\":\"generating\",\"requestedCount\":3,\"activeGenerationJobIds\":[\"1a4fb24c-33e5-4e33-8da0-d728f3743739\"],\"creatives\":[{\"id\":\"2b1ee983-8e4c-462d-bafd-ed8b1976f185\",\"status\":\"pending\",\"imageUrl\":null},{\"id\":\"814bf02e-5269-44d6-88d4-bc5a34aa7f01\",\"status\":\"pending\",\"imageUrl\":null},{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3..."
+  },
+  {
+    "path": "root.log.entries[149].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[156].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[160].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[164].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[166].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[169].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[173].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[178].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[182].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[186].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[188].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[191].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[196].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[200].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[204].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[205].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[210].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[214].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[217].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[220].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[223].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[228].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[231].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[234].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[237].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  },
+  {
+    "path": "root.log.entries[240].response.content.text",
+    "value": "[{\"result\":{\"data\":{\"items\":[{\"id\":\"c653f951-37e5-4c1b-bd98-04f16d3d6724\",\"orgId\":\"62f84ee9-c45f-4e41-8868-bcf0bb1ec033\",\"offeringId\":\"fdfcaad1-1542-44ff-a267-cc38b91f44b8\",\"strategyRunId\":null,\"generationJobId\":\"1a4fb24c-33e5-4e33-8da0-d728f3743739\",\"triggerRunId\":null,\"audienceNodeId\":null,\"angleNodeId\":null,\"campaignId\":\"b90774ce-3740-4166-9d9c-c1a9d6ccaab9\",\"adAudienceId\":null,\"campaignAngleId\":null,\"promptRecipeId\":null,\"currentVersionId\":\"6118ec41-596b-4526-8785-dcd51a49ac93\",\"storageKey\":..."
+  }
+]

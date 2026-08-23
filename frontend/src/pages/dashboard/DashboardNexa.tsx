@@ -71,10 +71,10 @@ const DashboardNexa = () => {
   const isAgency = planName.includes('agency');
   const isMetaReviewer = profile?.userEmail === 'supportvelocitydm@gmail.com';
 
-  // All plans now get Nexa. Starter = IG-only, 15 leads/month.
+  // All plans now get Nexa. Starter = IG-only, 20 leads/month.
   const nexaUnlimited = profile?.nexaUnlimited || isGrowth || isPro || isElite || isAgency || isMetaReviewer;
   const isStarter = !nexaUnlimited;
-  const STARTER_NEXA_LIMIT = 15;
+  const STARTER_NEXA_LIMIT = 20;
 
   const brandLimit = profile?.brandLimit ?? (isAgency ? 8 : 1);
   const totalBrands = profile?.totalBrands ?? 1;
