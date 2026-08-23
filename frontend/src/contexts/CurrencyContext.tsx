@@ -32,7 +32,8 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         const response = await fetch('https://ipapi.co/json/');
         if (response.ok) {
-          const data = await response.json();
+          const _rawJson7 = await response.json();
+            const data = _rawJson7 && _rawJson7.success !== undefined ? (_rawJson7.success ? _rawJson7.data : _rawJson7) : _rawJson7;
           const detectedCurrency = data.country_code === 'IN' ? 'INR' : 'USD';
           setCurrencyState(detectedCurrency);
           localStorage.setItem('preferred_currency', detectedCurrency);
