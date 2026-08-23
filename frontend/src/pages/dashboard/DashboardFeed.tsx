@@ -26,14 +26,15 @@ const DashboardFeed = () => {
 
     const fetchFeed = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/instagram/feed`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/instagram/feed`, { credentials: 'include',
+          headers: { }
         });
 
         // Handle expired/invalid token → show reconnect banner
         if (res.status === 401) {
-          const data = await res.json();
+          const _rawJson65 = await res.json();
+            const data = _rawJson65 && _rawJson65.success !== undefined ? (_rawJson65.success ? _rawJson65.data : _rawJson65) : _rawJson65;
           if (data.requiresReconnect && isMounted) {
             setReconnectRequired({ message: data.message, reason: data.reason });
             setLoading(false);
@@ -42,7 +43,8 @@ const DashboardFeed = () => {
         }
 
         if (res.ok && isMounted) {
-          const result = await res.json();
+          const _rawJson64 = await res.json();
+            const result = _rawJson64 && _rawJson64.success !== undefined ? (_rawJson64.success ? _rawJson64.data : _rawJson64) : _rawJson64;
           cachedFeedData = result.data || [];
           setPosts(cachedFeedData);
           setReconnectRequired(null); // Clear reconnect state on success
@@ -95,13 +97,30 @@ const DashboardFeed = () => {
   // ── Loading state ────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="h-[70vh] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <div className="text-center space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse">Synchronizing Feed</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Retrieving Meta Assets...</p>
-          </div>
+      <div className="space-y-5 animate-pulse">
+        <div className="flex justify-between items-center">
+          <div className="w-40 h-6 bg-muted rounded"></div>
+          <div className="w-16 h-8 bg-muted rounded-xl"></div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="w-20 h-8 rounded-xl bg-muted/60"></div>
+          ))}
+        </div>
+
+        {/* Grid Skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="rounded-xl bg-card border border-border/50 overflow-hidden">
+              <div className="aspect-square bg-muted/60"></div>
+              <div className="p-3 space-y-2">
+                <div className="w-3/4 h-3 bg-muted rounded"></div>
+                <div className="w-1/2 h-3 bg-muted rounded"></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
