@@ -1819,10 +1819,16 @@ const DashboardSettings = () => {
                             <label className="text-xs font-bold text-foreground block">Cash on Delivery</label>
                             <span className="text-[10px] text-muted-foreground">Allow manual COD orders</span>
                           </div>
-                          <button onClick={() => setNexaForm((p: any) => ({ ...p, cod_enabled: !p.cod_enabled }))}>
-                            {nexaForm.cod_enabled
-                              ? <CheckCircle2 size={24} className="text-emerald-500" />
-                              : <Pause size={24} className="text-muted-foreground" />}
+                          <button
+                            onClick={() => setNexaForm((p: any) => ({ ...p, cod_enabled: !p.cod_enabled }))}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 ${
+                              nexaForm.cod_enabled
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20'
+                                : 'bg-muted/60 border-border/50 text-muted-foreground hover:bg-muted'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${nexaForm.cod_enabled ? 'bg-emerald-500' : 'bg-muted-foreground/50'}`} />
+                            {nexaForm.cod_enabled ? 'Online' : 'Offline'}
                           </button>
                         </div>
                       </div>
