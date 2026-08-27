@@ -879,8 +879,9 @@ const DashboardLayoutContent = () => {
         const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
         let userPlan = 'starter';
+        const token = localStorage.getItem('token');
         const profileRes = await fetch(`${apiBase}/profile/me`, { credentials: 'include',
-          headers: { }
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
         });
         if (profileRes.ok) {
           const _rawJson72 = await profileRes.json();
@@ -889,7 +890,7 @@ const DashboardLayoutContent = () => {
         }
 
         const res = await fetch(`${apiBase}/profile/list`, { credentials: 'include',
-          headers: { }
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
         });
         if (res.ok) {
           const _rawJson71 = await res.json();
@@ -1023,7 +1024,7 @@ const DashboardLayoutContent = () => {
         
         const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
         const res = await fetch(`${API_BASE}/credits`, { credentials: 'include',
-          headers: { }
+          headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
         });
         if (res.ok) {
           const _rawJson68 = await res.json();
@@ -1111,8 +1112,9 @@ const DashboardLayoutContent = () => {
       try {
         
         const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+        const token = localStorage.getItem('token');
         const res = await fetch(`${API_BASE}/profile/me`, { credentials: 'include',
-          headers: { }
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
         });
         if (res.ok) {
           const _rawJson67 = await res.json();
