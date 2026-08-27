@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Activity, BrainCircuit, Bot, Search, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Activity, BrainCircuit, Bot, Search, Clock, CheckCircle2, AlertCircle, StopCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -25,6 +25,22 @@ export default function AIOperations() {
       toast.error('Failed to load AI Operations');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStopTask = async (id: string) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/admin`;
+      const res = await axios.put(`${API}/ai-operations/${id}/stop`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        toast.success('Task force stopped');
+        fetchAIOperations();
+      }
+    } catch (error) {
+      toast.error('Failed to stop task');
     }
   };
 
@@ -121,10 +137,19 @@ export default function AIOperations() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {activity.status === 'active' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></div>
-                            Running
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></div>
+                              Running
+                            </span>
+                            <button
+                              onClick={() => handleStopTask(activity._id)}
+                              className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
+                              title="Force Stop"
+                            >
+                              <StopCircle className="w-4 h-4" />
+                            </button>
+                          </div>
                         ) : activity.status === 'error' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                             <AlertCircle className="w-3 h-3" /> Error
