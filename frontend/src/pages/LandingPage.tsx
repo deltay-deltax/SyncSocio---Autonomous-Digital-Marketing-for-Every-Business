@@ -25,13 +25,14 @@ const Index = () => {
   useEffect(() => {
     const checkUserStatus = async () => {
       
-      if (!localStorage.getItem('syncsocio_profile')) return;
+      const token = localStorage.getItem('token');
+      if (!token) return;
 
       setIsCheckingStatus(true);
       try {
         const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-        const profRes = await fetch(`${PROFILE_URL}/profile/me`, { credentials: 'include',
-          headers: { }
+        const profRes = await fetch(`${PROFILE_URL}/profile/me`, { 
+          headers: { "Authorization": `Bearer ${token}` }
         });
 
         if (profRes.ok) {
@@ -39,12 +40,9 @@ const Index = () => {
             const profile = _rawJson12 && _rawJson12.success !== undefined ? (_rawJson12.success ? _rawJson12.data : _rawJson12) : _rawJson12;
           localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
 
-          if (profile.userPlan && profile.userPlan !== 'Free') {
+          if (profile && profile._id) {
             localStorage.setItem("syncsocio_setup_done", "true");
             navigate("/dashboard");
-          } else if (profile.brandName && profile.brandName.trim() !== '') {
-            localStorage.setItem("syncsocio_setup_done", "false");
-            navigate("/setup?step=plan");
           } else {
             localStorage.setItem("syncsocio_setup_done", "false");
             navigate("/setup");
