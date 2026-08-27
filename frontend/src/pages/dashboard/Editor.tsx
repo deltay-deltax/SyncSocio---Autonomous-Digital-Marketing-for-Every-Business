@@ -143,7 +143,7 @@ export default function EditorPage() {
     const fetchProducts = async () => {
       try {
         
-        const res = await fetch(`${API_BASE}/products`, { credentials: 'include', headers: { } });
+        const res = await fetch(`${API_BASE}/products`, { credentials: 'include', headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) } });
         if (res.ok) {
           const _rawJson99 = await res.json();
             const data = _rawJson99 && _rawJson99.success !== undefined ? (_rawJson99.success ? _rawJson99.data : _rawJson99) : _rawJson99;
