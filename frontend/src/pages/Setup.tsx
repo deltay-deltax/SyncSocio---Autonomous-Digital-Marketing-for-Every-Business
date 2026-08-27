@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare, Zap, ShieldCheck, CheckCircle2, Gift } from 'lucide-react';
+import { Check, Rocket, CreditCard, BookOpen, PenTool, BarChart3, Bell, AlertTriangle, ExternalLink, AlertCircle, ChevronRight, Sparkles, BotMessageSquare, Zap, ShieldCheck, CheckCircle2, Gift, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -128,6 +128,16 @@ const Setup = () => {
   const [activationStep, setActivationStep] = useState(0);
   const [onboardingData, setOnboardingData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bgScrapeError, setBgScrapeError] = useState<string | null>(null);
+
+  // Read any persisted background-scrape error from onboarding and clear it once shown
+  useEffect(() => {
+    const storedErr = localStorage.getItem('syncsocio_bg_scrape_error');
+    if (storedErr) {
+      setBgScrapeError(storedErr);
+      localStorage.removeItem('syncsocio_bg_scrape_error');
+    }
+  }, []);
 
   // Coupon Checkout State
   const [couponCodeInput, setCouponCodeInput] = useState('');
@@ -429,6 +439,22 @@ const Setup = () => {
   if (screen === 'checklist') {
     return (
       <Wrapper screenKey={screen}>
+        {/* ── Persistent auto-scan error banner ── */}
+        {bgScrapeError && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-[calc(100%-2rem)] max-w-lg">
+            <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-destructive text-destructive-foreground shadow-2xl shadow-destructive/30 border border-destructive/60 backdrop-blur-sm">
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+              <p className="flex-1 text-sm font-semibold leading-snug">{bgScrapeError}</p>
+              <button
+                onClick={() => setBgScrapeError(null)}
+                className="shrink-0 w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                aria-label="Dismiss"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          </div>
+        )}
         <div className="glass-card rounded-3xl p-8 sm:p-10">
           {/* Header */}
           <div className="text-center mb-10">
