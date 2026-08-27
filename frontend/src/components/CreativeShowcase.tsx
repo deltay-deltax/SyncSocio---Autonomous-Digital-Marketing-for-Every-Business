@@ -13,6 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const optimizeCloudinaryUrl = (url: string) => {
   if (url && url.includes('res.cloudinary.com') && url.includes('/upload/')) {
@@ -82,6 +83,7 @@ const mocks: Record<string, Item[]> = {
 };
 
 const CreativeShowcase = () => {
+  const navigate = useNavigate();
   const [enlargedIndex, setEnlargedIndex] = useState<{ format: string; index: number } | null>(null);
   const [dynamicMocks, setDynamicMocks] = useState<Record<string, Item[]>>(mocks);
   const [loading, setLoading] = useState(true);
@@ -347,7 +349,9 @@ const StackingCard = ({
               </div>
             </div>
 
-            <button className={`mt-auto xl:mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r ${format.accent} text-white text-xs font-black uppercase tracking-widest shadow-lg group hover:brightness-110 transition-all`}>
+            <button
+              onClick={() => navigate("/signup")}
+              className={`mt-auto xl:mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r ${format.accent} text-white text-xs font-black uppercase tracking-widest shadow-lg group hover:brightness-110 transition-all`}>
               Generate {format.label}
               <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform" />
             </button>

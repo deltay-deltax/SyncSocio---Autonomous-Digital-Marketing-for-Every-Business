@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users, Zap, TrendingUp,
-  Truck, CheckCircle2, XCircle, Boxes, Calendar, Building, Mail, Briefcase, Send, BookOpen
+  Truck, CheckCircle2, XCircle, Boxes, Calendar, Building, Mail, Briefcase, Send, BookOpen, Settings, ArrowRight, X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOutletContext, useNavigate } from 'react-router-dom';
@@ -93,10 +93,34 @@ const DashboardNexa = () => {
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Nexa Setup Check
+  const [nexaSetupBannerDismissed, setNexaSetupBannerDismissed] = useState(
+    () => sessionStorage.getItem('nexa_setup_banner_dismissed') === 'true'
+  );
+  const [nexaIsConfigured, setNexaIsConfigured] = useState<boolean | null>(null); // null = loading
+
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`
   });
+
+  useEffect(() => {
+    // Fetch Nexa settings to check if configured
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/nexa/settings`, { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (res.ok && data.settings) {
+          const configured = !!data.settings.nexa_enabled || !!data.settings.business_context;
+          setNexaIsConfigured(configured);
+        } else {
+          setNexaIsConfigured(false);
+        }
+      } catch {
+        setNexaIsConfigured(false);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     // Fetch Nexa conversations
@@ -244,6 +268,41 @@ const DashboardNexa = () => {
             </div>
           )}
         </div>
+
+        {/* Nexa Setup Banner */}
+        {nexaIsConfigured === false && !nexaSetupBannerDismissed && (
+          <div className="mb-4 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/8 via-primary/5 to-transparent p-4 flex flex-col sm:flex-row sm:items-center gap-3 relative overflow-hidden">
+            {/* Glow */}
+            <div className="absolute right-0 top-0 w-48 h-full bg-primary/5 blur-2xl pointer-events-none" />
+            <div className="flex items-start gap-3 flex-1 relative z-10">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center shrink-0">
+                <Settings size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Nexa AI isn't set up yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Add your business context and enable Nexa so it can start auto-replying to your DMs and closing orders 24/7.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 relative z-10 shrink-0">
+              <Button
+                size="sm"
+                onClick={() => navigate('/dashboard/settings', { state: { tab: 'Nexa AI Setup' } })}
+                className="h-8 px-4 text-xs font-bold rounded-xl flex items-center gap-1.5"
+              >
+                Set up Nexa <ArrowRight size={13} />
+              </Button>
+              <button
+                onClick={() => { setNexaSetupBannerDismissed(true); sessionStorage.setItem('nexa_setup_banner_dismissed', 'true'); }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 h-[75vh]">
           

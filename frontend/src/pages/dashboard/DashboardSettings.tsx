@@ -131,6 +131,9 @@ const DashboardSettings = () => {
     if (params.get('code') || params.get('error')) {
       return 'Connected Accounts';
     }
+    // Support navigating from other pages with { state: { tab: '...' } }
+    const stateTab = (window.history.state?.usr as any)?.tab;
+    if (stateTab && settingsTabs.includes(stateTab)) return stateTab;
     return 'Brand Profile';
   });
   const [brands, setBrands] = useState<any[]>([]);

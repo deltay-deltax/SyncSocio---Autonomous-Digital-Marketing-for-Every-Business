@@ -28,6 +28,38 @@ type Plan = {
 
 const plans: Plan[] = [
   {
+    name: "Free Trial",
+    badge: "Start Free",
+    creditTag: "35 Credits",
+    quality: "SD Quality",
+    prices: {
+      INR: { basePrice: 0, originalPrice: 0 },
+      USD: { basePrice: 0, originalPrice: 0 }
+    },
+    period: "/forever",
+    description: "Try SyncSocio for free. No credit card needed. Generate 7 AI creatives instantly.",
+    features: [
+      "35 credits (7 AI images)",
+      "5 credits per image generation",
+      "SD quality image exports",
+      "Image, Carousel, Festival posts",
+      "Ecomm listing generator",
+      "Photoshoot mode",
+      "AI Editor",
+      "1 brand profile",
+      "No credit card required",
+    ],
+    lockedFeatures: [
+      "Post scheduling",
+      "DM Automation",
+      "Nexa AI Sales Agent",
+      "WhatsApp & Email campaigns",
+      "Best time to post analytics",
+    ],
+    popular: false,
+    cta: "Start Free Trial",
+  },
+  {
     name: "Starter",
     badge: null,
     creditTag: "160 Credits",
@@ -297,7 +329,7 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
           )}
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto items-stretch">
           {plans.map((plan, i) => {
             const planPrices = plan.prices[currency];
             const currentPrice = planPrices.basePrice;
@@ -312,9 +344,11 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
                 transition={{ duration: 0.5, delay: i * 0.08 }}
                 className={`relative rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${plan.popular
                   ? "bg-gradient-to-b from-primary/95 via-primary to-primary text-primary-foreground ring-2 ring-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
-                  : plan.isCustom
-                    ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
-                    : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
+                  : plan.name === 'Free Trial'
+                    ? "bg-card border border-primary/30 text-card-foreground shadow-sm hover:border-primary/60 hover:shadow-md ring-1 ring-primary/10"
+                    : plan.isCustom
+                      ? "bg-card border border-primary/30 text-card-foreground shadow-lg hover:border-primary/50"
+                      : "bg-card border border-border/60 text-card-foreground shadow-sm hover:border-border hover:shadow-md"
                   }`}
               >
                 {/* Top Badge */}
@@ -347,7 +381,19 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
 
                   {/* Price Block */}
                   <div className="mb-6 pt-3 border-t border-border/20">
-                    {!plan.isCustom ? (
+                    {plan.name === 'Free Trial' ? (
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider bg-primary/10 text-primary">
+                            No card needed
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl sm:text-4xl font-black tracking-tight">₹0</span>
+                          <span className="text-xs font-semibold text-muted-foreground">{plan.period}</span>
+                        </div>
+                      </div>
+                    ) : !plan.isCustom ? (
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-xs line-through font-semibold ${plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"
@@ -399,16 +445,27 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
                 {/* CTA Button Pinned at Bottom */}
                 <div className="pt-2">
                   <Button
-                    onClick={() => handleSelectPlan(plan.name)}
+                    onClick={() => {
+                      if (plan.name === 'Free Trial') {
+                        onFreeTrialClick?.();
+                      } else {
+                        handleSelectPlan(plan.name);
+                      }
+                    }}
+                    disabled={plan.name === 'Free Trial' && isTrialLoading}
                     className={`w-full py-6 rounded-2xl font-bold text-xs tracking-wide shadow-md transition-all ${plan.popular
                       ? "bg-white text-primary hover:bg-white/90 hover:shadow-lg"
-                      : plan.isCustom
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "gradient-bg text-primary-foreground border-0 hover:opacity-95"
+                      : plan.name === 'Free Trial'
+                        ? "gradient-bg text-primary-foreground border-0 hover:opacity-95"
+                        : plan.isCustom
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "gradient-bg text-primary-foreground border-0 hover:opacity-95"
                       }`}
                     size="lg"
                   >
-                    {plan.cta}
+                    {plan.name === 'Free Trial' && isTrialLoading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-1" /><span>Activating...</span></>
+                    ) : plan.cta}
                   </Button>
                 </div>
               </motion.div>
