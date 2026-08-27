@@ -279,6 +279,7 @@ const StackingCard = ({
   const targetScale = 1 - ((totalCards - index) * 0.05);
   const range = [index / totalCards, 1];
   const scale = useTransform(progress, range, [1, targetScale]);
+  const navigate = useNavigate();
 
   if (!items || items.length === 0) return null;
 

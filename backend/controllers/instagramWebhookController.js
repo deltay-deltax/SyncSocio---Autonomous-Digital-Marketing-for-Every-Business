@@ -58,25 +58,29 @@ const getWebhookVerifyToken = () => {
 const createFlowQuery = ({ userId, brandId, mediaId, trigger = 'comment' }) => {
   const query = {
     user: userId,
-    $or: [{ brandId }, { brandId: { $exists: false } }],
     active: true,
     trigger,
+    $and: []
   };
 
+  if (brandId) {
+    query.$and.push({ $or: [{ brandId }, { brandId: { $exists: false } }] });
+  }
+
   if (safeTrim(mediaId)) {
-    query.$or = [
-      { targetType: 'all' },
-      { targetType: 'specific', targetMediaId: safeTrim(mediaId) },
-    ];
-    // Need to preserve user/brand filter context inside $or group
-    if (brandId) {
-      query.$and = [
-        { user: userId },
-        { $or: [{ brandId }, { brandId: { $exists: false } }] }
-      ];
-    }
+    query.$and.push({
+      $or: [
+        { targetType: 'all' },
+        { targetType: 'specific', targetMediaId: safeTrim(mediaId) },
+        { targetType: 'specific', targetChildrenIds: safeTrim(mediaId) },
+      ]
+    });
   } else {
     query.targetType = 'all';
+  }
+
+  if (query.$and.length === 0) {
+    delete query.$and;
   }
 
   return query;
@@ -113,6 +117,8 @@ const keywordMatchScore = (incomingText, configuredKeyword) => {
 const findBestFlowMatch = async ({ userId, brandId, incomingText, mediaId, trigger = 'comment' }) => {
   const query = createFlowQuery({ userId, brandId, mediaId, trigger });
   const candidates = await DMFlow.find(query).sort({ updatedAt: -1 }).limit(50);
+  console.log(`[DEBUG] findBestFlowMatch query:`, JSON.stringify(query));
+  console.log(`[DEBUG] candidates found:`, candidates.length);
 
   let bestFlow = null;
   let bestScore = 0;
@@ -1711,3 +1717,5 @@ export const testWebhook = async (req, res) => {
     });
   }
 };
+
+export { findBestFlowMatch };
