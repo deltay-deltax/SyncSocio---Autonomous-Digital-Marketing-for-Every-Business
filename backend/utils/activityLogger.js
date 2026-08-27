@@ -14,15 +14,37 @@ export const logActivity = async (userId, agentName, message, status = 'done', d
     const userObj = await User.findById(userId).select('activeBrandId');
     const brandId = userObj?.activeBrandId;
 
-    await AgentActivity.create({
-      user: userId,
-      brandId,
-      agentName,
-      message,
-      status,
-      duration,
-      timestamp: new Date()
-    });
+    let activityUpdated = false;
+
+    if (status === 'done' || status === 'error') {
+      // Find the most recent 'active' task for this user and agent
+      const existingActivity = await AgentActivity.findOne({
+        user: userId,
+        agentName,
+        status: 'active'
+      }).sort({ timestamp: -1 });
+
+      if (existingActivity) {
+        existingActivity.status = status;
+        existingActivity.message = message;
+        if (duration) existingActivity.duration = duration;
+        existingActivity.timestamp = new Date(); // Update timestamp to completion time
+        await existingActivity.save();
+        activityUpdated = true;
+      }
+    }
+
+    if (!activityUpdated) {
+      await AgentActivity.create({
+        user: userId,
+        brandId,
+        agentName,
+        message,
+        status,
+        duration,
+        timestamp: new Date()
+      });
+    }
     
     // Keep only the last 20 activities per user to prevent bloat
     const count = await AgentActivity.countDocuments({ user: userId });
