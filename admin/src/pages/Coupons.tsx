@@ -67,7 +67,7 @@ export default function Coupons() {
         code: code.toUpperCase().trim(),
         discountPercentage: discountNum,
       };
-      if (expiryDate) payload.expiryDate = expiryDate;
+      if (expiryDate) payload.expiryDate = new Date(expiryDate).toISOString();
       if (maxUses) payload.maxUses = Number(maxUses);
       if (applicableOn.length > 0) payload.applicableOn = applicableOn;
 

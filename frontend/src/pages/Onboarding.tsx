@@ -361,8 +361,13 @@ const Onboarding = () => {
             });
           }
           console.log("[Onboarding BG] Scrape and save completed successfully!");
-        } catch (e) {
+        } catch (e: any) {
           console.error("[Onboarding BG] Error during background scrape:", e);
+          // Persist error so the next page (Setup) can show a dismissable banner
+          const friendlyMsg = e?.message?.includes('could not be read')
+            ? "Auto-scan failed: The website could not be read. Add your brand details manually in Brand Profile settings."
+            : "Auto-scan failed: We couldn't scan your website. You can add your brand details manually in settings.";
+          localStorage.setItem('syncsocio_bg_scrape_error', friendlyMsg);
         }
       })();
 

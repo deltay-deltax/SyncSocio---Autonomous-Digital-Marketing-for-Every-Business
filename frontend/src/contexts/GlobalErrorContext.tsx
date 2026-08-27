@@ -52,8 +52,10 @@ export const GlobalErrorProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
         return response;
       } catch (err) {
-        // Only surface network-level failures from our own backend — never from external services
-        if (isNodeBackend(url)) {
+        // AbortError = intentional cancellation (AbortController.abort()) — never a server fault.
+        // Only surface genuine network-level failures from our own backend.
+        const isAbort = (err as Error).name === 'AbortError';
+        if (!isAbort && isNodeBackend(url)) {
           setHasError(true);
         }
         throw err;

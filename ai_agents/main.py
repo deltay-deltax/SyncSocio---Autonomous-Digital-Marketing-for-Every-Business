@@ -2786,13 +2786,20 @@ async def api_product_image_editor(request: ProductEditRequest):
         safe_prod_info = request.prod_info[:1000] if request.prod_info else ""
         if request.prod_image and request.prod_info:
             prompt = (
-                f"Apply the style, lighting, and composition of the reference image to the product image.\n"
-                f"Generate the output with the same orientation and aspect ratio as the reference image.\n"
+                f"You are given TWO images in order:\n"
+                f"  IMAGE 1 (STYLE REFERENCE): This is the background scene, lighting, props, and composition you must replicate. Do NOT place this product in the output — use it only as a visual style guide.\n"
+                f"  IMAGE 2 (PRODUCT): This is the actual product to feature in the output. Keep its packaging, shape, label text, and colors exactly as they appear.\n\n"
+                f"Task: Create a NEW product advertisement image by placing IMAGE 2 (the product) into a scene that exactly matches the style, lighting, background, props, and composition of IMAGE 1 (the style reference). The final image should look like IMAGE 2's product was professionally photographed in IMAGE 1's setting.\n\n"
+                f"Rules:\n"
+                f"  - OUTPUT must feature ONLY the product from IMAGE 2, never the product from IMAGE 1.\n"
+                f"  - Replicate the exact background, surface, props, lighting, and mood from IMAGE 1.\n"
+                f"  - Maintain the same orientation and aspect ratio as IMAGE 1.\n"
+                f"  - Do not alter the product's packaging, shape, or label in any way.\n\n"
                 f"Brand Guidelines: {safe_brand_dna}\n"
                 f"Product Details: {safe_prod_info}\n"
                 f"User Instruction: {request.instruction}"
             )
-            # generate_fal_image_gpt2 accepts a list of images (reference + product + logo)
+            # Image order matters: [0] = style reference, [1] = product to be styled
             images = [request.ref_image, request.prod_image]
             if request.logo_image:
                 images.append(request.logo_image)

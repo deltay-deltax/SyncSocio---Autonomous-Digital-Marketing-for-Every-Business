@@ -244,12 +244,25 @@ const ProductForm: React.FC<{
         guarantee: data.guarantee || '',
         variantDetails: data.variantDetails || [],
         sourceUrl: data.sourceUrl || link,
-        imageBase64: data.imageBase64 || f.imageBase64,
-        imageUrls: data.imageUrls || f.imageUrls,
+        imageBase64: (() => {
+          // Agent always returns images in imageUrls[0]=front, imageUrls[1]=back.
+          // If imageBase64 is empty, promote imageUrls[0] → imageBase64 (FRONT).
+          if (data.imageBase64) return data.imageBase64;
+          return data.imageUrls?.[0] || f.imageBase64;
+        })(),
+        imageUrls: (() => {
+          // If we promoted imageUrls[0] to imageBase64, shift the rest so imageUrls[0] = BACK.
+          if (!data.imageBase64 && data.imageUrls?.length > 0) {
+            return data.imageUrls.slice(1);
+          }
+          return data.imageUrls || f.imageUrls;
+        })(),
         specifications: data.specifications || f.specifications
       }));
       if (data.imageBase64) {
         setImgPreview(data.imageBase64);
+      } else if (data.imageUrls?.[0]) {
+        setImgPreview(data.imageUrls[0]);
       }
       setLink('');
     } catch (e) {
@@ -465,21 +478,48 @@ const ProductForm: React.FC<{
                       <div className="flex gap-2 mt-2 overflow-x-auto pb-1 scrollbar-thin items-center">
                         {/* Front Thumbnail */}
                         <div className="flex flex-col items-center gap-1">
-                          <div
-                            onClick={() => {
-                              if (frontImg) setImgPreview(frontImg);
-                              else fileRef.current?.click();
-                            }}
-                            className={cn(
-                              "w-14 h-14 shrink-0 rounded-lg border flex items-center justify-center cursor-pointer transition overflow-hidden",
-                              frontImg ? "bg-muted hover:border-primary" : "border-dashed border-border hover:bg-primary/5 hover:text-primary text-muted-foreground",
-                              currentImg === frontImg && frontImg ? "border-primary ring-2 ring-primary/30" : "border-border"
-                            )}
-                          >
-                            {frontImg ? (
-                              <img src={imgSrc(frontImg)} alt="Front" className="w-full h-full object-cover" />
-                            ) : (
-                              <Plus size={18} />
+                          <div className="relative">
+                            <div
+                              onClick={() => {
+                                if (frontImg) setImgPreview(frontImg);
+                                else fileRef.current?.click();
+                              }}
+                              className={cn(
+                                "w-14 h-14 shrink-0 rounded-lg border flex items-center justify-center cursor-pointer transition overflow-hidden",
+                                frontImg ? "bg-muted hover:border-primary" : "border-dashed border-border hover:bg-primary/5 hover:text-primary text-muted-foreground",
+                                currentImg === frontImg && frontImg ? "border-primary ring-2 ring-primary/30" : "border-border"
+                              )}
+                            >
+                              {frontImg ? (
+                                <img src={imgSrc(frontImg)} alt="Front" className="w-full h-full object-cover" />
+                              ) : (
+                                <Plus size={18} />
+                              )}
+                            </div>
+                            {/* Front remove ✕ */}
+                            {frontImg && (
+                              <button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  set('imageBase64', '');
+                                  if (imgPreview === frontImg) setImgPreview('');
+                                  if (form._id) {
+                                    try {
+                                      const token = localStorage.getItem('token');
+                                      await fetch(`${API_BASE}/products/${form._id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                        body: JSON.stringify({ imageBase64: '', imageUrls: form.imageUrls })
+                                      });
+                                    } catch {}
+                                  }
+                                }}
+                                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 hover:bg-destructive text-white flex items-center justify-center transition-colors z-10"
+                                aria-label="Remove front image"
+                              >
+                                <X size={8} strokeWidth={3} />
+                              </button>
                             )}
                           </div>
                           <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -489,21 +529,50 @@ const ProductForm: React.FC<{
 
                         {/* Back Thumbnail */}
                         <div className="flex flex-col items-center gap-1">
-                          <div
-                            onClick={() => {
-                              if (backImg) setImgPreview(backImg);
-                              else addFileRef.current?.click();
-                            }}
-                            className={cn(
-                              "w-14 h-14 shrink-0 rounded-lg border flex items-center justify-center cursor-pointer transition overflow-hidden",
-                              backImg ? "bg-muted hover:border-primary" : "border-dashed border-border hover:bg-primary/5 hover:text-primary text-muted-foreground",
-                              currentImg === backImg && backImg ? "border-primary ring-2 ring-primary/30" : "border-border"
-                            )}
-                          >
-                            {backImg ? (
-                              <img src={imgSrc(backImg)} alt="Back" className="w-full h-full object-cover" />
-                            ) : (
-                              <Plus size={18} />
+                          <div className="relative">
+                            <div
+                              onClick={() => {
+                                if (backImg) setImgPreview(backImg);
+                                else addFileRef.current?.click();
+                              }}
+                              className={cn(
+                                "w-14 h-14 shrink-0 rounded-lg border flex items-center justify-center cursor-pointer transition overflow-hidden",
+                                backImg ? "bg-muted hover:border-primary" : "border-dashed border-border hover:bg-primary/5 hover:text-primary text-muted-foreground",
+                                currentImg === backImg && backImg ? "border-primary ring-2 ring-primary/30" : "border-border"
+                              )}
+                            >
+                              {backImg ? (
+                                <img src={imgSrc(backImg)} alt="Back" className="w-full h-full object-cover" />
+                              ) : (
+                                <Plus size={18} />
+                              )}
+                            </div>
+                            {/* Back remove ✕ */}
+                            {backImg && (
+                              <button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const newUrls = [...(form.imageUrls || [])];
+                                  if (newUrls.length > 0) newUrls[0] = '';
+                                  set('imageUrls', newUrls);
+                                  if (imgPreview === backImg) setImgPreview('');
+                                  if (form._id) {
+                                    try {
+                                      const token = localStorage.getItem('token');
+                                      await fetch(`${API_BASE}/products/${form._id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                        body: JSON.stringify({ imageBase64: form.imageBase64, imageUrls: newUrls })
+                                      });
+                                    } catch {}
+                                  }
+                                }}
+                                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 hover:bg-destructive text-white flex items-center justify-center transition-colors z-10"
+                                aria-label="Remove back image"
+                              >
+                                <X size={8} strokeWidth={3} />
+                              </button>
                             )}
                           </div>
                           <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">

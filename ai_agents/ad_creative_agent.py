@@ -447,7 +447,8 @@ def _generate_director_concepts(
             "CRITICAL — FESTIVAL CAMPAIGN: This batch is for a major cultural or holiday festival. "
             "The aesthetic MUST be highly celebratory, vibrant, and culturally relevant to the festival mentioned in the idea. "
             "Use warm, community-driven messaging, festive motifs (like lights, gifts, traditional patterns if applicable), "
-            "and ensure the product is integrated elegantly into the celebration rather than forced."
+            "and ensure the product is integrated elegantly into the celebration rather than forced. "
+            "CRITICAL INSTRUCTION: Ensure the ad copy and on-image text explicitly and clearly wishes the audience for the specific festival."
         )
 
     import random

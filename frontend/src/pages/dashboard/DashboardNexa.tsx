@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Bot, User, Package, MapPin, Phone, CreditCard, Clock, MessageSquare, AlertCircle, ShoppingBag, Users, Zap, TrendingUp,
-  Truck, CheckCircle2, XCircle, Boxes, Calendar, Building, Mail, Briefcase
+  Truck, CheckCircle2, XCircle, Boxes, Calendar, Building, Mail, Briefcase, Send, BookOpen, Settings, ArrowRight, X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOutletContext, useNavigate } from 'react-router-dom';
@@ -90,10 +90,36 @@ const DashboardNexa = () => {
   const [replying, setReplying] = useState(false);
   const [monthlyCount, setMonthlyCount] = useState<number>(0);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Nexa Setup Check
+  const [nexaSetupBannerDismissed, setNexaSetupBannerDismissed] = useState(
+    () => sessionStorage.getItem('nexa_setup_banner_dismissed') === 'true'
+  );
+  const [nexaIsConfigured, setNexaIsConfigured] = useState<boolean | null>(null); // null = loading
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
     });
+
+  useEffect(() => {
+    // Fetch Nexa settings to check if configured
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/nexa/settings`, { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (res.ok && data.settings) {
+          const configured = !!data.settings.nexa_enabled || !!data.settings.business_context;
+          setNexaIsConfigured(configured);
+        } else {
+          setNexaIsConfigured(false);
+        }
+      } catch {
+        setNexaIsConfigured(false);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     // Fetch Nexa conversations
@@ -136,9 +162,11 @@ const DashboardNexa = () => {
       const _rawJson82 = await res.json();
         const data = _rawJson82 && _rawJson82.success !== undefined ? (_rawJson82.success ? _rawJson82.data : _rawJson82) : _rawJson82;
       if (res.ok) {
-        toast({ title: 'Reply Sent', description: 'Conversation is back to automation.' });
+        toast({ title: '✓ Reply Sent', description: 'Message delivered. Nexa AI will handle the next reply.' });
         setReplyText('');
         setNexaConversations(prev => prev.map(c => c._id === selectedLeadId ? data.convo : c));
+        // Scroll to bottom after new message appears
+        setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       } else {
         toast({ title: 'Error', description: data.message, variant: 'destructive' });
       }
@@ -146,6 +174,19 @@ const DashboardNexa = () => {
       toast({ title: 'Error', description: 'Failed to send reply', variant: 'destructive' });
     }
     setReplying(false);
+  };
+
+  // Auto-scroll to bottom when conversation changes
+  useEffect(() => {
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 150);
+  }, [selectedLeadId]);
+
+  // Ctrl+Enter / Cmd+Enter to send
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleReply();
+    }
   };
 
   const handleUpdateOrderStatus = async (newStatus: string) => {
@@ -230,6 +271,41 @@ const DashboardNexa = () => {
           )}
         </div>
 
+        {/* Nexa Setup Banner */}
+        {nexaIsConfigured === false && !nexaSetupBannerDismissed && (
+          <div className="mb-4 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/8 via-primary/5 to-transparent p-4 flex flex-col sm:flex-row sm:items-center gap-3 relative overflow-hidden">
+            {/* Glow */}
+            <div className="absolute right-0 top-0 w-48 h-full bg-primary/5 blur-2xl pointer-events-none" />
+            <div className="flex items-start gap-3 flex-1 relative z-10">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center shrink-0">
+                <Settings size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Nexa AI isn't set up yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Add your business context and enable Nexa so it can start auto-replying to your DMs and closing orders 24/7.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 relative z-10 shrink-0">
+              <Button
+                size="sm"
+                onClick={() => navigate('/dashboard/settings', { state: { tab: 'Nexa AI Setup' } })}
+                className="h-8 px-4 text-xs font-bold rounded-xl flex items-center gap-1.5"
+              >
+                Set up Nexa <ArrowRight size={13} />
+              </Button>
+              <button
+                onClick={() => { setNexaSetupBannerDismissed(true); sessionStorage.setItem('nexa_setup_banner_dismissed', 'true'); }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 h-[75vh]">
           
           {/* Left Panel - Leads List */}
@@ -313,7 +389,7 @@ const DashboardNexa = () => {
           </Card>
 
           {/* Right Panel - CRM Detail View */}
-          <Card className="lg:col-span-2 rounded-[2rem] border-border/50 shadow-sm flex flex-col h-full overflow-hidden bg-card">
+          <Card className="lg:col-span-2 rounded-[2rem] border-border/50 shadow-sm flex flex-col h-full overflow-hidden bg-card" style={{ display: 'flex', flexDirection: 'column' }}>
             {selectedLead ? (
               <>
                 <CardHeader className="p-6 border-b border-border/40 bg-muted/10 flex flex-row items-center justify-between shrink-0">
@@ -333,7 +409,7 @@ const DashboardNexa = () => {
                   )}
                 </CardHeader>
                 
-                <ScrollArea className="flex-1 p-6">
+                <ScrollArea className="shrink-0 max-h-[200px] p-6 border-b border-border/30">
                   {/* Status & Action Bar (Context-aware for Demo Leads vs E-Commerce) */}
                   {(() => {
                     const isDemo = isLeadDemo(selectedLead);
@@ -551,69 +627,103 @@ const DashboardNexa = () => {
                     )}
                   </div>
 
-                  {/* Chat History */}
-                  <div className="space-y-4">
+                </ScrollArea>
+
+                {/* ── Chat Transcript ─────────────────────────────────── */}
+                <div className="flex-1 overflow-hidden flex flex-col border-t border-border/30">
+                  <div className="flex-none px-6 pt-4 pb-2">
                     <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2 flex items-center gap-2">
                       <MessageSquare size={16} /> Chat Transcript
                     </h3>
-                    
-                    <div className="bg-muted/30 rounded-2xl p-4 space-y-4">
+                  </div>
+                  <ScrollArea className="flex-1 px-6">
+                    <div className="space-y-3 pb-4">
                       {selectedLead.conversation_history && selectedLead.conversation_history.length > 0 ? (
                         selectedLead.conversation_history.map((msg: any, idx: number) => (
                           <div key={idx} className={`flex flex-col ${msg.role === 'nexa' ? 'items-start' : 'items-end'}`}>
                             <span className="text-[10px] text-muted-foreground font-medium mb-1 px-1">
-                              {msg.role === 'nexa' ? 'Nexa Agent' : 'Customer'}
+                              {msg.role === 'nexa' ? '🤖 Nexa' : '👤 Customer'}
+                              {msg.timestamp && (
+                                <span className="ml-2 opacity-60">
+                                  {new Date(msg.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
                             </span>
-                            <div className={`px-4 py-2 rounded-2xl max-w-[85%] text-sm ${
+                            <div className={`px-4 py-2.5 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${
                               msg.role === 'nexa' 
-                                ? 'bg-card border border-border/60 text-foreground rounded-tl-sm' 
-                                : 'bg-primary text-primary-foreground rounded-tr-sm'
+                                ? 'bg-card border border-border/60 text-foreground rounded-tl-sm shadow-sm' 
+                                : 'bg-primary text-primary-foreground rounded-tr-sm shadow-sm'
                             }`}>
                               {msg.text}
                             </div>
                           </div>
                         ))
                       ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">No conversation history available.</p>
+                        <p className="text-sm text-muted-foreground text-center py-4">No conversation history yet.</p>
                       )}
+                      {/* Scroll anchor */}
+                      <div ref={chatBottomRef} />
                     </div>
-                    
-                    {/* Reply & Auto-Learn Box (only for escalated) */}
+                  </ScrollArea>
+                </div>
+
+                  {/* ── Always-visible Reply Bar ─────────────────────────── */}
+                  <div className="shrink-0 border-t border-border/50 bg-background/80 backdrop-blur-sm p-4">
                     {selectedLead.escalate_to_human && (
-                      <div className="mt-4 p-4 border border-violet-500/30 bg-violet-500/5 rounded-2xl space-y-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <AlertCircle size={16} className="text-violet-600" />
-                          <h4 className="text-sm font-bold text-violet-900 dark:text-violet-100">Reply & Resolve</h4>
-                        </div>
-                        <textarea
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Type your reply to the customer..."
-                          className="w-full min-h-[80px] p-3 text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-                        />
-                        <div className="flex items-center justify-between">
-                          <label className="flex items-center gap-2 text-sm cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              checked={learnCheckbox} 
-                              onChange={(e) => setLearnCheckbox(e.target.checked)}
-                              className="rounded text-violet-600 focus:ring-violet-500"
-                            />
-                            <span className="font-medium text-muted-foreground">Save to Nexa's Knowledge Base (Auto-Learn)</span>
-                          </label>
-                          <Button 
-                            onClick={handleReply} 
-                            disabled={replying || !replyText.trim()}
-                            className="bg-violet-600 hover:bg-violet-700"
-                          >
-                            {replying ? 'Sending...' : 'Send Reply'}
-                          </Button>
-                        </div>
+                      <div className="flex items-center gap-2 mb-3 px-1">
+                        <AlertCircle size={13} className="text-amber-500 shrink-0" />
+                        <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                          Human action requested — Nexa paused on this conversation.
+                        </p>
                       </div>
                     )}
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1 relative">
+                        <textarea
+                          ref={textareaRef}
+                          value={replyText}
+                          onChange={(e) => {
+                            setReplyText(e.target.value);
+                            // Auto-grow
+                            e.target.style.height = 'auto';
+                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                          }}
+                          onKeyDown={handleKeyDown}
+                          placeholder={`Reply as ${selectedLead.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram'} brand... (Ctrl+Enter to send)`}
+                          rows={1}
+                          className="w-full resize-none overflow-hidden p-3 pr-4 text-sm rounded-2xl border border-border bg-muted/30 focus:bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all placeholder:text-muted-foreground/60"
+                          style={{ minHeight: '44px', maxHeight: '120px' }}
+                        />
+                      </div>
+                      <button
+                        onClick={handleReply}
+                        disabled={replying || !replyText.trim()}
+                        className="shrink-0 h-11 w-11 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-white transition-all shadow-sm hover:shadow-md active:scale-95"
+                        title="Send reply (Ctrl+Enter)"
+                      >
+                        {replying
+                          ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          : <Send size={16} />}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 px-1">
+                      <label className="flex items-center gap-1.5 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={learnCheckbox}
+                          onChange={(e) => setLearnCheckbox(e.target.checked)}
+                          className="rounded accent-violet-600"
+                        />
+                        <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors flex items-center gap-1">
+                          <BookOpen size={11} /> Auto-learn from this reply
+                        </span>
+                      </label>
+                      <span className="text-[10px] text-muted-foreground/50">
+                        Nexa AI resumes after your reply
+                      </span>
+                    </div>
                   </div>
-                </ScrollArea>
-              </>
+                </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
                 <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground">
