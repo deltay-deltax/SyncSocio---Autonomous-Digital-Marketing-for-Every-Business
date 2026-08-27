@@ -134,7 +134,8 @@ export const signup = async (req, res) => {
         });
       }
 
-      res.cookie('token', generateToken(user._id), { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30*24*60*60*1000 });
+      const token = generateToken(user._id);
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30*24*60*60*1000 });
       return res.status(200).json({
         message: 'Signup successful!',
         user,
@@ -234,13 +235,14 @@ export const login = async (req, res) => {
     ).catch(err => console.error('Notification creation failed:', err));
 
     clearAuthAttempts(email);
-    res.cookie('token', generateToken(user._id), {
+    const token = generateToken(user._id);
+    res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000
       });
-      res.status(200).json({ user });
+      res.status(200).json({ user, token });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -347,13 +349,14 @@ export const googleLogin = async (req, res) => {
       `Authenticated successfully via Google.`
     );
     clearAuthAttempts(email);
-    res.cookie('token', generateToken(user._id), {
+    const token = generateToken(user._id);
+    res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000
       });
-      res.status(200).json({ user });
+      res.status(200).json({ user, token });
   } catch (error) {
     console.error('Google Auth Error:', error);
     res.status(500).json({ message: 'Google Auth failed' });
@@ -511,7 +514,8 @@ export const appleLogin = async (req, res) => {
     
     if (isNewUser && !user.password) {
       // New user via Apple - require password setup
-      res.cookie('token', generateToken(user._id), {
+      const token = generateToken(user._id);
+    res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -526,13 +530,14 @@ export const appleLogin = async (req, res) => {
         `Authenticated successfully via Apple.`
       );
       clearAuthAttempts(email);
-      res.cookie('token', generateToken(user._id), {
+      const token = generateToken(user._id);
+    res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000
       });
-      res.status(200).json({ user });
+      res.status(200).json({ user, token });
     }
   } catch (error) {
     console.error('Apple Auth Error:', error);
@@ -608,10 +613,12 @@ export const verifyOtp = async (req, res) => {
       });
     }
 
-    res.cookie('token', generateToken(user._id), { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30*24*60*60*1000 });
+    const token = generateToken(user._id);
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30*24*60*60*1000 });
     res.status(200).json({
       message: 'Email verified successfully',
       user,
+      token
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -758,13 +765,14 @@ export const resetPassword = async (req, res) => {
 
     await user.save();
 
-    res.cookie('token', generateToken(user._id), {
+    const token = generateToken(user._id);
+    res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000
       });
-      res.status(200).json({ user });
+      res.status(200).json({ user, token });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -794,13 +802,14 @@ export const setPassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    res.cookie('token', generateToken(user._id), {
+    const token = generateToken(user._id);
+    res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000
       });
-      res.status(200).json({ message: 'Password set successfully' });
+      res.status(200).json({ message: 'Password set successfully', token });
   } catch (error) {
     console.error('Set Password Error:', error);
     res.status(500).json({ message: 'Server error' });
