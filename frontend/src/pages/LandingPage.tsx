@@ -65,7 +65,7 @@ const Index = () => {
         const res = await fetch(`${SITE_URL}/site/settings`);
         if (res.ok) {
           const _rawJson11 = await res.json();
-            const data = _rawJson11 && _rawJson11.success !== undefined ? (_rawJson11.success ? _rawJson11.data : _rawJson11) : _rawJson11;
+          const data = _rawJson11 && _rawJson11.success !== undefined ? (_rawJson11.success ? (_rawJson11.data || _rawJson11) : _rawJson11) : _rawJson11;
           if (data.success && data.settings?.domeGalleryImages?.length > 0) {
             const mappedImages = data.settings.domeGalleryImages
               .filter((url: string) => url.trim() !== '')

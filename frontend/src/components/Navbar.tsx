@@ -66,10 +66,10 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    
+    localStorage.removeItem("token");
     localStorage.removeItem("syncsocio_profile");
     localStorage.removeItem("syncsocio_setup_done");
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {

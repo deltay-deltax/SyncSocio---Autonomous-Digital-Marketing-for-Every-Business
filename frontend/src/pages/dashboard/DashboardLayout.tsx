@@ -163,11 +163,11 @@ const DashboardLayoutContent = () => {
   };
 
   const handleSignOut = () => {
-    
+    localStorage.removeItem('token');
     localStorage.removeItem('syncsocio_profile');
     localStorage.removeItem('syncsocio_setup_done');
     localStorage.removeItem('syncsocio_credits');
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   const [backgroundTasks, setBackgroundTasks] = useState<BgTask[]>(() => {

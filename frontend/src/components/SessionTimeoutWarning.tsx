@@ -17,8 +17,7 @@ export const SessionTimeoutWarning = () => {
 
   useEffect(() => {
     const checkExpiry = () => {
-      
-      return;
+      try {
         const token = localStorage.getItem('token') || localStorage.getItem('syncsocio_profile');
         if (!token) return;
         const decoded = jwtDecode<{ exp: number }>(token);
@@ -54,24 +53,19 @@ export const SessionTimeoutWarning = () => {
   }, [show, timeLeft]);
 
   const handleLogout = () => {
-    
+    localStorage.removeItem('token');
     localStorage.removeItem('syncsocio_profile');
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   const handleStayLoggedIn = async () => {
     try {
-      
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${API_BASE}/profile/me`, { credentials: 'include',
-        headers: {  }
+      const res = await fetch(`${API_BASE}/profile/me`, { 
+        credentials: 'include',
+        headers: {}
       });
       if (res.ok) {
-        const _rawJson = await res.json();
-        const data = _rawJson && _rawJson.success !== undefined ? (_rawJson.success ? _rawJson.data : _rawJson) : _rawJson;
-        if (data.localStorage.getItem('syncsocio_profile')) {
-          
-        }
         setShow(false);
       } else {
         handleLogout();
