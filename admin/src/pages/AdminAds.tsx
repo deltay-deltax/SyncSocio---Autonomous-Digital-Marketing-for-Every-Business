@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Target, TrendingUp, DollarSign, Activity, Image as ImageIcon } from 'lucide-react';
+import { Target, TrendingUp, DollarSign, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
