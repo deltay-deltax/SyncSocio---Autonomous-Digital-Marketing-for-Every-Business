@@ -65,9 +65,11 @@ import {
   getAllProducts,
   getCampaignStats,
   getNotifications,
+  getNotificationCount,
   markNotificationRead,
   markAllNotificationsRead,
   getAIOperations,
+  stopAIOperation,
   getBrandDeepConfig,
   unlockBrand,
 } from '../controllers/adminController.js';
@@ -175,10 +177,12 @@ router.get('/campaigns/stats', getCampaignStats);
 
 // ─── Admin Notifications ──────────────────────────────────────────────────────
 router.get('/notifications', getNotifications);
+router.get('/notifications/count', getNotificationCount);
 router.put('/notifications/:id/read', markNotificationRead);
 router.put('/notifications/read-all', markAllNotificationsRead);
 
 // ─── AI Operations ─────────────────────────────────────────────────────────────
 router.get('/ai-operations', getAIOperations);
+router.put('/ai-operations/:id/stop', stopAIOperation);
 
 export default router;
