@@ -48,13 +48,12 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setLoading(true);
     setUnread(false);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/ai/edit-product-image`, {
+      
+      const response = await fetch(`${API_BASE}/ai/edit-product-image`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({
           ref_image: refImage.base64,
           prod_image: prodImage?.base64 || "",
@@ -65,7 +64,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         })
       });
       
-      const data = await response.json();
+      const _rawJson8 = await response.json();
+        const data = _rawJson8 && _rawJson8.success !== undefined ? (_rawJson8.success ? _rawJson8.data : _rawJson8) : _rawJson8;
       if (!response.ok) throw new Error(data.error || 'Failed to generate image');
       
       const imageSrc = data.image ? (data.image.startsWith('data:') || data.image.startsWith('http') ? data.image : `data:image/jpeg;base64,${data.image}`) : null;

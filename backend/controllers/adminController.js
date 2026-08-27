@@ -83,7 +83,7 @@ export const getMetrics = async (req, res) => {
     if (couponCount === 0) {
       await Coupon.create([
         { code: 'WELCOME10', discountPercentage: 10, isActive: true },
-        { code: 'VELOCITY20', discountPercentage: 20, isActive: true },
+        { code: 'SYNCSOCIO20', discountPercentage: 20, isActive: true },
         { code: 'MEGA50', discountPercentage: 50, isActive: true }
       ]);
     }
@@ -111,7 +111,7 @@ export const getMetrics = async (req, res) => {
           if (Math.random() > 0.6) {
             const discountOpts = [10, 20, 50];
             discountPercentage = discountOpts[Math.floor(Math.random() * discountOpts.length)];
-            couponCode = discountPercentage === 50 ? 'MEGA50' : (discountPercentage === 20 ? 'VELOCITY20' : 'WELCOME10');
+            couponCode = discountPercentage === 50 ? 'MEGA50' : (discountPercentage === 20 ? 'SYNCSOCIO20' : 'WELCOME10');
             discountAmount = Math.floor((amount * discountPercentage) / 100);
             amount = amount - discountAmount;
           }

@@ -76,10 +76,10 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 const AI_BASE = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
 
 const getAuthHeaders = (includeJson = false): HeadersInit => {
-  const token = localStorage.getItem('token');
+  
   return {
     ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
-    Authorization: `Bearer ${token}`,
+    
   };
 };
 
@@ -284,12 +284,13 @@ const DashboardDMs = () => {
     const fetchMedia = async () => {
       setIsLoadingMedia(true);
       try {
-        const res = await fetch(`${API_BASE}/instagram/feed`, {
+        const res = await fetch(`${API_BASE}/instagram/feed`, { credentials: 'include',
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            
           }
         });
-        const data = await res.json();
+        const _rawJson63 = await res.json();
+          const data = _rawJson63 && _rawJson63.success !== undefined ? (_rawJson63.success ? _rawJson63.data : _rawJson63) : _rawJson63;
         if (res.status === 401 && data.requiresReconnect) {
           setReconnectRequired(true);
           return;
@@ -306,10 +307,11 @@ const DashboardDMs = () => {
       setIsLoadingFlows(true);
       setFlowError(null);
       try {
-        const res = await fetch(`${API_BASE}/dm-flows`, {
+        const res = await fetch(`${API_BASE}/dm-flows`, { credentials: 'include',
           headers: getAuthHeaders(),
         });
-        const data = await res.json();
+        const _rawJson62 = await res.json();
+          const data = _rawJson62 && _rawJson62.success !== undefined ? (_rawJson62.success ? _rawJson62.data : _rawJson62) : _rawJson62;
 
         if (!res.ok) {
           throw new Error(data?.message || 'Failed to fetch flows');
@@ -327,10 +329,11 @@ const DashboardDMs = () => {
 
     const fetchAutomations = async () => {
       try {
-        const res = await fetch(`${API_BASE}/auth/instagram/automations`, {
+        const res = await fetch(`${API_BASE}/auth/instagram/automations`, { credentials: 'include',
           headers: getAuthHeaders(),
         });
-        const data = await res.json();
+        const _rawJson61 = await res.json();
+          const data = _rawJson61 && _rawJson61.success !== undefined ? (_rawJson61.success ? _rawJson61.data : _rawJson61) : _rawJson61;
         if (data.success) {
           setAutomations(data.data);
         }
@@ -425,8 +428,8 @@ const DashboardDMs = () => {
       const isEditing = !!newFlow.id;
       const url = isEditing ? `${API_BASE}/dm-flows/${newFlow.id}` : `${API_BASE}/dm-flows`;
       const method = isEditing ? 'PUT' : 'POST';
-
-      const payload = {
+      
+            const payload = {
         name: newFlow.name,
         trigger: newFlow.trigger,
         targetType: newFlow.targetType,
@@ -442,10 +445,15 @@ const DashboardDMs = () => {
       const res = await fetch(url, {
         method,
         headers: getAuthHeaders(true),
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+
+
+
+      const _rawJson60 = await res.json();
+        const data = _rawJson60 && _rawJson60.success !== undefined ? (_rawJson60.success ? _rawJson60.data : _rawJson60) : _rawJson60;
       if (!res.ok) {
         throw new Error(data?.errors?.[0] || data?.message || `Failed to ${isEditing ? 'update' : 'create'} flow`);
       }
@@ -497,12 +505,13 @@ const DashboardDMs = () => {
     setFlowError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/dm-flows/${id}/active`, {
+      const res = await fetch(`${API_BASE}/dm-flows/${id}/active`, { credentials: 'include',
         method: 'PATCH',
         headers: getAuthHeaders(true),
         body: JSON.stringify({ active: !flow.active }),
       });
-      const data = await res.json();
+      const _rawJson59 = await res.json();
+        const data = _rawJson59 && _rawJson59.success !== undefined ? (_rawJson59.success ? _rawJson59.data : _rawJson59) : _rawJson59;
 
       if (!res.ok) {
         throw new Error(data?.message || 'Failed to update flow status');
@@ -520,13 +529,14 @@ const DashboardDMs = () => {
     setFlowError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/dm-flows/${id}`, {
+      const res = await fetch(`${API_BASE}/dm-flows/${id}`, { credentials: 'include',
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const _rawJson58 = await res.json();
+          const data = _rawJson58 && _rawJson58.success !== undefined ? (_rawJson58.success ? _rawJson58.data : _rawJson58) : _rawJson58;
         throw new Error(data?.message || 'Failed to delete flow');
       }
 
@@ -540,12 +550,13 @@ const DashboardDMs = () => {
   const toggleAutomation = async (type: 'storyMention' | 'defaultReply') => {
     const newVal = !automations[type].active;
     try {
-      const res = await fetch(`${API_BASE}/auth/instagram/automations/${type}`, {
+      const res = await fetch(`${API_BASE}/auth/instagram/automations/${type}`, { credentials: 'include',
         method: 'PATCH',
         headers: getAuthHeaders(true),
         body: JSON.stringify({ active: newVal }),
       });
-      const data = await res.json();
+      const _rawJson57 = await res.json();
+        const data = _rawJson57 && _rawJson57.success !== undefined ? (_rawJson57.success ? _rawJson57.data : _rawJson57) : _rawJson57;
       if (data.success) {
         setAutomations(prev => ({ ...prev, [type]: { ...prev[type], active: newVal } }));
       }
@@ -563,12 +574,13 @@ const DashboardDMs = () => {
     if (!type) return;
 
     try {
-      const res = await fetch(`${API_BASE}/auth/instagram/automations/${type}`, {
+      const res = await fetch(`${API_BASE}/auth/instagram/automations/${type}`, { credentials: 'include',
         method: 'PATCH',
         headers: getAuthHeaders(true),
         body: JSON.stringify({ message }),
       });
-      const data = await res.json();
+      const _rawJson56 = await res.json();
+        const data = _rawJson56 && _rawJson56.success !== undefined ? (_rawJson56.success ? _rawJson56.data : _rawJson56) : _rawJson56;
       if (data.success) {
         setAutomations(prev => ({ ...prev, [type]: { ...prev[type], message } }));
         setEditModal({ type: null, message: '' });
@@ -1289,9 +1301,24 @@ const DashboardDMs = () => {
       {/* Flows */}
       <div className="space-y-3">
         {isLoadingFlows ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 bg-card/40 rounded-2xl border border-border/30">
-            <MessageCircle size={36} className="mx-auto text-muted-foreground/30 mb-3 animate-pulse" />
-            <p className="text-sm text-muted-foreground">Loading your automation flows...</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-card/60 backdrop-blur-sm border border-border/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 animate-pulse">
+                 <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-xl bg-muted"></div>
+                       <div className="space-y-2 flex-1">
+                          <div className="w-40 h-4 bg-muted rounded"></div>
+                          <div className="w-24 h-3 bg-muted/70 rounded"></div>
+                       </div>
+                    </div>
+                 </div>
+                 <div className="flex gap-2">
+                    <div className="w-10 h-10 rounded-lg bg-muted"></div>
+                    <div className="w-10 h-10 rounded-lg bg-muted"></div>
+                 </div>
+              </div>
+            ))}
           </motion.div>
         ) : (
           <AnimatePresence mode="popLayout">

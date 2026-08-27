@@ -35,12 +35,13 @@ const ResetPassword = () => {
     
     try {
       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${BASE_URL}/auth/resetpassword/${resetToken}`, {
+      const res = await fetch(`${BASE_URL}/auth/resetpassword/${resetToken}`, { credentials: 'include',
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password })
       });
-      const data = await res.json();
+      const _rawJson19 = await res.json();
+        const data = _rawJson19 && _rawJson19.success !== undefined ? (_rawJson19.success ? _rawJson19.data : _rawJson19) : _rawJson19;
       if (!res.ok) throw new Error(data.message || "Invalid or expired token");
       
       setSuccess("Password updated securely! Redirecting to login...");

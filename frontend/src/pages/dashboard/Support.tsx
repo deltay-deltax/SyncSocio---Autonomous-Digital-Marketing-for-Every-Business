@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { HelpCircle, MessageSquare, Plus, Send, X, ArrowRight, CheckCircle2, Clock, Star } from 'lucide-react';
+import { HelpCircle, Paperclip, Image as ImageIcon, MessageSquare, Plus, Send, X, ArrowRight, CheckCircle2, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -10,6 +10,7 @@ interface Message {
   sender: 'user' | 'ai' | 'admin';
   content: string;
   createdAt: string;
+  attachments?: string[];
 }
 
 interface Ticket {
@@ -27,15 +28,26 @@ export const Support = () => {
   const [loading, setLoading] = useState(true);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [newMessage, setNewMessage] = useState('');
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const [isCreating, setIsCreating] = useState(false);
   const [newTicketSubject, setNewTicketSubject] = useState('');
   const [newTicketMessage, setNewTicketMessage] = useState('');
+  const [newTicketAttachments, setNewTicketAttachments] = useState<File[]>([]);
+  const [newMessageAttachments, setNewMessageAttachments] = useState<File[]>([]);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const getAuthHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  });
+    });
 
   useEffect(() => {
     fetchTickets();
@@ -54,11 +66,12 @@ export const Support = () => {
 
   const fetchTickets = async () => {
     try {
-      const res = await fetch(`${API_BASE}/support/tickets`, {
+      const res = await fetch(`${API_BASE}/support/tickets`, { credentials: 'include',
         headers: getAuthHeaders(),
       });
       if (res.ok) {
-        const data = await res.json();
+        const _rawJson104 = await res.json();
+          const data = _rawJson104 && _rawJson104.success !== undefined ? (_rawJson104.success ? _rawJson104.data : _rawJson104) : _rawJson104;
         setTickets(data);
         // Keep activeTicket in sync so admin replies appear in real-time
         setActiveTicket(prev => {
@@ -79,7 +92,7 @@ export const Support = () => {
     if (!newTicketSubject.trim() || !newTicketMessage.trim()) return;
 
     try {
-      const res = await fetch(`${API_BASE}/support/tickets`, {
+      const res = await fetch(`${API_BASE}/support/tickets`, { credentials: 'include',
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -92,11 +105,13 @@ export const Support = () => {
       });
 
       if (res.ok) {
-        const newTicket = await res.json();
+        const _rawJson103 = await res.json();
+          const newTicket = _rawJson103 && _rawJson103.success !== undefined ? (_rawJson103.success ? _rawJson103.data : _rawJson103) : _rawJson103;
         setTickets([newTicket, ...tickets]);
         setIsCreating(false);
         setNewTicketSubject('');
         setNewTicketMessage('');
+      setNewTicketAttachments([]);
         setActiveTicket(newTicket);
         toast({ title: 'Ticket created successfully' });
       } else {
@@ -112,7 +127,7 @@ export const Support = () => {
     if (!newMessage.trim() || !activeTicket) return;
 
     try {
-      const res = await fetch(`${API_BASE}/support/tickets/${activeTicket._id}/messages`, {
+      const res = await fetch(`${API_BASE}/support/tickets/${activeTicket._id}/messages`, { credentials: 'include',
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -125,10 +140,12 @@ export const Support = () => {
       });
 
       if (res.ok) {
-        const updatedTicket = await res.json();
+        const _rawJson102 = await res.json();
+          const updatedTicket = _rawJson102 && _rawJson102.success !== undefined ? (_rawJson102.success ? _rawJson102.data : _rawJson102) : _rawJson102;
         setActiveTicket(updatedTicket);
         setTickets(tickets.map(t => t._id === updatedTicket._id ? updatedTicket : t));
         setNewMessage('');
+      setNewMessageAttachments([]);
       } else {
         toast({ title: 'Failed to send message', variant: 'destructive' });
       }
@@ -173,8 +190,10 @@ export const Support = () => {
             </div>
             <div className="overflow-y-auto flex-1 p-2 space-y-2 custom-scrollbar">
               {loading ? (
-                <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                  <Clock className="w-4 h-4 animate-spin" /> Loading tickets...
+                <div className="space-y-2 animate-pulse p-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 rounded-xl bg-muted/60 border border-border/50"></div>
+                  ))}
                 </div>
               ) : tickets.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
@@ -260,6 +279,43 @@ export const Support = () => {
                     required
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Attachments (Optional)</label>
+                  <div className="flex items-center gap-4">
+                    <label className="cursor-pointer bg-muted/50 border border-border/50 rounded-xl px-4 py-2 hover:bg-muted/80 flex items-center gap-2 text-sm">
+                      <Paperclip className="w-4 h-4" />
+                      Attach Files
+                      <input 
+                        type="file" 
+                        multiple 
+                        accept="image/*,video/*"
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            setNewTicketAttachments(Array.from(e.target.files));
+                          }
+                        }}
+                      />
+                    </label>
+                    <span className="text-xs text-muted-foreground">
+                      {newTicketAttachments.length} file(s) selected
+                    </span>
+                  </div>
+                  {newTicketAttachments.length > 0 && (
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {newTicketAttachments.map((f, i) => (
+                        <div key={i} className="text-xs bg-muted/50 px-2 py-1 rounded-md border flex items-center gap-1">
+                          {f.name}
+                          <X className="w-3 h-3 cursor-pointer hover:text-red-500" onClick={() => {
+                            setNewTicketAttachments(prev => prev.filter((_, idx) => idx !== i));
+                          }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end pt-2">
                   <Button type="submit" className="gap-2">
                     Submit Ticket <ArrowRight className="w-4 h-4" />
@@ -294,7 +350,22 @@ export const Support = () => {
                       <div className="text-[10px] opacity-70 mb-1 font-medium capitalize">
                         {msg.sender === 'ai' ? 'SyncSoci AI Support' : msg.sender === 'admin' ? 'Support Team' : 'You'}
                       </div>
+                      
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {msg.attachments.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-32 h-32 rounded-lg overflow-hidden border border-border/50 hover:opacity-80 transition-opacity bg-black/5">
+                              {url.match(/\.(mp4|mov|avi)$/i) ? (
+                                <video src={url} className="w-full h-full object-cover" />
+                              ) : (
+                                <img src={url} alt="Attachment" className="w-full h-full object-cover" />
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="text-[10px] opacity-50 mt-2 text-right">
                         {format(new Date(msg.createdAt), 'h:mm a')}
                       </div>
@@ -307,7 +378,34 @@ export const Support = () => {
               {/* Reply Input */}
               {activeTicket.status !== 'closed' && activeTicket.status !== 'resolved' ? (
                 <div className="p-4 border-t border-border/40 bg-background/50">
-                  <form onSubmit={handleSendMessage} className="relative">
+                  
+                  {newMessageAttachments.length > 0 && (
+                    <div className="flex gap-2 flex-wrap mb-2 px-2">
+                      {newMessageAttachments.map((f, i) => (
+                        <div key={i} className="text-[10px] bg-muted px-2 py-1 rounded-md border flex items-center gap-1">
+                          {f.name}
+                          <X className="w-3 h-3 cursor-pointer hover:text-red-500" onClick={() => {
+                            setNewMessageAttachments(prev => prev.filter((_, idx) => idx !== i));
+                          }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
+                    <label className="cursor-pointer p-2 hover:bg-muted/50 rounded-full text-muted-foreground hover:text-foreground shrink-0 transition-colors">
+                      <Paperclip className="w-5 h-5" />
+                      <input 
+                        type="file" 
+                        multiple 
+                        accept="image/*,video/*"
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            setNewMessageAttachments(Array.from(e.target.files));
+                          }
+                        }}
+                      />
+                    </label>
                     <input
                       type="text"
                       value={newMessage}
@@ -320,7 +418,7 @@ export const Support = () => {
                       size="icon" 
                       variant="ghost" 
                       className="absolute right-1.5 top-1.5 h-9 w-9 rounded-full text-primary hover:text-primary hover:bg-primary/10"
-                      disabled={!newMessage.trim()}
+                      disabled={!newMessage.trim() && newMessageAttachments.length === 0}
                     >
                       <Send className="w-4 h-4" />
                     </Button>

@@ -73,7 +73,7 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
       // Use the KB-powered dashboard endpoint when inside the dashboard, landing page uses the general one
       const chatEndpoint = hideWhatsApp ? `${baseUrl}/site/dashboard-chatbot` : `${baseUrl}/site/chatbot`;
-      const response = await fetch(chatEndpoint, {
+      const response = await fetch(chatEndpoint, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -86,7 +86,8 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
         throw new Error('Failed to get response');
       }
 
-      const data = await response.json();
+      const _rawJson6 = await response.json();
+        const data = _rawJson6 && _rawJson6.success !== undefined ? (_rawJson6.success ? _rawJson6.data : _rawJson6) : _rawJson6;
       let reply = data.reply;
       let shouldEscalate = false;
       
@@ -117,12 +118,11 @@ export const SiteChatbot = ({ hideWhatsApp }: SiteChatbotProps) => {
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
       const transcriptStr = typeof providedTranscript === 'string' ? providedTranscript : messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
       
-      const res = await fetch(`${API_BASE}/support/tickets`, {
+      const res = await fetch(`${API_BASE}/support/tickets`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
+          },
         body: JSON.stringify({
           subject: 'Escalated from AI Support Agent',
           message: transcriptStr

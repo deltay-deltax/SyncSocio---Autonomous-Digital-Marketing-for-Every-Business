@@ -88,7 +88,8 @@ const AssetPage: React.FC = () => {
       try {
         const res = await fetch(`${API_BASE}/assets/public/${username}/${slug}`);
         if (!res.ok) throw new Error('Not found');
-        const data = await res.json();
+        const _rawJson10 = await res.json();
+          const data = _rawJson10 && _rawJson10.success !== undefined ? (_rawJson10.success ? _rawJson10.data : _rawJson10) : _rawJson10;
         setAsset(data);
         safeSetItem(cacheKey, JSON.stringify(data));
       } catch {

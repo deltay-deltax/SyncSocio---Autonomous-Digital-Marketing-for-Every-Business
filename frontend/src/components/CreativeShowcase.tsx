@@ -437,6 +437,9 @@ const HeroTile = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   return (
     <motion.div
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
       whileHover={{ y: -3 }}
       onClick={onClick}
       onMouseEnter={() => videoRef.current?.play().catch(() => { })}
@@ -485,6 +488,9 @@ const Tile = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   return (
     <motion.div
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
       whileHover={{ y: -3 }}
       onClick={onClick}
       onMouseEnter={() => videoRef.current?.play().catch(() => { })}

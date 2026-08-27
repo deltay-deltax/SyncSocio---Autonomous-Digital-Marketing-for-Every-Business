@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import { logActivity } from '../utils/activityLogger.js';
 import Transaction from '../models/Transaction.js';
 import Coupon from '../models/Coupon.js';
+import CreditLedger from '../models/CreditLedger.js';
 
 // Credit amounts per plan tier
 const PLAN_CREDITS = {
@@ -88,6 +89,13 @@ export const assignCredits = async (req, res) => {
       { $inc: { credits: creditsToAdd }, $set: { plan } },
       { new: true, select: 'credits plan' }
     );
+    await CreditLedger.create({
+      user: req.user._id,
+      amount: creditsToAdd,
+      balanceAfter: user.credits,
+      action: 'added',
+      reason: `Plan assigned (${plan})`
+    });
 
     // Create a transaction record only if they didn't already get one from Razorpay
     if (!completedTx) {
@@ -152,6 +160,13 @@ export const deductCredits = async (req, res) => {
       { $inc: { credits: -cost, totalCreditsConsumed: cost } },
       { new: true, select: 'credits plan totalCreditsConsumed' }
     );
+    await CreditLedger.create({
+      user: req.user._id,
+      amount: cost,
+      balanceAfter: updated.credits,
+      action: 'deducted',
+      reason: reason || 'AI generation'
+    });
 
     // Log agent activity
     const isVideo = reason && reason.toLowerCase().includes('video');
@@ -184,6 +199,15 @@ export const topupCredits = async (req, res) => {
       { $inc: { credits: creditsToAdd } },
       { new: true, select: 'credits plan' }
     );
+    if (user) {
+      await CreditLedger.create({
+        user: req.user._id,
+        amount: creditsToAdd,
+        balanceAfter: user.credits,
+        action: 'added',
+        reason: 'Credits top-up'
+      });
+    }
 
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
@@ -201,6 +225,32 @@ export const topupCredits = async (req, res) => {
     });
   } catch (err) {
     console.error('[Credits] topupCredits error:', err);
+    return res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// ─── GET credit ledger ────────────────────────────────────────────────
+export const getLedger = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const ledger = await CreditLedger.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+      
+    const total = await CreditLedger.countDocuments({ user: req.user._id });
+
+    return res.json({
+      ledger,
+      total,
+      page,
+      pages: Math.ceil(total / limit)
+    });
+  } catch (err) {
+    console.error('[Credits] getLedger error:', err);
     return res.status(500).json({ message: 'Server error.' });
   }
 };

@@ -1,6 +1,7 @@
 import Ticket from '../models/Ticket.js';
 import AdminNotification from '../models/AdminNotification.js';
 import Notification from '../models/Notification.js';
+import { uploadBase64ToCloudinary } from '../utils/cloudinaryUpload.js';
 
 // Get user's tickets
 export const getUserTickets = async (req, res) => {
@@ -16,10 +17,21 @@ export const getUserTickets = async (req, res) => {
 // Create a new ticket
 export const createTicket = async (req, res) => {
   try {
-    const { subject, message, priority = 'medium' } = req.body;
+    const { subject, message, priority = 'medium', attachments = [] } = req.body;
     
     if (!subject || !message) {
       return res.status(400).json({ message: 'Subject and message are required' });
+    }
+
+    let uploadedUrls = [];
+    if (attachments && attachments.length > 0) {
+      try {
+        uploadedUrls = await Promise.all(attachments.map(async (b64) => {
+          return await uploadBase64ToCloudinary(b64, 'syncsocio/support');
+        }));
+      } catch (uploadErr) {
+        console.error('Error uploading attachments:', uploadErr);
+      }
     }
 
     const newTicket = new Ticket({
@@ -28,7 +40,8 @@ export const createTicket = async (req, res) => {
       priority,
       messages: [{
         sender: 'user',
-        content: message
+        content: message,
+        attachments: uploadedUrls
       }]
     });
 
@@ -57,7 +70,7 @@ export const createTicket = async (req, res) => {
 export const addMessageToTicket = async (req, res) => {
   try {
     const { id } = req.params;
-    const { content, sender } = req.body;
+    const { content, sender, attachments = [] } = req.body;
 
     const ticket = await Ticket.findById(id).populate('user', 'name email');
     
@@ -69,9 +82,21 @@ export const addMessageToTicket = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this ticket' });
     }
 
+    let uploadedUrls = [];
+    if (attachments && attachments.length > 0) {
+      try {
+        uploadedUrls = await Promise.all(attachments.map(async (b64) => {
+          return await uploadBase64ToCloudinary(b64, 'syncsocio/support');
+        }));
+      } catch (uploadErr) {
+        console.error('Error uploading attachments:', uploadErr);
+      }
+    }
+
     ticket.messages.push({
       sender,
-      content
+      content,
+      attachments: uploadedUrls
     });
 
     await ticket.save();

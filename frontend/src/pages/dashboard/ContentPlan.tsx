@@ -149,19 +149,19 @@ const ContentPlan: React.FC = () => {
         } catch { }
       }
       try {
-        const token = localStorage.getItem('token') || '';
+        
         // Get the stored mix from sessionStorage (written by ContentMix page)
         const storedMix = JSON.parse(localStorage.getItem('content_mix') || 'null');
-        const res = await fetch(`${API_BASE}/ai/plan`, {
+        const res = await fetch(`${API_BASE}/ai/plan`, { credentials: 'include',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
+            },
           body: JSON.stringify({ mix: storedMix })
         });
         if (!res.ok) throw new Error('Plan fetch failed');
-        const data = await res.json();
+        const _rawJson39 = await res.json();
+          const data = _rawJson39 && _rawJson39.success !== undefined ? (_rawJson39.success ? _rawJson39.data : _rawJson39) : _rawJson39;
 
         console.log("\n--- Generating content (7-day plan) ---");
         if (data.prompts && data.prompts.length > 0) {
@@ -182,7 +182,7 @@ const ContentPlan: React.FC = () => {
         // Persist initial skeleton immediately
         safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: week, captions: {} }));
         // Now fetch captions for all posts
-        fetchCaptions(week, token);
+        fetchCaptions(week, localStorage.getItem('syncsocio_profile') || '');
       } catch (e) {
         console.error('Failed to load AI plan:', e);
         // Fallback: use current date-based static plan
@@ -199,14 +199,15 @@ const ContentPlan: React.FC = () => {
   const fetchCaptions = async (planItems: PlanItem[], token?: string) => {
     try {
       setCaptionsLoading(true);
-      const t = token || localStorage.getItem('token') || '';
-      const res = await fetch(`${API_BASE}/ai/captions`, {
+      const t = token || localStorage.getItem('token')
+      const res = await fetch(`${API_BASE}/ai/captions`, { credentials: 'include',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ ...profile, posts: planItems.map(p => ({ type: p.type, topic: p.topic, prompt: p.prompt })) })
       });
       if (!res.ok) throw new Error('Caption fetch failed');
-      const data = await res.json();
+      const _rawJson38 = await res.json();
+        const data = _rawJson38 && _rawJson38.success !== undefined ? (_rawJson38.success ? _rawJson38.data : _rawJson38) : _rawJson38;
 
       console.log("\n--- Generating Captions ---");
       if (data.prompts && data.prompts.length > 0) {
@@ -307,9 +308,20 @@ const ContentPlan: React.FC = () => {
   const handlePublish = async (id: string, index: number) => {
     const item = items.find(it => it.id === id);
     if (!item?.files || item.files.length === 0) return;
-    setItems(prev => prev.map(it => it.id === id ? { ...it, publishing: true } : it));
+    
+    // Save previous state for rollback
+    const previousItems = [...items];
+    const updatedItems = items.filter(i => i.id !== id);
+    
+    // Optimistically update UI
+    setItems(updatedItems);
+    safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: updatedItems, captions }));
+    toast({
+      title: "Scheduling post...",
+      description: "Your post is being scheduled in the background.",
+    });
+
     try {
-      const token = localStorage.getItem('token') || '';
       const captionData = captions[index];
       const fullCaption = captionData ? `${captionData.caption}\n\n${captionData.hashtags}` : item.prompt;
 
@@ -339,36 +351,38 @@ const ContentPlan: React.FC = () => {
         console.warn('Date parsing failed', de);
       }
 
-      const res = await fetch(`${API_BASE}/posts/publish-direct`, {
+      const res = await fetch(`${API_BASE}/posts/publish-direct`, { credentials: 'include',
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { },
         body: formData
       });
 
       if (!res.ok) throw new Error('Publishing failed');
-      const data = await res.json();
+      const _rawJson37 = await res.json();
+        const data = _rawJson37 && _rawJson37.success !== undefined ? (_rawJson37.success ? _rawJson37.data : _rawJson37) : _rawJson37;
 
       if (data.status === 'failed') throw new Error(data.error || 'Publishing failed');
 
-      // Remove the item from the local plan and update storage
-      const updatedItems = items.filter(i => i.id !== item.id);
-      setItems(updatedItems);
-      safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: updatedItems, captions }));
-
-      alert(`🚀 Published successfully to ${platforms.instagram ? 'Instagram' : ''}${platforms.instagram && platforms.facebook ? ' & ' : ''}${platforms.facebook ? 'Facebook' : ''}!`);
-      navigate('/dashboard/history');
-    } catch (e) {
-      console.error('Publish error', e);
-      alert('Publishing failed. Check Instagram connection.');
-    }
-    setTimeout(() => {
-      setItems(prev => {
-        const target = prev.find(it => it.id === id);
-        (target?.previewUrls || []).forEach(url => URL.revokeObjectURL(url));
-        return prev.filter(it => it.id !== id);
+      toast({
+        title: "Success",
+        description: `🚀 Published successfully to ${platforms.instagram ? 'Instagram' : ''}${platforms.instagram && platforms.facebook ? ' & ' : ''}${platforms.facebook ? 'Facebook' : ''}!`,
       });
+      
+      // Cleanup object URL
+      (item.previewUrls || []).forEach(url => URL.revokeObjectURL(url));
       setOpenId(cur => cur === id ? null : cur);
-    }, 900);
+
+    } catch (err: any) {
+      console.error(err);
+      // Revert optimistic UI
+      setItems(previousItems);
+      safeSetItem('content_plan', JSON.stringify({ timestamp: Date.now(), items: previousItems, captions }));
+      toast({
+        title: "Scheduling Failed",
+        description: err.message || "Failed to schedule post.",
+        variant: "destructive",
+      });
+    }
   };
 
   const convertTimeTo24h = (time: string): string => {

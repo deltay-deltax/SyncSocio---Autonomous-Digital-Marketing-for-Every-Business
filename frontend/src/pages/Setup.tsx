@@ -82,7 +82,7 @@ const Wrapper = ({ children, maxW = 'max-w-xl', screenKey, onBack }: { children:
         variant="ghost" 
         size="sm" 
         onClick={() => {
-          localStorage.removeItem('token');
+          
           localStorage.removeItem('syncsocio_profile');
           localStorage.removeItem('syncsocio_setup_done');
           window.location.href = '/login';
@@ -166,17 +166,17 @@ const Setup = () => {
 
     setCouponLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${API_BASE}/coupons/validate`, {
+      const res = await fetch(`${API_BASE}/coupons/validate`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({ code: couponCodeInput.toUpperCase().trim() })
       });
-      const data = await res.json();
+      const _rawJson23 = await res.json();
+        const data = _rawJson23 && _rawJson23.success !== undefined ? (_rawJson23.success ? _rawJson23.data : _rawJson23) : _rawJson23;
       if (!res.ok) {
         throw new Error(data.message || 'Invalid coupon code');
       }
@@ -218,10 +218,10 @@ const Setup = () => {
   const handleInstagramConnect = async () => {
     console.log('🔄 Setup: Connect Instagram clicked. Starting OAuth flow...');
     try {
-      const token = localStorage.getItem('token');
+      
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
 
-      if (!token) {
+      if (!localStorage.getItem('syncsocio_profile')) {
         console.error('❌ Setup: No session token found');
         setError('Your session has expired. Please log in again.');
         navigate('/login', { replace: true });
@@ -229,13 +229,13 @@ const Setup = () => {
       }
 
       console.log('📡 Setup: Fetching auth URL from:', `${API_BASE}/auth/instagram/auth`);
-      const res = await fetch(`${API_BASE}/auth/instagram/auth`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${API_BASE}/auth/instagram/auth`, { credentials: 'include',
+        headers: { }
       });
 
       if (res.status === 401 || res.status === 403) {
         console.error('❌ Setup: Auth session invalid (401/403)');
-        localStorage.removeItem('token');
+        
         setError('Your session has expired. Please log in again.');
         navigate('/login', { replace: true });
         return;
@@ -265,24 +265,24 @@ const Setup = () => {
     if (isStartingTrial) return;
     setIsStartingTrial(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('User not authenticated');
+      
+      if (!localStorage.getItem('syncsocio_profile')) throw new Error('User not authenticated');
 
       const fp = await fpPromise.load();
       const result = await fp.get();
       const visitorId = result.visitorId;
 
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${API_BASE}/auth/start-trial`, {
+      const res = await fetch(`${API_BASE}/auth/start-trial`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({ deviceFingerprint: visitorId })
       });
 
-      const data = await res.json();
+      const _rawJson22 = await res.json();
+        const data = _rawJson22 && _rawJson22.success !== undefined ? (_rawJson22.success ? _rawJson22.data : _rawJson22) : _rawJson22;
       if (!res.ok) {
         throw new Error(data.message || 'Failed to start free trial');
       }
@@ -303,7 +303,7 @@ const Setup = () => {
     setSelectedPlan(planName);
     
     // --- META REVIEW BYPASS ---
-    if (localStorage.getItem('isMetaReviewer') === 'true' || onboardingData?.userEmail === 'supportvelocitydm@gmail.com') {
+    if (localStorage.getItem('isMetaReviewer') === 'true' || onboardingData?.userEmail === 'support@syncsocio.com') {
       localStorage.setItem('syncsocio_dm_automation', dmToggles[planName] ? 'true' : 'false');
       setScreen('activation');
       return;
@@ -385,7 +385,7 @@ const Setup = () => {
         
         // Save selected plan and synced preferences to backend
         try {
-          const token = localStorage.getItem('token');
+          
           const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
           
           const isDmEnabled = localStorage.getItem('syncsocio_dm_automation') === 'true';
@@ -396,12 +396,11 @@ const Setup = () => {
             isPaid: true
           };
 
-          await fetch(`${API_BASE}/profile`, {
+          await fetch(`${API_BASE}/profile`, { credentials: 'include',
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
+              },
             body: JSON.stringify(payload)
           });
 
@@ -411,12 +410,11 @@ const Setup = () => {
               const isDmEnabled = localStorage.getItem('velocity_dm_automation') === 'true';
               const couponCode = localStorage.getItem('velocity_applied_coupon') || undefined;
 
-              const credRes = await fetch(`${API_BASE}/credits/assign`, {
+              const credRes = await fetch(`${API_BASE}/credits/assign`, { credentials: 'include',
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
+                  },
                 body: JSON.stringify({ 
                   plan: selectedPlan,
                   isDmEnabled,
@@ -424,7 +422,8 @@ const Setup = () => {
                 })
               });
               if (credRes.ok) {
-                const credData = await credRes.json();
+                const _rawJson21 = await credRes.json();
+                  const credData = _rawJson21 && _rawJson21.success !== undefined ? (_rawJson21.success ? _rawJson21.data : _rawJson21) : _rawJson21;
                 localStorage.setItem('syncsocio_credits', String(credData.credits ?? 0));
                 // Clean up applied coupon from storage
                 localStorage.removeItem('velocity_applied_coupon');

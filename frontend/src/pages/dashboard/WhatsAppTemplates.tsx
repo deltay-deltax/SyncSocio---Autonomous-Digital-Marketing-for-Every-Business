@@ -88,18 +88,17 @@ const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({ onBack, initialTe
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      
       const method = template._id ? 'PUT' : 'POST';
       const url = template._id 
         ? `${API_BASE}/campaigns/request-template/${template._id}`
         : `${API_BASE}/campaigns/request-template`;
 
-      const res = await fetch(url, {
+      const res = await fetch(url, { credentials: 'include',
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({ ...template, status })
       });
       
@@ -142,10 +141,10 @@ const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({ onBack, initialTe
     const confirmed = window.confirm('Are you sure you want to delete this template? This cannot be undone.');
     if (!confirmed) return;
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/campaigns/request-template/${template._id}`, {
+      
+      const res = await fetch(`${API_BASE}/campaigns/request-template/${template._id}`, { credentials: 'include',
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { }
       });
       const text = await res.text();
       let data;

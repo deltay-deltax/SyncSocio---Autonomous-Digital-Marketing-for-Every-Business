@@ -78,7 +78,7 @@ export const schedulePost = async (req, res) => {
       }
     }
 
-    const post = await PostAnalysis.findById(id);
+    const post = await PostAnalysis.findOne({ _id: id, userId: req.user._id });
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     post.status = 'scheduled';
@@ -182,6 +182,10 @@ export const getPostHistory = async (req, res) => {
     const defaultBrand = await BrandProfile.findOne({ user: userId }).sort({ createdAt: 1 });
     const isDefaultBrand = defaultBrand && String(defaultBrand._id) === String(brandId);
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
     let query = { userId };
     if (isDefaultBrand) {
       query.$or = [{ brandId }, { brandId: { $exists: false } }, { brandId: null }];
@@ -191,9 +195,20 @@ export const getPostHistory = async (req, res) => {
 
     const history = await PostAnalysis.find(query)
       .sort({ createdAt: -1 })
-      .limit(50);
+      .skip(skip)
+      .limit(limit);
+      
+    const total = await PostAnalysis.countDocuments(query);
     
-    res.status(200).json(history);
+    res.status(200).json({
+      data: history,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Get History Error:', error.message);
     res.status(500).json({ message: 'Error fetching post history' });

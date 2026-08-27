@@ -274,12 +274,13 @@ export default function AutopilotPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_BASE}/products`, {
-          headers: { Authorization: `Bearer ${token}` }
+        
+        const res = await fetch(`${API_BASE}/products`, { credentials: 'include',
+          headers: { }
         });
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson34 = await res.json();
+            const data = _rawJson34 && _rawJson34.success !== undefined ? (_rawJson34.success ? _rawJson34.data : _rawJson34) : _rawJson34;
           const prodList = data.products || [];
           setProducts(prodList);
           setSelectedProductIds([]);
@@ -401,7 +402,7 @@ export default function AutopilotPage() {
     });
 
     try {
-      const token = localStorage.getItem('token');
+      
       const body = {
         type: 'image',
         thumbnailBase64: post.image,
@@ -410,17 +411,18 @@ export default function AutopilotPage() {
         aspectRatio: '1:1',
       };
 
-      const res = await fetch(`${API_BASE}/strategy-assets`, {
+      const res = await fetch(`${API_BASE}/strategy-assets`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          
         },
         body: JSON.stringify(body),
       });
 
       if (res.ok) {
-        const data = await res.json();
+        const _rawJson33 = await res.json();
+          const data = _rawJson33 && _rawJson33.success !== undefined ? (_rawJson33.success ? _rawJson33.data : _rawJson33) : _rawJson33;
         const activeBrandId = profile?._id || '';
         const cacheKey = `syncsocio_strategy_assets_${activeBrandId}`;
         try {
@@ -1271,9 +1273,10 @@ export default function AutopilotPage() {
 
               <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
                 {productsLoading ? (
-                  <div className="h-40 flex items-center justify-center text-muted-foreground">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-                    <span className="text-xs">Loading products...</span>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="rounded-xl border border-border/50 bg-muted/60 h-[100px] animate-pulse"></div>
+                    ))}
                   </div>
                 ) : products.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">

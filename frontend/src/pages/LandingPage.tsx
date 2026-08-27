@@ -24,18 +24,19 @@ const Index = () => {
 
   useEffect(() => {
     const checkUserStatus = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+      
+      if (!localStorage.getItem('syncsocio_profile')) return;
 
       setIsCheckingStatus(true);
       try {
         const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-        const profRes = await fetch(`${PROFILE_URL}/profile/me`, {
-          headers: { "Authorization": `Bearer ${token}` }
+        const profRes = await fetch(`${PROFILE_URL}/profile/me`, { credentials: 'include',
+          headers: { }
         });
 
         if (profRes.ok) {
-          const profile = await profRes.json();
+          const _rawJson12 = await profRes.json();
+            const profile = _rawJson12 && _rawJson12.success !== undefined ? (_rawJson12.success ? _rawJson12.data : _rawJson12) : _rawJson12;
           localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
 
           if (profile.userPlan && profile.userPlan !== 'Free') {
@@ -65,7 +66,8 @@ const Index = () => {
         const SITE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
         const res = await fetch(`${SITE_URL}/site/settings`);
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson11 = await res.json();
+            const data = _rawJson11 && _rawJson11.success !== undefined ? (_rawJson11.success ? _rawJson11.data : _rawJson11) : _rawJson11;
           if (data.success && data.settings?.domeGalleryImages?.length > 0) {
             const mappedImages = data.settings.domeGalleryImages
               .filter((url: string) => url.trim() !== '')

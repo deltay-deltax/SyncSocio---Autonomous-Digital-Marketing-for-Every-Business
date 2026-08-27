@@ -6,7 +6,7 @@ const testimonials = [
     name: "Aisha Malhotra",
     role: "Founder, Glow Beauty",
     quote:
-      "Velocity turned our weekly content calendar from a 6-hour stress-fest into a 20-minute ritual. The AI understands our brand voice better than most freelancers.",
+      "SyncSocio turned our weekly content calendar from a 6-hour stress-fest into a 20-minute ritual. The AI understands our brand voice better than most freelancers.",
     rating: 5,
     initials: "AM",
     gradient: "from-violet-200 to-indigo-200",
@@ -51,7 +51,7 @@ const testimonials = [
     name: "Karan Mehta",
     role: "Owner, Chai Co.",
     quote:
-      "As a one-person team, Velocity is like hiring a designer, copywriter, and scheduler. The free creatives trial convinced me immediately.",
+      "As a one-person team, SyncSocio is like hiring a designer, copywriter, and scheduler. The free creatives trial convinced me immediately.",
     rating: 5,
     initials: "KM",
     gradient: "from-lime-200 to-green-200",

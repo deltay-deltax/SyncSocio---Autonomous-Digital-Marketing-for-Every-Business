@@ -94,13 +94,12 @@ export default function EditorPage() {
     }, 1200);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/strategy-assets`, {
+      
+      const response = await fetch(`${API_BASE}/strategy-assets`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({
           type: 'image',
           thumbnailBase64: result,
@@ -143,10 +142,11 @@ export default function EditorPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_BASE}/products`, { headers: { Authorization: `Bearer ${token}` } });
+        
+        const res = await fetch(`${API_BASE}/products`, { credentials: 'include', headers: { } });
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson99 = await res.json();
+            const data = _rawJson99 && _rawJson99.success !== undefined ? (_rawJson99.success ? _rawJson99.data : _rawJson99) : _rawJson99;
           setProducts(data.products || []);
         }
       } catch (e) {

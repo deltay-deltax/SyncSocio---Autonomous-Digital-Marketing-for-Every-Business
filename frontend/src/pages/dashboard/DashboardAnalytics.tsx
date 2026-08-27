@@ -26,13 +26,14 @@ const DashboardAnalytics = () => {
 
     const fetchMetrics = async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
         // Defaulting to 4-week context automatically on backend
-        const res = await fetch(`${API_BASE}/instagram/metrics`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch(`${API_BASE}/instagram/metrics`, { credentials: 'include',
+          headers: { }
         });
-        const result = await res.json();
+        const _rawJson55 = await res.json();
+          const result = _rawJson55 && _rawJson55.success !== undefined ? (_rawJson55.success ? _rawJson55.data : _rawJson55) : _rawJson55;
         if (res.ok && isMounted) {
           cachedAnalyticsData['default'] = result.data;
           setData(result.data);
@@ -70,13 +71,23 @@ const DashboardAnalytics = () => {
 
   if (loading && !data) {
     return (
-      <div className="h-[70vh] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <div className="text-center space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse">Synchronizing Meta Data</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waking up Analytics Agent...</p>
-          </div>
+      <div className="space-y-6 animate-pulse">
+        <div className="flex justify-between items-center">
+          <div className="w-32 h-6 bg-muted rounded"></div>
+          <div className="w-40 h-8 bg-muted rounded-2xl"></div>
+        </div>
+        
+        {/* Metrics Grid Skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-[120px] rounded-xl bg-muted/60 border border-border/50"></div>
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <div className="space-y-6">
+          <div className="h-[300px] rounded-xl bg-muted/60 border border-border/50"></div>
+          <div className="h-[300px] rounded-xl bg-muted/60 border border-border/50"></div>
         </div>
       </div>
     );

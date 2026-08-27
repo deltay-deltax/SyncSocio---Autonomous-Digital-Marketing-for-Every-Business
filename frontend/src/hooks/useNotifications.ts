@@ -17,13 +17,14 @@ export const useNotifications = () => {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${API_BASE}/notifications`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${API_BASE}/notifications`, { credentials: 'include',
+        headers: { }
       });
       if (res.ok) {
-        const data = await res.json();
+        const _rawJson9 = await res.json();
+          const data = _rawJson9 && _rawJson9.success !== undefined ? (_rawJson9.success ? _rawJson9.data : _rawJson9) : _rawJson9;
         setNotifications(data);
         setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
       }
@@ -36,11 +37,11 @@ export const useNotifications = () => {
 
   const markAsRead = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+      const res = await fetch(`${API_BASE}/notifications/${id}/read`, { credentials: 'include',
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { }
       });
       if (res.ok) {
         setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
@@ -53,11 +54,11 @@ export const useNotifications = () => {
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('token');
+      
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      const res = await fetch(`${API_BASE}/notifications/read-all`, {
+      const res = await fetch(`${API_BASE}/notifications/read-all`, { credentials: 'include',
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { }
       });
       if (res.ok) {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));

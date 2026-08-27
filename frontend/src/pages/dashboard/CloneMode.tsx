@@ -59,10 +59,11 @@ export default function ClonePage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_BASE}/products`, { headers: { Authorization: `Bearer ${token}` } });
+        
+        const res = await fetch(`${API_BASE}/products`, { credentials: 'include', headers: { } });
         if (res.ok) {
-          const data = await res.json();
+          const _rawJson35 = await res.json();
+            const data = _rawJson35 && _rawJson35.success !== undefined ? (_rawJson35.success ? _rawJson35.data : _rawJson35) : _rawJson35;
           setProducts(data.products || []);
         }
       } catch (e) {
@@ -162,13 +163,12 @@ export default function ClonePage() {
     }, 800);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/strategy-assets`, {
+      
+      const response = await fetch(`${API_BASE}/strategy-assets`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({
           type: 'image',
           thumbnailBase64: result,

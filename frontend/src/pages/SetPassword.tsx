@@ -45,16 +45,17 @@ const SetPassword = () => {
       const tempToken = localStorage.getItem('tempToken');
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
-      const res = await fetch(`${API_BASE}/auth/set-password`, {
+      const res = await fetch(`${API_BASE}/auth/set-password`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tempToken}`,
+          
         },
         body: JSON.stringify({ password, confirmPassword }),
       });
 
-      const data = await res.json();
+      const _rawJson20 = await res.json();
+        const data = _rawJson20 && _rawJson20.success !== undefined ? (_rawJson20.success ? _rawJson20.data : _rawJson20) : _rawJson20;
 
       if (!res.ok) {
         setError(data.message || 'Failed to set password');
@@ -63,7 +64,7 @@ const SetPassword = () => {
 
       // Clear temp token and save real token
       localStorage.removeItem('tempToken');
-      localStorage.setItem('token', data.token);
+      
 
       // Redirect to onboarding
       navigate('/onboarding');

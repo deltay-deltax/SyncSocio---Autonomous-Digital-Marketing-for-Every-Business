@@ -101,8 +101,7 @@ const DashboardNexa = () => {
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  });
+    });
 
   useEffect(() => {
     // Fetch Nexa settings to check if configured
@@ -127,8 +126,9 @@ const DashboardNexa = () => {
     (async () => {
       setNexaConvLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/nexa/conversations?limit=50`, { headers: getAuthHeaders() });
-        const data = await res.json();
+        const res = await fetch(`${API_BASE}/nexa/conversations?limit=50`, { credentials: 'include', headers: getAuthHeaders() });
+        const _rawJson83 = await res.json();
+          const data = _rawJson83 && _rawJson83.success !== undefined ? (_rawJson83.success ? _rawJson83.data : _rawJson83) : _rawJson83;
         if (res.ok) {
           setNexaConversations(data.conversations || []);
           if (data.conversations?.length > 0) {
@@ -154,12 +154,13 @@ const DashboardNexa = () => {
     if (!replyText.trim() || !selectedLeadId) return;
     setReplying(true);
     try {
-      const res = await fetch(`${API_BASE}/nexa/conversations/${selectedLeadId}/reply`, {
+      const res = await fetch(`${API_BASE}/nexa/conversations/${selectedLeadId}/reply`, { credentials: 'include',
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ replyText, learn: learnCheckbox })
       });
-      const data = await res.json();
+      const _rawJson82 = await res.json();
+        const data = _rawJson82 && _rawJson82.success !== undefined ? (_rawJson82.success ? _rawJson82.data : _rawJson82) : _rawJson82;
       if (res.ok) {
         toast({ title: '✓ Reply Sent', description: 'Message delivered. Nexa AI will handle the next reply.' });
         setReplyText('');
@@ -192,12 +193,13 @@ const DashboardNexa = () => {
     if (!selectedLeadId) return;
     setUpdatingStatus(true);
     try {
-      const res = await fetch(`${API_BASE}/nexa/conversations/${selectedLeadId}/order-status`, {
+      const res = await fetch(`${API_BASE}/nexa/conversations/${selectedLeadId}/order-status`, { credentials: 'include',
         method: 'PATCH',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_status: newStatus })
       });
-      const data = await res.json();
+      const _rawJson81 = await res.json();
+        const data = _rawJson81 && _rawJson81.success !== undefined ? (_rawJson81.success ? _rawJson81.data : _rawJson81) : _rawJson81;
       if (res.ok) {
         toast({ title: 'Order Status Updated', description: `Status changed to ${newStatus.toUpperCase()}` });
         setNexaConversations(prev => prev.map(c => c._id === selectedLeadId ? { ...c, order_status: newStatus } : c));
@@ -335,7 +337,11 @@ const DashboardNexa = () => {
 
             <ScrollArea className="flex-1 p-4">
               {nexaConvLoading ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">Loading leads...</div>
+                <div className="space-y-4 animate-pulse">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-20 rounded-[1.5rem] bg-muted/60 border border-border/50"></div>
+                  ))}
+                </div>
               ) : filteredConversations.length === 0 ? (
                 <div className="p-8 text-center space-y-3">
                   <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto">

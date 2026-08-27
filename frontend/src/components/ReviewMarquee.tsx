@@ -49,6 +49,9 @@ export function MarqueeDemo({ images }: { images?: { src: string, alt: string }[
   const ImageCard = ({ src, alt, index }: { src: string; alt: string; index: number }) => {
     return (
       <figure
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedIndex(index); } }}
         onClick={() => setSelectedIndex(index)}
         className={cn(
           "relative h-48 w-48 sm:h-64 sm:w-64 cursor-pointer overflow-hidden rounded-xl",

@@ -79,18 +79,19 @@ const DashboardHome = () => {
 
     const fetchSummary = async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-        const res = await fetch(`${API_BASE}/dashboard/summary`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch(`${API_BASE}/dashboard/summary`, { credentials: 'include',
+          headers: { }
         });
         if (res.ok && isMounted) {
-          const summaryData = await res.json();
+          const _rawJson66 = await res.json();
+            const summaryData = _rawJson66 && _rawJson66.success !== undefined ? (_rawJson66.success ? _rawJson66.data : _rawJson66) : _rawJson66;
           summaryCache[brandId] = summaryData;
           setData(summaryData);
           setError(null);
         } else if (res.status === 401 && isMounted) {
-          localStorage.removeItem('token');
+          
           window.location.href = '/login';
         } else if (isMounted) {
           setError(`Server responded with ${res.status}`);
@@ -119,12 +120,33 @@ const DashboardHome = () => {
 
   if (loading && !data) {
     return (
-      <div className="h-[70vh] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <div className="text-center space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse">Initializing Dashboard</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waking up Agent Operations...</p>
+      <div className="space-y-6 animate-pulse">
+        {/* Workspace Operational Stats Skeleton */}
+        <div>
+          <div className="w-48 h-4 bg-muted rounded mb-3"></div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-[120px] rounded-xl bg-muted/60 border border-border/50"></div>
+            ))}
+          </div>
+        </div>
+
+        {/* Social Channel Metrics Skeleton */}
+        <div>
+          <div className="w-48 h-4 bg-muted rounded mb-3"></div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-[120px] rounded-xl bg-muted/60 border border-border/50"></div>
+            ))}
+          </div>
+        </div>
+
+        {/* Two columns Skeleton */}
+        <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
+          <div className="lg:col-span-3 h-[400px] rounded-xl bg-muted/60 border border-border/50"></div>
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            <div className="h-[200px] rounded-xl bg-muted/60 border border-border/50"></div>
+            <div className="h-[200px] rounded-xl bg-muted/60 border border-border/50"></div>
           </div>
         </div>
       </div>

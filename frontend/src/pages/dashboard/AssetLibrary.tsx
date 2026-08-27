@@ -305,11 +305,15 @@ const AssetLibrary = () => {
       setError(null);
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/strategy-assets`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         signal,
       });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const data = await res.json();
+      const _rawJson = await res.json();
+      const data = _rawJson && _rawJson.success !== undefined ? (_rawJson.success ? _rawJson.data : _rawJson) : _rawJson;
       const serverCreatives: Asset[] = data.creatives || [];
       setAssets(serverCreatives);
       await setCache(cacheKey, serverCreatives);
@@ -422,15 +426,26 @@ const AssetLibrary = () => {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/posts/recommend-schedule`, {
+        credentials: 'include',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ postIds: selectedAssetIds, startDate, endDate, platforms }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          postIds: selectedAssetIds,
+          startDate,
+          endDate,
+          platforms,
+        }),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error((errorData as { message?: string }).message || 'Failed to fetch schedule recommendations');
       }
-      const data = await res.json();
+
+      const _rawJson = await res.json();
+      const data = _rawJson && _rawJson.success !== undefined ? (_rawJson.success ? _rawJson.data : _rawJson) : _rawJson;
       const formatted = ((data.recommendations || []) as Record<string, string>[]).map(r => {
         let localDateTime = '';
         if (r.scheduledAt) {
@@ -489,8 +504,11 @@ const AssetLibrary = () => {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/strategy-assets/${id}`, {
+        credentials: 'include',
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       if (!res.ok) throw new Error('Delete failed');
       await setCache(cacheKey, updated);

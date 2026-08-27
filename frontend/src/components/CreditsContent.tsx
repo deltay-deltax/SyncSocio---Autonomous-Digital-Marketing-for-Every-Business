@@ -5,6 +5,7 @@ import {
   Image as ImageIcon, Video as VideoIcon, Layers, 
   CheckCircle2, ArrowRight, ShieldCheck 
 } from 'lucide-react';
+import { CreditLedgerTable } from './CreditLedgerTable';
 import { IMAGE_CREDITS_STARTER, IMAGE_CREDITS_PRO, VIDEO_CREDITS, ALLINONE_CREDITS_STARTER, ALLINONE_CREDITS_PRO, FREE_FEATURES } from '@/lib/creditsConfig';
 import { cn } from '@/lib/utils';
 
@@ -470,6 +471,8 @@ export const CreditsContent = () => {
           Need more? Purchase additional credit packs anytime. Top-up credits never expire.
         </p>
       </div>
+      
+      <CreditLedgerTable />
     </div>
   );
 };

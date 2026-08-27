@@ -204,7 +204,7 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
 
                 try {
                   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-                  const res = await fetch(`${API_URL}/leads`, {
+                  const res = await fetch(`${API_URL}/leads`, { credentials: 'include',
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data),
@@ -212,7 +212,8 @@ function ClaimModal({ intent, onClose }: { intent: Intent; onClose: () => void }
                   if (res.ok) {
                     setSubmitted(true);
                   } else {
-                    const result = await res.json();
+                    const _rawJson4 = await res.json();
+                      const result = _rawJson4 && _rawJson4.success !== undefined ? (_rawJson4.success ? _rawJson4.data : _rawJson4) : _rawJson4;
                     setFormError(result.message || "Failed to submit. Please try again.");
                   }
                 } catch (error) {
