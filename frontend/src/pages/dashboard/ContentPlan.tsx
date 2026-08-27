@@ -353,7 +353,7 @@ const ContentPlan: React.FC = () => {
 
       const res = await fetch(`${API_BASE}/posts/publish-direct`, { credentials: 'include',
         method: 'POST',
-        headers: { },
+        headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) },
         body: formData
       });
 
