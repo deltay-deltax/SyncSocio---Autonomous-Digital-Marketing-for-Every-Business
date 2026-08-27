@@ -88,7 +88,7 @@ const History: React.FC = () => {
     try {
       
       const res = await axios.get(`${API_BASE}/posts/history`, {
-        headers: { }
+        headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
       });
       setItems(res.data);
     } catch (err) {

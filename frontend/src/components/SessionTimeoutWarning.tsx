@@ -19,8 +19,9 @@ export const SessionTimeoutWarning = () => {
     const checkExpiry = () => {
       
       return;
-      try {
-        const decoded = jwtDecode<{ exp: number }>(localStorage.getItem('syncsocio_profile'));
+        const token = localStorage.getItem('token') || localStorage.getItem('syncsocio_profile');
+        if (!token) return;
+        const decoded = jwtDecode<{ exp: number }>(token);
         const remaining = decoded.exp - Math.floor(Date.now() / 1000);
         
         if (remaining <= 0) {

@@ -25,6 +25,7 @@ import Campaigns from './pages/Campaigns';
 import AdminNotifications from './pages/AdminNotifications';
 import SupportTickets from './pages/SupportTickets';
 import AIOperations from './pages/AIOperations';
+import AdminAds from './pages/AdminAds';
 import BrandDeepConfig from './pages/BrandDeepConfig';
 import CreativeShowcaseGallery from './pages/CreativeShowcaseGallery';
 import './App.css';
@@ -71,6 +72,7 @@ function App() {
             <Route path="scheduled-posts" element={<ScheduledPosts />} />
             <Route path="generations" element={<Generations />} />
             <Route path="ai-operations" element={<AIOperations />} />
+            <Route path="ads-console" element={<AdminAds />} />
             <Route path="lead-generation" element={<LeadGeneration />} />
             <Route path="leads-management" element={<Leads />} />
           </Route>

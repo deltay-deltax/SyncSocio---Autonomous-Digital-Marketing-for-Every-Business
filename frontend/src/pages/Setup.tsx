@@ -230,7 +230,7 @@ const Setup = () => {
 
       console.log('📡 Setup: Fetching auth URL from:', `${API_BASE}/auth/instagram/auth`);
       const res = await fetch(`${API_BASE}/auth/instagram/auth`, { credentials: 'include',
-        headers: { }
+        headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
       });
 
       if (res.status === 401 || res.status === 403) {

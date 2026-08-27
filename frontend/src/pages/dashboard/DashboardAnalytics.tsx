@@ -30,7 +30,7 @@ const DashboardAnalytics = () => {
         const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
         // Defaulting to 4-week context automatically on backend
         const res = await fetch(`${API_BASE}/instagram/metrics`, { credentials: 'include',
-          headers: { }
+          headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
         });
         const _rawJson55 = await res.json();
           const result = _rawJson55 && _rawJson55.success !== undefined ? (_rawJson55.success ? _rawJson55.data : _rawJson55) : _rawJson55;

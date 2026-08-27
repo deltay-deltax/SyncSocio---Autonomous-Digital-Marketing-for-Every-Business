@@ -52,7 +52,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
         const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
         const res = await fetch(`${API_BASE}/profile/me`, { credentials: 'include',
-          headers: { }
+          headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
         });
         if (res.ok) {
           const _rawJson3 = await res.json();

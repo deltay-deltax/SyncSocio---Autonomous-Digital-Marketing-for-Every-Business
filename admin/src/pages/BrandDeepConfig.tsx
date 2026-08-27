@@ -109,8 +109,27 @@ export default function BrandDeepConfig() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div><span className="text-gray-500">Nexa Enabled:</span> <div className="font-medium">{brand.nexa?.nexa_enabled ? <span className="text-green-600">Active</span> : 'Disabled'}</div></div>
             <div><span className="text-gray-500">Neural State:</span> <div className="font-medium text-gray-900">{brand.neuralState || 'Idle'}</div></div>
-            <div><span className="text-gray-500">Payments:</span> <div className="font-medium text-gray-900">{brand.nexa?.razorpay_connected ? 'Razorpay Connected' : brand.nexa?.cod_enabled ? 'COD Only' : 'Not setup'}</div></div>
-            <div><span className="text-gray-500">Learnings:</span> <div className="font-medium text-gray-900">{brand.agentLearnings?.length || 0} insights</div></div>
+            <div>
+              <span className="text-gray-500">Payments:</span> 
+              <div className="font-medium text-gray-900 mt-1">
+                {brand.nexa?.razorpay_connected ? <span className="text-emerald-600">Razorpay Connected</span> : 'Razorpay Not Connected'}
+                <br/>
+                {brand.nexa?.cod_enabled ? <span className="text-amber-600">COD Enabled</span> : 'COD Disabled'}
+              </div>
+            </div>
+            <div>
+              <span className="text-gray-500">Discount Rules:</span> 
+              <div className="font-medium text-gray-900 mt-1">
+                Min: {brand.nexa?.min_discount || 0}% <br/>
+                Max: {brand.nexa?.max_discount || 10}%
+              </div>
+            </div>
+            <div className="col-span-2">
+              <span className="text-gray-500">Business Context:</span>
+              <div className="font-medium text-gray-700 bg-gray-50 p-2 rounded mt-1 max-h-24 overflow-y-auto">
+                {brand.nexa?.business_context || 'No business context provided.'}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -148,9 +167,9 @@ export default function BrandDeepConfig() {
         </div>
 
         {/* Email DNS Configuration */}
-        <div className="bg-white rounded-xl shadow-sm border p-5 space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2"><Server className="w-5 h-5 text-blue-500" /> Infrastructure & DNS</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div className="bg-white rounded-xl shadow-sm border p-5 space-y-4 col-span-1 md:col-span-2">
+          <h3 className="text-lg font-semibold flex items-center gap-2"><Server className="w-5 h-5 text-blue-500" /> Infrastructure & Diagnostics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm mb-4">
             <div>
               <span className="text-gray-500">Email Domain:</span> 
               <div className="font-medium text-gray-900 mt-1">{brand.email_domain || 'Not configured'}</div>
@@ -188,6 +207,40 @@ export default function BrandDeepConfig() {
               </div>
             </div>
           </div>
+          
+          {brand.dns_records && (
+            <div className="mt-4 border-t pt-4">
+              <span className="text-gray-700 font-semibold mb-2 block">SendGrid DNS Diagnostics:</span>
+              <div className="bg-slate-50 rounded p-3 text-xs font-mono overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500">
+                      <th className="pb-2">Type</th>
+                      <th className="pb-2">Host</th>
+                      <th className="pb-2">Target</th>
+                      <th className="pb-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['mail_cname', 'dkim1', 'dkim2'].map(record => {
+                      const data = brand.dns_records?.[record];
+                      if (!data || !data.host) return null;
+                      return (
+                        <tr key={record} className="border-b border-slate-100 last:border-0">
+                          <td className="py-2 text-slate-600">CNAME</td>
+                          <td className="py-2">{data.host}</td>
+                          <td className="py-2 text-slate-500 truncate max-w-[200px]" title={data.data}>{data.data}</td>
+                          <td className="py-2">
+                            {data.valid ? <span className="text-green-600 font-bold">Verified</span> : <span className="text-amber-500">Pending</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

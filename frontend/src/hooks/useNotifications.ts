@@ -20,7 +20,7 @@ export const useNotifications = () => {
       
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
       const res = await fetch(`${API_BASE}/notifications`, { credentials: 'include',
-        headers: { }
+        headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
       });
       if (res.ok) {
         const _rawJson9 = await res.json();
@@ -41,7 +41,7 @@ export const useNotifications = () => {
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
       const res = await fetch(`${API_BASE}/notifications/${id}/read`, { credentials: 'include',
         method: 'PATCH',
-        headers: { }
+        headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
       });
       if (res.ok) {
         setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
@@ -58,7 +58,7 @@ export const useNotifications = () => {
       const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
       const res = await fetch(`${API_BASE}/notifications/read-all`, { credentials: 'include',
         method: 'PATCH',
-        headers: { }
+        headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
       });
       if (res.ok) {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));

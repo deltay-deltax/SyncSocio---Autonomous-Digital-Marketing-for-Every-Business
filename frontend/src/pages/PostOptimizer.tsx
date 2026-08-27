@@ -203,7 +203,7 @@ const PostOptimizer: React.FC = () => {
     try {
       
       await axios.post(`${API_BASE}/posts/schedule/${result.analysisId}`, { platforms }, {
-        headers: { }
+        headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
       });
       
       const targetList = [];

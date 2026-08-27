@@ -523,7 +523,7 @@ const DashboardAds = () => {
         
         const res = await fetch(
           `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/promotions/recommendations`,
-          { headers: { } }
+          { headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) } }
         );
         if (!res.ok) throw new Error('Failed to fetch recommendations');
         const _rawJson54 = await res.json();

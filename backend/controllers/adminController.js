@@ -16,6 +16,8 @@ import RequestedTemplate from '../models/RequestedTemplate.js';
 import NexaConversation from '../models/NexaConversation.js';
 import SiteKnowledgeLead from '../models/SiteKnowledgeLead.js';
 import Product from '../models/Product.js';
+import CreditLedger from '../models/CreditLedger.js';
+import ContentCalendar from '../models/ContentCalendar.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -525,6 +527,9 @@ export const getUserDeepDetails = async (req, res) => {
     const brandProfile = await BrandProfile.findOne({ user: id });
     const flows = await DMFlow.find({ user: id }).sort({ createdAt: -1 });
     const assets = await Asset.find({ user: id }).sort({ createdAt: -1 });
+    const creditLedgers = await CreditLedger.find({ user: id }).sort({ createdAt: -1 });
+    const contentCalendars = await ContentCalendar.find({ userId: id }).sort({ createdAt: -1 });
+    const strategyCreatives = await StrategyCreative.find({ user: id }).sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -532,7 +537,10 @@ export const getUserDeepDetails = async (req, res) => {
         user,
         brandProfile: brandProfile || null,
         flows,
-        assets
+        assets,
+        creditLedgers,
+        contentCalendars,
+        strategyCreatives
       }
     });
   } catch (error) {
@@ -1734,17 +1742,39 @@ export const getCampaignStats = async (req, res) => {
       $or: [ { endpoint: { $regex: /sendgrid|campaign|whatsapp/i } } ]
     }).populate('user', 'email').sort({ createdAt: -1 }).limit(10);
 
+    // Ads Data
+    const brandsWithAds = await BrandProfile.find({ cachedAdsRecommendations: { $exists: true, $not: { $size: 0 } } })
+      .select('companyName cachedAdsRecommendations lastAdsAnalysisAt');
+
+    let allAdRecommendations = [];
+    brandsWithAds.forEach(b => {
+      if (b.cachedAdsRecommendations && b.cachedAdsRecommendations.length > 0) {
+        b.cachedAdsRecommendations.forEach(ad => {
+          allAdRecommendations.push({
+            brandName: b.companyName,
+            lastAnalysisAt: b.lastAdsAnalysisAt,
+            ...ad
+          });
+        });
+      }
+    });
+
+    // Sort by expected ROI (if available) or randomly
+    allAdRecommendations.sort((a, b) => b.roiScore - a.roiScore);
+
     res.json({ 
       success: true, 
       stats: {
         totalEmailsSent: emailLogs,
         emailsSentThisMonth: emailsThisMonth,
         whatsappCampaignsSent: whatsappLogs,
-        verifiedDomainsCount: emailDomainStatuses.filter(d => d.status === 'Verified').length
+        verifiedDomainsCount: emailDomainStatuses.filter(d => d.status === 'Verified').length,
+        totalAdRecommendations: allAdRecommendations.length
       },
       domainStatuses: emailDomainStatuses,
       quotas,
-      recentLogs
+      recentLogs,
+      activeAds: allAdRecommendations
     });
   } catch (error) {
     console.error('Error fetching campaign stats:', error);
@@ -1909,3 +1939,28 @@ export const unlockBrand = async (req, res) => {
 };
 
 
+
+export const getNotificationCount = async (req, res) => {
+  try {
+    const unreadCount = await AdminNotification.countDocuments({ isRead: false });
+    return res.status(200).json({ success: true, count: unreadCount });
+  } catch (error) {
+    console.error('Error fetching notification count:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch notification count' });
+  }
+};
+
+export const stopAIOperation = async (req, res) => {
+  try {
+    const AgentActivity = await import('../models/AgentActivity.js').then(m => m.default);
+    const { id } = req.params;
+    const activity = await AgentActivity.findByIdAndUpdate(id, { status: 'error', message: 'Force stopped by Admin' }, { new: true });
+    if (!activity) {
+      return res.status(404).json({ success: false, message: 'Activity not found' });
+    }
+    return res.status(200).json({ success: true, message: 'Operation force stopped' });
+  } catch (error) {
+    console.error('Error stopping AI operation:', error);
+    return res.status(500).json({ success: false, message: 'Failed to stop operation' });
+  }
+};

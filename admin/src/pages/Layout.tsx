@@ -65,6 +65,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/system-health', icon: Activity, label: 'System Health' },
       { to: '/ai-operations', icon: BrainCircuit, label: 'AI Operations' },
+      { to: '/ads-console', icon: Target, label: 'Ads Console' },
       { to: '/campaigns', icon: Target, label: 'Campaigns Monitor' },
       { to: '/landing-gallery', icon: LayoutDashboard, label: 'Landing Gallery' },
       { to: '/creative-showcase-gallery', icon: LayoutDashboard, label: 'Creative Showcase' },

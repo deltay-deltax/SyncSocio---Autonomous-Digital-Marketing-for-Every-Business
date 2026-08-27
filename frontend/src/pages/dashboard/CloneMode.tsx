@@ -60,7 +60,7 @@ export default function ClonePage() {
     const fetchProducts = async () => {
       try {
         
-        const res = await fetch(`${API_BASE}/products`, { credentials: 'include', headers: { } });
+        const res = await fetch(`${API_BASE}/products`, { credentials: 'include', headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) } });
         if (res.ok) {
           const _rawJson35 = await res.json();
             const data = _rawJson35 && _rawJson35.success !== undefined ? (_rawJson35.success ? _rawJson35.data : _rawJson35) : _rawJson35;

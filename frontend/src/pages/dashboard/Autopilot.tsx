@@ -276,7 +276,7 @@ export default function AutopilotPage() {
       try {
         
         const res = await fetch(`${API_BASE}/products`, { credentials: 'include',
-          headers: { }
+          headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
         });
         if (res.ok) {
           const _rawJson34 = await res.json();

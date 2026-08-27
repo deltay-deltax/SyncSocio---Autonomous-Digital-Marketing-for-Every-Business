@@ -73,22 +73,17 @@ const Login = () => {
         });
         
         if (profRes.ok) {
-          const profile = await profRes.json();
+          const rawProfile = await profRes.json();
+          const profile = rawProfile && rawProfile.success !== undefined ? (rawProfile.success ? rawProfile.data : rawProfile) : rawProfile;
           localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
           
-          // Check if the user overall has a paid plan, OR if they have set up a brand name.
-          const hasPaidPlan = profile.userPlan && profile.userPlan !== 'Free' && profile.userPlan !== '';
-          const hasBrandSetup = profile.brandName && profile.brandName.trim() !== '';
-
-          if (hasPaidPlan) {
+          // Check if user has completed brand setup
+          if (profile && profile._id) {
             localStorage.setItem("syncsocio_setup_done", "true");
             window.location.href = "/dashboard";
-          } else if (hasBrandSetup) {
-            localStorage.setItem("syncsocio_setup_done", "false");
-            window.location.href = "/setup";
           } else {
             localStorage.setItem("syncsocio_setup_done", "false");
-            window.location.href = "/onboarding";
+            window.location.href = "/setup";
           }
         } else {
           // No profile yet, go to onboarding
@@ -260,7 +255,33 @@ const Login = () => {
                       } else {
                         // Existing user - normal login
                         localStorage.setItem("token", data.token);
-                        window.location.href = "/";
+                        
+                        try {
+                          const PROFILE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+                          const profRes = await fetch(`${PROFILE_URL}/profile/me`, {
+                            headers: { "Authorization": `Bearer ${data.token}` }
+                          });
+                          
+                          if (profRes.ok) {
+                            const rawProfile = await profRes.json();
+                            const profile = rawProfile && rawProfile.success !== undefined ? (rawProfile.success ? rawProfile.data : rawProfile) : rawProfile;
+                            localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
+                            
+                            if (profile && profile._id) {
+                              localStorage.setItem("syncsocio_setup_done", "true");
+                              window.location.href = "/dashboard";
+                            } else {
+                              localStorage.setItem("syncsocio_setup_done", "false");
+                              window.location.href = "/setup";
+                            }
+                          } else {
+                            localStorage.setItem("syncsocio_setup_done", "false");
+                            window.location.href = "/onboarding";
+                          }
+                        } catch (err) {
+                          localStorage.setItem("syncsocio_setup_done", "false");
+                          window.location.href = "/onboarding";
+                        }
                       }
                     } catch (err: any) {
                       setError(err instanceof Error ? getFriendlyErrorMessage(err) : String(err));
