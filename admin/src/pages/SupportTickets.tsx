@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, Paperclip, X, Image as ImageIcon, HelpCircle, MessageSquare, Reply, Clock, User } from 'lucide-react';
+import { Search, HelpCircle, MessageSquare, Reply, Clock, User } from 'lucide-react';
 import { format } from 'date-fns';
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/support/admin/tickets`;
