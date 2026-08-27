@@ -82,7 +82,7 @@ const DashboardHome = () => {
         
         const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
         const res = await fetch(`${API_BASE}/dashboard/summary`, { credentials: 'include',
-          headers: { }
+          headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
         });
         if (res.ok && isMounted) {
           const _rawJson66 = await res.json();
