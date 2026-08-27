@@ -94,18 +94,14 @@ const Signup = () => {
       });
 
       if (profRes.ok) {
-        const profile = await profRes.json();
-        const hasBrandSetup = profile.brandName && profile.brandName.trim() !== '';
-        
-        if (profile.userPlan && profile.userPlan !== 'Free') {
+        const rawProfile = await profRes.json();
+        const profile = rawProfile && rawProfile.success !== undefined ? (rawProfile.success ? rawProfile.data : rawProfile) : rawProfile;
+        if (profile && profile._id) {
           localStorage.setItem("syncsocio_setup_done", "true");
           window.location.href = "/dashboard";
-        } else if (hasBrandSetup) {
-          localStorage.setItem("syncsocio_setup_done", "false");
-          window.location.href = "/setup";
         } else {
           localStorage.setItem("syncsocio_setup_done", "false");
-          window.location.href = "/onboarding";
+          window.location.href = "/setup";
         }
       } else {
         localStorage.setItem("syncsocio_setup_done", "false");
