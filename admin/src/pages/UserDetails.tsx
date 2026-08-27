@@ -5,8 +5,7 @@ import {
   ArrowLeft, Save, Bot, Smartphone, Mail, Globe,
   Trash2, Edit, Check, X, User, RefreshCw,
 
-  Store, Send, Layout, Database, ShieldCheck, Lock, CheckCircle2, Link2,
-
+  Store, Send, Layout, Database, ShieldCheck, Lock, CheckCircle2, Link2, CreditCard, Receipt, BrainCircuit, Sparkles,
 } from 'lucide-react';
 
 const InstagramIcon = ({ className, size = 24 }: { className?: string; size?: number }) => (
@@ -117,9 +116,12 @@ export default function UserDetails() {
   const [brandProfile, setBrandProfile] = useState<BrandProfileData | null>(null);
   const [flows, setFlows] = useState<DMFlowData[]>([]);
   const [assets, setAssets] = useState<AssetData[]>([]);
+  const [creditLedgers, setCreditLedgers] = useState<any[]>([]);
+  const [contentCalendars, setContentCalendars] = useState<any[]>([]);
+  const [strategyCreatives, setStrategyCreatives] = useState<any[]>([]);
 
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'general' | 'brand' | 'flows' | 'assets'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'brand' | 'flows' | 'assets' | 'billing' | 'strategy'>('general');
 
   // Edit Forms State
   const [userForm, setUserForm] = useState({
@@ -191,11 +193,14 @@ export default function UserDetails() {
       });
 
       if (res.data.success) {
-        const { user, brandProfile: brand, flows: userFlows, assets: userAssets } = res.data.data;
+        const { user, brandProfile: brand, flows: userFlows, assets: userAssets, creditLedgers: ledgers, contentCalendars: calendars, strategyCreatives: creatives } = res.data.data;
         setUserData(user);
         setBrandProfile(brand);
         setFlows(userFlows);
         setAssets(userAssets);
+        setCreditLedgers(ledgers || []);
+        setContentCalendars(calendars || []);
+        setStrategyCreatives(creatives || []);
 
         // Populate forms
         setUserForm({
@@ -480,7 +485,9 @@ export default function UserDetails() {
           { id: 'general', label: 'General Profile', icon: User },
           { id: 'brand', label: 'Brand & Setup', icon: Store },
           { id: 'flows', label: 'DM Automations', icon: Send },
-          { id: 'assets', label: 'Landing Pages', icon: Layout }
+          { id: 'assets', label: 'Landing Pages', icon: Layout },
+          { id: 'billing', label: 'Billing & Credits', icon: CreditCard },
+          { id: 'strategy', label: 'Content Strategy', icon: BrainCircuit }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1365,6 +1372,135 @@ export default function UserDetails() {
             </div>
           </div>
         )}
+
+        {/* Tab 5: Billing & Credits */}
+        {activeTab === 'billing' && (
+          <div className="space-y-6 max-w-4xl">
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-3">
+                <Receipt className="text-blue-400" size={20} />
+                <h3 className="text-lg font-bold text-foreground">Detailed Credit Ledger</h3>
+              </div>
+              <div className="bg-slate-50 px-4 py-2 rounded-lg border flex flex-col items-end">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Current Balance</span>
+                <span className="text-xl font-bold text-green-600 leading-none">{userData?.credits || 0}</span>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b text-slate-500 font-medium">
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Action</th>
+                    <th className="px-4 py-3">Reason</th>
+                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3">Balance After</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {creditLedgers.length > 0 ? (
+                    creditLedgers.map((ledger) => (
+                      <tr key={ledger._id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                          {new Date(ledger.createdAt).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${ledger.action === 'added' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {ledger.action.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">{ledger.reason}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-900">
+                          {ledger.action === 'added' ? '+' : '-'}{ledger.amount}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500">{ledger.balanceAfter}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                        No credit history found for this user.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 6: Content Strategy */}
+        {activeTab === 'strategy' && (
+          <div className="space-y-6 max-w-4xl">
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-3">
+                <BrainCircuit className="text-purple-500" size={20} />
+                <h3 className="text-lg font-bold text-foreground">Content Strategy & Generations</h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Content Calendars */}
+              <div className="bg-white rounded-xl shadow-sm border p-5">
+                <h4 className="text-md font-semibold mb-4 text-slate-800 flex items-center gap-2">
+                  <Database className="w-4 h-4 text-indigo-500" /> Active Calendars
+                </h4>
+                {contentCalendars.length > 0 ? (
+                  <div className="space-y-3">
+                    {contentCalendars.map(calendar => (
+                      <div key={calendar._id} className="p-3 border rounded-lg bg-slate-50 flex justify-between items-center">
+                        <div>
+                          <div className="font-semibold text-sm text-slate-800">
+                            {new Date(calendar.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            {calendar.posts?.length || 0} Posts Scheduled
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${calendar.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                          {calendar.status.toUpperCase()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-500 py-4 text-center">No content calendars found.</div>
+                )}
+              </div>
+
+              {/* Strategy Creatives */}
+              <div className="bg-white rounded-xl shadow-sm border p-5">
+                <h4 className="text-md font-semibold mb-4 text-slate-800 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-pink-500" /> AI Creatives
+                </h4>
+                {strategyCreatives.length > 0 ? (
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    {strategyCreatives.map(creative => (
+                      <div key={creative._id} className="p-3 border rounded-lg bg-slate-50 flex gap-3">
+                        {creative.thumbnailBase64 ? (
+                          <img src={creative.thumbnailBase64} alt="Thumbnail" className="w-16 h-16 object-cover rounded bg-slate-200" />
+                        ) : (
+                          <div className="w-16 h-16 rounded bg-slate-200 flex items-center justify-center text-xs text-slate-400">No Img</div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs font-bold text-slate-700 uppercase">{creative.type}</span>
+                            <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">{creative.status}</span>
+                          </div>
+                          <p className="text-xs text-slate-600 mt-1 line-clamp-2">{creative.idea || creative.caption || 'No description'}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-500 py-4 text-center">No creatives generated yet.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
