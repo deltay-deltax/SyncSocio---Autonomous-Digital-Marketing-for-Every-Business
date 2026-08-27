@@ -56,11 +56,25 @@ const InstagramGradientIcon = () => (
 
 
 // ─── Shared wrapper ───────────────────────────────────────────────────
-const Wrapper = ({ children, maxW = 'max-w-xl', screenKey }: { children: React.ReactNode; maxW?: string; screenKey: string }) => (
+const Wrapper = ({ children, maxW = 'max-w-xl', screenKey, onBack }: { children: React.ReactNode; maxW?: string; screenKey: string; onBack?: () => void }) => (
   <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
     {/* ambient blobs */}
     <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
     <div className="absolute bottom-[-20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+    
+    {/* Back Button */}
+    {onBack && (
+      <div className="absolute top-6 left-6 z-[100]">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onBack}
+          className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        >
+          Back
+        </Button>
+      </div>
+    )}
     
     {/* Sign Out Button */}
     <div className="absolute top-6 right-6 z-[100]">
@@ -617,14 +631,17 @@ const Setup = () => {
   // SCREEN 3 — CHOOSE PLAN
   // ════════════════════════════════════════════════════════════════════
   if (screen === 'plan') {
-    const hasUsedTrial = onboardingData?.freeTrialUsed || (onboardingData?.userPlan || '').toLowerCase().includes('trial');
+    const hasPurchasedPlan = onboardingData?.userPlan && onboardingData?.userPlan.toLowerCase() !== 'free';
+    const hasUsedTrial = onboardingData?.freeTrialUsed || (onboardingData?.userPlan || '').toLowerCase().includes('trial') || hasPurchasedPlan;
+    
     return (
-      <Wrapper maxW="max-w-7xl" screenKey={screen}>
+      <Wrapper maxW="max-w-7xl" screenKey={screen} onBack={() => navigate('/dashboard')}>
         <div className="-mt-12 sm:-mt-16">
           <Pricing 
             onWaitlistClick={(planName) => proceedToCheckout(planName || 'Starter')} 
             onFreeTrialClick={hasUsedTrial ? undefined : handleStartFreeTrial}
             isTrialLoading={isStartingTrial}
+            hideFreeTrialCard={hasUsedTrial}
           />
         </div>
       </Wrapper>

@@ -214,9 +214,10 @@ interface PricingProps {
   onFreeTrialClick?: () => void;
   isTrialLoading?: boolean;
   className?: string;
+  hideFreeTrialCard?: boolean;
 }
 
-const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, className }: PricingProps) => {
+const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, className, hideFreeTrialCard = false }: PricingProps) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const navigate = useNavigate();
@@ -329,8 +330,13 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
           )}
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto items-stretch">
-          {plans.map((plan, i) => {
+        {(() => {
+          const visiblePlans = plans.filter(p => p.name !== 'Free Trial' || !hideFreeTrialCard);
+          const gridColsClass = visiblePlans.length === 3 ? "xl:grid-cols-3 xl:max-w-5xl" : "xl:grid-cols-4 max-w-7xl";
+          
+          return (
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${gridColsClass} gap-6 lg:gap-8 mx-auto items-stretch justify-center`}>
+              {visiblePlans.map((plan, i) => {
             const planPrices = plan.prices[currency];
             const currentPrice = planPrices.basePrice;
             const originalPrice = planPrices.originalPrice || 0;
@@ -446,8 +452,8 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
                 <div className="pt-2">
                   <Button
                     onClick={() => {
-                      if (plan.name === 'Free Trial') {
-                        onFreeTrialClick?.();
+                      if (plan.name === 'Free Trial' && onFreeTrialClick) {
+                        onFreeTrialClick();
                       } else {
                         handleSelectPlan(plan.name);
                       }
@@ -471,8 +477,9 @@ const Pricing = ({ onWaitlistClick, onFreeTrialClick, isTrialLoading = false, cl
               </motion.div>
             );
           })}
-        </div>
-
+            </div>
+          );
+        })()}
         {/* Credits Explained Link (Moved Below All Plans) */}
         <div className="flex flex-col items-center justify-center mt-8 sm:mt-10">
           <Link
