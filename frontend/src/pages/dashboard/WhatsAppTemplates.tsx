@@ -144,7 +144,7 @@ const WhatsAppTemplates: React.FC<WhatsAppTemplatesProps> = ({ onBack, initialTe
       
       const res = await fetch(`${API_BASE}/campaigns/request-template/${template._id}`, { credentials: 'include',
         method: 'DELETE',
-        headers: { }
+        headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
       });
       const text = await res.text();
       let data;
