@@ -313,8 +313,8 @@ const AssetLibrary = () => {
       });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const _rawJson = await res.json();
-      const data = _rawJson && _rawJson.success !== undefined ? (_rawJson.success ? _rawJson.data : _rawJson) : _rawJson;
-      const serverCreatives: Asset[] = data.creatives || [];
+      const data = _rawJson && _rawJson.success !== undefined ? (_rawJson.success ? (_rawJson.data || _rawJson) : _rawJson) : _rawJson;
+      const serverCreatives: Asset[] = data?.creatives || [];
       setAssets(serverCreatives);
       await setCache(cacheKey, serverCreatives);
     } catch (err: unknown) {

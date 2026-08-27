@@ -90,7 +90,8 @@ const History: React.FC = () => {
       const res = await axios.get(`${API_BASE}/posts/history`, {
         headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
       });
-      setItems(res.data);
+      const fetchedItems = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setItems(fetchedItems);
     } catch (err) {
       console.error("Failed to load history", err);
     } finally {

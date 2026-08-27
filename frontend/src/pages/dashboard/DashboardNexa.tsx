@@ -160,7 +160,7 @@ const DashboardNexa = () => {
         body: JSON.stringify({ replyText, learn: learnCheckbox })
       });
       const _rawJson82 = await res.json();
-        const data = _rawJson82 && _rawJson82.success !== undefined ? (_rawJson82.success ? _rawJson82.data : _rawJson82) : _rawJson82;
+      const data = _rawJson82 && _rawJson82.success !== undefined ? (_rawJson82.success ? (_rawJson82.data || _rawJson82) : _rawJson82) : _rawJson82;
       if (res.ok) {
         toast({ title: '✓ Reply Sent', description: 'Message delivered. Nexa AI will handle the next reply.' });
         setReplyText('');
