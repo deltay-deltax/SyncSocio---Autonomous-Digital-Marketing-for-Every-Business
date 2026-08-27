@@ -12,12 +12,38 @@ const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "1000000000000-p
 // when the JWT cookie expires, preventing "dead buttons" and silent failures.
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
+  let [resource, config] = args;
+  const token = localStorage.getItem('token');
+  const url = typeof resource === 'string' ? resource : (resource instanceof Request ? resource.url : '');
+  
+  if (token && url.includes('/api/')) {
+    config = config || {};
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`
+    };
+    args = [resource, config];
+  }
+
   const response = await originalFetch(...args);
   
   if (response.status === 401) {
     const url = typeof args[0] === 'string' ? args[0] : (args[0] instanceof Request ? args[0].url : '');
     // If our API returns 401 (and it's not the login/signup endpoints themselves)
     if (url.includes('/api/') && !url.includes('/login') && !url.includes('/signup')) {
+      
+      // Check if this 401 is actually a third-party token expiration (e.g. Instagram)
+      try {
+        const cloned = response.clone();
+        const data = await cloned.json();
+        if (data && data.requiresReconnect) {
+          // Let the specific component handle the reconnect UI
+          return response;
+        }
+      } catch (e) {
+        // Ignore json parse errors
+      }
+
       console.warn('Session expired. Redirecting to login...');
       localStorage.removeItem('syncsocio_profile');
       
