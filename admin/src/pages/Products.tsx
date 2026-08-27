@@ -153,11 +153,11 @@ export default function Products() {
                 
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="text-lg font-bold text-gray-900">
-                    ₹{product.offerPrice ? product.offerPrice.toLocaleString() : product.price.toLocaleString()}
+                    ₹{product.offerPrice ? product.offerPrice.toLocaleString() : product.price?.toLocaleString() || 0}
                   </span>
                   {product.offerPrice && (
                     <span className="text-sm text-gray-400 line-through">
-                      ₹{product.price.toLocaleString()}
+                      ₹{product.price?.toLocaleString() || 0}
                     </span>
                   )}
                 </div>
@@ -216,11 +216,11 @@ export default function Products() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        ₹{product.offerPrice ? product.offerPrice.toLocaleString() : product.price.toLocaleString()}
+                        ₹{product.offerPrice ? product.offerPrice.toLocaleString() : product.price?.toLocaleString() || 0}
                       </div>
                       {product.offerPrice && (
                         <div className="text-xs text-gray-400 line-through">
-                          ₹{product.price.toLocaleString()}
+                          ₹{product.price?.toLocaleString() || 0}
                         </div>
                       )}
                     </td>
