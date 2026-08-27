@@ -15,6 +15,7 @@ const buildFlowPayload = (body = {}) => {
     trigger: body.trigger,
     targetType: body.targetType,
     targetMediaId: toTrimmedString(body.targetMediaId),
+    targetChildrenIds: Array.isArray(body.targetChildrenIds) ? body.targetChildrenIds : undefined,
     keyword: toTrimmedString(body.keyword),
     commentReplyMessage: toTrimmedString(body.commentReplyMessage),
     messages: Array.isArray(body.messages) ? body.messages : undefined,

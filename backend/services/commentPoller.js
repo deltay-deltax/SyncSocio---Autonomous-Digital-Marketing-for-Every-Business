@@ -20,6 +20,7 @@ import {
   markCommentReplyPublicSent,
   sendPublicCommentReply,
 } from './instagramCommentReplyService.js';
+import { findBestFlowMatch } from '../controllers/instagramWebhookController.js';
 
 const FB_API_VERSION = 'v25.0';
 const FB_API_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
@@ -51,58 +52,7 @@ const buildTrackedButtonUrl = ({ flowId, buttonId, targetUrl }) => {
 const processedCommentIds = new Set();
 let pollTimer = null;
 
-// ── Keyword matching (duplicated from webhookController to keep this self-contained) ──
-
-const escapeRegExp = (v = '') => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const keywordMatchScore = (incomingText, configuredKeyword) => {
-  const incoming = normalizeKeywordInput(incomingText);
-  const keyword = normalizeKeywordInput(configuredKeyword);
-  if (!incoming || !keyword) return 0;
-  if (incoming === keyword) return 3;
-  const boundary = new RegExp(`(^|\\W)${escapeRegExp(keyword)}(\\W|$)`, 'i');
-  if (boundary.test(incoming)) return 2;
-  if (incoming.includes(keyword)) return 1;
-  return 0;
-};
-
-const findBestFlowMatch = async ({ userId, brandId, incomingText, mediaId }) => {
-  const query = {
-    user: userId,
-    $or: [{ brandId }, { brandId: { $exists: false } }],
-    active: true,
-    trigger: 'comment'
-  };
-  if (safeTrim(mediaId)) {
-    query.$or = [
-      { targetType: 'all' },
-      { targetType: 'specific', targetMediaId: safeTrim(mediaId) },
-    ];
-    if (brandId) {
-      query.$and = [
-        { user: userId },
-        { $or: [{ brandId }, { brandId: { $exists: false } }] }
-      ];
-    }
-  } else {
-    query.targetType = 'all';
-  }
-
-  const candidates = await DMFlow.find(query).sort({ updatedAt: -1 }).limit(50);
-  let bestFlow = null;
-  let bestScore = 0;
-
-  for (const flow of candidates) {
-    const score = keywordMatchScore(incomingText, flow.keywordNormalized || flow.keyword);
-    if (score > bestScore) {
-      bestScore = score;
-      bestFlow = flow;
-      if (bestScore === 3) break;
-    }
-  }
-
-  return { flow: bestFlow, score: bestScore };
-};
+// ── Keyword matching and finding flow logic is now imported from webhookController ──
 
 // ── Build DM text (same logic as webhook controller) ──
 
@@ -243,9 +193,9 @@ const pollProfileComments = async (profile) => {
   console.log(`[POLLER] 🔍 Checking for new comments on ${profile.instagramUsername || profile.instagramPageId}...`);
 
   try {
-    // 1. Fetch recent media (last 5 posts)
+    // 1. Fetch recent media (last 20 posts)
     const mediaRes = await axios.get(`${FB_API_BASE}/${igId}/media`, {
-      params: { fields: 'id', limit: 5, access_token: token },
+      params: { fields: 'id', limit: 20, access_token: token },
     });
 
     const mediaItems = mediaRes.data?.data || [];

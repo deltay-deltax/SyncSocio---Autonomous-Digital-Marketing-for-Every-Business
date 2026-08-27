@@ -42,6 +42,7 @@ interface Flow {
   trigger: 'comment' | 'story_reply' | 'dm_keyword';
   targetType: 'all' | 'specific';
   targetMediaId?: string;
+  targetChildrenIds?: string[];
   keyword: string;
   commentReplyMessage: string;
   messages: FlowMessage[];
@@ -58,6 +59,7 @@ interface ApiFlow {
   trigger: Flow['trigger'];
   targetType: Flow['targetType'];
   targetMediaId?: string;
+  targetChildrenIds?: string[];
   keyword: string;
   commentReplyMessage?: string;
   messages: FlowMessage[];
@@ -351,6 +353,7 @@ const DashboardDMs = () => {
     trigger: Flow['trigger'];
     targetType: Flow['targetType'];
     targetMediaId?: string;
+    targetChildrenIds?: string[];
     keyword: string;
     commentReplyMessage: string;
     messages: FlowMessage[];
@@ -425,22 +428,29 @@ const DashboardDMs = () => {
       const isEditing = !!newFlow.id;
       const url = isEditing ? `${API_BASE}/dm-flows/${newFlow.id}` : `${API_BASE}/dm-flows`;
       const method = isEditing ? 'PUT' : 'POST';
+      
+            const payload = {
+        name: newFlow.name,
+        trigger: newFlow.trigger,
+        targetType: newFlow.targetType,
+        targetMediaId: newFlow.targetType === 'specific' ? newFlow.targetMediaId : undefined,
+        targetChildrenIds: newFlow.targetType === 'specific' ? newFlow.targetChildrenIds : undefined,
+        keyword: newFlow.keyword,
+        commentReplyMessage: newFlow.commentReplyMessage,
+        messages: preparedMessages,
+        active: true, // Auto-enable on save
+        source: 'user', // Transition flow from ai_suggested to user flow on save/activation
+      };
 
-      const res = await fetch(url, { credentials: 'include',
+      const res = await fetch(url, {
         method,
         headers: getAuthHeaders(true),
-        body: JSON.stringify({
-          name: newFlow.name,
-          trigger: newFlow.trigger,
-          targetType: newFlow.targetType,
-          targetMediaId: newFlow.targetType === 'specific' ? newFlow.targetMediaId : undefined,
-          keyword: newFlow.keyword,
-          commentReplyMessage: newFlow.commentReplyMessage,
-          messages: preparedMessages,
-          active: true, // Auto-enable on save
-          source: 'user', // Transition flow from ai_suggested to user flow on save/activation
-        }),
+        credentials: 'include',
+        body: JSON.stringify(payload),
       });
+
+
+
 
       const _rawJson60 = await res.json();
         const data = _rawJson60 && _rawJson60.success !== undefined ? (_rawJson60.success ? _rawJson60.data : _rawJson60) : _rawJson60;
@@ -707,7 +717,11 @@ const DashboardDMs = () => {
                             media.map((post) => (
                               <button
                                 key={post.id}
-                                onClick={() => setNewFlow({ ...newFlow, targetMediaId: post.id })}
+                                onClick={() => {
+                                  const newId = post.id;
+                                  const newChildren = post.childrenIds || [];
+                                  setNewFlow({ ...newFlow, targetMediaId: newId, targetChildrenIds: newChildren });
+                                }}
                                 className={cn(
                                   "aspect-square rounded-xl overflow-hidden border-2 transition-all relative group",
                                   newFlow.targetMediaId === post.id ? "border-primary scale-[1.02] shadow-lg shadow-primary/20" : "border-transparent opacity-60 hover:opacity-100"

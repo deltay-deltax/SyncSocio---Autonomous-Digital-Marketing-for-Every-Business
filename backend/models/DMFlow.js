@@ -117,6 +117,10 @@ const dmFlowSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    targetChildrenIds: {
+      type: [String],
+      default: [],
+    },
     keyword: {
       type: String,
       required: true,
