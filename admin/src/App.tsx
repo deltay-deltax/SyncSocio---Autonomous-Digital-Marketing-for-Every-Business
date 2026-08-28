@@ -11,8 +11,10 @@ import Transactions from './pages/Transactions';
 import SystemHealth from './pages/SystemHealth';
 import Waitlist from './pages/Waitlist';
 import Leads from './pages/Leads';
+import MarketingLeads from './pages/MarketingLeads';
 import LandingGallery from './pages/LandingGallery';
 import ScheduledPosts from './pages/ScheduledPosts';
+import Creators from './pages/Creators';
 import AdminEntry from './pages/AdminEntry';
 import Generations from './pages/Generations';
 import LeadGeneration from './pages/LeadGeneration';
@@ -58,6 +60,7 @@ function App() {
             <Route path="transactions" element={<Transactions />} />
             <Route path="refunds" element={<Transactions />} />
             <Route path="system-health" element={<SystemHealth />} />
+            <Route path="creators" element={<Creators />} />
             <Route path="waitlist" element={<Waitlist />} />
             <Route path="whatsapp-templates" element={<WhatsAppTemplates />} />
             <Route path="nexa-conversations" element={<NexaConversations />} />
@@ -75,6 +78,7 @@ function App() {
             <Route path="ads-console" element={<AdminAds />} />
             <Route path="lead-generation" element={<LeadGeneration />} />
             <Route path="leads-management" element={<Leads />} />
+            <Route path="marketing-crm" element={<MarketingLeads />} />
           </Route>
         </Route>
 
