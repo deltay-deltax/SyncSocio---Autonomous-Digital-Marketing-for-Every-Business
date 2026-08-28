@@ -86,7 +86,7 @@ const DashboardNexa = () => {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<'instagram' | 'whatsapp'>('instagram');
   const [replyText, setReplyText] = useState('');
-  const [learnCheckbox, setLearnCheckbox] = useState(true);
+  const [learnCheckbox, setLearnCheckbox] = useState(false);
   const [replying, setReplying] = useState(false);
   const [monthlyCount, setMonthlyCount] = useState<number>(0);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -98,6 +98,7 @@ const DashboardNexa = () => {
     () => sessionStorage.getItem('nexa_setup_banner_dismissed') === 'true'
   );
   const [nexaIsConfigured, setNexaIsConfigured] = useState<boolean | null>(null); // null = loading
+  const [nexaEnabled, setNexaEnabled] = useState<boolean>(true);
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
   const getAuthHeaders = () => ({
@@ -112,6 +113,7 @@ const DashboardNexa = () => {
         if (res.ok && data.settings) {
           const configured = !!data.settings.nexa_enabled || !!data.settings.business_context;
           setNexaIsConfigured(configured);
+          setNexaEnabled(!!data.settings.nexa_enabled);
         } else {
           setNexaIsConfigured(false);
         }
@@ -630,14 +632,21 @@ const DashboardNexa = () => {
                 </ScrollArea>
 
                 {/* ── Chat Transcript ─────────────────────────────────── */}
-                <div className="flex-1 overflow-hidden flex flex-col border-t border-border/30">
-                  <div className="flex-none px-6 pt-4 pb-2">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2 flex items-center gap-2">
-                      <MessageSquare size={16} /> Chat Transcript
-                    </h3>
-                  </div>
-                  <ScrollArea className="flex-1 px-6">
-                    <div className="space-y-3 pb-4">
+                <div className="flex-1 min-h-0 relative border-t border-border/30">
+                  <div className="absolute inset-0 flex flex-col">
+                    <div className="flex-none px-6 pt-4 pb-2">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground border-b border-border/40 pb-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2"><MessageSquare size={16} /> Chat Transcript</div>
+                      </h3>
+                      {!nexaEnabled && (
+                        <div className="mt-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-2">
+                          <AlertCircle size={14} />
+                          Nexa is currently disabled. Please turn it on in Settings to start the conversation.
+                        </div>
+                      )}
+                    </div>
+                    <ScrollArea className="flex-1 min-h-0 px-6">
+                      <div className="space-y-3 pb-4">
                       {selectedLead.conversation_history && selectedLead.conversation_history.length > 0 ? (
                         selectedLead.conversation_history.map((msg: any, idx: number) => (
                           <div key={idx} className={`flex flex-col ${msg.role === 'nexa' ? 'items-start' : 'items-end'}`}>
@@ -665,6 +674,7 @@ const DashboardNexa = () => {
                       <div ref={chatBottomRef} />
                     </div>
                   </ScrollArea>
+                  </div>
                 </div>
 
                   {/* ── Always-visible Reply Bar ─────────────────────────── */}
@@ -681,6 +691,7 @@ const DashboardNexa = () => {
                       <div className="flex-1 relative">
                         <textarea
                           ref={textareaRef}
+                          disabled={!nexaEnabled}
                           value={replyText}
                           onChange={(e) => {
                             setReplyText(e.target.value);
@@ -689,17 +700,17 @@ const DashboardNexa = () => {
                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                           }}
                           onKeyDown={handleKeyDown}
-                          placeholder={`Reply as ${selectedLead.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram'} brand... (Ctrl+Enter to send)`}
+                          placeholder={!nexaEnabled ? "Nexa is disabled..." : `Reply as ${selectedLead.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram'} brand... (Ctrl+Enter to send)`}
                           rows={1}
-                          className="w-full resize-none overflow-hidden p-3 pr-4 text-sm rounded-2xl border border-border bg-muted/30 focus:bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all placeholder:text-muted-foreground/60"
+                          className="w-full resize-none overflow-hidden p-3 pr-4 text-sm rounded-2xl border border-border bg-muted/30 focus:bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all placeholder:text-muted-foreground/60 disabled:opacity-50 disabled:cursor-not-allowed"
                           style={{ minHeight: '44px', maxHeight: '120px' }}
                         />
                       </div>
                       <button
                         onClick={handleReply}
-                        disabled={replying || !replyText.trim()}
+                        disabled={replying || !replyText.trim() || !nexaEnabled}
                         className="shrink-0 h-11 w-11 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-white transition-all shadow-sm hover:shadow-md active:scale-95"
-                        title="Send reply (Ctrl+Enter)"
+                        title={!nexaEnabled ? "Nexa is disabled" : "Send reply (Ctrl+Enter)"}
                       >
                         {replying
                           ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />

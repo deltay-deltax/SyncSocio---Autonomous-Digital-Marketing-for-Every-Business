@@ -991,6 +991,17 @@ router.post('/webhook', async (req, res) => {
               }
             }
           }
+          
+          // Log message delivery statuses to debug downstream delivery failures
+          if (value && value.statuses && value.statuses.length > 0) {
+            for (const status of value.statuses) {
+              if (status.status === 'failed') {
+                console.error(`[WhatsApp Webhook] Message Delivery FAILED to ${status.recipient_id}. Reason:`, JSON.stringify(status.errors, null, 2));
+              } else {
+                console.log(`[WhatsApp Webhook] Message status updated to '${status.status}' for ${status.recipient_id}`);
+              }
+            }
+          }
         }
       }
       res.sendStatus(200);

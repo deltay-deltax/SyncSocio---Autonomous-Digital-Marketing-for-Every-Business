@@ -16,6 +16,8 @@ import NotFound from './pages/NotFound';
 import AssetPage from './pages/AssetPage';
 import BookDemo from './pages/BookDemo';
 import ProtectedRoute from './components/ProtectedRoute';
+import PublicRoute from './components/PublicRoute';
+import SetupRoute from './components/SetupRoute';
 import { MetaPixel } from './components/MetaPixel';
 
 // Dashboard imports (Lazy Loaded)
@@ -99,19 +101,28 @@ function App() {
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/set-password" element={<SetPassword />} />
-            <Route path="/setup" element={<Setup />} />
+            
+            {/* Public Auth Routes */}
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgotpassword" element={<ForgotPassword />} />
+              <Route path="/resetpassword/:resetToken" element={<ResetPassword />} />
+            </Route>
+
+            {/* Setup & Onboarding Routes */}
+            <Route element={<SetupRoute />}>
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/setup" element={<Setup />} />
+              <Route path="/set-password" element={<SetPassword />} />
+            </Route>
+
             <Route path="/book-demo" element={<BookDemo />} />
             <Route path="/instagram-setup" element={<InstagramInstructions />} />
             <Route path="/terms" element={<TermsOfUse />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/a/:id" element={<AssetPage />} />
             <Route path="/credits" element={<CreditsExplainer />} />
-            <Route path="/forgotpassword" element={<ForgotPassword />} />
-            <Route path="/resetpassword/:resetToken" element={<ResetPassword />} />
             
             {/* Dashboard Routes with Protection */}
             <Route element={<ProtectedRoute />}>
