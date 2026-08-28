@@ -128,13 +128,15 @@ const Signup = () => {
     setLoading(true);
     try {
       const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+      const refCode = sessionStorage.getItem('velocity_ref_code') || undefined;
       const res = await fetch(`${BASE_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: `${firstName} ${lastName}`.trim(),
           email,
-          password
+          password,
+          refCode
         })
       });
       const data = await res.json();
@@ -474,13 +476,15 @@ const Signup = () => {
                           const metaEventId = trackMetaEvent('CompleteRegistration', {}, false);
                           console.log("🔥 [TESTING] Firing Meta Pixel Event: CompleteRegistration (Frontend via Google)");
                           const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+                          const refCode = sessionStorage.getItem('velocity_ref_code') || undefined;
                           const res = await fetch(`${BASE_URL}/auth/google`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                               idToken: credentialResponse.credential,
                               isSignup: true,
-                              metaEventId
+                              metaEventId,
+                              refCode
                             })
                           });
                           const data = await res.json();
