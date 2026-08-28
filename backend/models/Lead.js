@@ -14,12 +14,12 @@ const leadSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: true,
+    required: false,
     trim: true,
   },
   businessName: {
     type: String,
-    required: true,
+    required: false,
     trim: true,
   },
   website: {
@@ -29,7 +29,7 @@ const leadSchema = new mongoose.Schema({
   },
   businessCategory: {
     type: String,
-    required: true,
+    required: false,
   },
   intent: {
     type: String,
