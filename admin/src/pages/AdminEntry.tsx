@@ -1,14 +1,29 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard, LogOut, ArrowRight, ClipboardList } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
 
 export default function AdminEntry() {
   const navigate = useNavigate();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userRole = localStorage.getItem('adminRole');
+    setRole(userRole);
+    if (userRole === 'marketing') {
+      navigate('/marketing-crm');
+    }
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminRole');
     navigate('/login');
   };
+
+  if (role === 'marketing') {
+    return null; // Redirecting
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
@@ -52,26 +67,24 @@ export default function AdminEntry() {
               <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-400 transition-colors">Admin Dashboard</h3>
               <p className="text-muted-foreground mb-8">Manage users, transactions, analytics, brands, coupons, and system health.</p>
               
-
               <div className="mt-auto flex items-center text-blue-500 font-medium group-hover:gap-2 transition-all">
                 Enter Dashboard <ArrowRight className="w-5 h-5 ml-1" />
               </div>
             </div>
 
-            {/* Leads & Brands Management Card */}
+            {/* Marketing CRM Card */}
             <div
-              onClick={() => navigate('/leads-management')}
+              onClick={() => navigate('/marketing-crm')}
               className="glass-card group cursor-pointer hover:border-violet-500/50 transition-all duration-300 p-8 rounded-2xl flex flex-col items-center text-center hover-lift"
             >
               <div className="w-20 h-20 bg-violet-500/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <ClipboardList className="w-10 h-10 text-violet-500" />
               </div>
-              <h3 className="text-2xl font-bold mb-3 group-hover:text-violet-400 transition-colors">Leads & Brands</h3>
-              <p className="text-muted-foreground mb-8">Track approached brands, manage statuses, sticky notes, and add new leads manually.</p>
+              <h3 className="text-2xl font-bold mb-3 group-hover:text-violet-400 transition-colors">Marketing CRM</h3>
+              <p className="text-muted-foreground mb-8">Track marketing leads, manage statuses, sticky notes, and add new leads manually.</p>
               
-
               <div className="mt-auto flex items-center text-violet-500 font-medium group-hover:gap-2 transition-all">
-                Enter Leads Management <ArrowRight className="w-5 h-5 ml-1" />
+                Enter Marketing CRM <ArrowRight className="w-5 h-5 ml-1" />
               </div>
             </div>
           </div>
@@ -80,3 +93,4 @@ export default function AdminEntry() {
     </div>
   );
 }
+
