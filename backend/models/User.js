@@ -94,6 +94,15 @@ const userSchema = new mongoose.Schema({
   email_quota_reset_at: {
     type: Date,
     default: Date.now
+  },
+  // ── Referral System ───────────────────────────────────────────────────────
+  referredBy: {
+    type: String,
+    required: false
+  },
+  referralDate: {
+    type: Date,
+    required: false
   }
   // ─────────────────────────────────────────────────────────────────────────
 }, { timestamps: true });

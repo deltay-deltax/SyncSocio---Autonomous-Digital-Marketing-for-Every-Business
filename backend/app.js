@@ -32,6 +32,7 @@ import avatarRoutes from './routes/avatarRoutes.js';
 import leadScraperRoutes from './routes/lead_scraper.js';
 import nexaRoutes from './routes/nexaRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
+import creatorRoutes from './routes/creatorRoutes.js';
 import {
   receiveInstagramWebhook,
   verifyInstagramWebhook,
@@ -124,6 +125,7 @@ app.use('/api/whatsapp', authenticatedRateLimiter, whatsappRoutes);
 app.use('/api/avatars', authenticatedRateLimiter, avatarRoutes);
 app.use('/api/nexa', authenticatedRateLimiter, nexaRoutes);
 app.use('/api/support', authenticatedRateLimiter, supportRoutes);
+app.use('/api/creators', publicRateLimiter, creatorRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {

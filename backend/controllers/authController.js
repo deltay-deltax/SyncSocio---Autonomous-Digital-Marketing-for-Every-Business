@@ -85,7 +85,7 @@ const sendOtpEmail = async (email, name, otp) => {
 };
 
 export const signup = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, refCode } = req.body;
   try {
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
@@ -158,6 +158,8 @@ export const signup = async (req, res) => {
         isVerified: true,
         otpCode: undefined,
         otpExpiry: undefined,
+        referredBy: refCode || undefined,
+        referralDate: refCode ? new Date() : undefined,
       });
     }
 
@@ -249,7 +251,7 @@ export const login = async (req, res) => {
 };
 
 export const googleLogin = async (req, res) => {
-  const { idToken, plan, isSignup } = req.body;
+  const { idToken, plan, isSignup, refCode } = req.body;
   try {
     let email, name, googleId;
     if (idToken === 'mock_google_token') {
@@ -278,7 +280,15 @@ export const googleLogin = async (req, res) => {
     }
     let isNewUser = false;
     if (!user) {
-      user = await User.create({ name, email, googleId, isVerified: true, lastLogin: new Date() });
+      user = await User.create({ 
+        name, 
+        email, 
+        googleId, 
+        isVerified: true, 
+        lastLogin: new Date(),
+        referredBy: refCode || undefined,
+        referralDate: refCode ? new Date() : undefined
+      });
       isNewUser = true;
 
       await AdminNotification.create({
@@ -421,7 +431,7 @@ export const startFreeTrial = async (req, res) => {
 };
 
 export const appleLogin = async (req, res) => {
-  const { idToken, name: providedName, plan, isSignup } = req.body;
+  const { idToken, name: providedName, plan, isSignup, refCode } = req.body;
   try {
     let email, appleId;
     let name = providedName;
@@ -448,7 +458,15 @@ export const appleLogin = async (req, res) => {
     }
     let isNewUser = false;
     if (!user) {
-      user = await User.create({ name, email, appleId, isVerified: true, lastLogin: new Date() });
+      user = await User.create({ 
+        name, 
+        email, 
+        appleId, 
+        isVerified: true, 
+        lastLogin: new Date(),
+        referredBy: refCode || undefined,
+        referralDate: refCode ? new Date() : undefined
+      });
       isNewUser = true;
 
       await AdminNotification.create({

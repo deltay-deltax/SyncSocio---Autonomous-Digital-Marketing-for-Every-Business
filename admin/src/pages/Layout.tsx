@@ -57,6 +57,8 @@ const NAV_SECTIONS = [
     items: [
       { to: '/lead-generation', icon: ClipboardList, label: 'Lead Generation' },
       { to: '/leads-management', icon: ClipboardList, label: 'Leads CRM' },
+      { to: '/marketing-crm', icon: ClipboardList, label: 'Marketing CRM' },
+      { to: '/creators', icon: Users, label: 'Creators' },
       { to: '/waitlist', icon: ClipboardList, label: 'Waitlist' },
     ]
   },
@@ -95,11 +97,6 @@ export default function Layout() {
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    navigate('/login');
-  };
 
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -163,38 +160,57 @@ export default function Layout() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-hide pb-20">
-          {NAV_SECTIONS.map((section, idx) => (
-            <div key={idx}>
-              <h3 className="px-4 text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-2">
-                {section.title}
-              </h3>
-              <div className="space-y-1">
-                {section.items.map(({ to, icon: Icon, label }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    onClick={closeSidebar}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                        isActive
-                          ? 'bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20 shadow-sm'
-                          : 'text-muted-foreground hover:bg-white/5 hover:text-foreground hover-lift border border-transparent'
-                      }`
-                    }
-                  >
-                    <Icon size={18} />
-                    <span>{label}</span>
-                  </NavLink>
-                ))}
+          {NAV_SECTIONS.filter(section => {
+            const role = localStorage.getItem('adminRole');
+            if (role === 'marketing') {
+              return section.title === 'GROWTH';
+            }
+            return true;
+          }).map((section, idx) => {
+            const role = localStorage.getItem('adminRole');
+            const items = role === 'marketing' 
+              ? section.items.filter(item => item.to === '/marketing-crm')
+              : section.items;
+              
+            if (items.length === 0) return null;
+
+            return (
+              <div key={idx}>
+                <h3 className="px-4 text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-2">
+                  {section.title}
+                </h3>
+                <div className="space-y-1">
+                  {items.map(({ to, icon: Icon, label }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      onClick={closeSidebar}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                          isActive
+                            ? 'bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20 shadow-sm'
+                            : 'text-muted-foreground hover:bg-white/5 hover:text-foreground hover-lift border border-transparent'
+                        }`
+                      }
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                    </NavLink>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Divider + Logout */}
         <div className="p-3 border-t border-border">
           <button
-            onClick={handleLogout}
+            onClick={() => {
+              localStorage.removeItem('adminToken');
+              localStorage.removeItem('adminRole');
+              navigate('/login');
+            }}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm text-red-400 hover:bg-red-500/10 hover:border-red-500/20 border border-transparent transition-all hover-lift"
           >
             <LogOut size={18} />

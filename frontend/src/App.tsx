@@ -19,6 +19,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import SetupRoute from './components/SetupRoute';
 import { MetaPixel } from './components/MetaPixel';
+import CreatorDashboard from './pages/CreatorDashboard';
 
 // Dashboard imports (Lazy Loaded)
 const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
@@ -90,6 +91,20 @@ function App() {
           path: window.location.pathname
         }),
       }).catch(err => console.error('Failed to track visit:', err));
+
+      // ── Affiliate Referral Tracking ──
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get('ref');
+      if (refCode && !sessionStorage.getItem('velocity_ref_tracked')) {
+        sessionStorage.setItem('velocity_ref_tracked', 'true');
+        sessionStorage.setItem('velocity_ref_code', refCode);
+        
+        fetch(`${API_BASE}/creators/track-click`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: refCode }),
+        }).catch(err => console.error('Failed to track referral click:', err));
+      }
     }
   }, []);
 
@@ -151,6 +166,9 @@ function App() {
                 <Route path="clone" element={<CloneMode />} />
               </Route>
             </Route>
+
+            {/* Creator Dashboard (must be before /:username/:slug to avoid collision) */}
+            <Route path="/creator/:token" element={<CreatorDashboard />} />
 
             {/* Public Asset Page - dynamic route (must be before catch-all) */}
             <Route path="/:username/:slug" element={<AssetPage />} />

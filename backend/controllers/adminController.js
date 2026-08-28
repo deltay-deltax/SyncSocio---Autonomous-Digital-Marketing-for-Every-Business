@@ -11,6 +11,7 @@ import VisitorLog from '../models/VisitorLog.js';
 import MetaTester from '../models/MetaTester.js';
 import SiteSettings from '../models/SiteSettings.js';
 import Lead from '../models/Lead.js';
+import MarketingLead from '../models/MarketingLead.js';
 import PostAnalysis from '../models/PostAnalysis.js';
 import RequestedTemplate from '../models/RequestedTemplate.js';
 import NexaConversation from '../models/NexaConversation.js';
@@ -36,9 +37,16 @@ export const adminLogin = async (req, res) => {
         process.env.JWT_SECRET || 'fallback_secret',
         { expiresIn: '1d' }
       );
-      return res.status(200).json({ success: true, token });
+      return res.status(200).json({ success: true, token, role: 'admin' });
+    } else if (email === 'marketing@syncsocio.com' && password === 'marketing123') {
+      const token = jwt.sign(
+        { email: 'marketing@syncsocio.com', role: 'marketing' },
+        process.env.JWT_SECRET || 'fallback_secret',
+        { expiresIn: '1d' }
+      );
+      return res.status(200).json({ success: true, token, role: 'marketing' });
     } else {
-      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
   } catch (error) {
     console.error('Admin login error:', error);
@@ -56,7 +64,14 @@ export const verifyAdmin = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-    if (decoded.role !== 'admin') {
+    if (decoded.role === 'marketing') {
+      if (req.originalUrl.includes('/marketing-leads')) {
+        req.admin = decoded;
+        return next();
+      } else {
+        return res.status(403).json({ success: false, message: 'Not authorized for this route' });
+      }
+    } else if (decoded.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized as admin' });
     }
     req.admin = decoded;
@@ -1962,5 +1977,57 @@ export const stopAIOperation = async (req, res) => {
   } catch (error) {
     console.error('Error stopping AI operation:', error);
     return res.status(500).json({ success: false, message: 'Failed to stop operation' });
+  }
+};
+
+// --- Marketing Leads -------------------------------------------------------------------
+export const getMarketingLeads = async (req, res) => {
+  try {
+    const leads = await MarketingLead.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, leads });
+  } catch (error) {
+    console.error('Error fetching marketing leads:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch leads' });
+  }
+};
+
+export const addMarketingLead = async (req, res) => {
+  try {
+    const newLead = await MarketingLead.create({
+      ...req.body,
+      source: 'manual'
+    });
+    return res.status(201).json({ success: true, lead: newLead });
+  } catch (error) {
+    console.error('Error adding marketing lead manually:', error);
+    return res.status(500).json({ success: false, message: 'Failed to add lead' });
+  }
+};
+
+export const updateMarketingLead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, comments, name, email, phone, businessName, website, businessCategory } = req.body;
+    
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (comments !== undefined) updateData.comments = comments;
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (businessName !== undefined) updateData.businessName = businessName;
+    if (website !== undefined) updateData.website = website;
+    if (businessCategory !== undefined) updateData.businessCategory = businessCategory;
+
+    const lead = await MarketingLead.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: false });
+    
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    return res.status(200).json({ success: true, lead });
+  } catch (error) {
+    console.error('Error updating marketing lead:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update lead' });
   }
 };

@@ -50,6 +50,9 @@ import {
   getSiteSettings,
   updateSiteSettings,
   getLeads,
+  getMarketingLeads,
+  addMarketingLead,
+  updateMarketingLead,
   addLead,
   updateLead,
   getScheduledPosts,
@@ -184,5 +187,12 @@ router.put('/notifications/read-all', markAllNotificationsRead);
 // ─── AI Operations ─────────────────────────────────────────────────────────────
 router.get('/ai-operations', getAIOperations);
 router.put('/ai-operations/:id/stop', stopAIOperation);
+
+
+// ─── Marketing Leads ──────────────────────────────────────────────────────────
+
+router.get('/marketing-leads', getMarketingLeads);
+router.post('/marketing-leads', addMarketingLead);
+router.put('/marketing-leads/:id', updateMarketingLead);
 
 export default router;
