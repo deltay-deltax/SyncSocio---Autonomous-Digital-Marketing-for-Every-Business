@@ -40,7 +40,18 @@ export const authRateLimiter = rateLimit({
   legacyHeaders: false,
   validate: false,
   keyGenerator: (req) => {
-    return req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    const cfIp = req.headers['cf-connecting-ip'];
+    if (cfIp) return cfIp;
+
+    const trueClientIp = req.headers['true-client-ip'];
+    if (trueClientIp) return trueClientIp;
+
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    if (xForwardedFor) {
+      return xForwardedFor.split(',')[0].trim();
+    }
+
+    return req.ip || req.socket?.remoteAddress || 'unknown';
   },
   handler: (_req, res) => {
     rateLimitResponse(
@@ -143,7 +154,18 @@ export const publicRateLimiter = rateLimit({
   legacyHeaders: false,
   validate: false,
   keyGenerator: (req) => {
-    return req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    const cfIp = req.headers['cf-connecting-ip'];
+    if (cfIp) return cfIp;
+
+    const trueClientIp = req.headers['true-client-ip'];
+    if (trueClientIp) return trueClientIp;
+
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    if (xForwardedFor) {
+      return xForwardedFor.split(',')[0].trim();
+    }
+
+    return req.ip || req.socket?.remoteAddress || 'unknown';
   },
   handler: (_req, res) => {
     rateLimitResponse(
@@ -164,7 +186,18 @@ export const authenticatedRateLimiter = rateLimit({
   legacyHeaders: false,
   validate: false,
   keyGenerator: (req) => {
-    return req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    const cfIp = req.headers['cf-connecting-ip'];
+    if (cfIp) return cfIp;
+
+    const trueClientIp = req.headers['true-client-ip'];
+    if (trueClientIp) return trueClientIp;
+
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    if (xForwardedFor) {
+      return xForwardedFor.split(',')[0].trim();
+    }
+
+    return req.ip || req.socket?.remoteAddress || 'unknown';
   },
   handler: (_req, res) => {
     rateLimitResponse(
