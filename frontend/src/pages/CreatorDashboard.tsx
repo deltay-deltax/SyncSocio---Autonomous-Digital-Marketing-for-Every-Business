@@ -218,7 +218,7 @@ export default function CreatorDashboard() {
                       <th className="p-4 whitespace-nowrap">Date</th>
                       <th className="p-4 whitespace-nowrap">Plan Purchased</th>
                       <th className="p-4 whitespace-nowrap text-right">Amount Paid</th>
-                      <th className="p-4 pr-6 whitespace-nowrap text-right">Your 25% Cut</th>
+                      <th className="p-4 pr-6 whitespace-nowrap text-right">Your commission</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -240,7 +240,7 @@ export default function CreatorDashboard() {
                               <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold mt-1 ${
                                 conv.isEligible ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                               }`}>
-                                {conv.isEligible ? 'Eligible' : 'Outside 60 Days'}
+                                {conv.isEligible ? `${conv.commissionPeriod} · ${conv.commissionRate}%` : 'Outside commission period'}
                               </span>
                             </div>
                           </div>
@@ -261,6 +261,7 @@ export default function CreatorDashboard() {
                         <td className="p-4 pr-6 text-right">
                           {conv.isEligible ? (
                             <div className="inline-flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm">
+                              <span className="text-[10px] font-black text-emerald-600">{conv.commissionRate}%</span>
                               <span className="font-black text-emerald-600 text-base">₹{conv.commissionAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             </div>
                           ) : (
@@ -346,7 +347,7 @@ export default function CreatorDashboard() {
         <Card className="border border-slate-200 shadow-sm">
           <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
             <CardTitle className="text-lg font-bold text-slate-900">How It Works</CardTitle>
-            <CardDescription className="text-slate-500">Understanding your 25% commissions</CardDescription>
+            <CardDescription className="text-slate-500">Your referral commission program</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -360,8 +361,8 @@ export default function CreatorDashboard() {
               <div className="flex gap-4">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">2</div>
                 <div>
-                  <h4 className="font-bold text-slate-900 mb-1">Earn 25% Commission</h4>
-                  <p className="text-sm text-slate-500">You earn a huge 25% cut of every payment they make within 60 days of your link being generated.</p>
+                  <h4 className="font-bold text-slate-900 mb-1">Earn on paid referrals</h4>
+                  <p className="text-sm text-slate-500">You earn {data.initialCommissionRate}% for the first {data.initialCommissionMonths} month{data.initialCommissionMonths === 1 ? '' : 's'} after signup, then {data.retentionCommissionRate}% for the next {data.retentionCommissionMonths} month{data.retentionCommissionMonths === 1 ? '' : 's'}.</p>
                 </div>
               </div>
               <div className="flex gap-4">

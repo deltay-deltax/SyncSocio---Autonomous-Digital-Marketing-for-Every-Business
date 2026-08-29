@@ -100,9 +100,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  referralCreator: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Creator',
+    required: false,
+    index: true
+  },
   referralDate: {
     type: Date,
     required: false
+  },
+  // Immutable commission terms accepted when this user signed up through a
+  // creator link. Existing referrals without this snapshot use the creator's
+  // current terms as a backwards-compatible fallback.
+  referralTerms: {
+    initialCommissionRate: { type: Number, min: 0, max: 100 },
+    initialCommissionMonths: { type: Number, min: 0, max: 60 },
+    retentionCommissionRate: { type: Number, min: 0, max: 100 },
+    retentionCommissionMonths: { type: Number, min: 0, max: 60 }
   }
   // ─────────────────────────────────────────────────────────────────────────
 }, { timestamps: true });

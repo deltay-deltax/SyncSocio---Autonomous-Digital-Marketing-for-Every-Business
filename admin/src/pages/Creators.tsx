@@ -8,6 +8,10 @@ export default function Creators() {
   
   const [loading, setLoading] = useState(true);
   const [newCreatorName, setNewCreatorName] = useState("");
+  const [initialRate, setInitialRate] = useState("25");
+  const [initialMonths, setInitialMonths] = useState("2");
+  const [retentionRate, setRetentionRate] = useState("20");
+  const [retentionMonths, setRetentionMonths] = useState("2");
   const [adding, setAdding] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,7 +57,13 @@ export default function Creators() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name: newCreatorName })
+        body: JSON.stringify({
+          name: newCreatorName,
+          initialCommissionRate: Number(initialRate),
+          initialCommissionMonths: Number(initialMonths),
+          retentionCommissionRate: Number(retentionRate),
+          retentionCommissionMonths: Number(retentionMonths)
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -68,6 +78,18 @@ export default function Creators() {
     } finally {
       setAdding(false);
     }
+  };
+
+  const handleUpdateTerms = async (creatorId: string, terms: Record<string, number>) => {
+    const token = localStorage.getItem('adminToken');
+    const res = await fetch(`${API_BASE}/creators/${creatorId}/terms`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(terms)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || 'Could not update terms');
+    await fetchCreators();
   };
 
   const handleMarkPaid = async (creatorId: string, amount: number) => {
@@ -128,7 +150,7 @@ export default function Creators() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Affiliates & Creators</h1>
-          <p className="text-slate-500 mt-2">Manage partners, view referred sales, and handle 25% commission payouts.</p>
+          <p className="text-slate-500 mt-2">Manage partners, configure referral terms, view referred sales, and handle payouts.</p>
         </div>
         <button 
           onClick={fetchCreators}
@@ -167,7 +189,7 @@ export default function Creators() {
           </div>
           <div className="bg-emerald-500 p-5 rounded-2xl shadow-sm text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-20"><DollarSign size={40} /></div>
-            <div className="text-xs font-bold text-emerald-100 uppercase tracking-wider mb-2 relative z-10">Total 25% Commission</div>
+            <div className="text-xs font-bold text-emerald-100 uppercase tracking-wider mb-2 relative z-10">Total commission</div>
             <div className="text-2xl font-black relative z-10">
               ₹{summary.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
@@ -202,9 +224,9 @@ export default function Creators() {
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-slate-900">Add New Creator</h2>
-              <p className="text-sm text-slate-500">Generate a trackable promo link (25% commission) and a private dashboard.</p>
+              <p className="text-sm text-slate-500">Set the initial and retention commission terms, then generate a trackable promo link.</p>
             </div>
-            <form onSubmit={handleAddCreator} className="flex w-full md:w-auto gap-3">
+            <form onSubmit={handleAddCreator} className="grid w-full md:w-auto gap-3 md:grid-cols-5">
               <input 
                 className="flex-1 md:w-64 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 placeholder="Creator or Affiliate Name" 
@@ -212,6 +234,10 @@ export default function Creators() {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCreatorName(e.target.value)}
                 disabled={adding}
               />
+              <TermInput label="Initial %" value={initialRate} onChange={setInitialRate} />
+              <TermInput label="Initial mo." value={initialMonths} onChange={setInitialMonths} />
+              <TermInput label="Retention %" value={retentionRate} onChange={setRetentionRate} />
+              <TermInput label="Retention mo." value={retentionMonths} onChange={setRetentionMonths} />
               <button 
                 type="submit" 
                 disabled={adding || !newCreatorName.trim()}
@@ -225,7 +251,7 @@ export default function Creators() {
 
           <div className="grid grid-cols-1 gap-6">
             {creators.map(creator => (
-              <CreatorCard key={creator._id} creator={creator} onMarkPaid={handleMarkPaid} copyToClipboard={copyToClipboard} />
+              <CreatorCard key={creator._id} creator={creator} onMarkPaid={handleMarkPaid} onUpdateTerms={handleUpdateTerms} copyToClipboard={copyToClipboard} />
             ))}
             {creators.length === 0 && (
               <div className="text-center py-16 px-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
@@ -274,7 +300,7 @@ export default function Creators() {
                   <th className="p-4 whitespace-nowrap">Referred By</th>
                   <th className="p-4 whitespace-nowrap">Purchased Plan</th>
                   <th className="p-4 whitespace-nowrap text-right">Plan Amount</th>
-                  <th className="p-4 whitespace-nowrap text-right">25% Commission</th>
+                  <th className="p-4 whitespace-nowrap text-right">Commission</th>
                   <th className="p-4 whitespace-nowrap">Date & Status</th>
                 </tr>
               </thead>
@@ -312,7 +338,7 @@ export default function Creators() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="inline-flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100">
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-100 px-1 py-0.5 rounded">25%</span>
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-100 px-1 py-0.5 rounded">{conv.commissionRate}%</span>
                         <span className="font-black text-emerald-700 text-base">₹{conv.commissionAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                     </td>
@@ -328,7 +354,7 @@ export default function Creators() {
                           ? 'bg-emerald-100 text-emerald-700' 
                           : 'bg-rose-100 text-rose-700'
                       }`}>
-                        {conv.isEligible ? 'Eligible' : 'Outside 60 Days'}
+                        {conv.isEligible ? conv.commissionPeriod : 'Outside commission period'}
                       </span>
                     </td>
                   </tr>
@@ -359,8 +385,24 @@ const BriefcaseIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-function CreatorCard({ creator, onMarkPaid, copyToClipboard }: { creator: any, onMarkPaid: (id: string, amount: number) => void, copyToClipboard: (text: string, type: string) => void }) {
+function TermInput({ label, value, onChange }: { label: string, value: string, onChange: (value: string) => void }) {
+  return (
+    <label className="text-[10px] font-bold text-slate-500 flex flex-col gap-1">
+      {label}
+      <input type="number" min="0" max={label.includes('%') ? 100 : 60} step={label.includes('%') ? "0.01" : "1"} required value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" />
+    </label>
+  );
+}
+
+function CreatorCard({ creator, onMarkPaid, onUpdateTerms, copyToClipboard }: { creator: any, onMarkPaid: (id: string, amount: number) => void, onUpdateTerms: (id: string, terms: Record<string, number>) => Promise<void>, copyToClipboard: (text: string, type: string) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [savingTerms, setSavingTerms] = useState(false);
+  const [terms, setTerms] = useState({
+    initialCommissionRate: String(creator.initialCommissionRate ?? 25),
+    initialCommissionMonths: String(creator.initialCommissionMonths ?? 2),
+    retentionCommissionRate: String(creator.retentionCommissionRate ?? 20),
+    retentionCommissionMonths: String(creator.retentionCommissionMonths ?? 2)
+  });
   
   const promoUrl = `https://syncsocio.com/?ref=${creator.code}`;
   const dashboardUrl = `https://syncsocio.com/creator/${creator.dashboardToken}`;
@@ -421,7 +463,7 @@ function CreatorCard({ creator, onMarkPaid, copyToClipboard }: { creator: any, o
             <div className="text-xl font-black text-slate-900">₹{creator.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
           </div>
           <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl flex flex-col justify-center">
-            <div className="text-xs font-bold text-emerald-600 mb-1">25% Commission</div>
+            <div className="text-xs font-bold text-emerald-600 mb-1">Commission earned</div>
             <div className="text-xl font-black text-emerald-700">₹{creator.totalEarned.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
           </div>
         </div>
@@ -438,6 +480,30 @@ function CreatorCard({ creator, onMarkPaid, copyToClipboard }: { creator: any, o
         {/* Links section (Expanded) */}
         {expanded && (
           <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-4 animate-in fade-in slide-in-from-top-2">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setSavingTerms(true);
+              try {
+                await onUpdateTerms(creator._id, Object.fromEntries(Object.entries(terms).map(([key, value]) => [key, Number(value)])));
+                alert('Commission terms updated. They apply to future referred signups.');
+              } catch (error: any) {
+                alert(error.message || 'Could not update commission terms');
+              } finally {
+                setSavingTerms(false);
+              }
+            }} className="border-b border-slate-200 pb-4 mb-4">
+              <div className="text-sm font-black text-slate-800 mb-1">Commission program</div>
+              <p className="text-xs text-slate-500 mb-3">Terms are copied when a user signs up, so existing referral earnings stay unchanged.</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.entries(terms).map(([key, value]) => (
+                  <label key={key} className="text-[10px] font-bold text-slate-500">
+                    {key === 'initialCommissionRate' ? 'Initial rate %' : key === 'initialCommissionMonths' ? 'Initial months' : key === 'retentionCommissionRate' ? 'Retention rate %' : 'Retention months'}
+                    <input type="number" min="0" max={key.includes('Rate') ? 100 : 60} step={key.includes('Rate') ? '0.01' : '1'} value={value} onChange={(e) => setTerms({ ...terms, [key]: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" />
+                  </label>
+                ))}
+              </div>
+              <button disabled={savingTerms} className="mt-3 bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50">{savingTerms ? 'Saving…' : 'Save terms'}</button>
+            </form>
             <div className="flex flex-col md:flex-row md:items-center gap-3 text-sm">
               <div className="flex items-center gap-2 w-32 shrink-0">
                 <Link2 className="w-4 h-4 text-slate-400" />

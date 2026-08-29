@@ -62,6 +62,9 @@ const LoadingScreen = () => (
 
 function App() {
   useEffect(() => {
+    let API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+    if (!API_BASE.endsWith('/api')) API_BASE += '/api';
+
     // Clear out any old bloated localStorage caches that were causing QuotaExceededError
     try {
       localStorage.removeItem('syncsocio_generated_assets');
@@ -80,8 +83,6 @@ function App() {
       const sessionToken = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem('velocity_visit_tracked', 'true');
       
-      let API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
-      if (!API_BASE.endsWith('/api')) API_BASE += '/api';
       fetch(`${API_BASE}/analytics/visit`, {
         method: 'POST',
         headers: {
@@ -93,19 +94,21 @@ function App() {
         }),
       }).catch(err => console.error('Failed to track visit:', err));
 
-      // ── Affiliate Referral Tracking ──
-      const params = new URLSearchParams(window.location.search);
-      const refCode = params.get('ref');
-      if (refCode && !sessionStorage.getItem('velocity_ref_tracked')) {
-        sessionStorage.setItem('velocity_ref_tracked', 'true');
-        sessionStorage.setItem('velocity_ref_code', refCode);
-        
-        fetch(`${API_BASE}/creators/track-click`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: refCode }),
-        }).catch(err => console.error('Failed to track referral click:', err));
-      }
+    }
+
+    // ── Affiliate Referral Tracking ──
+    // Keep this independent from visit analytics: a visitor can open a referral
+    // link later in the same tab, after the session visit was already recorded.
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref')?.trim();
+    if (refCode && !sessionStorage.getItem('velocity_ref_tracked')) {
+      sessionStorage.setItem('velocity_ref_tracked', 'true');
+      sessionStorage.setItem('velocity_ref_code', refCode);
+      fetch(`${API_BASE}/creators/track-click`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: refCode }),
+      }).catch(err => console.error('Failed to track referral click:', err));
     }
   }, []);
 

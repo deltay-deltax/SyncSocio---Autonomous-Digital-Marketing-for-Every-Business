@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import Creator from '../models/Creator.js';
 import BrandProfile from '../models/BrandProfile.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -24,6 +25,32 @@ const isDisposableEmail = (email) => {
   if (!email) return false;
   const domain = email.split('@')[1]?.toLowerCase();
   return DISPOSABLE_EMAIL_DOMAINS.includes(domain);
+};
+
+// Referral attribution is resolved on the server, rather than trusting a code
+// supplied by the browser. The terms are snapshotted at signup so a later
+// creator-program edit affects only future referrals.
+const resolveCreatorReferral = async (refCode) => {
+  if (!refCode) return null;
+  const code = refCode.trim().toUpperCase();
+  return Creator.findOne({ code, isActive: true }).select(
+    '_id code initialCommissionRate initialCommissionMonths retentionCommissionRate retentionCommissionMonths'
+  );
+};
+
+const buildReferralFields = (creator) => {
+  if (!creator) return {};
+  return {
+    referredBy: creator.code,
+    referralCreator: creator._id,
+    referralDate: new Date(),
+    referralTerms: {
+      initialCommissionRate: creator.initialCommissionRate ?? 25,
+      initialCommissionMonths: creator.initialCommissionMonths ?? 2,
+      retentionCommissionRate: creator.retentionCommissionRate ?? 20,
+      retentionCommissionMonths: creator.retentionCommissionMonths ?? 2
+    }
+  };
 };
 
 const inferAuthProvider = (user) => {
@@ -107,6 +134,11 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: 'Account already exists. Please try logging in.' });
     }
 
+    const referral = await resolveCreatorReferral(refCode);
+    if (refCode && !referral) {
+      return res.status(400).json({ message: 'This referral link is invalid or no longer active.' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
@@ -158,8 +190,7 @@ export const signup = async (req, res) => {
         isVerified: true,
         otpCode: undefined,
         otpExpiry: undefined,
-        referredBy: refCode || undefined,
-        referralDate: refCode ? new Date() : undefined,
+        ...buildReferralFields(referral),
       });
     }
 
@@ -280,14 +311,17 @@ export const googleLogin = async (req, res) => {
     }
     let isNewUser = false;
     if (!user) {
+      const referral = await resolveCreatorReferral(refCode);
+      if (refCode && !referral) {
+        return res.status(400).json({ message: 'This referral link is invalid or no longer active.' });
+      }
       user = await User.create({ 
         name, 
         email, 
         googleId, 
         isVerified: true, 
         lastLogin: new Date(),
-        referredBy: refCode || undefined,
-        referralDate: refCode ? new Date() : undefined
+        ...buildReferralFields(referral)
       });
       isNewUser = true;
 
@@ -458,14 +492,17 @@ export const appleLogin = async (req, res) => {
     }
     let isNewUser = false;
     if (!user) {
+      const referral = await resolveCreatorReferral(refCode);
+      if (refCode && !referral) {
+        return res.status(400).json({ message: 'This referral link is invalid or no longer active.' });
+      }
       user = await User.create({ 
         name, 
         email, 
         appleId, 
         isVerified: true, 
         lastLogin: new Date(),
-        referredBy: refCode || undefined,
-        referralDate: refCode ? new Date() : undefined
+        ...buildReferralFields(referral)
       });
       isNewUser = true;
 

@@ -1,10 +1,13 @@
 import { z } from 'zod';
 import { commonSchemas } from './common.js';
 
+const referralCodeSchema = z.string().trim().min(1).max(64).regex(/^[a-zA-Z0-9]+$/, 'Invalid referral code').optional();
+
 export const signupSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   email: commonSchemas.email,
   password: commonSchemas.password,
+  refCode: referralCodeSchema,
 }).strict();
 
 export const loginSchema = z.object({
@@ -17,6 +20,7 @@ export const googleLoginSchema = z.object({
   plan: z.string().optional(),
   isSignup: z.boolean().optional(),
   metaEventId: z.string().optional(),
+  refCode: referralCodeSchema,
 }).strict();
 
 export const appleLoginSchema = z.object({
@@ -25,6 +29,7 @@ export const appleLoginSchema = z.object({
   plan: z.string().optional(),
   isSignup: z.boolean().optional(),
   metaEventId: z.string().optional(),
+  refCode: referralCodeSchema,
 }).strict();
 
 export const verifyOtpSchema = z.object({
