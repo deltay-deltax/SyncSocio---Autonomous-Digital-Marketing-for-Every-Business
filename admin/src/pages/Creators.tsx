@@ -221,27 +221,32 @@ export default function Creators() {
 
       {activeTab === 'creators' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+            <div className="mb-4">
               <h2 className="text-lg font-bold text-slate-900">Add New Creator</h2>
               <p className="text-sm text-slate-500">Set the initial and retention commission terms, then generate a trackable promo link.</p>
             </div>
-            <form onSubmit={handleAddCreator} className="grid w-full md:w-auto gap-3 md:grid-cols-5">
-              <input 
-                className="flex-1 md:w-64 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                placeholder="Creator or Affiliate Name" 
-                value={newCreatorName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCreatorName(e.target.value)}
-                disabled={adding}
-              />
-              <TermInput label="Initial %" value={initialRate} onChange={setInitialRate} />
-              <TermInput label="Initial mo." value={initialMonths} onChange={setInitialMonths} />
-              <TermInput label="Retention %" value={retentionRate} onChange={setRetentionRate} />
-              <TermInput label="Retention mo." value={retentionMonths} onChange={setRetentionMonths} />
+            <form onSubmit={handleAddCreator} className="flex flex-col md:flex-row gap-3 items-end">
+              <label className="text-[10px] font-bold text-slate-500 flex flex-col gap-1 flex-1 w-full">
+                Creator or Affiliate Name
+                <input 
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all w-full"
+                  placeholder="e.g. John Doe" 
+                  value={newCreatorName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCreatorName(e.target.value)}
+                  disabled={adding}
+                />
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
+                <TermInput label="Initial %" value={initialRate} onChange={setInitialRate} />
+                <TermInput label="Initial mo." value={initialMonths} onChange={setInitialMonths} />
+                <TermInput label="Retention %" value={retentionRate} onChange={setRetentionRate} />
+                <TermInput label="Retention mo." value={retentionMonths} onChange={setRetentionMonths} />
+              </div>
               <button 
                 type="submit" 
                 disabled={adding || !newCreatorName.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-50 transition-colors shadow-sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-sm shrink-0 w-full md:w-auto md:mb-[1px]"
               >
                 {adding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} 
                 {adding ? "Adding..." : "Add"}
