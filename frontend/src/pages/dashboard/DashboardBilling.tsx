@@ -166,7 +166,7 @@ const DashboardBilling = () => {
 
     const planPrices = planObj.prices[currency];
     const amount = planPrices.basePrice;
-    const creditsAdded = planName.toLowerCase() === 'pro' ? 1000 : planName.toLowerCase() === 'growth' ? 400 : 80;
+    const creditsAdded = planName.toLowerCase() === 'pro' ? 1000 : planName.toLowerCase() === 'growth' ? 400 : 160;
     
     const currentPlan = (profile?.selectedPlan || '').toLowerCase();
     const isStarter = currentPlan.includes('starter') || currentPlan.includes('brand');

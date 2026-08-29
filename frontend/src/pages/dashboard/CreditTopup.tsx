@@ -97,7 +97,7 @@ export const CreditTopup = () => {
     if (actionType === 'renew') {
        amount = isPro ? planPrices.Pro[currency] : isGrowth ? planPrices.Growth[currency] : planPrices.Starter[currency];
        planStr = currentPlan;
-       creditsAdded = isPro ? 1000 : isGrowth ? 400 : 80;
+       creditsAdded = isPro ? 1000 : isGrowth ? 400 : 160;
        typeStr = 'plan_renewal';
      } else if (actionType === 'upgrade') {
        amount = isPro ? planPrices.Pro[currency] : planPrices.Growth[currency];

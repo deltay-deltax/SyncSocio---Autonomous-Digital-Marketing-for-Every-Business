@@ -509,7 +509,8 @@ export const autoScanBg = async (req, res) => {
                  name: prod.name,
                  description: prod.description || '',
                  price: prod.price || '',
-                 imageBase64: prod.imageBase64 || ''
+                 imageBase64: prod.imageBase64 || (prod.imageUrls && prod.imageUrls[0]) || '',
+                 imageUrls: prod.imageUrls || []
                });
             }
           }

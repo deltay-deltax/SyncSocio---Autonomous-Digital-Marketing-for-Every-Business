@@ -64,6 +64,7 @@ const DashboardHome = () => {
   const [data, setData] = useState<any>(summaryCache[brandId] || null);
   const [loading, setLoading] = useState(!summaryCache[brandId]);
   const [error, setError] = useState<string | null>(null);
+  const [hideAnalysisCard, setHideAnalysisCard] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -211,6 +212,30 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-6">
+      {profile?.brandName === 'Processing...' && !hideAnalysisCard && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-primary/5 border border-primary/20 rounded-[2rem] p-8 sm:p-12 text-center shadow-sm relative overflow-hidden mt-2 group"
+        >
+          <button 
+            onClick={() => setHideAnalysisCard(true)}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-background/50 backdrop-blur-sm rounded-full text-muted-foreground hover:text-foreground hover:bg-background transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+          <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-5 relative">
+            <div className="absolute inset-0 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin" />
+            <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-3 tracking-tight">Your brand is being analyzed!</h2>
+          <p className="text-[13px] sm:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed font-medium">
+            Our AI agents are currently deep-scanning your website to extract your brand's unique identity, products, and marketing angles. Feel free to keep exploring the dashboard—this hardly takes 1-2 minutes!
+          </p>
+        </motion.div>
+      )}
+
       {/* Workspace Operational Stats */}
       <div>
         <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 px-1">Workspace Operations</h2>

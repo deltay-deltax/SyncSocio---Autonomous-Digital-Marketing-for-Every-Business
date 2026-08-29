@@ -356,9 +356,9 @@ const DashboardSettings = () => {
     const isGrowth = currentPlan.toLowerCase().includes('growth');
 
     if (actionType === 'renew') {
-      amount = isPro ? (currency === 'USD' ? 45 : 3499) : isGrowth ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 5 : 399);
+      amount = isPro ? (currency === 'USD' ? 45 : 3499) : isGrowth ? (currency === 'USD' ? 19 : 1499) : (currency === 'USD' ? 10 : 799);
       planStr = currentPlan;
-      creditsAdded = isPro ? 1000 : isGrowth ? 400 : 80;
+      creditsAdded = isPro ? 1000 : isGrowth ? 400 : 160;
       typeStr = 'plan_renewal';
     } else if (actionType === 'upgrade') {
       amount = isPro ? (currency === 'USD' ? 45 : 3499) : (currency === 'USD' ? 19 : 1499);

@@ -758,7 +758,7 @@ DESIGN-SYSTEM COMPLETENESS RULES:
 - Avoid generic filler such as "clean and modern" unless accompanied by exact visual evidence. Use empty strings/arrays for unsupported details; never guess to fill the schema.
 - Return 4-8 concise `do` rules and 4-8 concise `dont` rules when evidence permits.
 
-For each product or service, select an image only when its name clearly matches the supplied alt text or filename. Never assign a random product image. Leave `imageBase64` empty when no clear match exists.
+For each product or service, select an image only when its name clearly matches the supplied alt text or filename. Never assign a random product image. Leave `imageUrls` empty when no clear match exists.
 
 For the brand logo, use only a clear logo candidate. If none is evidenced, set "logo" to an empty string; never substitute a general product image.
 
