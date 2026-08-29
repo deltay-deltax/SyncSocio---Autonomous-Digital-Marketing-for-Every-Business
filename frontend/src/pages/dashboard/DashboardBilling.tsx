@@ -261,7 +261,7 @@ const DashboardBilling = () => {
                   <h3 className="text-xl font-extrabold tracking-tight">{plan.name}</h3>
                   <div className="flex items-center gap-2">
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                      plan.popular
+                      (plan.popular && !isCurrentPlan)
                         ? "bg-white/20 text-white backdrop-blur-sm"
                         : "bg-primary/10 text-primary"
                     }`}>
@@ -271,7 +271,7 @@ const DashboardBilling = () => {
                 </div>
 
                 <p className={`text-xs min-h-[36px] leading-relaxed mb-4 ${
-                  plan.popular ? "text-primary-foreground/85" : "text-muted-foreground"
+                  (plan.popular && !isCurrentPlan) ? "text-primary-foreground/85" : "text-muted-foreground"
                 }`}>
                   {plan.description}
                 </p>
@@ -280,12 +280,12 @@ const DashboardBilling = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-xs line-through font-semibold ${
-                          plan.popular ? "text-primary-foreground/60" : "text-muted-foreground/60"
+                          (plan.popular && !isCurrentPlan) ? "text-primary-foreground/60" : "text-muted-foreground/60"
                         }`}>
                           {symbol}{originalPrice}
                         </span>
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                          plan.popular ? "bg-white/20 text-white" : "bg-emerald-500/10 text-emerald-600"
+                          (plan.popular && !isCurrentPlan) ? "bg-white/20 text-white" : "bg-emerald-500/10 text-emerald-600"
                         }`}>
                           {discountPercent}% OFF
                         </span>
@@ -293,7 +293,7 @@ const DashboardBilling = () => {
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl sm:text-4xl font-black tracking-tight">{symbol}{currentPrice}</span>
                         <span className={`text-xs font-semibold ${
-                          plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
+                          (plan.popular && !isCurrentPlan) ? "text-primary-foreground/70" : "text-muted-foreground"
                         }`}>
                           {plan.period}
                         </span>
@@ -306,9 +306,9 @@ const DashboardBilling = () => {
                     return (
                       <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
                         <Check size={15} className={`shrink-0 mt-0.5 ${
-                          plan.popular ? "text-white" : "text-primary"
+                          (plan.popular && !isCurrentPlan) ? "text-white" : "text-primary"
                         }`} />
-                        <span className={plan.popular ? "text-primary-foreground/95" : "text-foreground/90"}>
+                        <span className={(plan.popular && !isCurrentPlan) ? "text-primary-foreground/95" : "text-foreground/90"}>
                           {feature}
                         </span>
                       </li>
@@ -317,7 +317,7 @@ const DashboardBilling = () => {
                   {plan.lockedFeatures && plan.lockedFeatures.map((feature) => (
                     <li key={feature} className="flex items-start gap-2.5 text-xs font-medium leading-normal">
                       <X size={15} className="shrink-0 mt-0.5 text-muted-foreground/50" />
-                      <span className={`line-through ${plan.popular ? "text-primary-foreground/40" : "text-muted-foreground/50"}`}>
+                      <span className={`line-through ${(plan.popular && !isCurrentPlan) ? "text-primary-foreground/40" : "text-muted-foreground/50"}`}>
                         {feature}
                       </span>
                     </li>

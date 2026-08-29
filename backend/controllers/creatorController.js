@@ -23,9 +23,9 @@ const termsForUser = (user, creator) => ({
   retentionCommissionMonths: user.referralTerms?.retentionCommissionMonths ?? creator.retentionCommissionMonths ?? DEFAULT_TERMS.retentionCommissionMonths
 });
 
-const commissionForTransaction = (transaction, user, creator) => {
+const commissionForTransaction = (transaction, user, creator, firstPaymentDate) => {
   const terms = termsForUser(user, creator);
-  const referralDate = new Date(user.referralDate || user.createdAt);
+  const referralDate = new Date(firstPaymentDate || user.referralDate || user.createdAt);
   const transactionDate = new Date(transaction.createdAt);
   const initialEndsAt = addMonths(referralDate, terms.initialCommissionMonths);
   const retentionEndsAt = addMonths(initialEndsAt, terms.retentionCommissionMonths);
@@ -81,8 +81,14 @@ const collectCreatorMetrics = async (creator, includeCreatorDetails = false) => 
     let userTotalSpend = 0;
     let userCommissionGenerated = 0;
     let hasEligiblePayment = false;
+    
+    let firstPaymentDate = user.referralDate || user.createdAt;
+    if (userTransactions.length > 0) {
+      firstPaymentDate = userTransactions[userTransactions.length - 1].createdAt;
+    }
+
     for (const transaction of userTransactions) {
-      const commission = commissionForTransaction(transaction, user, creator);
+      const commission = commissionForTransaction(transaction, user, creator, firstPaymentDate);
       userTotalSpend += transaction.amount;
       if (commission.isEligible) {
         hasEligiblePayment = true;

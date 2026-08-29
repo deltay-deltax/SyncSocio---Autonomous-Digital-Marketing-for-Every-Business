@@ -1369,7 +1369,7 @@ const DashboardLayoutContent = () => {
             </AnimatePresence>
 
             <button
-              onClick={() => navigate('/setup?step=plan')}
+              onClick={() => navigate('/dashboard/billing')}
               className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-emerald-500 to-emerald-400 border border-emerald-400/50 p-2 sm:px-3 sm:py-1.5 rounded-full mr-1 sm:mr-2 hover:brightness-110 transition-all duration-200 cursor-pointer shadow-sm shadow-emerald-500/20"
             >
               <Sparkles size={14} className="text-white" />

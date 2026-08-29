@@ -1375,7 +1375,7 @@ const DashboardSettings = () => {
                             </div>
                             <div className="flex shrink-0">
                               <button
-                                onClick={() => navigate('/setup?step=plan')}
+                                onClick={() => navigate('/dashboard/billing')}
                                 className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold tracking-wide shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-2"
                               >
                                 Upgrade Now <ArrowRight size={18} />
@@ -1476,7 +1476,7 @@ const DashboardSettings = () => {
                           </Button>
                         ) : (
                           <Button
-                            onClick={() => navigate('/setup?step=plan')}
+                            onClick={() => navigate('/dashboard/billing')}
                             className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground border-0 cursor-pointer shadow-lg hover:brightness-110"
                           >
                             Upgrade to Starter ({symbol}{currency === 'USD' ? '10' : '799'})
@@ -1484,7 +1484,7 @@ const DashboardSettings = () => {
                         )}
                         {!isPro && (
                           <Button
-                            onClick={() => navigate('/setup?step=plan')}
+                            onClick={() => navigate('/dashboard/billing')}
                             className="w-full sm:flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white border-0 cursor-pointer shadow-lg hover:bg-emerald-500"
                           >
                             View All Plans & Upgrade

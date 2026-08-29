@@ -443,7 +443,7 @@ const DashboardHome = () => {
                   planName === '');
               })() && (
                   <Button
-                    onClick={() => navigate('/dashboard/settings?tab=Plan%20%26%20Billing')}
+                    onClick={() => navigate('/dashboard/billing')}
                     className="w-full rounded-xl py-5 text-xs font-bold bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white shadow-md shadow-primary/25 border-0 transition-all hover:scale-[1.02]"
                   >
                     <Zap size={14} className="mr-2 fill-white" /> Upgrade Plan
