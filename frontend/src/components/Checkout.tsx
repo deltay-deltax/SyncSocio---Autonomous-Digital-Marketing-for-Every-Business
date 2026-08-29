@@ -55,8 +55,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
           headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
         });
         if (res.ok) {
-          const _rawJson3 = await res.json();
-            const data = _rawJson3 && _rawJson3.success !== undefined ? (_rawJson3.success ? _rawJson3.data : _rawJson3) : _rawJson3;
+          const data = await res.json();
           if (data?.location?.country) {
             setBilling(prev => ({ ...prev, country: data.location.country }));
           }
@@ -76,11 +75,13 @@ export const Checkout: React.FC<CheckoutProps> = ({
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
       const res = await fetch(`${API_BASE}/coupons/validate`, { credentials: 'include',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
+        },
         body: JSON.stringify({ code: couponCode, purchaseType: type, planName })
       });
-      const _rawJson2 = await res.json();
-        const data = _rawJson2 && _rawJson2.success !== undefined ? (_rawJson2.success ? _rawJson2.data : _rawJson2) : _rawJson2;
+      const data = await res.json();
       if (res.ok && data.success) {
         const couponData = data.coupon || { code: data.code || couponCode, discountPercentage: data.discountPercentage };
         setAppliedCoupon(couponData);
@@ -90,6 +91,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
         setAppliedCoupon(null);
       }
     } catch (err) {
+      console.error('COUPON EXCEPTION:', err);
       toast({ title: 'Error', description: 'Failed to validate coupon', variant: 'destructive' });
     } finally {
       setIsApplyingCoupon(false);
@@ -124,7 +126,10 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
       const orderRes = await fetch(`${API_BASE}/payment/create-order`, { credentials: 'include',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
+        },
         body: JSON.stringify({
           amount: total,
           currency: currency,
@@ -137,8 +142,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
         })
       });
 
-      const _rawJson1 = await orderRes.json();
-        const orderData = _rawJson1 && _rawJson1.success !== undefined ? (_rawJson1.success ? _rawJson1.data : _rawJson1) : _rawJson1;
+      const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.message || 'Failed to create order');
 
       const options = {
@@ -153,7 +157,10 @@ export const Checkout: React.FC<CheckoutProps> = ({
             const metaEventId = crypto.randomUUID();
             const verifyRes = await fetch(`${API_BASE}/payment/verify`, { credentials: 'include',
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', },
+              headers: { 
+                'Content-Type': 'application/json',
+                ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
+              },
               body: JSON.stringify({
                 ...response,
                 billingAddress: billing,
@@ -161,8 +168,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
               })
             });
 
-            const _rawJson0 = await verifyRes.json();
-              const verifyData = _rawJson0 && _rawJson0.success !== undefined ? (_rawJson0.success ? _rawJson0.data : _rawJson0) : _rawJson0;
+            const verifyData = await verifyRes.json();
             if (!verifyRes.ok || !verifyData.success) throw new Error(verifyData.message || 'Payment verification failed');
 
             // Fire client-side Meta Pixel Purchase event with the exact same ID
@@ -199,9 +205,10 @@ export const Checkout: React.FC<CheckoutProps> = ({
           const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
           await fetch(`${API_BASE}/payment/fail`, { credentials: 'include',
             method: 'POST',
-            headers: {
+            headers: { 
               'Content-Type': 'application/json',
-              },
+              ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
+            },
             body: JSON.stringify({
               razorpayOrderId: response.error.metadata?.order_id,
               razorpayPaymentId: response.error.metadata?.payment_id,

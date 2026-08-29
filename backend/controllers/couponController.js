@@ -35,6 +35,9 @@ export const validateCoupon = async (req, res) => {
       if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
         return res.status(400).json({ success: false, message: 'Coupon has expired' });
       }
+      if (coupon.maxUses !== null && coupon.maxUses !== undefined && coupon.timesUsed >= coupon.maxUses) {
+        return res.status(400).json({ success: false, message: 'Coupon usage limit has been reached' });
+      }
       if (coupon.applicableOn && coupon.applicableOn.length > 0) {
         let itemMatched = false;
         let isApplicable = false;

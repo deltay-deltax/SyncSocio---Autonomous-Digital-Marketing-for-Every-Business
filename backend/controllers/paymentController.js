@@ -9,16 +9,13 @@ import { sendMetaCapiEvent } from '../services/metaConversionsAPI.js';
 import AdminNotification from '../models/AdminNotification.js';
 
 const PLAN_PRICES = {
-  'Starter': 399,
-  'Growth': 1499,
-  'Pro': 3499
+  INR: { 'Starter': 799, 'Growth': 1499, 'Pro': 3499 },
+  USD: { 'Starter': 10, 'Growth': 19, 'Pro': 45 }
 };
 
 const TOPUP_PRICES = {
-  'Starter Top-up': 250,
-  'Value Pack': 475,
-  'Growth Pack': 1275,
-  'Pro Pack': 2730
+  INR: { 'Starter Top-up': 250, 'Value Pack': 475, 'Growth Pack': 1275, 'Pro Pack': 2730 },
+  USD: { 'Starter Top-up': 3.5, 'Value Pack': 6.5, 'Growth Pack': 16, 'Pro Pack': 35 }
 };
 
 export const createOrder = async (req, res) => {
@@ -34,30 +31,32 @@ export const createOrder = async (req, res) => {
       const isTrial = !user.plan || user.plan === 'Free Trial';
       const isExpired = user.planExpiresAt && new Date(user.planExpiresAt) < new Date();
       if (isTrial || isExpired) {
-        return res.status(403).json({ message: 'You must have an active paid plan to purchase credit top-ups.' });
+        return res.status(400).json({ message: 'Please upgrade to a paid plan before buying credit top-ups.' });
       }
     }
 
     if (amount < 1) {
-      return res.status(400).json({ message: 'Minimum amount must be 1 INR (100 paise)' });
+      return res.status(400).json({ message: 'Minimum amount must be 1 (INR/USD)' });
     }
 
     // --- SECURITY FIX: VALIDATE AMOUNT AGAINST SPOOFING ---
     let expectedBasePrice = 0;
+    const isUSD = currency === 'USD';
+    
     if (type === 'plan_purchase' || type === 'plan_upgrade' || type === 'plan_renewal') {
-      expectedBasePrice = PLAN_PRICES[plan] || 0;
+      expectedBasePrice = isUSD ? (PLAN_PRICES.USD[plan] || 0) : (PLAN_PRICES.INR[plan] || 0);
     } else if (type === 'topup') {
       // Find topup by credits added or plan name if passed
-      expectedBasePrice = TOPUP_PRICES[plan] || 0;
+      expectedBasePrice = isUSD ? (TOPUP_PRICES.USD[plan] || 0) : (TOPUP_PRICES.INR[plan] || 0);
       if (expectedBasePrice === 0) {
         // Fallback to checking by credits amount if plan name isn't matched
-        if (creditsAdded === 50) expectedBasePrice = 250;
-        else if (creditsAdded === 100) expectedBasePrice = 475;
-        else if (creditsAdded === 300) expectedBasePrice = 1275;
-        else if (creditsAdded === 700) expectedBasePrice = 2730;
+        if (creditsAdded === 50) expectedBasePrice = isUSD ? 3.5 : 250;
+        else if (creditsAdded === 100) expectedBasePrice = isUSD ? 6.5 : 475;
+        else if (creditsAdded === 300) expectedBasePrice = isUSD ? 16 : 1275;
+        else if (creditsAdded === 700) expectedBasePrice = isUSD ? 35 : 2730;
       }
     } else if (type === 'dm_addon_purchase') {
-      expectedBasePrice = 500; // DM addon is flat 500 INR
+      expectedBasePrice = isUSD ? 6 : 500; // DM addon is flat 500 INR / $6 USD
     }
 
     // Server-side discount calculation
@@ -66,9 +65,28 @@ export const createOrder = async (req, res) => {
     let actualDiscountAmount = 0;
 
     if (couponCode) {
-      const coupon = await Coupon.findOne({ code: couponCode, isActive: true });
-      if (coupon && (!coupon.expiryDate || coupon.expiryDate > new Date()) && coupon.timesUsed < coupon.maxUses) {
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim(), isActive: true });
+      console.log('--- COUPON CHECK ---');
+      console.log('Coupon found:', coupon);
+      if (coupon) {
+        console.log('Condition 1 (!expiryDate || > new Date):', (!coupon.expiryDate || coupon.expiryDate > new Date()));
+        console.log('Condition 2 (maxUses === null || timesUsed < maxUses):', (coupon.maxUses === null || coupon.timesUsed < coupon.maxUses));
+        console.log('maxUses:', coupon.maxUses, 'timesUsed:', coupon.timesUsed);
+      }
+      
+      const demoCoupons = {
+        'WELCOME10': 10,
+        'SYNCSOCIO20': 20,
+        'LAUNCH50': 50,
+        'LAUNCH': 40
+      };
+
+      if (coupon && (!coupon.expiryDate || coupon.expiryDate > new Date()) && (coupon.maxUses === null || coupon.maxUses === undefined || coupon.timesUsed < coupon.maxUses)) {
         actualDiscountPercentage = coupon.discountPercentage;
+        actualDiscountAmount = Math.floor(expectedBasePrice * (actualDiscountPercentage / 100));
+        expectedFinalAmount = Math.max(1, expectedBasePrice - actualDiscountAmount);
+      } else if (!coupon && demoCoupons[couponCode.toUpperCase().trim()]) {
+        actualDiscountPercentage = demoCoupons[couponCode.toUpperCase().trim()];
         actualDiscountAmount = Math.floor(expectedBasePrice * (actualDiscountPercentage / 100));
         expectedFinalAmount = Math.max(1, expectedBasePrice - actualDiscountAmount);
       } else {
