@@ -97,6 +97,7 @@ const Signup = () => {
         const rawProfile = await profRes.json();
         const profile = rawProfile && rawProfile.success !== undefined ? (rawProfile.success ? rawProfile.data : rawProfile) : rawProfile;
         if (profile && profile._id) {
+          localStorage.setItem("syncsocio_profile", JSON.stringify(profile));
           localStorage.setItem("syncsocio_setup_done", "true");
           window.location.href = "/dashboard";
         } else {
@@ -496,8 +497,7 @@ const Signup = () => {
                             window.location.href = "/set-password";
                           } else {
                             // Existing user
-                            localStorage.setItem("token", data.token);
-                            window.location.href = "/onboarding";
+                            await handlePostAuthSuccess(data.token);
                           }
                         } catch (err: any) {
                           setError(getFriendlyErrorMessage(err));

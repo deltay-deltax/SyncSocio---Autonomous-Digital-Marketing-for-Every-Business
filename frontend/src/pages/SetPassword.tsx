@@ -64,7 +64,9 @@ const SetPassword = () => {
 
       // Clear temp token and save real token
       localStorage.removeItem('tempToken');
-      
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
 
       // Redirect to onboarding
       navigate('/onboarding');

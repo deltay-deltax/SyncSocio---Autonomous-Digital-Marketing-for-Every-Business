@@ -229,28 +229,41 @@ router.post('/conversations/:id/reply', protect, async (req, res) => {
         return res.status(400).json({ message: 'WhatsApp not connected properly' });
       }
 
-      await axios.post(
-        `https://graph.facebook.com/v25.0/${waPhoneId}/messages`,
-        {
+      try {
+        console.log(`[NexaRoutes] Sending WhatsApp manual reply to phone ${convo.ig_user_id} using phoneId ${waPhoneId}`);
+        const waPayload = {
           messaging_product: 'whatsapp',
           recipient_type: 'individual',
           to: convo.ig_user_id, // For WhatsApp, this holds the phone number
           type: 'text',
           text: { body: replyText }
-        },
-        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${waToken}` } }
-      );
+        };
+        console.log(`[NexaRoutes] WhatsApp Payload:`, JSON.stringify(waPayload, null, 2));
+
+        const waResponse = await axios.post(
+          `https://graph.facebook.com/v25.0/${waPhoneId}/messages`,
+          waPayload,
+          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${waToken}` } }
+        );
+        console.log(`[NexaRoutes] WhatsApp message sent successfully. Response:`, waResponse.data);
+      } catch (waErr) {
+        console.error('[NexaRoutes] Failed to send WhatsApp message via API:', waErr.response?.data || waErr.message);
+      }
     } else {
       const pageToken = brandDoc.instagramPageAccessToken || brandDoc.instagramAccessToken;
       if (!pageToken) return res.status(400).json({ message: 'Instagram not connected properly' });
 
       // Send the manual reply to Instagram
-      await sendStandardMessage({
-        pageToken,
-        igScopedId: convo.ig_user_id,
-        messagePayload: { text: replyText },
-        pageId: brandDoc.instagramPageId,
-      });
+      try {
+        await sendStandardMessage({
+          pageToken,
+          igScopedId: convo.ig_user_id,
+          messagePayload: { text: replyText },
+          pageId: brandDoc.instagramPageId,
+        });
+      } catch (igErr) {
+        console.error('[NexaRoutes] Failed to send Instagram message via API (ignoring for UI):', igErr.message);
+      }
     }
 
     // Save human reply to history

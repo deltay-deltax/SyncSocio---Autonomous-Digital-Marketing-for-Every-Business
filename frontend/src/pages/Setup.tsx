@@ -266,7 +266,7 @@ const Setup = () => {
     setIsStartingTrial(true);
     try {
       
-      if (!localStorage.getItem('syncsocio_profile')) throw new Error('User not authenticated');
+      if (!localStorage.getItem('token')) throw new Error('User not authenticated');
 
       const fp = await fpPromise.load();
       const result = await fp.get();
@@ -277,6 +277,7 @@ const Setup = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
           },
         body: JSON.stringify({ deviceFingerprint: visitorId })
       });
