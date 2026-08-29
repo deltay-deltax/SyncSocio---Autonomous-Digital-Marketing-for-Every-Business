@@ -363,7 +363,7 @@ function CreatorCard({ creator, onMarkPaid, copyToClipboard }: { creator: any, o
   const [expanded, setExpanded] = useState(false);
   
   const promoUrl = `https://syncsocio.com/?ref=${creator.code}`;
-  const dashboardUrl = `https://velocitydm.com/creator/${creator.dashboardToken}`;
+  const dashboardUrl = `https://syncsocio.com/creator/${creator.dashboardToken}`;
 
   return (
     <div className={`bg-white border rounded-2xl shadow-sm overflow-hidden transition-all ${creator.payoutRequested ? "border-amber-300 ring-4 ring-amber-300/20" : "border-slate-200 hover:shadow-md"}`}>
