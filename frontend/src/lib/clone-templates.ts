@@ -817,11 +817,19 @@ export interface Product {
   _id: string;
   name: string;
   description?: string;
-  price?: string;
+  price?: number;
+  offerPrice?: number;
   imageBase64: string;
   imageUrls?: string[];
   keyBenefit?: string;
-  offerPrice?: string;
+  verifiedBenefits?: string[];
+  proofPoints?: string[];
+  offerDetails?: string;
+  guarantee?: string;
+  variantDetails?: string[];
+  sourceUrl?: string;
+  serviceProvider?: string;
+  isCustomUpload?: boolean;
 }
 
 export const CLONE_PRODUCTS: Product[] = [];

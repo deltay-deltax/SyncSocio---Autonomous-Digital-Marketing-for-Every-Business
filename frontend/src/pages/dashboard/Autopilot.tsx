@@ -78,11 +78,20 @@ const languages = [
 interface Product {
   _id: string;
   name: string;
-  description: string;
+  description?: string;
+  price?: number;
+  offerPrice?: number;
   imageBase64: string;
   imageUrls?: string[];
   keyBenefit?: string;
-  price?: string;
+  verifiedBenefits?: string[];
+  proofPoints?: string[];
+  offerDetails?: string;
+  guarantee?: string;
+  variantDetails?: string[];
+  sourceUrl?: string;
+  serviceProvider?: string;
+  isCustomUpload?: boolean;
 }
 
 function imgSrc(b64: string) {
@@ -279,8 +288,7 @@ export default function AutopilotPage() {
           headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) }
         });
         if (res.ok) {
-          const _rawJson34 = await res.json();
-            const data = _rawJson34 && _rawJson34.success !== undefined ? (_rawJson34.success ? _rawJson34.data : _rawJson34) : _rawJson34;
+          const data = await res.json();
           const prodList = data.products || [];
           setProducts(prodList);
           setSelectedProductIds([]);

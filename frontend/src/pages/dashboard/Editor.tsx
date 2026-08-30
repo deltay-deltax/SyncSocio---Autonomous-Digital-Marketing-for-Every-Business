@@ -11,16 +11,23 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
 type Uploaded = { url: string; name: string; base64?: string; info?: string } | null;
 
-// Product interface matching the rest of the app
 interface Product {
   _id?: string;
   name: string;
   description?: string;
-  price?: string;
+  price?: number;
+  offerPrice?: number;
   imageBase64: string;
   imageUrls?: string[];
-  isCustomUpload?: boolean;
   keyBenefit?: string;
+  verifiedBenefits?: string[];
+  proofPoints?: string[];
+  offerDetails?: string;
+  guarantee?: string;
+  variantDetails?: string[];
+  sourceUrl?: string;
+  serviceProvider?: string;
+  isCustomUpload?: boolean;
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -133,7 +140,6 @@ export default function EditorPage() {
   // Product Catalog State
   const [products, setProducts] = useState<Product[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
-  const modalFileInputRef = useRef<HTMLInputElement>(null);
   
   // Brand Profile
   const profile = JSON.parse(localStorage.getItem('syncsocio_profile') || '{}');
@@ -145,8 +151,7 @@ export default function EditorPage() {
         
         const res = await fetch(`${API_BASE}/products`, { credentials: 'include', headers: { ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}) } });
         if (res.ok) {
-          const _rawJson99 = await res.json();
-            const data = _rawJson99 && _rawJson99.success !== undefined ? (_rawJson99.success ? _rawJson99.data : _rawJson99) : _rawJson99;
+          const data = await res.json();
           setProducts(data.products || []);
         }
       } catch (e) {
@@ -200,18 +205,7 @@ export default function EditorPage() {
     };
   };
 
-  const handleModalPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const b64 = await fileToBase64(file);
-    const customProduct: Product = {
-      _id: `custom_${Date.now()}`,
-      name: file.name,
-      imageBase64: b64,
-      isCustomUpload: true,
-    };
-    setProducts(prev => [customProduct, ...prev]);
-  };
+
 
   const selectProduct = (p: Product) => {
     const info = [p.name, p.description, p.keyBenefit].filter(Boolean).join(" - ");
@@ -432,26 +426,6 @@ export default function EditorPage() {
 
               <div className="p-5 overflow-y-auto flex-1">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {/* Upload from Computer Card */}
-                  <button
-                    type="button"
-                    onClick={() => modalFileInputRef.current?.click()}
-                    className="text-center relative p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center min-h-[140px] transition bg-card hover:bg-muted border-border hover:border-primary/50 group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary flex items-center justify-center mb-3 transition shadow-sm">
-                      <Upload size={18} />
-                    </div>
-                    <p className="text-sm font-bold text-foreground">Upload Photo</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">From computer</p>
-                  </button>
-                  <input
-                    ref={modalFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleModalPhotoUpload}
-                  />
-
                   {products.map((p) => (
                     <button
                       key={p._id}

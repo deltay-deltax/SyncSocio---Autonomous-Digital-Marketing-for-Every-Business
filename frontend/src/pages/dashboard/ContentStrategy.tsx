@@ -1078,7 +1078,6 @@ const DashboardStrategy = () => {
     }
   }, [mode]);
   const campaignFileInput = useRef<HTMLInputElement>(null);
-  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Products (from API)
   const [products, setProducts] = useState<any[]>([]);
@@ -1306,49 +1305,7 @@ const DashboardStrategy = () => {
     setActiveCampaignImageSource('computer');
   };
 
-  const handleModalPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    const limit = mode === 'ecomm' ? 1 : (mode === 'ads' ? 1 : (mode === 'video' && videoKind === 'img2video' ? 1 : count));
-    if (selectedProducts.length >= limit) {
-      alert(`You can select at most ${limit} item(s). Please deselect an item first.`);
-      return;
-    }
-
-    try {
-      const b64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const res = reader.result as string;
-          const rawB64 = res.split(',')[1] || res;
-          resolve(rawB64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const customProduct = {
-        _id: 'custom-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
-        name: file.name.split('.')[0] || 'Uploaded Photo',
-        imageBase64: b64,
-        isCustomUpload: true,
-        price: '',
-        offerPrice: '',
-        description: '',
-        keyBenefit: ''
-      };
-
-      setSelectedProducts((prev) => [...prev, customProduct]);
-
-      // Reset input value so same file can be selected again
-      if (modalFileInputRef.current) {
-        modalFileInputRef.current.value = '';
-      }
-    } catch (err) {
-      console.error('[Upload] Failed to process modal upload:', err);
-    }
-  };
 
   const fetchCreativeLibrary = async () => {
     const cacheKey = `syncsocio_strategy_assets_${brandId}`;
@@ -4844,26 +4801,6 @@ const DashboardStrategy = () => {
 
               <div className="p-5 overflow-y-auto flex-1">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {/* Upload from Computer Card */}
-                  <button
-                    type="button"
-                    onClick={() => modalFileInputRef.current?.click()}
-                    className="text-center relative p-3 rounded-2xl border border-dashed flex flex-col items-center justify-center min-h-[140px] transition bg-card hover:bg-muted/30 border-border hover:border-primary/40 group"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary flex items-center justify-center mb-2 transition">
-                      <Upload size={16} />
-                    </div>
-                    <p className="text-xs font-bold text-foreground">Upload Photo</p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">From computer</p>
-                  </button>
-                  <input
-                    ref={modalFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleModalPhotoUpload}
-                  />
-
                   {/* Custom Uploaded Items */}
                   {selectedProducts.filter((p) => p.isCustomUpload).map((p) => {
                     return (
