@@ -120,7 +120,7 @@ const Index = () => {
       <NexaAI />
 
       {/* 7. Testimonials */}
-      {/* <TestimonialsSection /> */}
+      <TestimonialsSection />
 
       {/* 8. Pricing + FAQ */}
       <Pricing onWaitlistClick={() => navigate("/signup")} />

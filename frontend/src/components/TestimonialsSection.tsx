@@ -3,58 +3,31 @@ import { Star, Quote } from "lucide-react";
 
 const testimonials = [
   {
-    name: "Aisha Malhotra",
-    role: "Founder, Glow Beauty",
+    name: "Zubair Aalam",
+    role: "Bfour Exim",
     quote:
-      "SyncSocio turned our weekly content calendar from a 6-hour stress-fest into a 20-minute ritual. The AI understands our brand voice better than most freelancers.",
+      "Agencies were charging us ₹15,000 a day for marketing. Now we have SyncSocio helping us create campaign-ready carousels and health tip videos in minutes. It's completely transformed how we market our LifeCore ionizers.",
     rating: 5,
-    initials: "AM",
+    initials: "ZA",
     gradient: "from-violet-200 to-indigo-200",
   },
   {
-    name: "Rohan Kapoor",
-    role: "CMO, Urban Sole",
+    name: "Abhisekh Gupta",
+    role: "Abhiyan Educational Consultancy",
     quote:
-      "We tested the 7-day plan and published 14 reels. Engagement doubled within two weeks. The scheduling + publishing flow is exactly what we needed.",
+      "Graphic designers were costing us way too much for our social media updates. SyncSocio lets us quickly create professional banners for our university tie-ups and scholarship announcements. It's a game changer.",
     rating: 5,
-    initials: "RK",
+    initials: "AG",
     gradient: "from-emerald-200 to-teal-200",
   },
   {
-    name: "Priya Nair",
-    role: "Head of Growth, NutriBox",
+    name: "Rahul Sharma",
+    role: "Founder, TechSolutions",
     quote:
-      "The festival studio saved us during Diwali. We generated campaign-ready carousels, WhatsApp creatives, and email headers in one afternoon. Clean, fast, and on-brand.",
+      "We were struggling to maintain a consistent social media presence. SyncSocio changed that entirely. It acts like our in-house marketing team, generating high-quality posts effortlessly. It's easily the best investment we've made this year.",
     rating: 5,
-    initials: "PN",
+    initials: "RS",
     gradient: "from-amber-200 to-orange-200",
-  },
-  {
-    name: "Daniel Lee",
-    role: "E-commerce Lead, Hometown Goods",
-    quote:
-      "E-comm listings used to take forever. Now we drop in a product and get marketplace-ready images in minutes. ROI is obvious after the first month.",
-    rating: 5,
-    initials: "DL",
-    gradient: "from-blue-200 to-sky-200",
-  },
-  {
-    name: "Sarah Thompson",
-    role: "Content Director, SaaSwift",
-    quote:
-      "We produce high-quality SaaS explainers at a fraction of the cost. The editor feels like ChatGPT for creatives — intuitive and surprisingly polished.",
-    rating: 5,
-    initials: "ST",
-    gradient: "from-pink-200 to-rose-200",
-  },
-  {
-    name: "Karan Mehta",
-    role: "Owner, Chai Co.",
-    quote:
-      "As a one-person team, SyncSocio is like hiring a designer, copywriter, and scheduler. The free creatives trial convinced me immediately.",
-    rating: 5,
-    initials: "KM",
-    gradient: "from-lime-200 to-green-200",
   },
 ];
 
