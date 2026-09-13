@@ -47,19 +47,45 @@ const resolvePageAccessToken = async ({ userAccessToken, pageId }) => {
     return '';
   }
 
+  // Tier 1: direct /me/accounts
   const accountsData = await graphGet('me/accounts', {
     fields: 'id,name,access_token,instagram_business_account',
     access_token: userAccessToken,
   });
 
-  if (accountsData?.error) {
-    console.error('Failed to resolve page access token:', accountsData.error);
-    return '';
+  if (!accountsData?.error) {
+    const pages = Array.isArray(accountsData?.data) ? accountsData.data : [];
+    const page = pages.find((item) => String(item?.id) === String(pageId));
+    if (page?.access_token) {
+      console.log(`resolvePageAccessToken: Found token via /me/accounts for page ${pageId}`);
+      return page.access_token;
+    }
+  } else {
+    console.error('resolvePageAccessToken /me/accounts failed:', accountsData.error);
   }
 
-  const pages = Array.isArray(accountsData?.data) ? accountsData.data : [];
-  const page = pages.find((item) => String(item?.id) === String(pageId));
-  return page?.access_token || '';
+  // Tier 2: Business Manager owned_pages
+  console.log(`resolvePageAccessToken: Falling back to BM discovery for page ${pageId}...`);
+  try {
+    const bizData = await graphGet('me/businesses', {
+      fields: 'id,owned_pages{id,access_token}',
+      access_token: userAccessToken,
+    });
+    if (!bizData?.error) {
+      for (const biz of (bizData.data || [])) {
+        const bmPage = (biz.owned_pages?.data || []).find((p) => String(p.id) === String(pageId));
+        if (bmPage?.access_token) {
+          console.log(`resolvePageAccessToken: Found token via BM (${biz.id}) for page ${pageId}`);
+          return bmPage.access_token;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('resolvePageAccessToken BM fallback failed:', e.message);
+  }
+
+  console.warn(`resolvePageAccessToken: Could not find a token for page ${pageId} via any method.`);
+  return '';
 };
 
 const subscribeWebhookTargets = async ({ accessToken, igBusinessAccountId, igPageId, pageAccessToken }) => {
@@ -212,7 +238,7 @@ export const instagramCallback = async (req, res) => {
     const accessToken = longLivedData.access_token;
     console.log('✅ Long-lived token received');
 
-    // 3. Resilient Discovery: Nested query for accounts and IG accounts
+    // 3. Resilient Discovery: Tier 1 — personal /me/accounts
     console.log('📡 Starting discovery of Pages and IG accounts...');
     const meRes = await fetch(`${FB_API_BASE}/me?fields=id,name,accounts{name,id,access_token,instagram_business_account}&access_token=${accessToken}`);
     const profileData = await meRes.json();
@@ -224,13 +250,41 @@ export const instagramCallback = async (req, res) => {
     
     console.log('--- 🔍 DISCOVERY RESULTS ---');
     console.log(`User Identified: ${profileData.name} (ID: ${profileData.id})`);
+    console.log('📋 Raw accounts field from Meta:', JSON.stringify(profileData.accounts || null));
     
-    const allPages = (profileData.accounts && profileData.accounts.data) || [];
-    console.log(`Found ${allPages.length} potential Facebook pages.`);
-    
+    let allPages = (profileData.accounts && profileData.accounts.data) || [];
+    console.log(`Tier 1 (/me/accounts): Found ${allPages.length} personal-admin pages.`);
     allPages.forEach(p => {
       console.log(`- Page: ${p.name} (ID: ${p.id}) | Linked IG: ${p.instagram_business_account ? `YES (${p.instagram_business_account.id})` : 'NO'} | Has Page Token: ${Boolean(p.access_token)}`);
     });
+
+    // Tier 2 — Business Manager owned pages (handles BM-managed pages which /me/accounts misses)
+    if (allPages.length === 0) {
+      console.log('⚠️  No personal pages found. Trying Tier 2: Business Manager discovery...');
+      try {
+        const bizRes = await fetch(`${FB_API_BASE}/me/businesses?fields=id,name,owned_pages{name,id,access_token,instagram_business_account}&access_token=${accessToken}`);
+        const bizData = await bizRes.json();
+
+        if (bizData.error) {
+          console.warn('⚠️  Business Manager query failed:', bizData.error.message);
+        } else {
+          const businesses = (bizData.data) || [];
+          console.log(`Tier 2 (/me/businesses): Found ${businesses.length} Business Manager(s).`);
+          for (const biz of businesses) {
+            console.log(`  Business: ${biz.name} (ID: ${biz.id})`);
+            const bmPages = (biz.owned_pages && biz.owned_pages.data) || [];
+            console.log(`  -> ${bmPages.length} owned page(s) in this BM.`);
+            bmPages.forEach(p => {
+              console.log(`     - Page: ${p.name} (ID: ${p.id}) | Linked IG: ${p.instagram_business_account ? `YES (${p.instagram_business_account.id})` : 'NO'}`);
+            });
+            allPages = allPages.concat(bmPages);
+          }
+          console.log(`Tier 2 total pages found: ${allPages.length}`);
+        }
+      } catch (bizErr) {
+        console.warn('⚠️  Business Manager discovery threw an exception:', bizErr.message);
+      }
+    }
 
     // 4. Look for the Instagram Account
     let igBusinessAccountId = null;
@@ -238,24 +292,33 @@ export const instagramCallback = async (req, res) => {
     let igPageId = null;
     let igPageAccessToken = null;
 
-    // Check pages first
+    // Check pages (from both Tier 1 and Tier 2)
     for (const page of allPages) {
       if (page.instagram_business_account) {
         igBusinessAccountId = page.instagram_business_account.id;
         igPageId = page.id;
         igPageAccessToken = page.access_token || null;
+        console.log(`✅ Found IG Business Account ${igBusinessAccountId} via Page: ${page.name} (${page.id})`);
         break;
       }
     }
 
-    // Check direct Instagram accounts if pages failed
-    if (!igBusinessAccountId && profileData.instagram_business_accounts && profileData.instagram_business_accounts.data.length > 0) {
-      console.log('Discovery: Found Instagram account via direct profile scan.');
+    // Tier 3 — direct instagram_business_accounts on the user profile (legacy fallback)
+    if (!igBusinessAccountId && profileData.instagram_business_accounts && profileData.instagram_business_accounts.data && profileData.instagram_business_accounts.data.length > 0) {
+      console.log('Discovery Tier 3: Found Instagram account via direct profile scan.');
       igBusinessAccountId = profileData.instagram_business_accounts.data[0].id;
     }
 
     if (!igBusinessAccountId) {
-      throw new Error('No Instagram Business account found. Ensure your Instagram is linked to your Facebook Page and you selected the Page in the login popup.');
+      const debugInfo = allPages.length === 0
+        ? 'No Facebook Pages were returned by Meta — the user did not grant page access during the login popup.'
+        : `${allPages.length} Facebook Page(s) found but none have an Instagram Business account linked.`;
+      console.error(`❌ IG Discovery Failed: ${debugInfo}`);
+      throw new Error(
+        allPages.length === 0
+          ? 'No Facebook Pages were shared with SyncSocio. Please reconnect and make sure to SELECT your Facebook Page when the login popup asks \'What pages do you want to use?\'.'
+          : 'Your Facebook Page was found but has no Instagram Business account linked. Please go to your Facebook Page settings and connect your Instagram account there first.'
+      );
     }
 
     // 5. Get Instagram Username and Profile Picture
