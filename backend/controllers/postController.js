@@ -326,6 +326,13 @@ export const smartSchedulePosts = async (req, res) => {
     const { postIds, startDate, endDate, platforms, schedules } = req.body;
     const userId = req.user._id;
 
+    console.log('\n=== [SMART-SCHEDULE] Request received ===');
+    console.log('[SMART-SCHEDULE] userId:', userId);
+    console.log('[SMART-SCHEDULE] postIds:', JSON.stringify(postIds));
+    console.log('[SMART-SCHEDULE] platforms:', JSON.stringify(platforms));
+    console.log('[SMART-SCHEDULE] schedules:', JSON.stringify(schedules));
+    console.log('[SMART-SCHEDULE] startDate:', startDate, '| endDate:', endDate);
+
     // Ensure user cannot schedule past their plan expiration date
     if (req.user.planExpiresAt) {
       if (endDate && new Date(endDate) > new Date(req.user.planExpiresAt)) {
@@ -346,8 +353,10 @@ export const smartSchedulePosts = async (req, res) => {
 
     const brandProfile = await BrandProfile.findOne({ user: userId, _id: req.user.activeBrandId }) || await BrandProfile.findOne({ user: userId });
     if (!brandProfile) {
+      console.log('[SMART-SCHEDULE] ❌ No brand profile found for user:', userId);
       return res.status(404).json({ message: 'Brand profile not found' });
     }
+    console.log('[SMART-SCHEDULE] ✅ Brand profile found:', brandProfile._id);
 
     const creatives = await StrategyCreative.find({
       _id: { $in: postIds },
@@ -355,11 +364,19 @@ export const smartSchedulePosts = async (req, res) => {
       status: { $in: ['hearted', 'scheduled', 'posted'] }
     });
 
+    console.log('[SMART-SCHEDULE] Queried postIds count:', postIds?.length);
+    console.log('[SMART-SCHEDULE] Found creatives count:', creatives.length);
     if (creatives.length === 0) {
+      // Extra debug: check if they exist at all (without status filter)
+      const anyCreatives = await StrategyCreative.find({ _id: { $in: postIds }, user: userId });
+      console.log('[SMART-SCHEDULE] ❌ No creatives with valid status. Found WITHOUT status filter:', anyCreatives.length);
+      anyCreatives.forEach(c => console.log(`  - _id: ${c._id}, status: ${c.status}`));
       return res.status(400).json({ message: 'No valid creatives found to schedule.' });
     }
+    creatives.forEach(c => console.log(`[SMART-SCHEDULE] Creative: ${c._id}, status: ${c.status}, type: ${c.type}`));
 
     let recommendedSchedules = schedules;
+    console.log('[SMART-SCHEDULE] Using provided schedules:', recommendedSchedules?.length ?? 0, 'items');
 
     if (!recommendedSchedules || recommendedSchedules.length === 0) {
       // Fetch online followers activity (ground reality metrics)
@@ -411,9 +428,17 @@ export const smartSchedulePosts = async (req, res) => {
     const results = [];
 
     // Save each scheduled post and call publish service
+    console.log('[SMART-SCHEDULE] Processing', recommendedSchedules.length, 'schedule items...');
     for (const recommendation of recommendedSchedules) {
-      const creative = creatives.find(c => c._id.toString() === recommendation.id);
-      if (!creative) continue;
+      // Support both `id` (from AI agent) and `postId` (from frontend direct submit)
+      const matchId = recommendation.postId || recommendation.id;
+      console.log('[SMART-SCHEDULE] Looking up creative for matchId:', matchId);
+      const creative = creatives.find(c => c._id.toString() === matchId);
+      if (!creative) {
+        console.log('[SMART-SCHEDULE] ❌ No creative found for matchId:', matchId, '| Available IDs:', creatives.map(c => c._id.toString()));
+        continue;
+      }
+      console.log('[SMART-SCHEDULE] ✅ Matched creative:', creative._id, 'type:', creative.type);
 
       // Decode base64 images and save to temp files
       const filePaths = await writeCreativeToFiles(creative);
@@ -483,13 +508,14 @@ export const smartSchedulePosts = async (req, res) => {
           });
         }
       } catch (err) {
-        console.error(`Error scheduling post ${postAnalysis._id} via python agent:`, err.message);
+        console.error(`[SMART-SCHEDULE] ❌ Error scheduling post ${postAnalysis._id} via python agent:`, err.message);
         postAnalysis.status = 'failed';
         await postAnalysis.save();
         results.push({ id: creative._id, status: 'failed', error: err.message });
       }
     }
 
+    console.log('[SMART-SCHEDULE] ✅ Done. Results:', JSON.stringify(results));
     res.status(200).json({ success: true, results });
   } catch (error) {
     console.error('Smart Schedule Posts Error:', error?.response?.data || error.message);

@@ -828,18 +828,14 @@ const DashboardLayoutContent = () => {
         
         const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
+        const body = { postIds, startDate, endDate, platforms, schedules };
+        console.log('[BgSchedule] Sending to smart-schedule:', JSON.stringify(body, null, 2));
         const res = await fetch(`${API_BASE}/posts/smart-schedule`, { credentials: 'include',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             },
-          body: JSON.stringify({
-            postIds,
-            startDate,
-            endDate,
-            platforms,
-            schedules
-          })
+          body: JSON.stringify(body)
         });
 
         if (!res.ok) {
