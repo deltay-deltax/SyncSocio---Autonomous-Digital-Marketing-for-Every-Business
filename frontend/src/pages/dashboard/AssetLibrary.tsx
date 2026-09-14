@@ -470,7 +470,7 @@ const AssetLibrary = () => {
     if (selectedAssetIds.length === 0) return;
     try {
       const schedules = finalRecommendations.map(r => ({
-        id: r.id,
+        postId: r.postId || r.id,
         scheduledAt: r.scheduledAtLocal ? new Date(r.scheduledAtLocal).toISOString() : r.scheduledAt,
       }));
       if (!validateScheduleLimit(schedules)) return;
@@ -485,7 +485,7 @@ const AssetLibrary = () => {
   const handlePostNow = async () => {
     if (selectedAssetIds.length === 0) return;
     try {
-      const schedules = selectedAssetIds.map(id => ({ id, scheduledAt: new Date().toISOString() }));
+      const schedules = selectedAssetIds.map(id => ({ postId: id, scheduledAt: new Date().toISOString() }));
       if (!validateScheduleLimit(schedules)) return;
       if (startBackgroundSchedule) startBackgroundSchedule(selectedAssetIds, platforms, schedules, undefined, undefined);
       setSelectionMode(false); setSelectedAssetIds([]); setShowScheduleModal(false); setModalStep(0); setRecommendations([]);

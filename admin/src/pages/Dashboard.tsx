@@ -189,7 +189,7 @@ const PlanBadge = ({ plan }: { plan: string }) => {
     : 'bg-muted/60 text-muted-foreground border-border';
   return (
     <span className={`px-2 py-0.5 text-xs rounded-full font-medium border capitalize ${cls}`}>
-      {plan || 'Trial'}
+      {plan || 'Free Trial'}
     </span>
   );
 };

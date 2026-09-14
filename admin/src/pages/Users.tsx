@@ -188,7 +188,7 @@ export default function Users() {
     let result = users.filter(u => {
       const matchSearch = (u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
                           (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchPlan = planFilter ? (u.plan || 'Trial').toLowerCase() === planFilter.toLowerCase() : true;
+      const matchPlan = planFilter ? (u.plan || 'Free Trial').toLowerCase() === planFilter.toLowerCase() : true;
       let matchStatus = true;
       if (statusFilter === 'blocked') matchStatus = !!u.isBlocked;
       if (statusFilter === 'active') matchStatus = !u.isBlocked;
@@ -262,7 +262,7 @@ export default function Users() {
             onChange={(e) => setPlanFilter(e.target.value)}
           >
             <option value="">All Plans</option>
-            <option value="trial">Trial</option>
+            <option value="free trial">Free Trial</option>
             <option value="starter">Starter</option>
             <option value="growth">Growth</option>
             <option value="pro">Pro</option>
@@ -349,7 +349,7 @@ export default function Users() {
                         placeholder="e.g. Pro"
                       />
                     ) : (
-                      <span className="font-semibold text-slate-700 capitalize">{user.plan || 'Trial'}</span>
+                      <span className="font-semibold text-slate-700 capitalize">{user.plan || 'Free Trial'}</span>
                     )}
                   </td>
                   

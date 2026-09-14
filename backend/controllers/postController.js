@@ -301,6 +301,7 @@ export const recommendSchedulePosts = async (req, res) => {
       const creative = creatives.find(c => c._id.toString() === rec.id);
       return {
         ...rec,
+        postId: rec.id,  // explicit postId so frontend always has the correct key
         type: creative?.type || 'image',
         idea: creative?.idea || '',
         caption: creative?.caption || '',

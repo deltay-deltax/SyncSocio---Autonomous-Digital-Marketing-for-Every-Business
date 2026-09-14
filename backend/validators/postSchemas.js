@@ -33,6 +33,6 @@ export const smartScheduleSchema = z.object({
   schedules: z.array(z.object({
     postId: commonSchemas.mongoId,
     scheduledAt: z.string().datetime(),
-    platforms: z.record(commonSchemas.booleanStrict),
+    platforms: z.record(commonSchemas.booleanStrict).optional(), // top-level platforms is used, per-item is optional
   })).optional(),
 }).strict();

@@ -288,7 +288,7 @@ const Setup = () => {
         throw new Error(data.message || 'Failed to start free trial');
       }
 
-      toast({ title: 'Free Trial Activated!', description: 'You have received 15 free credits.' });
+      toast({ title: 'Free Trial Activated!', description: 'You have received 35 free credits (7 AI Creatives).' });
       localStorage.setItem('syncsocio_setup_done', 'true');
       navigate('/dashboard');
     } catch (err: any) {

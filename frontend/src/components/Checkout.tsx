@@ -136,9 +136,9 @@ export const Checkout: React.FC<CheckoutProps> = ({
           type,
           plan: planName,
           creditsAdded,
-          couponCode: appliedCoupon?.code || '',
-          discountPercentage: appliedCoupon?.discountPercentage || 0,
-          discountAmount: discountAmount
+          couponCode: appliedCoupon?.code || undefined,
+          discountPercentage: appliedCoupon?.discountPercentage || undefined,
+          discountAmount: discountAmount || undefined
         })
       });
 
@@ -162,7 +162,9 @@ export const Checkout: React.FC<CheckoutProps> = ({
                 ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
               },
               body: JSON.stringify({
-                ...response,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
                 billingAddress: billing,
                 metaEventId
               })

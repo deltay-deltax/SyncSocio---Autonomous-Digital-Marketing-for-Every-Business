@@ -454,7 +454,7 @@ export const startFreeTrial = async (req, res) => {
       user._id,
       'success',
       'Free Trial Started',
-      `You've received 15 free credits to generate AI creatives!`
+      `You've received 35 free credits (7 AI Creatives) to get started!`
     );
 
     res.status(200).json({ success: true, message: 'Free trial activated!', user });
