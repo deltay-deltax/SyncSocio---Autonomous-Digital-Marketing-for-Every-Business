@@ -688,7 +688,7 @@ and CTA button styles specified above. Do NOT use generic terms like 'grape purp
 
     try:
         def _call_director(messages: List[Dict[str, str]], temperature: float) -> str:
-            output_token_cap = min(5000, max(900, 400 + (count * 520)))
+            output_token_cap = min(8192, max(4096, 2048 + (count * 1500)))
             client = genai.Client(api_key=api_key)
             system_instruction = ""
             user_content = ""
@@ -702,6 +702,7 @@ and CTA button styles specified above. Do NOT use generic terms like 'grape purp
                 system_instruction=system_instruction.strip() if system_instruction else None,
                 temperature=temperature,
                 max_output_tokens=output_token_cap,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
                 response_mime_type="application/json"
             )
             response = client.models.generate_content(
@@ -713,12 +714,32 @@ and CTA button styles specified above. Do NOT use generic terms like 'grape purp
 
 
         def _parse_and_validate(content: str) -> List[Dict]:
-            if content.startswith("```"):
-                content = content.split("```", 2)[1]
-                if content.startswith("json"):
-                    content = content[4:]
-                content = content.rsplit("```", 1)[0]
-            parsed = json.loads(content.strip())
+            clean_content = content.strip()
+            # Extract content from markdown fences if present
+            if "```" in clean_content:
+                parts = clean_content.split("```")
+                for i in range(1, len(parts), 2):
+                    block = parts[i]
+                    if block.startswith("json"):
+                        block = block[4:]
+                    block = block.strip()
+                    try:
+                        p = json.loads(block, strict=False)
+                        if isinstance(p, (list, dict)):
+                            clean_content = block
+                            break
+                    except Exception:
+                        pass
+            # If wrapped in explanatory text, locate the outermost JSON array or object
+            if not clean_content.startswith("["):
+                s = clean_content.find("[")
+                e = clean_content.rfind("]")
+                if s != -1 and e != -1 and e > s:
+                    clean_content = clean_content[s:e+1]
+
+            parsed = json.loads(clean_content.strip(), strict=False)
+            if isinstance(parsed, dict):
+                parsed = [parsed]
             if not isinstance(parsed, list) or len(parsed) < count:
                 returned = len(parsed) if isinstance(parsed, list) else 0
                 raise ValueError(f"Director returned {returned} of {count} concepts")

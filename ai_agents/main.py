@@ -290,13 +290,14 @@ class HTMLMetadataExtractor(HTMLParser):
             "stylesheet_urls": list(dict.fromkeys(self.stylesheet_urls))[:3],
         }
 
-def call_gemini_llm(prompt: str, api_key: str = None, system_prompt: str = "", max_tokens: int = 2600):
+def call_gemini_llm(prompt: str, api_key: str = None, system_prompt: str = "", max_tokens: int = 4096):
     effective_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
     client = genai.Client(api_key=effective_key)
     config = types.GenerateContentConfig(
         system_instruction=system_prompt if system_prompt else None,
         temperature=0.2,
         max_output_tokens=max_tokens,
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
         response_mime_type="application/json"
     )
     response = client.models.generate_content(
