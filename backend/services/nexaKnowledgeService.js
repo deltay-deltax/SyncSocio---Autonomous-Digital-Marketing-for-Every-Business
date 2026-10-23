@@ -1,8 +1,6 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 dotenv.config();
-
-
 
 /**
  * Extracts a generalized Q&A pair from a chat history and human reply.
@@ -14,17 +12,24 @@ export const extractKnowledgeFromReply = async (conversationHistory, humanReply)
   try {
     if (!humanReply) return null;
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn('[NexaKnowledgeService] Missing OPENAI_API_KEY, cannot extract knowledge.');
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      console.warn('[NexaKnowledgeService] Missing GOOGLE_API_KEY, cannot extract knowledge.');
       return null;
     }
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: 'You output strictly JSON. No markdown.',
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: 'application/json',
+      },
     });
 
     // Get the last 3-4 messages to give context to what the human is replying to
-    const recentHistory = conversationHistory.slice(-4).map(msg => `${msg.role.toUpperCase()}: ${msg.text}`).join('\n');
+    const recentHistory = (conversationHistory || []).slice(-4).map(msg => `${(msg.role || '').toUpperCase()}: ${msg.text}`).join('\n');
 
     const prompt = `
 You are an AI assistant tasked with extracting a generalized Frequently Asked Question (FAQ) and its Answer from a customer service interaction.
@@ -53,17 +58,10 @@ Otherwise, return a JSON object exactly like this:
 }
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You output strictly JSON. No markdown." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.1,
-      response_format: { type: "json_object" }
-    });
+    const response = await model.generateContent(prompt);
+    const rawText = response.response.text();
+    const result = JSON.parse(rawText.trim());
 
-    const result = JSON.parse(response.choices[0].message.content);
     if (result.isValidFaq && result.question && result.answer) {
       return {
         question: result.question,
@@ -77,3 +75,4 @@ Otherwise, return a JSON object exactly like this:
     return null;
   }
 };
+

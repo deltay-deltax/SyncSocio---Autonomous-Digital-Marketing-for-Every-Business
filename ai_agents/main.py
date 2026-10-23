@@ -44,6 +44,7 @@ from strategy_image_agent import generate_strategy_images, refine_campaign_copy
 import shutil
 from langchain_google_genai import ChatGoogleGenerativeAI
 from google import genai
+from google.genai import types
 from auditors.meta_auditor import MetaAuditor
 from auditors.models import AuditorInput, AuditorResponse
 
@@ -289,25 +290,24 @@ class HTMLMetadataExtractor(HTMLParser):
             "stylesheet_urls": list(dict.fromkeys(self.stylesheet_urls))[:3],
         }
 
-def call_openai_gpt(prompt: str, api_key: str, system_prompt: str = "", max_tokens: int = 2600):
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-    payload = {
-        "model": "gpt-4o-mini",
-        "response_format": {"type": "json_object"},
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.2,
-        "max_tokens": max_tokens,
-    }
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=120)
-    response.raise_for_status()
-    result = response.json()
-    return result["choices"][0]["message"]["content"]
+def call_gemini_llm(prompt: str, api_key: str = None, system_prompt: str = "", max_tokens: int = 2600):
+    effective_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
+    client = genai.Client(api_key=effective_key)
+    config = types.GenerateContentConfig(
+        system_instruction=system_prompt if system_prompt else None,
+        temperature=0.2,
+        max_output_tokens=max_tokens,
+        response_mime_type="application/json"
+    )
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=config
+    )
+    return response.text
+
+call_openai_gpt = call_gemini_llm
+
 
 def download_image_as_base64(url: str) -> str:
     if not url or not url.startswith("http"):
@@ -524,7 +524,7 @@ def generate_brand_design_guide(brand_data: dict) -> str:
 @app.post("/scrape-brand-profile")
 async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
     url = payload.url
-    openai_key = os.getenv("OPENAI_API_KEY")
+    openai_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
     
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
@@ -734,7 +734,7 @@ async def api_scrape_brand_profile(payload: ScrapeRequest, request: Request):
         )
         
     if not openai_key:
-        raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
+        raise HTTPException(status_code=400, detail="AI API Key is missing on the server. Please configure GOOGLE_API_KEY.")
         
     try:
         system_prompt = """You are an expert brand researcher and product/service cataloging agent. 
@@ -1009,7 +1009,7 @@ def normalize_compact_ad_facts(product: dict, source_url: str = "") -> dict:
 @app.post("/scrape-single-product")
 async def api_scrape_single_product(payload: ScrapeRequest):
     url = payload.url
-    openai_key = os.getenv("OPENAI_API_KEY")
+    openai_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
     business_category = payload.businessCategory or ""
     _is_saas = is_saas_brand(business_category)
     
@@ -1191,7 +1191,7 @@ async def api_scrape_single_product(payload: ScrapeRequest):
         }
         
     if not openai_key:
-        raise HTTPException(status_code=400, detail="OpenAI API Key is missing on the server. Please configure OPENAI_API_KEY in the backend.")
+        raise HTTPException(status_code=400, detail="AI API Key is missing on the server. Please configure GOOGLE_API_KEY.")
         
     try:
         system_prompt = """You are an expert product and service cataloging agent. 

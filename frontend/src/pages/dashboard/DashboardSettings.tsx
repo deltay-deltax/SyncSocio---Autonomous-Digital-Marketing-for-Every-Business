@@ -1748,14 +1748,14 @@ const DashboardSettings = () => {
                                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Razorpay Webhook URL</label>
                                   <div className="flex items-center gap-2 bg-background border border-border/50 rounded-lg p-1 pl-2.5">
                                     <code className="text-[10px] text-primary flex-1 min-w-0 truncate select-all">
-                                      https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/{activeBrandId}
+                                      {`${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/nexa/razorpay-webhook/${activeBrandId}`}
                                     </code>
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       className="h-7 px-2.5 text-[11px] font-bold shrink-0 text-primary hover:bg-primary/10"
                                       onClick={() => {
-                                        const url = `https://velocityaaasmajorproject-production.up.railway.app/api/nexa/razorpay-webhook/${activeBrandId}`;
+                                        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5050/api'}/nexa/razorpay-webhook/${activeBrandId}`;
                                         navigator.clipboard.writeText(url);
                                         toast({ title: 'Webhook URL Copied!' });
                                       }}

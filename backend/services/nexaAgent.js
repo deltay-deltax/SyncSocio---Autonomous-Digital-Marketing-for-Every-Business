@@ -1,15 +1,14 @@
 /**
  * nexaAgent.js
- * Core Nexa DM Sales Agent — uses OpenAI GPT-4o to run a structured
+ * Core Nexa DM Sales Agent — uses Google Gemini 2.5 Flash to run a structured
  * state-machine conversation over Instagram DMs.
  */
 
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import NexaConversation from '../models/NexaConversation.js';
 import BrandProfile from '../models/BrandProfile.js';
 import Product from '../models/Product.js';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'missing_key' });
 
 // ─── Valid stage transitions ──────────────────────────────────────────────────
 const VALID_TRANSITIONS = {
@@ -262,49 +261,93 @@ export const handleIncomingMessage = async ({ convo, incomingText, imageUrl, bra
   // 1. Build prompt
   const systemPrompt = buildSystemPrompt(brandDoc, convo, nexaSettings);
 
-  // 2. Build the messages array with actual chat history for proper LLM memory
-  const messages = [
-    { role: 'system', content: systemPrompt }
-  ];
+  // 2. Build history contents for Gemini (alternating user/model turns)
+  const contents = [];
 
   if (convo.conversation_history && convo.conversation_history.length > 0) {
     const historyLimit = convo.conversation_history.slice(-10); // last 10 messages for memory
     for (const h of historyLimit) {
-      if (h.role === 'user') {
-        messages.push({ role: 'user', content: h.text });
-      } else if (h.role === 'nexa') {
-        // Pass as plain assistant text — not JSON-wrapped — so GPT doesn't get confused about schema
-        messages.push({ role: 'assistant', content: h.text });
+      const role = h.role === 'user' ? 'user' : 'model';
+      const text = h.text || '';
+      if (!text.trim()) continue;
+      if (contents.length > 0 && contents[contents.length - 1].role === role) {
+        contents[contents.length - 1].parts[0].text += `\n${text}`;
+      } else {
+        contents.push({ role, parts: [{ text }] });
       }
     }
   }
 
-  // Add the current incoming message
-  let content = [];
-  if (incomingText) content.push({ type: 'text', text: incomingText });
-  if (imageUrl) content.push({ type: 'image_url', image_url: { url: imageUrl } });
-  
-  if (content.length === 0) content = " "; // fallback for empty message
-  
-  messages.push({ role: 'user', content });
+  // Ensure history starts with user turn
+  while (contents.length > 0 && contents[0].role !== 'user') {
+    contents.shift();
+  }
 
-  // 3. Call GPT-4o
+  // Build the current user turn parts (text + optional image)
+  const currentParts = [];
+  if (incomingText && incomingText.trim()) {
+    currentParts.push({ text: incomingText.trim() });
+  }
+  if (imageUrl) {
+    try {
+      if (imageUrl.startsWith('data:')) {
+        const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          currentParts.push({
+            inlineData: {
+              mimeType: matches[1],
+              data: matches[2]
+            }
+          });
+        }
+      } else {
+        const imgRes = await fetch(imageUrl);
+        if (imgRes.ok) {
+          const arrayBuf = await imgRes.arrayBuffer();
+          currentParts.push({
+            inlineData: {
+              mimeType: imgRes.headers.get('content-type') || 'image/jpeg',
+              data: Buffer.from(arrayBuf).toString('base64')
+            }
+          });
+        }
+      }
+    } catch (imgErr) {
+      console.warn('[Nexa] Could not fetch image for Gemini:', imgErr.message);
+    }
+  }
+
+  if (currentParts.length === 0) {
+    currentParts.push({ text: ' ' });
+  }
+
+  if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+    contents[contents.length - 1].parts.push(...currentParts);
+  } else {
+    contents.push({ role: 'user', parts: currentParts });
+  }
+
+  // 3. Call Gemini 2.5 Flash
   let parsed;
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      temperature: 0.3, // Low temperature for deterministic, accurate sales responses
-      max_tokens: 1200, // Increased to prevent JSON truncation
-      response_format: { type: 'json_object' },
-      messages: messages,
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.OPENAI_API_KEY;
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: systemPrompt,
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 1500,
+        responseMimeType: 'application/json',
+      },
     });
 
-    const raw = completion.choices[0]?.message?.content || '{}';
-    // Strip any accidental markdown code fences
+    const completion = await model.generateContent({ contents });
+    const raw = completion.response.text() || '{}';
     const clean = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
     parsed = JSON.parse(clean);
   } catch (err) {
-    console.error('[Nexa] GPT call or JSON parse failed:', err.message);
+    console.error('[Nexa] Gemini call or JSON parse failed:', err.message);
     parsed = {
       reply_text: "Hey! I'm having a small hiccup — our team will follow up with you shortly 😊",
       new_stage: convo.stage,

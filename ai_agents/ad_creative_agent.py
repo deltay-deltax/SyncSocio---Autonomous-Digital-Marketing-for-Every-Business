@@ -5,6 +5,9 @@ from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from fal_visual_engine import generate_fal_image_gpt2
 from common import get_brand_dna
+from google import genai
+from google.genai import types
+
 
 
 # Phrases that indicate GPT-4o refused to describe the product image
@@ -679,28 +682,35 @@ and CTA button styles specified above. Do NOT use generic terms like 'grape purp
 'Outfit Bold' — use the real brand design tokens above.
 """
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError("OPENAI_API_KEY is required for Director-quality ad briefs")
+        raise ValueError("GOOGLE_API_KEY is required for Director-quality ad briefs")
 
     try:
         def _call_director(messages: List[Dict[str, str]], temperature: float) -> str:
-            # Scale only with the requested batch. Eight dense briefs need more
-            # room than one, but there is still one Director call per batch.
             output_token_cap = min(5000, max(900, 400 + (count * 520)))
-            res = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={
-                    "model": "gpt-4o",
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": output_token_cap,
-                },
-                timeout=75
+            client = genai.Client(api_key=api_key)
+            system_instruction = ""
+            user_content = ""
+            for m in messages:
+                if m.get("role") == "system":
+                    system_instruction += m.get("content", "") + "\n"
+                else:
+                    user_content += m.get("content", "") + "\n"
+
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction.strip() if system_instruction else None,
+                temperature=temperature,
+                max_output_tokens=output_token_cap,
+                response_mime_type="application/json"
             )
-            res.raise_for_status()
-            return res.json()["choices"][0]["message"]["content"].strip()
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=user_content.strip(),
+                config=config
+            )
+            return response.text.strip()
+
 
         def _parse_and_validate(content: str) -> List[Dict]:
             if content.startswith("```"):

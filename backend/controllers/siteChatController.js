@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -8,6 +8,25 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Helper to normalize conversation history for Gemini (requires alternating user/model turns)
+const formatGeminiHistory = (history = []) => {
+  const formatted = [];
+  for (const msg of history) {
+    const role = (msg.role === 'user') ? 'user' : 'model';
+    const text = typeof msg.content === 'string' ? msg.content : (msg.text || '');
+    if (!text || !text.trim()) continue;
+    if (formatted.length > 0 && formatted[formatted.length - 1].role === role) {
+      formatted[formatted.length - 1].parts[0].text += `\n${text}`;
+    } else {
+      formatted.push({ role, parts: [{ text }] });
+    }
+  }
+  while (formatted.length > 0 && formatted[0].role !== 'user') {
+    formatted.shift();
+  }
+  return formatted;
+};
 
 // Load the comprehensive support KB at startup
 let SUPPORT_KB = '';
@@ -67,8 +86,9 @@ export const handleChat = async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn('[SiteChatbot] OPENAI_API_KEY is missing');
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      console.warn('[SiteChatbot] GOOGLE_API_KEY is missing');
       return res.status(503).json({ error: 'Chat service is temporarily unavailable.' });
     }
 
@@ -79,30 +99,23 @@ export const handleChat = async (req, res) => {
       dynamicKnowledge = '\n# Additional Knowledge Base\n' + answeredLeads.map(lead => `Q: ${lead.question}\nA: ${lead.answer}`).join('\n\n');
     }
 
-    const fullSystemPrompt = baseSystemPrompt + dynamicKnowledge;
+    const fullSystemPrompt = baseSystemPrompt + dynamicKnowledge + 
+      '\nCRITICAL RULE: If the user asks about our company (SyncSocio), our location, team, services, or anything related to our business, YOU MUST TRY TO ANSWER IT. If you do not know the answer to a company-related question, you MUST include the exact phrase "support@syncsocio.com" in your reply so our team can follow up. ONLY if the message is completely irrelevant (e.g. math, cooking, coding help, general knowledge) should you refuse by saying exactly: "Sorry, I can only help you with information about SyncSocio and our services!"';
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: fullSystemPrompt,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 600,
+      }
     });
 
-    const messages = [
-      { role: 'system', content: fullSystemPrompt },
-      ...(history || []).map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      })),
-      { role: 'system', content: 'CRITICAL RULE: If the user asks about our company (SyncSocio), our location, team, services, or anything related to our business, YOU MUST TRY TO ANSWER IT. If you do not know the answer to a company-related question, you MUST include the exact phrase "support@syncsocio.com" in your reply so our team can follow up. ONLY if the message is completely irrelevant (e.g. math, cooking, coding help, general knowledge) should you refuse by saying exactly: "Sorry, I can only help you with information about SyncSocio and our services!"' },
-      { role: 'user', content: message }
-    ];
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages,
-      temperature: 0.7,
-      max_tokens: 300,
-    });
-
-    const replyText = response.choices[0].message.content;
+    const formattedHistory = formatGeminiHistory(history);
+    const chat = model.startChat({ history: formattedHistory });
+    const result = await chat.sendMessage(message);
+    const replyText = result.response.text();
 
     // Capture the lead if the bot didn't know the answer and deferred to support
     if (replyText.includes('support@syncsocio.com')) {
@@ -130,8 +143,9 @@ export const handleDashboardChat = async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn('[DashboardChatbot] OPENAI_API_KEY is missing');
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      console.warn('[DashboardChatbot] GOOGLE_API_KEY is missing');
       return res.status(503).json({ error: 'Chat service is temporarily unavailable.' });
     }
 
@@ -147,25 +161,20 @@ Your role:
 
 ${SUPPORT_KB}`;
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    const messages = [
-      { role: 'system', content: dashboardSystemPrompt },
-      ...(history || []).map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      })),
-      { role: 'user', content: message }
-    ];
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages,
-      temperature: 0.5,
-      max_tokens: 400,
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: dashboardSystemPrompt,
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 600,
+      }
     });
 
-    const replyText = response.choices[0].message.content;
+    const formattedHistory = formatGeminiHistory(history);
+    const chat = model.startChat({ history: formattedHistory });
+    const result = await chat.sendMessage(message);
+    const replyText = result.response.text();
 
     res.json({ reply: replyText });
   } catch (error) {

@@ -1434,39 +1434,15 @@ Each "creative_direction" must be ONE cohesive paragraph beginning with "Visual 
 If a slide does not require a generated photographic image, include "NO PHOTOGRAPHIC IMAGE REQUIRED." within that paragraph.
 """
     try:
-        import requests
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            print("[CarouselAgent] ❌ OPENAI_API_KEY missing. Falling back to Gemini.")
-            response = llm.invoke([HumanMessage(content=prompt)])
-            content = response.content
-            if isinstance(content, list):
-                content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
-            text = content.strip()
-            if text.startswith("```json"): text = text[7:]
-            if text.startswith("```"): text = text[3:]
-            if text.endswith("```"): text = text[:-3]
-            return json.loads(text.strip())
-            
-        payload = {
-            "model": "gpt-4o",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7,
-            "response_format": {"type": "json_object"}
-        }
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
-        
-        if resp.status_code == 200:
-            data = resp.json()
-            content = data["choices"][0]["message"]["content"]
-            return json.loads(content)
-        else:
-            print(f"[CarouselAgent] ❌ OpenAI Error {resp.status_code}: {resp.text}")
-            raise Exception("OpenAI API failed")
+        response = llm.invoke([HumanMessage(content=prompt)])
+        content = response.content
+        if isinstance(content, list):
+            content = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in content)
+        text = content.strip()
+        if text.startswith("```json"): text = text[7:]
+        if text.startswith("```"): text = text[3:]
+        if text.endswith("```"): text = text[:-3]
+        return json.loads(text.strip())
 
     except Exception as e:
         print(f"[CarouselAgent] ❌ LLM failed: {e}")
