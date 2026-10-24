@@ -1,0 +1,11 @@
+.git
+.DS_Store
+node_modules
+dist
+venv
+__pycache__
+*.log
+artifacts
+brain
+scratch
+*.pdf

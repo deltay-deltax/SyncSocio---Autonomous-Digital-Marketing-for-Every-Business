@@ -1,0 +1,103 @@
+services:
+  # -------------------------------------------------------------
+  # 1. AI AGENTS SERVICE (Python / FastAPI)
+  # -------------------------------------------------------------
+  ai_agents:
+    build:
+      context: ./ai_agents
+      dockerfile: Dockerfile
+    container_name: velocity_ai_agents
+    restart: unless-stopped
+    env_file:
+      - ./ai_agents/.env
+    environment:
+      - PORT=8000
+    ports:
+      - "8000:8000"
+    networks:
+      - velocity_net
+
+  # -------------------------------------------------------------
+  # 2. BACKEND API SERVICE (Node.js / Express)
+  # -------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: velocity_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=5050
+      - BIND_HOST=0.0.0.0
+      # Uses the Docker container name for internal microservice communication
+      - AI_SERVICE_URL=http://ai_agents:8000
+      - AGENT_SERVICE_URL=http://ai_agents:8000
+      - FRONTEND_URL=http://localhost:3000
+    ports:
+      - "5050:5050"
+    depends_on:
+      - ai_agents
+    networks:
+      - velocity_net
+
+  # -------------------------------------------------------------
+  # 3. FRONTEND CLIENT (React / Vite + Nginx)
+  # -------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5050/api
+    container_name: velocity_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - velocity_net
+
+  # -------------------------------------------------------------
+  # 4. ADMIN PORTAL (React / Vite + Nginx)
+  # -------------------------------------------------------------
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5050
+        VITE_APP_URL: http://localhost:3000
+    container_name: velocity_admin
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+      - "5174:80"
+    depends_on:
+      - backend
+    networks:
+      - velocity_net
+
+  # -------------------------------------------------------------
+  # (OPTIONAL) OFFLINE LOCAL MONGODB
+  # Uncomment below if you ever need to test 100% offline without MongoDB Atlas:
+  # -------------------------------------------------------------
+  # mongo:
+  #   image: mongo:latest
+  #   container_name: velocity_mongo
+  #   restart: unless-stopped
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo_data:/data/db
+  #   networks:
+  #     - velocity_net
+
+networks:
+  velocity_net:
+    driver: bridge
+
+# volumes:
+#   mongo_data:
